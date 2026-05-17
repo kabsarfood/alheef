@@ -6,11 +6,11 @@ let imageQueue = [];
 let editId = null;
 let dropBound = false;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(location.search);
   editId = params.get('id');
 
-  initLayout('add-property', editId ? 'تعديل الإعلان' : 'إضافة إعلان عقاري');
+  await initLayout('add-property', editId ? 'تعديل الإعلان' : 'إضافة إعلان عقاري');
   renderForm();
   bindDropZone();
 

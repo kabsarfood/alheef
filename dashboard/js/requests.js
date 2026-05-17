@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  initLayout('requests', 'طلبات العملاء');
+  await initLayout('requests', 'طلبات العملاء');
   const content = getPageContent();
   content.innerHTML = '<div class="card"><div class="card__body" id="table-wrap"><div class="loading"><div class="spinner"></div></div></div></div>';
 

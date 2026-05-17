@@ -1,0 +1,339 @@
+/* ═══════════════════════════════════════
+   الهيف Dashboard — Mobile Luxury
+   ═══════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  :root {
+    --header-h: 56px;
+    --sidebar-w: min(300px, 88vw);
+    --lh-body: 1.8;
+  }
+
+  html {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .btn,
+  .nav-item,
+  .sidebar-toggle,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    touch-action: manipulation;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1.15rem;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 0.55rem 0.9rem;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    width: var(--sidebar-w);
+    box-shadow: -8px 0 32px rgba(30, 42, 56, 0.15);
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    background: var(--gold-bg);
+    border: 1px solid var(--gold-border);
+    flex-shrink: 0;
+  }
+
+  .sidebar-toggle:active {
+    transform: scale(0.96);
+  }
+
+  .nav-item {
+    min-height: 48px;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  .main {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .topbar {
+    padding: 0 1rem;
+    height: var(--header-h);
+    gap: 0.5rem;
+  }
+
+  .topbar__title {
+    font-size: 1rem;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar__actions {
+    flex-shrink: 0;
+    gap: 0.4rem;
+  }
+
+  .topbar__actions .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .content {
+    padding: 1.15rem 1rem 2rem;
+  }
+
+  /* ─── Stats & cards ─── */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    padding: 1.15rem 1rem;
+  }
+
+  .stat-card__value {
+    font-size: 1.5rem;
+  }
+
+  .stat-card__label {
+    font-size: 0.78rem;
+  }
+
+  .card__header {
+    padding: 1rem 1.15rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card__header .btn {
+    width: 100%;
+  }
+
+  .card__body {
+    padding: 1.15rem;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .quick-action {
+    padding: 1.15rem 1.25rem;
+    min-height: 72px;
+  }
+
+  /* ─── Forms ─── */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  .form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px;
+    min-height: 48px;
+    padding: 0.85rem 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .images-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .drop-zone {
+    padding: 2rem 1.25rem;
+  }
+
+  /* ─── Offers grid ─── */
+  .offers-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .offer-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .offer-card__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .offer-card__actions .btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  /* ─── Tables → cards ─── */
+  .table-wrap {
+    overflow: visible;
+  }
+
+  .table.table--cards {
+    display: block;
+    border: none;
+  }
+
+  .table.table--cards thead {
+    display: none;
+  }
+
+  .table.table--cards tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .table.table--cards tr {
+    display: block;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.15rem;
+    box-shadow: var(--shadow);
+  }
+
+  .table.table--cards tr:hover td {
+    background: transparent;
+  }
+
+  .table.table--cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border: none;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+
+  .table.table--cards td:not(:last-child) {
+    border-bottom: 1px solid rgba(30, 42, 56, 0.06);
+  }
+
+  .table.table--cards td::before {
+    content: attr(data-label);
+    font-weight: var(--fw-subheading);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .table.table--cards td[dir="ltr"] {
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
+  /* ─── News & settings ─── */
+  .news-item {
+    padding: 1.15rem;
+  }
+
+  .news-item__actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .news-item__actions .btn {
+    width: 100%;
+  }
+
+  .settings-grid .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .color-inputs {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal__box {
+    margin: 1rem;
+    max-height: calc(100svh - 2rem);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card__value {
+    font-size: 1.65rem;
+  }
+
+  .content {
+    padding: 1rem 0.9rem 1.75rem;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 768px) {
+  .offers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Login page */
+@media (max-width: 768px) {
+  .login-page {
+    padding: 1.25rem;
+    align-items: flex-start;
+    padding-top: max(2rem, env(safe-area-inset-top));
+  }
+
+  .login-card {
+    padding: 2rem 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .login-form__submit {
+    min-height: 48px;
+  }
+
+  .login-form input {
+    font-size: 16px;
+    min-height: 48px;
+  }
+}

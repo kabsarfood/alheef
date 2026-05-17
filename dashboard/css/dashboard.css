@@ -949,7 +949,41 @@ button, input, select, textarea {
   color: var(--text-secondary);
 }
 
-/* ─── Responsive ─── */
+/* ─── Settings page ─── */
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-preview {
+  min-height: 80px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-preview--wide {
+  min-height: 120px;
+}
+
+.settings-preview img {
+  max-height: 100px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.settings-preview--wide img {
+  max-height: 140px;
+  width: 100%;
+  object-fit: cover;
+}
+
+/* ─── Responsive (tablet+) ─── */
 @media (max-width: 1024px) {
   .form-grid { grid-template-columns: 1fr; }
 }
@@ -968,10 +1002,6 @@ button, input, select, textarea {
   .sidebar-toggle { display: block; }
 
   .main { margin-right: 0; }
-
-  .content { padding: 1.25rem; }
-
-  .topbar { padding: 0 1.25rem; }
-
-  .offers-grid { grid-template-columns: 1fr; }
 }
+
+@import url('mobile.css');

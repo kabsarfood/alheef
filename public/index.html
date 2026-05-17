@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="الهيف للخدمات العقارية — خبرة وثقة في التسويق والخدمات العقارية. مكتب عقاري سحابي يقدم خدمات احترافية في الرياض وجميع مناطق المملكة.">
   <meta name="keywords" content="عقارات, الهيف, تسويق عقاري, بيع عقارات, إدارة أملاك">
-  <title>الهيف للخدمات العقارية</title>
+  <title id="page-title">الهيف للخدمات العقارية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700&display=swap" rel="stylesheet">
@@ -17,12 +17,16 @@
   <!-- HEADER -->
   <header class="header" id="header">
     <div class="container header__inner">
-      <a href="#hero" class="logo">
-        <div class="logo__icon">ه</div>
-        <div class="logo__text">
-          <span class="logo__name">الهيف</span>
-          <span class="logo__tagline">للخدمات العقارية</span>
-        </div>
+      <a href="#hero" class="logo logo--header" aria-label="الهيف العقارية — الرئيسية">
+        <img
+          id="site-logo"
+          src="/images/logo-alheef.png"
+          alt="الهيف العقارية"
+          class="logo__img"
+          width="200"
+          height="56"
+          fetchpriority="high"
+        >
       </a>
 
       <nav class="nav" id="nav">
@@ -49,6 +53,7 @@
   <section class="hero" id="hero">
     <div class="hero__bg">
       <img
+        id="hero-image"
         src="https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=1920&q=85"
         alt="عقار فاخر — الهيف للخدمات العقارية"
         loading="eager"
@@ -56,12 +61,12 @@
     </div>
     <div class="hero__overlay"></div>
     <div class="container hero__content">
-      <p class="hero__label">مكتب عقاري سحابي</p>
-      <h1 class="hero__title">الهيف للخدمات العقارية</h1>
-      <p class="hero__desc">خبرة وثقة في الخدمات والتسويق العقاري — نُقدّم لك تجربة عقارية راقية تليق بمستوى تطلعاتك</p>
+      <p class="hero__label" id="hero-label">مكتب عقاري سحابي</p>
+      <h1 class="hero__title" id="hero-title">الهيف للخدمات العقارية</h1>
+      <p class="hero__desc" id="hero-desc">خبرة وثقة في الخدمات والتسويق العقاري — نُقدّم لك تجربة عقارية راقية تليق بمستوى تطلعاتك</p>
       <div class="hero__actions">
-        <a href="#offers" class="btn btn-primary">تصفح العروض</a>
-        <a href="#request" class="btn btn-outline">اطلب عقارك</a>
+        <a href="#offers" class="btn btn-primary" id="hero-btn-offers">تصفح العروض</a>
+        <a href="#request" class="btn btn-outline" id="hero-btn-request">اطلب عقارك</a>
       </div>
     </div>
     <a href="#services" class="hero__scroll" aria-hidden="true">

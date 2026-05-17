@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول — الهيف</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard/css/dashboard.css">
+  <link rel="stylesheet" href="/dashboard/css/login.css">
+</head>
+<body class="login-page">
+  <div class="login-page__bg"></div>
+  <div class="login-card">
+    <div class="login-card__brand">
+      <div class="login-card__icon">ه</div>
+      <h1>الهيف</h1>
+      <p>لوحة التحكم</p>
+    </div>
+    <form id="login-form" class="login-form">
+      <div id="login-error" class="login-error" hidden></div>
+      <div class="form-group">
+        <label for="password">كلمة المرور</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-gold login-form__submit" id="login-btn">دخول</button>
+    </form>
+    <a href="/" class="login-card__back">← العودة للموقع</a>
+  </div>
+  <script src="/dashboard/js/auth.js"></script>
+  <script src="/dashboard/js/login.js"></script>
+</body>
+</html>

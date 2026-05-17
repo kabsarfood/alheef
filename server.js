@@ -16,12 +16,14 @@ let express;
 let cors;
 let apiRoutes;
 let adminRoutes;
+let authRoutes;
 
 try {
   express = require('express');
   cors = require('cors');
   apiRoutes = require('./server/routes/api');
   adminRoutes = require('./server/routes/admin');
+  authRoutes = require('./server/routes/auth');
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
   console.error('STEP 4 — فشل التحميل:', err);
@@ -64,6 +66,13 @@ ensureJsonFile('news.json', []);
 ensureJsonFile('requests.json', []);
 ensureJsonFile('subscriptions.json', []);
 ensureJsonFile('listings.json', []);
+
+const { DEFAULT_SETTINGS } = require('./server/utils/settings');
+const settingsPath = path.join(dataDir, 'settings.json');
+if (!fs.existsSync(settingsPath)) {
+  fs.writeFileSync(settingsPath, JSON.stringify(DEFAULT_SETTINGS, null, 2), 'utf8');
+  console.log('  أنشئ ملف: settings.json');
+}
 
 const pathsCheck = {
   public: publicDir,
@@ -110,16 +119,13 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/config', (_req, res) => {
-  res.json({
-    whatsapp: process.env.WHATSAPP_NUMBER || '966500000000',
-    phone: process.env.PHONE_DISPLAY || '050 000 0000',
-    instagram: process.env.INSTAGRAM_URL || '#',
-    x: process.env.X_URL || '#',
-  });
+  const { getContactConfig } = require('./server/utils/settings');
+  res.json(getContactConfig());
 });
 
 function sendDashboardPage(res, requestPath) {

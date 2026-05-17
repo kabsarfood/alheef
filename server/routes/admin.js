@@ -11,8 +11,11 @@ const {
   deleteJson,
 } = require('../utils/dataStore');
 const { normalizeOffer, formatPriceDisplay, buildTitle } = require('../utils/offers');
+const { requireAdmin } = require('../middleware/auth');
+const { getSettings, saveSettings } = require('../utils/settings');
 
 const router = express.Router();
+router.use(requireAdmin);
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 
 const storage = multer.diskStorage({
@@ -204,5 +207,68 @@ router.delete('/news/:id', (req, res) => {
 router.get('/requests', (_req, res) => res.json(readJson('requests.json').reverse()));
 router.get('/subscriptions', (_req, res) => res.json(readJson('subscriptions.json').reverse()));
 router.get('/listings', (_req, res) => res.json(readJson('listings.json').reverse()));
+
+// ─── Site Settings ───
+router.get('/settings', (_req, res) => {
+  res.json(getSettings());
+});
+
+router.put(
+  '/settings',
+  upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'heroImage', maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const current = getSettings();
+      const body = req.body;
+
+      const updates = {
+        siteName: body.siteName ?? current.siteName,
+        siteTagline: body.siteTagline ?? current.siteTagline,
+        hero: {
+          label: body.heroLabel ?? current.hero?.label,
+          title: body.heroTitle ?? current.hero?.title,
+          description: body.heroDescription ?? current.hero?.description,
+          btnOffers: body.heroBtnOffers ?? current.hero?.btnOffers,
+          btnRequest: body.heroBtnRequest ?? current.hero?.btnRequest,
+        },
+        contact: {
+          phone: body.contactPhone ?? current.contact?.phone,
+          whatsapp: body.contactWhatsapp ?? current.contact?.whatsapp,
+          email: body.contactEmail ?? current.contact?.email,
+          location: body.contactLocation ?? current.contact?.location,
+          instagram: body.contactInstagram ?? current.contact?.instagram,
+          x: body.contactX ?? current.contact?.x,
+        },
+        colors: {
+          primary: body.colorPrimary ?? current.colors?.primary,
+          gold: body.colorGold ?? current.colors?.gold,
+          textPrimary: body.colorTextPrimary ?? current.colors?.textPrimary,
+          textSecondary: body.colorTextSecondary ?? current.colors?.textSecondary,
+          border: body.colorBorder ?? current.colors?.border,
+          buttonPrimary: body.colorButtonPrimary ?? current.colors?.buttonPrimary,
+        },
+      };
+
+      if (body.logoUrl) updates.logo = body.logoUrl;
+      if (body.heroImageUrl) updates.heroImage = body.heroImageUrl;
+
+      if (req.files?.logo?.[0]) {
+        updates.logo = `/uploads/${req.files.logo[0].filename}`;
+      }
+      if (req.files?.heroImage?.[0]) {
+        updates.heroImage = `/uploads/${req.files.heroImage[0].filename}`;
+      }
+
+      const saved = saveSettings(updates);
+      res.json({ success: true, message: 'تم حفظ الإعدادات', data: saved });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false, message: 'فشل حفظ الإعدادات' });
+    }
+  }
+);
 
 module.exports = router;

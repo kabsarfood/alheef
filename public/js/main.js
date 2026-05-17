@@ -17,8 +17,11 @@
   // ─── Init ───
   document.addEventListener('DOMContentLoaded', init);
 
+  let siteSettings = null;
+
   async function init() {
     document.getElementById('year').textContent = new Date().getFullYear();
+    await loadSiteSettings();
     await loadConfig();
     setupHeader();
     setupNavigation();
@@ -29,11 +32,69 @@
     setupModal();
   }
 
+  async function loadSiteSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      siteSettings = await res.json();
+      applySiteSettings();
+    } catch {
+      /* defaults from HTML */
+    }
+  }
+
+  function applySiteSettings() {
+    if (!siteSettings) return;
+    const s = siteSettings;
+    const c = s.colors || {};
+
+    if (s.siteName) {
+      document.title = s.siteName;
+      const pt = document.getElementById('page-title');
+      if (pt) pt.textContent = s.siteName;
+    }
+
+    const logo = document.getElementById('site-logo');
+    if (logo && s.logo) {
+      logo.src = s.logo;
+      logo.alt = s.siteName || logo.alt;
+    }
+
+    setText('hero-label', s.hero?.label);
+    setText('hero-title', s.hero?.title);
+    setText('hero-desc', s.hero?.description);
+    setText('hero-btn-offers', s.hero?.btnOffers);
+    setText('hero-btn-request', s.hero?.btnRequest);
+
+    const heroImg = document.getElementById('hero-image');
+    if (heroImg && s.heroImage) heroImg.src = s.heroImage;
+
+    const root = document.documentElement;
+    if (c.primary) root.style.setProperty('--navy', c.primary);
+    if (c.gold) root.style.setProperty('--gold', c.gold);
+    if (c.textPrimary) root.style.setProperty('--text-primary', c.textPrimary);
+    if (c.textSecondary) root.style.setProperty('--text-secondary', c.textSecondary);
+    if (c.buttonPrimary) root.style.setProperty('--black-soft', c.buttonPrimary);
+    if (c.border) root.style.setProperty('--gold-border', c.border);
+
+    if (s.contact) {
+      config.whatsapp = s.contact.whatsapp || config.whatsapp;
+      config.phone = s.contact.phone || config.phone;
+      config.instagram = s.contact.instagram || config.instagram;
+      config.x = s.contact.x || config.x;
+    }
+  }
+
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el && text) el.textContent = text;
+  }
+
   // ─── Config ───
   async function loadConfig() {
     try {
       const res = await fetch('/api/config');
-      config = await res.json();
+      const data = await res.json();
+      config = { ...config, ...data };
     } catch {
       /* use defaults */
     }

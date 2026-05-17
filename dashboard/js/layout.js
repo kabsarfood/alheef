@@ -15,53 +15,58 @@ const NAV_ITEMS = [
     { href: '/dashboard/subscriptions.html', icon: '◐', label: 'الاشتراكات والتنبيهات', page: 'subscriptions' },
   ]},
   { section: 'النظام', items: [
-    { href: '/dashboard/settings.html', icon: '⚙', label: 'الإعدادات', page: 'settings' },
+    { href: '/dashboard/settings.html', icon: '⚙', label: 'إعدادات الموقع', page: 'settings' },
   ]},
 ];
 
-function initLayout(activePage, pageTitle) {
+async function initLayout(activePage, pageTitle) {
+  const authed = await Auth.requireAuth();
+  if (!authed) return;
+
   const app = document.getElementById('app');
   if (!app) return;
 
-  app.innerHTML = `
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar__brand">
-        <a href="/dashboard/" class="sidebar__logo">
-          <div class="sidebar__logo-icon">ه</div>
-          <div class="sidebar__logo-text">
-            <strong>الهيف</strong>
-            <span>لوحة التحكم</span>
-          </div>
-        </a>
-      </div>
-      <nav class="sidebar__nav">
-        ${NAV_ITEMS.map((group) => `
-          <p class="sidebar__label">${group.section}</p>
-          ${group.items.map((item) => `
-            <a href="${item.href}" class="nav-item${item.page === activePage ? ' active' : ''}">
-              <span class="nav-item__icon">${item.icon}</span>
-              ${item.label}
-            </a>
-          `).join('')}
-        `).join('')}
-      </nav>
-      <div class="sidebar__footer">
-        <a href="/" target="_blank">↗ عرض الموقع</a>
-      </div>
-    </aside>
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <main class="main">
-      <header class="topbar">
-        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="القائمة">☰</button>
-        <h1 class="topbar__title">${pageTitle}</h1>
-        <div class="topbar__actions" id="topbar-actions"></div>
-      </header>
-      <div class="content" id="page-content"></div>
-    </main>
-  `;
+  const navHtml = NAV_ITEMS.map((group) => `
+    <p class="sidebar__label">${group.section}</p>
+    ${group.items.map((item) => `
+      <a href="${item.href}" class="nav-item${item.page === activePage ? ' active' : ''}">
+        <span class="nav-item__icon">${item.icon}</span>
+        ${item.label}
+      </a>
+    `).join('')}
+  `).join('');
+
+  app.innerHTML = [
+    '<aside class="sidebar" id="sidebar">',
+    '  <div class="sidebar__brand">',
+    '    <a href="/dashboard/" class="sidebar__logo">',
+    '      <div class="sidebar__logo-icon">ه</div>',
+    '      <div class="sidebar__logo-text"><strong>الهيف</strong><span>لوحة التحكم</span></div>',
+    '    </a>',
+    '  </div>',
+    `  <nav class="sidebar__nav">${navHtml}</nav>`,
+    '  <div class="sidebar__footer"><a href="/" target="_blank">↗ عرض الموقع</a></div>',
+    '</aside>',
+    '<div class="sidebar-overlay" id="sidebar-overlay"></div>',
+    '<main class="main">',
+    '  <header class="topbar">',
+    '    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="القائمة">☰</button>',
+    `    <h1 class="topbar__title">${pageTitle}</h1>`,
+    '    <div class="topbar__actions" id="topbar-actions">',
+    '      <button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>',
+    '    </div>',
+    '  </header>',
+    '  <div class="content" id="page-content"></div>',
+    '</main>',
+  ].join('\n');
 
   document.getElementById('sidebar-toggle')?.addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+  bindLogout();
+}
+
+function bindLogout() {
+  document.getElementById('logout-btn')?.addEventListener('click', () => Auth.logout());
 }
 
 function toggleSidebar() {
@@ -76,7 +81,10 @@ function closeSidebar() {
 
 function setTopbarActions(html) {
   const el = document.getElementById('topbar-actions');
-  if (el) el.innerHTML = html;
+  if (!el) return;
+  const logoutBtn = '<button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>';
+  el.innerHTML = html ? `${html} ${logoutBtn}` : logoutBtn;
+  bindLogout();
 }
 
 function getPageContent() {

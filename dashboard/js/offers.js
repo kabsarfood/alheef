@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  initLayout('offers', 'العروض الحالية');
+  await initLayout('offers', 'العروض الحالية');
   setTopbarActions('<a href="/dashboard/add-property.html" class="btn btn-gold btn-sm">＋ إضافة إعلان</a>');
 
   const content = getPageContent();

@@ -1,7 +1,7 @@
 const CATEGORIES = ['أخبار السوق', 'تحديثات', 'مشاريع جديدة', 'نصائح عقارية', 'عام'];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  initLayout('news', 'الأخبار العقارية');
+  await initLayout('news', 'الأخبار العقارية');
   setTopbarActions('<button class="btn btn-gold btn-sm" id="btn-add-news">＋ إضافة خبر</button>');
   renderPage();
   await loadNews();

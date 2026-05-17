@@ -89,4 +89,9 @@ router.get('/news', (_req, res) => {
   res.json(news);
 });
 
+router.get('/settings', (_req, res) => {
+  const { getPublicSettings } = require('../utils/settings');
+  res.json(getPublicSettings());
+});
+
 module.exports = router;

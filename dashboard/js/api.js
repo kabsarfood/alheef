@@ -5,8 +5,16 @@ const DashboardAPI = {
   base: '/api/admin',
 
   async request(endpoint, options = {}) {
-    const res = await fetch(`${this.base}${endpoint}`, options);
+    const headers = Auth.authHeaders(options.headers || {});
+    const res = await fetch(`${this.base}${endpoint}`, { ...options, headers });
     const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      Auth.clearToken();
+      window.location.replace(Auth.LOGIN_PATH);
+      throw new Error('انتهت الجلسة');
+    }
+
     if (!res.ok) throw new Error(data.message || 'حدث خطأ');
     return data;
   },
@@ -25,9 +33,18 @@ const DashboardAPI = {
 
   saveOffer(formData, id = null) {
     const method = id ? 'PUT' : 'POST';
-    const url = id ? `/offers/${id}` : '/offers';
-    return fetch(`${this.base}${url}`, { method, body: formData }).then(async (res) => {
+    const url = `${this.base}${id ? `/offers/${id}` : '/offers'}`;
+    return fetch(url, {
+      method,
+      headers: Auth.authHeaders(),
+      body: formData,
+    }).then(async (res) => {
       const data = await res.json();
+      if (res.status === 401) {
+        Auth.clearToken();
+        window.location.replace(Auth.LOGIN_PATH);
+        throw new Error('انتهت الجلسة');
+      }
       if (!res.ok) throw new Error(data.message || 'حدث خطأ');
       return data;
     });
@@ -46,7 +63,7 @@ const DashboardAPI = {
     const url = id ? `/news/${id}` : '/news';
     return this.request(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
     });
   },
@@ -65,6 +82,27 @@ const DashboardAPI = {
 
   getListings() {
     return this.request('/listings');
+  },
+
+  getSettings() {
+    return this.request('/settings');
+  },
+
+  saveSettings(formData) {
+    return fetch(`${this.base}/settings`, {
+      method: 'PUT',
+      headers: Auth.authHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (res.status === 401) {
+        Auth.clearToken();
+        window.location.replace(Auth.LOGIN_PATH);
+        throw new Error('انتهت الجلسة');
+      }
+      if (!res.ok) throw new Error(data.message || 'حدث خطأ');
+      return data;
+    });
   },
 };
 

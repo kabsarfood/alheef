@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  initLayout('index', 'لوحة التحكم');
+  await initLayout('index', 'لوحة التحكم');
   const content = getPageContent();
 
   content.innerHTML = [
