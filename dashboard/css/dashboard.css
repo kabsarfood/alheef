@@ -2,6 +2,8 @@
    الهيف — Dashboard Design System
    ═══════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700&display=swap');
+
 :root {
   --white: #ffffff;
   --bg: #f7f6f4;
@@ -32,24 +34,45 @@
   --shadow-gold: 0 6px 24px rgba(197, 164, 109, 0.12);
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --font: 'Cairo', sans-serif;
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --fw-heading: 700;
+  --fw-subheading: 600;
+  --fw-body: 500;
+  --lh-body: 1.75;
+  --lh-heading: 1.35;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 15px; }
+html { font-size: 16px; }
 
 body {
   font-family: var(--font);
   background: var(--bg);
-  color: var(--black);
+  color: var(--text-primary);
+  font-weight: var(--fw-body);
+  line-height: var(--lh-body);
   direction: rtl;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font);
+  color: var(--text-primary);
+  font-weight: var(--fw-heading);
+  line-height: var(--lh-heading);
 }
 
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
-button, input, select, textarea { font-family: var(--font); }
+button, input, select, textarea {
+  font-family: var(--font);
+  font-weight: var(--fw-body);
+}
 
 /* ─── Layout ─── */
 .app {
@@ -98,13 +121,15 @@ button, input, select, textarea { font-family: var(--font); }
 
 .sidebar__logo-text strong {
   display: block;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: var(--fw-heading);
+  color: var(--text-primary);
 }
 
 .sidebar__logo-text span {
-  font-size: 0.7rem;
-  color: var(--gray);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
 }
 
 .sidebar__nav {
@@ -126,23 +151,25 @@ button, input, select, textarea { font-family: var(--font); }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.9rem;
   border-radius: var(--radius);
-  font-size: 0.9rem;
-  color: var(--black-muted);
+  font-size: 0.95rem;
+  font-weight: var(--fw-body);
+  color: var(--text-secondary);
   transition: all var(--transition);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .nav-item:hover {
   background: var(--bg);
-  color: var(--black);
+  color: var(--text-primary);
+  font-weight: var(--fw-subheading);
 }
 
 .nav-item.active {
   background: var(--gold-bg);
-  color: var(--navy);
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: var(--fw-subheading);
   border: 1px solid var(--gold-border);
   box-shadow: inset 3px 0 0 var(--gold);
 }
@@ -165,7 +192,7 @@ button, input, select, textarea { font-family: var(--font); }
 
 .sidebar__footer a {
   font-size: 0.8rem;
-  color: var(--gray);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -193,8 +220,9 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .topbar__title {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: var(--fw-heading);
+  color: var(--text-primary);
 }
 
 .topbar__actions {
@@ -215,7 +243,7 @@ button, input, select, textarea { font-family: var(--font); }
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem;
-  color: var(--black);
+  color: var(--text-primary);
 }
 
 .sidebar-overlay {
@@ -250,15 +278,17 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .stat-card__label {
-  font-size: 0.8rem;
-  color: var(--gray);
-  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
+  margin-bottom: 0.55rem;
 }
 
 .stat-card__value {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--black);
+  font-size: 1.85rem;
+  font-weight: var(--fw-heading);
+  color: var(--text-primary);
+  line-height: var(--lh-heading);
 }
 
 .stat-card__value--gold { color: var(--gold); }
@@ -287,8 +317,9 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .card__title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
 }
 
 .card__body {
@@ -302,13 +333,14 @@ button, input, select, textarea { font-family: var(--font); }
   justify-content: center;
   gap: 0.5rem;
   padding: 0.65rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: var(--fw-subheading);
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all var(--transition);
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .btn:disabled {
@@ -383,11 +415,11 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .form-section__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--navy);
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.55rem;
   border-bottom: 1px solid rgba(197, 164, 109, 0.2);
 }
 
@@ -408,9 +440,9 @@ button, input, select, textarea { font-family: var(--font); }
 .form-group.full { grid-column: 1 / -1; }
 
 .form-group label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--black-muted);
+  font-size: 0.9rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
 }
 
 .form-group label .required { color: var(--danger); }
@@ -421,9 +453,11 @@ button, input, select, textarea { font-family: var(--font); }
   padding: 0.75rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 0.9rem;
-  color: var(--navy);
+  font-size: 0.95rem;
+  font-weight: var(--fw-body);
+  color: var(--text-primary);
   background: var(--bg);
+  line-height: var(--lh-body);
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
   direction: rtl;
 }
@@ -443,8 +477,9 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .form-hint {
-  font-size: 0.75rem;
-  color: var(--gray);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
 }
 
 .form-actions {
@@ -483,12 +518,12 @@ button, input, select, textarea { font-family: var(--font); }
 
 .image-upload__text {
   font-size: 0.9rem;
-  color: var(--black-muted);
+  color: var(--text-secondary);
 }
 
 .image-upload__hint {
   font-size: 0.75rem;
-  color: var(--gray);
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -592,8 +627,8 @@ button, input, select, textarea { font-family: var(--font); }
 .offer-card__body { padding: 1.25rem; }
 
 .offer-card__type {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: var(--fw-subheading);
   color: var(--gold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -601,22 +636,26 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .offer-card__title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
+  font-size: 1.1rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+  line-height: var(--lh-heading);
 }
 
 .offer-card__meta {
-  font-size: 0.8rem;
-  color: var(--gray);
-  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
+  margin-bottom: 0.8rem;
 }
 
 .offer-card__price {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: var(--fw-heading);
   color: var(--gold);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.8rem;
+  letter-spacing: -0.01em;
 }
 
 .offer-card__footer {
@@ -655,7 +694,7 @@ button, input, select, textarea { font-family: var(--font); }
 
 .badge--archived {
   background: var(--bg);
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 /* ─── Table ─── */
@@ -677,8 +716,8 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .table th {
-  font-weight: 600;
-  color: var(--gray);
+  font-weight: var(--fw-subheading);
+  color: var(--text-secondary);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -687,7 +726,10 @@ button, input, select, textarea { font-family: var(--font); }
 
 .table tr:hover td { background: rgba(197, 164, 109, 0.05); }
 
-.table td { color: var(--black-muted); }
+.table td {
+  color: var(--text-primary);
+  font-weight: var(--fw-body);
+}
 
 /* ─── News ─── */
 .news-list { display: flex; flex-direction: column; gap: 1rem; }
@@ -715,19 +757,20 @@ button, input, select, textarea { font-family: var(--font); }
 }
 
 .news-item__title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
 }
 
 .news-item__meta {
   font-size: 0.75rem;
-  color: var(--gray);
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 
 .news-item__excerpt {
   font-size: 0.85rem;
-  color: var(--black-muted);
+  color: var(--text-secondary);
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -785,7 +828,11 @@ button, input, select, textarea { font-family: var(--font); }
   margin-bottom: 1.25rem;
 }
 
-.modal__title { font-size: 1.1rem; font-weight: 600; }
+.modal__title {
+  font-size: 1.15rem;
+  font-weight: var(--fw-heading);
+  color: var(--text-primary);
+}
 
 .modal__close {
   background: var(--bg);
@@ -825,7 +872,7 @@ button, input, select, textarea { font-family: var(--font); }
 .empty-state {
   text-align: center;
   padding: 3rem 1.5rem;
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 .empty-state__icon {
@@ -837,7 +884,7 @@ button, input, select, textarea { font-family: var(--font); }
 .loading {
   text-align: center;
   padding: 2rem;
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 .spinner {
@@ -891,13 +938,15 @@ button, input, select, textarea { font-family: var(--font); }
 
 .quick-action__text strong {
   display: block;
-  font-size: 0.9rem;
-  margin-bottom: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
 }
 
 .quick-action__text span {
   font-size: 0.75rem;
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 /* ─── Responsive ─── */
