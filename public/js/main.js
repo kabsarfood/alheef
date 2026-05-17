@@ -20,16 +20,31 @@
   let siteSettings = null;
 
   async function init() {
-    document.getElementById('year').textContent = new Date().getFullYear();
-    await loadSiteSettings();
-    await loadConfig();
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+
     setupHeader();
     setupNavigation();
     setupReveal();
-    await loadOffers();
-    setupForms();
-    setupFileUpload();
-    setupModal();
+    showAllRevealsFallback();
+
+    try {
+      await loadSiteSettings();
+      await loadConfig();
+      await loadOffers();
+      setupForms();
+      setupFileUpload();
+      setupModal();
+    } catch (err) {
+      console.error('[الهيف] init:', err);
+      showAllRevealsFallback();
+    }
+  }
+
+  function showAllRevealsFallback() {
+    document.querySelectorAll('.reveal:not(.visible)').forEach((el) => {
+      el.classList.add('visible');
+    });
   }
 
   async function loadSiteSettings() {
@@ -162,16 +177,20 @@
     }, { passive: true });
 
     function setMenuOpen(open) {
+      if (!toggle || !nav) return;
       toggle.classList.toggle('active', open);
       nav.classList.toggle('open', open);
       overlay?.classList.toggle('active', open);
+      document.documentElement.classList.toggle('nav-open', open);
       document.body.classList.toggle('nav-open', open);
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       toggle.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
       overlay?.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
 
-    toggle.addEventListener('click', () => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       setMenuOpen(!nav.classList.contains('open'));
     });
 
@@ -182,28 +201,43 @@
     });
   }
 
+  function closeMobileMenu() {
+    const nav = document.getElementById('nav');
+    const toggle = document.getElementById('menu-toggle');
+    const overlay = document.getElementById('nav-overlay');
+    if (!nav || !toggle) return;
+    nav.classList.remove('open');
+    toggle.classList.remove('active');
+    overlay?.classList.remove('active');
+    document.documentElement.classList.remove('nav-open');
+    document.body.classList.remove('nav-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    overlay?.setAttribute('aria-hidden', 'true');
+  }
+
   // ─── Navigation ───
   function setupNavigation() {
     document.querySelectorAll('a[href^="#"]').forEach((link) => {
       link.addEventListener('click', (e) => {
-        const target = document.querySelector(link.getAttribute('href'));
+        const href = link.getAttribute('href');
+        if (!href || href === '#') return;
+        const target = document.querySelector(href);
         if (!target) return;
         e.preventDefault();
-        target.scrollIntoView({ behavior: 'smooth' });
-        const nav = document.getElementById('nav');
-        const toggle = document.getElementById('menu-toggle');
-        const overlay = document.getElementById('nav-overlay');
-        nav.classList.remove('open');
-        toggle.classList.remove('active');
-        overlay?.classList.remove('active');
-        document.body.classList.remove('nav-open');
-        toggle.setAttribute('aria-expanded', 'false');
+        closeMobileMenu();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   }
 
   // ─── Scroll Reveal ───
   function setupReveal() {
+    if (!('IntersectionObserver' in window)) {
+      showAllRevealsFallback();
+      return;
+    }
+
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -213,10 +247,15 @@
           }
         });
       },
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      {
+        threshold: isMobile ? 0.05 : 0.12,
+        rootMargin: isMobile ? '0px 0px 0px 0px' : '0px 0px -40px 0px',
+      }
     );
 
     document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    setTimeout(showAllRevealsFallback, isMobile ? 800 : 2500);
   }
 
   // ─── Offers ───
