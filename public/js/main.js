@@ -1,0 +1,314 @@
+/**
+ * الهيف للخدمات العقارية — Frontend
+ */
+
+(function () {
+  'use strict';
+
+  let config = {
+    whatsapp: '966500000000',
+    phone: '050 000 0000',
+    instagram: '#',
+    x: '#',
+  };
+
+  let offers = [];
+
+  // ─── Init ───
+  document.addEventListener('DOMContentLoaded', init);
+
+  async function init() {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    await loadConfig();
+    setupHeader();
+    setupNavigation();
+    setupReveal();
+    await loadOffers();
+    setupForms();
+    setupFileUpload();
+    setupModal();
+  }
+
+  // ─── Config ───
+  async function loadConfig() {
+    try {
+      const res = await fetch('/api/config');
+      config = await res.json();
+    } catch {
+      /* use defaults */
+    }
+    applyConfig();
+  }
+
+  function applyConfig() {
+    const waUrl = `https://wa.me/${config.whatsapp}`;
+    const waMsg = encodeURIComponent('مرحباً، أتواصل معكم من موقع الهيف للخدمات العقارية');
+
+    ['header-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.href = `${waUrl}?text=${waMsg}`;
+    });
+
+    const phoneEl = document.getElementById('footer-phone');
+    if (phoneEl) {
+      phoneEl.textContent = config.phone;
+      phoneEl.href = `tel:+${config.whatsapp}`;
+    }
+
+    const ig = document.getElementById('footer-instagram');
+    if (ig) ig.href = config.instagram;
+
+    const xEl = document.getElementById('footer-x');
+    if (xEl) xEl.href = config.x;
+  }
+
+  function whatsappLink(message) {
+    return `https://wa.me/${config.whatsapp}?text=${encodeURIComponent(message)}`;
+  }
+
+  // ─── Header ───
+  function setupHeader() {
+    const header = document.getElementById('header');
+    const toggle = document.getElementById('menu-toggle');
+    const nav = document.getElementById('nav');
+
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+      nav.classList.toggle('open');
+    });
+  }
+
+  // ─── Navigation ───
+  function setupNavigation() {
+    document.querySelectorAll('a[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('nav').classList.remove('open');
+        document.getElementById('menu-toggle').classList.remove('active');
+      });
+    });
+  }
+
+  // ─── Scroll Reveal ───
+  function setupReveal() {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  }
+
+  // ─── Offers ───
+  async function loadOffers() {
+    const grid = document.getElementById('offers-grid');
+    try {
+      const res = await fetch('/api/offers');
+      offers = await res.json();
+    } catch {
+      offers = [];
+    }
+
+    if (!offers.length) {
+      grid.innerHTML = '<p class="loading">لا توجد عروض حالياً — تواصل معنا لمعرفة المتاح</p>';
+      return;
+    }
+
+    grid.innerHTML = offers.map((offer, i) => renderOfferCard(offer, i)).join('');
+    grid.querySelectorAll('.offer-card').forEach((card, i) => {
+      card.classList.add('reveal');
+      setTimeout(() => observeReveal(card), i * 80);
+    });
+
+    grid.querySelectorAll('[data-offer-id]').forEach((btn) => {
+      btn.addEventListener('click', () => openModal(Number(btn.dataset.offerId)));
+    });
+  }
+
+  function observeReveal(el) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('visible');
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+  }
+
+  function renderOfferCard(offer, index) {
+    const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location}`;
+    return `
+      <article class="offer-card" style="transition-delay:${index * 0.08}s">
+        <div class="offer-card__image">
+          <img src="${offer.image}" alt="${offer.title}" loading="lazy">
+          <span class="offer-card__badge">${offer.type}</span>
+        </div>
+        <div class="offer-card__body">
+          <h3 class="offer-card__title">${offer.title}</h3>
+          <p class="offer-card__location">📍 ${offer.location}</p>
+          <div class="offer-card__meta">
+            <span class="offer-card__area">${offer.area}</span>
+            <span class="offer-card__price">${offer.price} <span>ر.س</span></span>
+          </div>
+          <div class="offer-card__actions">
+            <button class="btn btn-outline btn-sm" data-offer-id="${offer.id}">التفاصيل</button>
+            <a href="${whatsappLink(msg)}" class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener">واتساب</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  // ─── Modal ───
+  function setupModal() {
+    const modal = document.getElementById('offer-modal');
+    const close = () => modal.classList.remove('active');
+
+    document.getElementById('modal-close').addEventListener('click', close);
+    document.getElementById('modal-close-btn').addEventListener('click', close);
+    document.getElementById('modal-backdrop').addEventListener('click', close);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  }
+
+  function openModal(id) {
+    const offer = offers.find((o) => o.id === id);
+    if (!offer) return;
+
+    document.getElementById('modal-img').src = offer.image;
+    document.getElementById('modal-img').alt = offer.title;
+    document.getElementById('modal-title').textContent = offer.title;
+    document.getElementById('modal-location').textContent = offer.location;
+    document.getElementById('modal-type').textContent = offer.type;
+    document.getElementById('modal-area').textContent = offer.area;
+    document.getElementById('modal-loc-short').textContent = offer.location.split('—')[0]?.trim() || offer.location;
+    document.getElementById('modal-price').textContent = `${offer.price} ر.س`;
+
+    const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location} — ${offer.price} ر.س`;
+    document.getElementById('modal-whatsapp').href = whatsappLink(msg);
+
+    document.getElementById('offer-modal').classList.add('active');
+  }
+
+  // ─── Forms ───
+  function setupForms() {
+    bindForm('request-form', '/api/request-property', 'request-message', collectJson);
+    bindForm('subscribe-form', '/api/subscribe', 'subscribe-message', collectJson);
+    bindForm('list-form', '/api/list-property', 'list-message', collectFormData);
+  }
+
+  function collectJson(form) {
+    const data = {};
+    new FormData(form).forEach((v, k) => { data[k] = v; });
+    return { body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } };
+  }
+
+  function collectFormData(form) {
+    return { body: new FormData(form), headers: {} };
+  }
+
+  function bindForm(formId, endpoint, messageId, prepare) {
+    const form = document.getElementById(formId);
+    const msgEl = document.getElementById(messageId);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'جاري الإرسال...';
+      hideMessage(msgEl);
+
+      try {
+        const { body, headers } = prepare(form);
+        const res = await fetch(endpoint, { method: 'POST', headers, body });
+        const data = await res.json();
+
+        if (data.success) {
+          showMessage(msgEl, data.message, 'success');
+          form.reset();
+          if (formId === 'list-form') clearFilePreview();
+        } else {
+          showMessage(msgEl, data.message || 'حدث خطأ، حاول مرة أخرى', 'error');
+        }
+      } catch {
+        showMessage(msgEl, 'تعذر الاتصال بالخادم، تحقق من الاتصال', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  }
+
+  function showMessage(el, text, type) {
+    el.textContent = text;
+    el.className = `form-message show ${type}`;
+  }
+
+  function hideMessage(el) {
+    el.className = 'form-message';
+  }
+
+  // ─── File Upload ───
+  function setupFileUpload() {
+    const input = document.getElementById('list-images');
+    const drop = document.getElementById('file-drop');
+    const preview = document.getElementById('file-preview');
+
+    if (!input || !drop) return;
+
+    drop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      drop.classList.add('dragover');
+    });
+
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      input.files = e.dataTransfer.files;
+      renderPreview(input.files, preview);
+    });
+
+    input.addEventListener('change', () => renderPreview(input.files, preview));
+  }
+
+  function renderPreview(files, container) {
+    container.innerHTML = '';
+    Array.from(files).slice(0, 6).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const item = document.createElement('div');
+        item.className = 'file-preview__item';
+        item.innerHTML = `<img src="${e.target.result}" alt="">`;
+        container.appendChild(item);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function clearFilePreview() {
+    const preview = document.getElementById('file-preview');
+    if (preview) preview.innerHTML = '';
+  }
+})();
