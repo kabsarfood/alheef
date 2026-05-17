@@ -44,7 +44,7 @@ function renderForm() {
                 <label>صورة البنر</label>
                 <div class="settings-preview settings-preview--wide" id="hero-preview"></div>
                 <label class="image-upload" style="margin-top:0.75rem;display:block">
-                  <input type="file" id="heroImage" accept="image/*">
+                  <input type="file" id="heroImageFile" accept="image/*">
                   <p class="image-upload__text">رفع صورة البنر</p>
                 </label>
               </div>
@@ -132,7 +132,6 @@ function renderForm() {
               </div>
             </div>
           </div>
-          </div>
         </section>
       </div>
 
@@ -148,7 +147,7 @@ function renderForm() {
     logoFile = e.target.files[0] || null;
     if (logoFile) previewFile(logoFile, 'logo-preview');
   });
-  document.getElementById('heroImage').addEventListener('change', (e) => {
+  document.getElementById('heroImageFile').addEventListener('change', (e) => {
     heroFile = e.target.files[0] || null;
     if (heroFile) previewFile(heroFile, 'hero-preview');
   });
@@ -157,6 +156,9 @@ function renderForm() {
 async function loadSettings() {
   try {
     currentSettings = await DashboardAPI.getSettings();
+    if (!currentSettings || !currentSettings.siteName) {
+      throw new Error('تعذر تحميل الإعدادات');
+    }
     fillForm(currentSettings);
   } catch (err) {
     showToast(err.message, 'error');
@@ -182,8 +184,9 @@ function fillForm(s) {
   setColor('colorTextPrimary', s.colors?.textPrimary);
   setColor('colorTextSecondary', s.colors?.textSecondary);
   setColor('colorButtonPrimary', s.colors?.buttonPrimary);
-  if (s.logo) setPreviewImg('logo-preview', s.logo);
-  if (s.heroImage) setPreviewImg('hero-preview', s.heroImage);
+  const v = s.updatedAt || '';
+  if (s.logo) setPreviewImg('logo-preview', s.logo, v);
+  if (s.heroImage) setPreviewImg('hero-preview', s.heroImage, v);
 }
 
 function setVal(id, v) {
@@ -196,9 +199,18 @@ function setColor(id, v) {
   if (el && v) el.value = v;
 }
 
-function setPreviewImg(containerId, src) {
+function assetUrl(src, version) {
+  if (!src) return '';
+  const v = version || Date.now();
+  const sep = src.includes('?') ? '&' : '?';
+  return `${src}${sep}v=${encodeURIComponent(v)}`;
+}
+
+function setPreviewImg(containerId, src, version) {
   const el = document.getElementById(containerId);
-  if (el) el.innerHTML = `<img src="${src}" alt="">`;
+  if (el && src) {
+    el.innerHTML = `<img src="${assetUrl(src, version)}" alt="">`;
+  }
 }
 
 function previewFile(file, containerId) {
@@ -234,9 +246,12 @@ async function handleSave(e) {
 
   try {
     const res = await DashboardAPI.saveSettings(fd);
+    if (!res?.data) throw new Error('لم يُرجع الخادم بيانات الحفظ');
     currentSettings = res.data;
     logoFile = null;
     heroFile = null;
+    document.getElementById('logo').value = '';
+    document.getElementById('heroImageFile').value = '';
     showToast('تم حفظ الإعدادات بنجاح');
     fillForm(currentSettings);
   } catch (err) {

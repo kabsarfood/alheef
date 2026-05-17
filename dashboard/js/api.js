@@ -84,8 +84,9 @@ const DashboardAPI = {
     return this.request('/listings');
   },
 
-  getSettings() {
-    return this.request('/settings');
+  async getSettings() {
+    const data = await this.request('/settings');
+    return data?.data && data.success !== undefined ? data.data : data;
   },
 
   saveSettings(formData) {

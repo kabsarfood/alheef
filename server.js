@@ -17,6 +17,8 @@ let cors;
 let apiRoutes;
 let adminRoutes;
 let authRoutes;
+let initSupabase;
+let pingSupabase;
 
 try {
   express = require('express');
@@ -24,6 +26,7 @@ try {
   apiRoutes = require('./server/routes/api');
   adminRoutes = require('./server/routes/admin');
   authRoutes = require('./server/routes/auth');
+  ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
   console.error('STEP 4 — فشل التحميل:', err);
@@ -35,66 +38,19 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
 
 const ROOT = __dirname;
-const dataDir = path.join(ROOT, 'data');
-const uploadsDir = path.join(ROOT, 'uploads');
 const publicDir = path.join(ROOT, 'public');
 const dashboardDir = path.join(ROOT, 'dashboard');
 
-console.log('STEP 5 — إعداد المجلدات والملفات');
+console.log('STEP 5 — Supabase');
 console.log('  PORT:', PORT);
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
-console.log('  ROOT:', ROOT);
-
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log('  أنشئ مجلد:', dir);
-  }
-}
-
-function ensureJsonFile(filename, fallback = []) {
-  const filePath = path.join(dataDir, filename);
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2), 'utf8');
-    console.log('  أنشئ ملف:', filename);
-  }
-}
-
-[dataDir, uploadsDir].forEach(ensureDir);
-ensureJsonFile('offers.json', []);
-ensureJsonFile('news.json', []);
-ensureJsonFile('requests.json', []);
-ensureJsonFile('subscriptions.json', []);
-ensureJsonFile('listings.json', []);
-
-const { DEFAULT_SETTINGS } = require('./server/utils/settings');
-const settingsPath = path.join(dataDir, 'settings.json');
-if (!fs.existsSync(settingsPath)) {
-  fs.writeFileSync(settingsPath, JSON.stringify(DEFAULT_SETTINGS, null, 2), 'utf8');
-  console.log('  أنشئ ملف: settings.json');
-}
-
-const pathsCheck = {
-  public: publicDir,
-  dashboard: dashboardDir,
-  uploads: uploadsDir,
-  data: dataDir,
-};
-
-Object.entries(pathsCheck).forEach(([name, p]) => {
-  console.log(`  مسار ${name}:`, fs.existsSync(p) ? 'موجود ✓' : 'غير موجود ✗');
-});
+initSupabase();
 
 console.log('STEP 6 — إعداد middleware');
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-if (fs.existsSync(uploadsDir)) {
-  app.use('/uploads', express.static(uploadsDir));
-  console.log('  static /uploads ✓');
-}
 
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir));
@@ -110,12 +66,14 @@ if (fs.existsSync(publicDir)) {
 
 console.log('STEP 7 — ربط API');
 
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  const supabase = await pingSupabase();
   res.status(200).json({
     ok: true,
     service: 'alheef',
     port: PORT,
     uptime: process.uptime(),
+    supabase,
   });
 });
 
@@ -123,9 +81,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.get('/api/config', (_req, res) => {
-  const { getContactConfig } = require('./server/utils/settings');
-  res.json(getContactConfig());
+app.get('/api/config', async (_req, res) => {
+  try {
+    const { getContactConfig } = require('./server/utils/settings');
+    res.json(await getContactConfig());
+  } catch (err) {
+    console.error('[config]', err.message);
+    res.status(500).json({ success: false, message: 'تعذر تحميل الإعدادات' });
+  }
 });
 
 function sendDashboardPage(res, requestPath) {
