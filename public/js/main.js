@@ -66,7 +66,11 @@
     setText('hero-btn-request', s.hero?.btnRequest);
 
     const heroImg = document.getElementById('hero-image');
-    if (heroImg && s.heroImage) heroImg.src = s.heroImage;
+    if (heroImg && s.heroImage) {
+      heroImg.src = s.heroImage;
+      heroImg.removeAttribute('srcset');
+      heroImg.removeAttribute('sizes');
+    }
 
     const root = document.documentElement;
     if (c.primary) root.style.setProperty('--navy', c.primary);
@@ -132,14 +136,30 @@
     const header = document.getElementById('header');
     const toggle = document.getElementById('menu-toggle');
     const nav = document.getElementById('nav');
+    const overlay = document.getElementById('nav-overlay');
 
     window.addEventListener('scroll', () => {
       header.classList.toggle('scrolled', window.scrollY > 40);
-    });
+    }, { passive: true });
+
+    function setMenuOpen(open) {
+      toggle.classList.toggle('active', open);
+      nav.classList.toggle('open', open);
+      overlay?.classList.toggle('active', open);
+      document.body.classList.toggle('nav-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
+      overlay?.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
 
     toggle.addEventListener('click', () => {
-      toggle.classList.toggle('active');
-      nav.classList.toggle('open');
+      setMenuOpen(!nav.classList.contains('open'));
+    });
+
+    overlay?.addEventListener('click', () => setMenuOpen(false));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && nav.classList.contains('open')) setMenuOpen(false);
     });
   }
 
@@ -151,8 +171,14 @@
         if (!target) return;
         e.preventDefault();
         target.scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('nav').classList.remove('open');
-        document.getElementById('menu-toggle').classList.remove('active');
+        const nav = document.getElementById('nav');
+        const toggle = document.getElementById('menu-toggle');
+        const overlay = document.getElementById('nav-overlay');
+        nav.classList.remove('open');
+        toggle.classList.remove('active');
+        overlay?.classList.remove('active');
+        document.body.classList.remove('nav-open');
+        toggle.setAttribute('aria-expanded', 'false');
       });
     });
   }
@@ -218,7 +244,7 @@
     return `
       <article class="offer-card" style="transition-delay:${index * 0.08}s">
         <div class="offer-card__image">
-          <img src="${offer.image}" alt="${offer.title}" loading="lazy">
+          <img src="${offer.image}" alt="${offer.title}" loading="lazy" decoding="async" width="640" height="400">
           <span class="offer-card__badge">${offer.type}</span>
         </div>
         <div class="offer-card__body">

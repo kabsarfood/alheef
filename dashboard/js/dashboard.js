@@ -56,15 +56,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       el.innerHTML = `
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table--cards">
             <thead><tr><th>النوع</th><th>المدينة</th><th>الجوال</th><th>التاريخ</th></tr></thead>
             <tbody>
               ${recent.map((r) => `
                 <tr>
-                  <td>${r.propertyType || '—'}</td>
-                  <td>${r.city || '—'}</td>
-                  <td dir="ltr">${r.phone || '—'}</td>
-                  <td>${formatDate(r.createdAt)}</td>
+                  <td data-label="النوع">${r.propertyType || '—'}</td>
+                  <td data-label="المدينة">${r.city || '—'}</td>
+                  <td data-label="الجوال" dir="ltr">${r.phone || '—'}</td>
+                  <td data-label="التاريخ">${formatDate(r.createdAt)}</td>
                 </tr>
               `).join('')}
             </tbody>

@@ -15,15 +15,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     wrap.innerHTML = `
       <p style="color:#8a8580;margin-bottom:1rem;font-size:0.85rem">جاهزة للربط لاحقاً مع واتساب API</p>
       <div class="table-wrap">
-        <table class="table">
+        <table class="table table--cards">
           <thead><tr><th>الاسم</th><th>الجوال</th><th>الاهتمامات</th><th>التاريخ</th></tr></thead>
           <tbody>
             ${subs.map((s) => `
               <tr>
-                <td>${s.name}</td>
-                <td dir="ltr">${s.phone}</td>
-                <td>${s.interests || 'الكل'}</td>
-                <td>${formatDate(s.createdAt)}</td>
+                <td data-label="الاسم">${s.name}</td>
+                <td data-label="الجوال" dir="ltr">${s.phone}</td>
+                <td data-label="الاهتمامات">${s.interests || 'الكل'}</td>
+                <td data-label="التاريخ">${formatDate(s.createdAt)}</td>
               </tr>
             `).join('')}
           </tbody>

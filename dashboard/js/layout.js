@@ -70,13 +70,18 @@ function bindLogout() {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar')?.classList.toggle('open');
-  document.getElementById('sidebar-overlay')?.classList.toggle('active');
+  const open = !document.getElementById('sidebar')?.classList.contains('open');
+  setSidebarOpen(open);
 }
 
 function closeSidebar() {
-  document.getElementById('sidebar')?.classList.remove('open');
-  document.getElementById('sidebar-overlay')?.classList.remove('active');
+  setSidebarOpen(false);
+}
+
+function setSidebarOpen(open) {
+  document.getElementById('sidebar')?.classList.toggle('open', open);
+  document.getElementById('sidebar-overlay')?.classList.toggle('active', open);
+  document.body.classList.toggle('sidebar-open', open);
 }
 
 function setTopbarActions(html) {

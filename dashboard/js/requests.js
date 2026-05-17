@@ -31,12 +31,12 @@ function renderTable(rows, cols) {
 
   return `
     <div class="table-wrap">
-      <table class="table">
+      <table class="table table--cards">
         <thead><tr>${cols.map((c) => `<th>${labels[c] || c}</th>`).join('')}</tr></thead>
         <tbody>
           ${rows.map((r) => `
             <tr>
-              ${cols.map((c) => `<td${c === 'phone' ? ' dir="ltr"' : ''}>${
+              ${cols.map((c) => `<td data-label="${labels[c] || c}"${c === 'phone' ? ' dir="ltr"' : ''}>${
                 c === 'createdAt' ? formatDate(r[c]) : (r[c] || '—')
               }</td>`).join('')}
             </tr>
