@@ -290,6 +290,18 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   gap: 2rem;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .nav {
+    gap: 1.15rem;
+  }
+
+  .nav__link {
+    font-size: 0.9rem;
+  }
 }
 
 .nav__link {

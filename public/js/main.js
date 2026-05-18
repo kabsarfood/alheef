@@ -24,6 +24,7 @@
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
     setupHeader();
+    ensureMapNavLink();
     setupNavigation();
     setupReveal();
     showAllRevealsFallback();
@@ -269,6 +270,42 @@
     document.body.classList.remove('nav-open');
     toggle.setAttribute('aria-expanded', 'false');
     overlay?.setAttribute('aria-hidden', 'true');
+  }
+
+  /** يضمن ظهور رابط الخريطة حتى مع نسخة HTML قديمة على الاستضافة */
+  function ensureMapNavLink() {
+    const nav = document.getElementById('nav');
+    if (!nav) return;
+
+    let link = document.getElementById('nav-map');
+    if (!link) {
+      link = nav.querySelector('a[href="/map.html"], a[href="/map"]');
+    }
+    if (!link) {
+      link = document.createElement('a');
+      link.id = 'nav-map';
+      link.href = '/map.html';
+      link.className = 'nav__link';
+      link.textContent = 'الخريطة العقارية';
+      const home = nav.querySelector('a[href="#hero"], a[href="/"], a[href="/#hero"]');
+      if (home?.nextSibling) home.after(link);
+      else nav.prepend(link);
+    } else {
+      link.id = 'nav-map';
+      link.href = '/map.html';
+      link.textContent = 'الخريطة العقارية';
+      link.classList.add('nav__link');
+    }
+
+    const footerLinks = document.querySelector('.footer__links');
+    if (footerLinks && !footerLinks.querySelector('a[href="/map.html"]')) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '/map.html';
+      a.textContent = 'الخريطة العقارية';
+      li.appendChild(a);
+      footerLinks.prepend(li);
+    }
   }
 
   // ─── Navigation ───
