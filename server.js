@@ -48,6 +48,15 @@ initSupabase();
 
 console.log('STEP 6 — إعداد middleware');
 
+// إعادة توجيه النطاق بدون www → www (بعد ربط DNS للنطاقين على نفس الخادم)
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').split(':')[0].toLowerCase();
+  if (host === 'alheef.website') {
+    return res.redirect(301, `https://www.alheef.website${req.originalUrl || '/'}`);
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

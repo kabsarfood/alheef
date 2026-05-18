@@ -6,13 +6,13 @@ const DEFAULT_SETTINGS = {
   colors: {
     primary: '#1E2A38',
     gold: '#C5A46D',
-    textPrimary: '#111111',
-    textSecondary: '#444444',
+    textPrimary: '#000000',
+    textSecondary: '#1a1a1a',
     border: 'rgba(197, 164, 109, 0.32)',
     buttonPrimary: '#1E2A38',
   },
   hero: {
-    label: 'مكتب عقاري سحابي',
+    label: 'مكتب عقاري اكتروني',
     title: 'الهيف للخدمات العقارية',
     description:
       'خبرة وثقة في الخدمات والتسويق العقاري — نُقدّم لك تجربة عقارية راقية تليق بمستوى تطلعاتك',

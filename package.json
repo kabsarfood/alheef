@@ -1,7 +1,7 @@
 {
   "name": "alheef-real-estate",
   "version": "1.0.0",
-  "description": "الهيف للخدمات العقارية — مكتب عقاري سحابي تعريفي",
+  "description": "الهيف للخدمات العقارية — مكتب عقاري اكتروني تعريفي",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

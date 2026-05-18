@@ -26,11 +26,11 @@
   --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   --header-h: 88px;
   --font: 'Cairo', sans-serif;
-  --text-primary: #111111;
-  --text-secondary: #444444;
-  --fw-heading: 700;
-  --fw-subheading: 600;
-  --fw-body: 500;
+  --text-primary: #000000;
+  --text-secondary: #1a1a1a;
+  --fw-heading: 800;
+  --fw-subheading: 700;
+  --fw-body: 600;
   --lh-body: 1.75;
   --lh-heading: 1.35;
   --max-w: 1280px;
@@ -116,7 +116,7 @@ ul { list-style: none; }
   color: var(--text-secondary);
   margin-top: 1.15rem;
   max-width: 540px;
-  font-weight: var(--fw-body);
+  font-weight: var(--fw-subheading);
   line-height: var(--lh-body);
 }
 
@@ -295,7 +295,7 @@ ul { list-style: none; }
 .nav__link {
   font-size: 1rem;
   font-weight: var(--fw-subheading);
-  color: #111111;
+  color: var(--text-primary);
   position: relative;
   letter-spacing: 0.01em;
 }
@@ -312,7 +312,7 @@ ul { list-style: none; }
 }
 
 .nav__link:hover {
-  color: #111111;
+  color: var(--text-primary);
   font-weight: var(--fw-heading);
 }
 
@@ -386,13 +386,19 @@ ul { list-style: none; }
 }
 
 .hero__label {
-  font-size: 0.75rem;
-  letter-spacing: 0.25em;
-  color: var(--gold-light);
-  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.94);
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius);
+  font-weight: var(--fw-heading);
+  text-transform: none;
   margin-bottom: 1.25rem;
   opacity: 0;
   animation: fadeUp 0.8s ease 0.2s forwards;
+  box-shadow: var(--shadow-sm);
 }
 
 .hero__title {
@@ -408,10 +414,10 @@ ul { list-style: none; }
 
 .hero__desc {
   font-size: clamp(1.05rem, 2vw, 1.25rem);
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.95);
   margin-top: 1.35rem;
   max-width: 500px;
-  font-weight: var(--fw-body);
+  font-weight: var(--fw-subheading);
   line-height: 1.8;
   opacity: 0;
   animation: fadeUp 0.8s ease 0.6s forwards;
@@ -584,7 +590,7 @@ ul { list-style: none; }
   background: var(--white);
   color: var(--navy);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: var(--fw-body);
   padding: 0.35rem 0.85rem;
   border-radius: var(--radius);
   border: 1px solid var(--gold-border);
@@ -958,8 +964,9 @@ ul { list-style: none; }
 }
 
 .footer__about {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: var(--fw-subheading);
   max-width: 360px;
   line-height: 1.8;
   margin-inline: 0;

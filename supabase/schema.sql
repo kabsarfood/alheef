@@ -126,7 +126,7 @@ INSERT INTO settings (
   'الرياض، المملكة العربية السعودية',
   '#1E2A38',
   '#C5A46D',
-  '{"siteTagline":"للخدمات العقارية","heroLabel":"مكتب عقاري سحابي","heroBtnOffers":"تصفح العروض","heroBtnRequest":"اطلب عقارك","phone":"050 000 0000","instagram":"https://instagram.com/alheef","x":"https://x.com/alheef","textPrimary":"#111111","textSecondary":"#444444","buttonPrimary":"#1E2A38","border":"rgba(197, 164, 109, 0.32)"}'::jsonb
+  '{"siteTagline":"للخدمات العقارية","heroLabel":"مكتب عقاري اكتروني","heroBtnOffers":"تصفح العروض","heroBtnRequest":"اطلب عقارك","phone":"050 000 0000","instagram":"https://instagram.com/alheef","x":"https://x.com/alheef","textPrimary":"#000000","textSecondary":"#1a1a1a","buttonPrimary":"#1E2A38","border":"rgba(197, 164, 109, 0.32)"}'::jsonb
 )
 ON CONFLICT (id) DO NOTHING;
 
