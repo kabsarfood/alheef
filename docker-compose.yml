@@ -1,0 +1,12 @@
+# للتشغيل المحلي أو على Coolify / VPS
+# المتغيرات: انسخ .env.example إلى .env واملأ المفاتيح
+services:
+  alheef:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
