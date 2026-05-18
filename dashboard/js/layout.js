@@ -6,9 +6,11 @@ const NAV_ITEMS = [
     { href: '/dashboard/', icon: '◈', label: 'لوحة التحكم', page: 'index' },
   ]},
   { section: 'الإدارة', items: [
-    { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة إعلان عقاري', page: 'add-property' },
-    { href: '/dashboard/offers.html', icon: '◇', label: 'العروض الحالية', page: 'offers' },
-    { href: '/dashboard/news.html', icon: '◉', label: 'الأخبار العقارية', page: 'news' },
+    { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة عقار', page: 'add-property' },
+    { href: '/dashboard/offers.html', icon: '◇', label: 'العقارات', page: 'offers' },
+    { href: '/dashboard/banners.html', icon: '▣', label: 'البنرات', page: 'banners' },
+    { href: '/dashboard/news.html', icon: '◉', label: 'الأخبار', page: 'news' },
+    { href: '/dashboard/testimonials.html', icon: '★', label: 'آراء العملاء', page: 'testimonials' },
   ]},
   { section: 'العملاء', items: [
     { href: '/dashboard/requests.html', icon: '◎', label: 'طلبات العملاء', page: 'requests' },

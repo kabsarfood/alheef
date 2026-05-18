@@ -58,7 +58,8 @@ function renderPage() {
 async function loadNews() {
   const container = document.getElementById('news-container');
   try {
-    const items = await DashboardAPI.getNews();
+    const res = await DashboardAPI.getNews();
+    const items = res.data || res;
     if (!items.length) {
       container.innerHTML = `
         <div class="empty-state">
@@ -98,7 +99,8 @@ function renderNewsItem(item) {
 function bindNewsActions() {
   document.querySelectorAll('.btn-edit-news').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const items = await DashboardAPI.getNews();
+      const res = await DashboardAPI.getNews();
+    const items = res.data || res;
       const item = items.find((n) => String(n.id) === btn.dataset.id);
       if (item) openModal(item);
     });

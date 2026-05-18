@@ -1,3 +1,17 @@
+function parseRequestRow(r) {
+  let type = r.requestType || '—';
+  let name = r.customerName || '—';
+  const phone = r.customerPhone || '—';
+  if (r.message) {
+    try {
+      const d = JSON.parse(r.message);
+      if (d.propertyType) type = d.propertyType;
+      if (d.city) name = d.city;
+    } catch { /* plain text */ }
+  }
+  return { type, name, phone };
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await initLayout('index', 'لوحة التحكم');
   const content = getPageContent();
@@ -47,7 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       `<div class="stat-card"><p class="stat-card__label">الاشتراكات</p><p class="stat-card__value">${stats.subscriptions}</p></div>`,
     ].join('');
 
-    const requests = await DashboardAPI.getRequests();
+    const rawReq = await DashboardAPI.getRequests();
+    const requests = Array.isArray(rawReq) ? rawReq : rawReq.data || [];
     const recent = requests.slice(0, 5);
     const el = document.getElementById('recent-requests');
 
@@ -57,16 +72,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       el.innerHTML = `
         <div class="table-wrap">
           <table class="table table--cards">
-            <thead><tr><th>النوع</th><th>المدينة</th><th>الجوال</th><th>التاريخ</th></tr></thead>
+            <thead><tr><th>النوع</th><th>العميل</th><th>الجوال</th><th>التاريخ</th></tr></thead>
             <tbody>
-              ${recent.map((r) => `
-                <tr>
-                  <td data-label="النوع">${r.propertyType || '—'}</td>
-                  <td data-label="المدينة">${r.city || '—'}</td>
-                  <td data-label="الجوال" dir="ltr">${r.phone || '—'}</td>
+              ${recent.map((r) => {
+                const d = parseRequestRow(r);
+                return `<tr>
+                  <td data-label="النوع">${d.type}</td>
+                  <td data-label="العميل">${d.name}</td>
+                  <td data-label="الجوال" dir="ltr">${d.phone}</td>
                   <td data-label="التاريخ">${formatDate(r.createdAt)}</td>
-                </tr>
-              `).join('')}
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>

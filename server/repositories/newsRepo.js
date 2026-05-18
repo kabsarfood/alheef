@@ -1,86 +1,90 @@
 const { getAdmin, isEnabled } = require('../lib/supabase');
 const { rowToNews } = require('../services/mappers');
+const { uniqueSlug } = require('../utils/slug');
 
 const TABLE = 'news';
 
-async function listAll() {
-  if (!isEnabled()) return [];
-  const { data, error } = await getAdmin().from(TABLE).select('*').order('created_at', { ascending: false });
-  if (error) {
-    console.error('[newsRepo] listAll:', error.message);
-    return [];
-  }
-  return (data || []).map(rowToNews);
+async function slugExists(slug, excludeId = null) {
+  let q = getAdmin().from(TABLE).select('id').eq('slug', slug);
+  if (excludeId) q = q.neq('id', excludeId);
+  const { data } = await q.maybeSingle();
+  return !!data;
 }
 
-async function listPublished(limit = 20) {
-  if (!isEnabled()) return [];
-  const { data, error } = await getAdmin()
+async function listAll({ offset = 0, limit = 50 } = {}) {
+  if (!isEnabled()) return { items: [], total: 0 };
+  const { data, error, count } = await getAdmin()
     .from(TABLE)
-    .select('*')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) return { items: [], total: 0 };
+  return { items: (data || []).map(rowToNews), total: count || 0 };
+}
+
+async function listPublished({ offset = 0, limit = 12 } = {}) {
+  if (!isEnabled()) return { items: [], total: 0 };
+  const { data, error, count } = await getAdmin()
+    .from(TABLE)
+    .select('*', { count: 'exact' })
     .eq('status', 'published')
     .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) {
-    console.error('[newsRepo] listPublished:', error.message);
-    return [];
-  }
-  return (data || []).map(rowToNews);
+    .range(offset, offset + limit - 1);
+  if (error) return { items: [], total: 0 };
+  return { items: (data || []).map(rowToNews), total: count || 0 };
 }
 
 async function getById(id) {
-  if (!isEnabled()) return null;
-  const { data, error } = await getAdmin().from(TABLE).select('*').eq('id', id).maybeSingle();
-  if (error) return null;
+  const { data } = await getAdmin().from(TABLE).select('*').eq('id', id).maybeSingle();
   return rowToNews(data);
 }
 
-async function create(item) {
-  if (!isEnabled()) throw new Error('Supabase غير متصل');
+async function getBySlug(slug) {
+  const { data } = await getAdmin().from(TABLE).select('*').eq('slug', slug).eq('status', 'published').maybeSingle();
+  return rowToNews(data);
+}
+
+async function create(body) {
+  const slug = body.slug || (await uniqueSlug(body.title, (s) => slugExists(s)));
   const row = {
-    title: item.title,
-    content: item.content,
-    image: item.image || '',
-    category: item.category || 'عام',
-    status: item.status || 'published',
+    title: body.title,
+    slug,
+    content: body.content,
+    image: body.image || null,
+    status: body.status || 'published',
+    created_at: new Date().toISOString(),
   };
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
-  if (error) throw new Error('فشل نشر الخبر');
+  if (error) throw new Error(error.message);
   return rowToNews(data);
 }
 
-async function update(id, patch) {
-  if (!isEnabled()) throw new Error('Supabase غير متصل');
-  const row = {};
-  if (patch.title) row.title = patch.title;
-  if (patch.category) row.category = patch.category;
-  if (patch.content) row.content = patch.content;
-  if (patch.status) row.status = patch.status;
-  if (patch.image !== undefined) row.image = patch.image;
-
+async function update(id, body) {
+  const existing = await getById(id);
+  if (!existing) return null;
+  let slug = body.slug || existing.slug;
+  if (body.title && !body.slug) slug = await uniqueSlug(body.title, (s) => slugExists(s, id));
+  const row = {
+    title: body.title ?? existing.title,
+    slug,
+    content: body.content ?? existing.content,
+    image: body.image ?? existing.image,
+    status: body.status ?? existing.status,
+    updated_at: new Date().toISOString(),
+  };
   const { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
-  if (error || !data) return null;
+  if (error) throw new Error(error.message);
   return rowToNews(data);
 }
 
 async function remove(id) {
-  if (!isEnabled()) return false;
   const { error } = await getAdmin().from(TABLE).delete().eq('id', id);
   return !error;
 }
 
 async function countAll() {
-  if (!isEnabled()) return 0;
   const { count } = await getAdmin().from(TABLE).select('*', { count: 'exact', head: true });
   return count || 0;
 }
 
-module.exports = {
-  listAll,
-  listPublished,
-  getById,
-  create,
-  update,
-  remove,
-  countAll,
-};
+module.exports = { listAll, listPublished, getById, getBySlug, create, update, remove, countAll };

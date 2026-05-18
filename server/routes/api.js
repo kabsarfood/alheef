@@ -1,120 +1,233 @@
 const express = require('express');
-const { normalizeOffer, toPublicOffer } = require('../utils/offers');
-const { getPublicSettings } = require('../utils/settings');
+const { getPublicSettings, getContactConfig } = require('../utils/settings');
+const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { toLegacyPublicOffer, toPublicProperty, rowToMapProperty, toPublicSettings } = require('../services/mappers');
+const { LEGEND } = require('../utils/mapTypes');
 const { uploadPublic } = require('../middleware/upload');
 const { uploadFiles } = require('../services/storage');
 const propertiesRepo = require('../repositories/propertiesRepo');
 const newsRepo = require('../repositories/newsRepo');
+const bannersRepo = require('../repositories/bannersRepo');
+const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const { isEnabled } = require('../lib/supabase');
 
 const router = express.Router();
 
-router.post('/request-property', async (req, res) => {
+function requireDb(_req, res, next) {
+  if (!isEnabled()) {
+    return res.status(503).json({ success: false, message: 'قاعدة البيانات غير متصلة' });
+  }
+  next();
+}
+
+// ─── Settings ───
+router.get('/settings', async (_req, res) => {
   try {
-    const { propertyType, city, district, budget, description, phone } = req.body;
+    res.json(await getPublicSettings());
+  } catch (err) {
+    const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
+    res.json(toPublicSettings(DEFAULT_SETTINGS));
+  }
+});
+
+router.get('/config', async (_req, res) => {
+  try {
+    res.json(await getContactConfig());
+  } catch {
+    res.json({});
+  }
+});
+
+// ─── Properties ───
+router.get('/properties', async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const filters = {
+      city: req.query.city,
+      district: req.query.district,
+      propertyType: req.query.property_type || req.query.type,
+      listingType: req.query.listing_type,
+      featured: req.query.featured === 'true' ? true : undefined,
+      minPrice: req.query.min_price,
+      maxPrice: req.query.max_price,
+    };
+    const { items, total } = await propertiesRepo.listPublished(filters, { offset, limit });
+    res.json(paginatedResponse(items.map(toPublicProperty), total, page, limit));
+  } catch (err) {
+    console.error('[API] properties:', err.message);
+    res.json(paginatedResponse([], 0, 1, 12));
+  }
+});
+
+// ─── الخريطة العقارية ───
+router.get('/map/legend', (_req, res) => {
+  res.json({ legend: LEGEND });
+});
+
+router.get('/map/properties', async (req, res) => {
+  try {
+    const filters = {
+      city: req.query.city,
+      district: req.query.district,
+      propertyType: req.query.property_type || req.query.type,
+      listingType: req.query.listing_type,
+      minPrice: req.query.min_price,
+      maxPrice: req.query.max_price,
+    };
+    const rows = await propertiesRepo.listForMap(filters);
+    const items = rows.map(rowToMapProperty);
+    res.json({ success: true, items, total: items.length });
+  } catch (err) {
+    console.error('[API] map/properties:', err.message);
+    res.json({ success: true, items: [], total: 0 });
+  }
+});
+
+router.get('/map/filters', async (_req, res) => {
+  try {
+    const rows = await propertiesRepo.listForMap({});
+    const cities = [...new Set(rows.map((r) => r.city).filter(Boolean))].sort();
+    const districts = [...new Set(rows.map((r) => r.district).filter(Boolean))].sort();
+    const types = [...new Set(rows.map((r) => r.property_type).filter(Boolean))].sort();
+    res.json({ cities, districts, types });
+  } catch {
+    res.json({ cities: [], districts: [], types: [] });
+  }
+});
+
+router.get('/properties/slug/:slug', async (req, res) => {
+  try {
+    const p = await propertiesRepo.getBySlug(req.params.slug);
+    if (!p || p.status !== 'published') {
+      return res.status(404).json({ success: false, message: 'العقار غير موجود' });
+    }
+    res.json(toPublicProperty(p));
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** توافق الواجهة القديمة */
+router.get('/offers', async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query, { limit: 24 });
+    const { items } = await propertiesRepo.listPublished({}, { offset, limit });
+    res.json(items.map((p) => toLegacyPublicOffer(p)));
+  } catch {
+    res.json([]);
+  }
+});
+
+// ─── Banners ───
+router.get('/banners', async (_req, res) => {
+  try {
+    res.json(await bannersRepo.listActive());
+  } catch {
+    res.json([]);
+  }
+});
+
+// ─── Testimonials ───
+router.get('/testimonials', async (_req, res) => {
+  try {
+    res.json(await testimonialsRepo.listActive());
+  } catch {
+    res.json([]);
+  }
+});
+
+// ─── News ───
+router.get('/news', async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const { items, total } = await newsRepo.listPublished({ offset, limit });
+    res.json(paginatedResponse(items, total, page, limit));
+  } catch {
+    res.json(paginatedResponse([], 0, 1, 12));
+  }
+});
+
+router.get('/news/slug/:slug', async (req, res) => {
+  const item = await newsRepo.getBySlug(req.params.slug);
+  if (!item) return res.status(404).json({ success: false, message: 'غير موجود' });
+  res.json(item);
+});
+
+// ─── Forms ───
+router.post('/requests', requireDb, async (req, res) => {
+  try {
+    const { customerName, customerPhone, customerEmail, requestType, propertyId, message } = req.body;
+    if (!requestType) {
+      return res.status(400).json({ success: false, message: 'نوع الطلب مطلوب' });
+    }
+    await requestsRepo.create({
+      customerName,
+      customerPhone,
+      customerEmail,
+      requestType,
+      propertyId,
+      message,
+    });
+    res.json({ success: true, message: 'تم استلام طلبك بنجاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/request-property', requireDb, async (req, res) => {
+  try {
+    const { propertyType, city, district, budget, description, phone, name } = req.body;
     if (!propertyType || !city || !phone) {
       return res.status(400).json({ success: false, message: 'يرجى تعبئة الحقول المطلوبة' });
     }
-    if (!isEnabled()) {
-      return res.status(503).json({ success: false, message: 'الخدمة غير متاحة مؤقتاً' });
-    }
-    await requestsRepo.createPropertyRequest({
-      propertyType,
-      city,
-      district,
-      budget,
-      description,
-      phone,
+    await requestsRepo.create({
+      customerName: name,
+      customerPhone: phone,
+      requestType: 'property_search',
+      message: JSON.stringify({ propertyType, city, district, budget, description }),
     });
     res.json({ success: true, message: 'تم استلام طلبك بنجاح، سنتواصل معك قريباً' });
   } catch (err) {
-    console.error('[API] request-property:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'حدث خطأ' });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 router.post(
   '/list-property',
-  uploadPublic.array('images', 6),
+  requireDb,
+  uploadPublic.array('images', 12),
   async (req, res) => {
     try {
       const { ownerName, phone, propertyType, city, description } = req.body;
       if (!ownerName || !phone || !propertyType || !city) {
         return res.status(400).json({ success: false, message: 'يرجى تعبئة الحقول المطلوبة' });
       }
-      if (!isEnabled()) {
-        return res.status(503).json({ success: false, message: 'الخدمة غير متاحة مؤقتاً' });
-      }
       const images = await uploadFiles(req.files, 'properties');
-      await requestsRepo.createOwnerListing({
-        ownerName,
-        phone,
-        propertyType,
-        city,
-        description,
-        images,
+      await requestsRepo.create({
+        customerName: ownerName,
+        customerPhone: phone,
+        requestType: 'owner_listing',
+        message: JSON.stringify({ propertyType, city, description, images }),
       });
-      res.json({ success: true, message: 'تم استلام عرضك بنجاح، سيراجعه فريقنا' });
+      res.json({ success: true, message: 'تم استلام عرضك بنجاح' });
     } catch (err) {
-      console.error('[API] list-property:', err.message);
-      res.status(500).json({ success: false, message: err.message || 'حدث خطأ' });
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 );
 
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', requireDb, async (req, res) => {
   try {
-    const { name, phone, interests } = req.body;
-    if (!name || !phone) {
-      return res.status(400).json({ success: false, message: 'يرجى إدخال الاسم ورقم الجوال' });
+    const email = (req.body.email || '').trim();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'يرجى إدخال البريد الإلكتروني' });
     }
-    if (!isEnabled()) {
-      return res.status(503).json({ success: false, message: 'الخدمة غير متاحة مؤقتاً' });
-    }
-    await subscriptionsRepo.create({ name, phone, interests });
-    res.json({ success: true, message: 'تم الاشتراك بنجاح، سيصلك الجديد قريباً' });
+    await subscriptionsRepo.create(email);
+    res.json({ success: true, message: 'تم الاشتراك بنجاح' });
   } catch (err) {
-    console.error('[API] subscribe:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'حدث خطأ' });
-  }
-});
-
-router.get('/offers', async (_req, res) => {
-  try {
-    const offers = (await propertiesRepo.listPublished()).map((o) =>
-      toPublicOffer(normalizeOffer(o))
-    );
-    res.json(offers);
-  } catch (err) {
-    console.error('[API] offers:', err.message);
-    res.json([]);
-  }
-});
-
-router.get('/news', async (_req, res) => {
-  try {
-    const news = await newsRepo.listPublished(20);
-    res.json(news);
-  } catch (err) {
-    console.error('[API] news:', err.message);
-    res.json([]);
-  }
-});
-
-router.get('/settings', async (_req, res) => {
-  try {
-    res.json(await getPublicSettings());
-  } catch (err) {
-    console.error('[API] settings:', err.message);
-    const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
-    res.json({
-      ...DEFAULT_SETTINGS,
-      contact: DEFAULT_SETTINGS.contact,
-      hero: DEFAULT_SETTINGS.hero,
-      colors: DEFAULT_SETTINGS.colors,
-    });
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

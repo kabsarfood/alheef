@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1E2A38">
+  <meta name="description" content="الخريطة العقارية — استكشف جميع عروض الهيف العقارية على الخريطة مباشرة">
+  <link rel="canonical" href="https://www.alheef.website/map.html">
+  <title>الخريطة العقارية | الهيف للخدمات العقارية</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
+  <link rel="stylesheet" href="/css/main.css?v=5">
+  <link rel="stylesheet" href="/css/mobile.css?v=5">
+  <link rel="stylesheet" href="/css/map.css?v=1">
+</head>
+<body class="map-page">
+
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="/" class="logo logo--header" aria-label="الهيف — الرئيسية">
+        <img id="site-logo" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
+      </a>
+      <nav class="nav" id="nav" aria-label="التنقل">
+        <a href="/" class="nav__link">الرئيسية</a>
+        <a href="/map.html" class="nav__link nav__link--active">الخريطة العقارية</a>
+        <a href="/#offers" class="nav__link">العروض</a>
+        <a href="/#contact" class="nav__link">تواصل معنا</a>
+      </nav>
+      <div class="header__actions">
+        <a href="#" class="btn btn-whatsapp btn-sm" id="header-whatsapp" target="_blank" rel="noopener">واتساب</a>
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="القائمة" aria-expanded="false" aria-controls="nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="nav-overlay" id="nav-overlay" aria-hidden="true"></div>
+
+  <main>
+    <section class="map-hero container">
+      <span class="map-hero__badge">استكشف العروض مباشرة</span>
+      <h1 class="map-hero__title">الخريطة العقارية</h1>
+      <p class="map-hero__desc">تعرض الخريطة جميع إعلانات الهيف العقارية المنشورة — أراضٍ، فلل، شقق، عمائر، محلات، مكاتب، وعقارات تجارية — بمواقعها الفعلية لاختيار ما يناسبك بسرعة ووضوح.</p>
+    </section>
+
+    <section class="map-filters container" aria-label="تصفية العقارات">
+      <form class="map-filters__inner" id="map-filters-form">
+        <label>الغرض
+          <select name="listing_type" id="filter-listing">
+            <option value="">الكل</option>
+            <option value="sale">بيع</option>
+            <option value="rent">إيجار</option>
+          </select>
+        </label>
+        <label>نوع العقار
+          <select name="property_type" id="filter-type">
+            <option value="">الكل</option>
+          </select>
+        </label>
+        <label>المدينة
+          <select name="city" id="filter-city">
+            <option value="">الكل</option>
+          </select>
+        </label>
+        <label>الحي
+          <select name="district" id="filter-district">
+            <option value="">الكل</option>
+          </select>
+        </label>
+        <label>السعر من
+          <input type="number" name="min_price" id="filter-min" placeholder="0" min="0" dir="ltr">
+        </label>
+        <label>السعر إلى
+          <input type="number" name="max_price" id="filter-max" placeholder="—" min="0" dir="ltr">
+        </label>
+        <div class="map-filters__actions">
+          <button type="submit" class="map-filters__btn map-filters__btn--gold">تطبيق</button>
+          <button type="button" class="map-filters__btn map-filters__btn--ghost" id="filter-reset">إعادة</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="map-stage container">
+      <div class="map-wrap">
+        <div id="property-map" role="application" aria-label="خريطة العقارات"></div>
+        <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
+        <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
+        <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="map-sheet" id="map-sheet" aria-hidden="true">
+    <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
+    <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
+      <div class="map-sheet__handle" aria-hidden="true"></div>
+      <div id="sheet-content"></div>
+    </div>
+  </div>
+
+  <div class="map-share-menu" id="share-menu" aria-hidden="true">
+    <div class="map-share-menu__box">
+      <button type="button" id="share-wa">مشاركة عبر واتساب</button>
+      <button type="button" id="share-copy">نسخ الرابط</button>
+      <button type="button" id="share-close">إغلاق</button>
+    </div>
+  </div>
+
+  <footer class="footer footer--compact">
+    <div class="container">
+      <p class="footer__copy">© <span id="year"></span> الهيف للخدمات العقارية</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+  <script src="/js/map.js?v=1" defer></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    (function () {
+      const toggle = document.getElementById('menu-toggle');
+      const nav = document.getElementById('nav');
+      const overlay = document.getElementById('nav-overlay');
+      if (!toggle || !nav) return;
+      function close() {
+        nav.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        overlay?.classList.remove('active');
+        document.body.classList.remove('nav-open');
+      }
+      toggle.addEventListener('click', () => {
+        const open = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        overlay?.classList.toggle('active', open);
+        document.body.classList.toggle('nav-open', open);
+      });
+      overlay?.addEventListener('click', close);
+      nav.querySelectorAll('a').forEach((a) => a.addEventListener('click', close));
+    })();
+    fetch('/api/config').then((r) => r.json()).then((c) => {
+      const wa = document.getElementById('header-whatsapp');
+      if (wa && c.whatsapp) {
+        wa.href = `https://wa.me/${String(c.whatsapp).replace(/\D/g, '')}`;
+      }
+    }).catch(() => {});
+  </script>
+</body>
+</html>

@@ -73,15 +73,53 @@ const DashboardAPI = {
   },
 
   getRequests() {
-    return this.request('/requests');
+    return this.request('/requests').then((d) => d.data || d);
   },
 
   getSubscriptions() {
-    return this.request('/subscriptions');
+    return this.request('/subscriptions').then((d) => d.data || d);
   },
 
-  getListings() {
-    return this.request('/listings');
+  getBanners() {
+    return this.request('/banners');
+  },
+
+  saveBanner(formData, id = null) {
+    const url = `${this.base}${id ? `/banners/${id}` : '/banners'}`;
+    return fetch(url, {
+      method: id ? 'PUT' : 'POST',
+      headers: Auth.authHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'حدث خطأ');
+      return data;
+    });
+  },
+
+  deleteBanner(id) {
+    return this.request(`/banners/${id}`, { method: 'DELETE' });
+  },
+
+  getTestimonials() {
+    return this.request('/testimonials');
+  },
+
+  saveTestimonial(formData, id = null) {
+    const url = `${this.base}${id ? `/testimonials/${id}` : '/testimonials'}`;
+    return fetch(url, {
+      method: id ? 'PUT' : 'POST',
+      headers: Auth.authHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'حدث خطأ');
+      return data;
+    });
+  },
+
+  deleteTestimonial(id) {
+    return this.request(`/testimonials/${id}`, { method: 'DELETE' });
   },
 
   async getSettings() {

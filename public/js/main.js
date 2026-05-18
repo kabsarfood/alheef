@@ -32,6 +32,7 @@
       await loadSiteSettings();
       await loadConfig();
       await loadOffers();
+      await loadTestimonials();
       setupForms();
       setupFileUpload();
       setupModal();
@@ -91,7 +92,18 @@
     const footerName = document.getElementById('footer-site-name');
     const footerTagline = document.getElementById('footer-site-tagline');
     if (footerName && s.siteName) footerName.textContent = s.siteName;
-    if (footerTagline && s.siteTagline) footerTagline.textContent = s.siteTagline;
+    if (footerTagline && (s.siteDescription || s.hero?.label)) {
+      footerTagline.textContent = s.siteDescription || s.hero?.label;
+    }
+
+    setText('about-text', s.aboutText);
+    setText('vision-text', s.visionText);
+    setText('mission-text', s.missionText);
+
+    const fav = document.getElementById('favicon-link');
+    if (fav && s.favicon) fav.href = withCacheBust(s.favicon, v);
+
+    applySeo(s);
 
     setText('hero-label', s.hero?.label);
     setText('hero-title', s.hero?.title);
@@ -100,8 +112,11 @@
     setText('hero-btn-request', s.hero?.btnRequest);
 
     const heroImg = document.getElementById('hero-image');
-    if (heroImg && s.heroImage) {
-      heroImg.src = withCacheBust(s.heroImage, v);
+    const heroSrc = window.matchMedia('(max-width: 768px)').matches && s.heroMobileImage
+      ? s.heroMobileImage
+      : s.heroImage;
+    if (heroImg && heroSrc) {
+      heroImg.src = withCacheBust(heroSrc, v);
       heroImg.removeAttribute('srcset');
       heroImg.removeAttribute('sizes');
     }
@@ -125,6 +140,45 @@
   function setText(id, text) {
     const el = document.getElementById(id);
     if (el && text) el.textContent = text;
+  }
+
+  function applySeo(s) {
+    const desc = s.siteDescription || s.hero?.description || '';
+    const title = s.siteName || document.title;
+    const img = s.heroImage || s.logo || '';
+
+    const md = document.getElementById('meta-description');
+    if (md) md.setAttribute('content', desc);
+    const ogt = document.getElementById('og-title');
+    if (ogt) ogt.setAttribute('content', title);
+    const ogd = document.getElementById('og-description');
+    if (ogd) ogd.setAttribute('content', desc);
+    const ogi = document.getElementById('og-image');
+    if (ogi && img) ogi.setAttribute('content', img.startsWith('http') ? img : `https://www.alheef.website${img}`);
+  }
+
+  async function loadTestimonials() {
+    const grid = document.getElementById('testimonials-grid');
+    if (!grid) return;
+    try {
+      const res = await fetch('/api/testimonials');
+      const items = await res.json();
+      if (!items.length) {
+        grid.closest('section')?.remove();
+        return;
+      }
+      grid.innerHTML = items.map((t) => `
+        <article class="testimonial-card reveal">
+          ${t.image ? `<img class="testimonial-card__img" src="${t.image}" alt="" loading="lazy">` : ''}
+          <p class="testimonial-card__stars">${'★'.repeat(t.rating || 5)}</p>
+          <p class="testimonial-card__text">${t.comment}</p>
+          <p class="testimonial-card__name">${t.customerName}</p>
+        </article>
+      `).join('');
+      grid.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+    } catch {
+      grid.closest('section')?.remove();
+    }
   }
 
   // ─── Config ───
@@ -187,6 +241,8 @@
       toggle.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
       overlay?.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
+
+    if (!toggle) return;
 
     toggle.addEventListener('click', (e) => {
       e.preventDefault();
@@ -280,7 +336,7 @@
     });
 
     grid.querySelectorAll('[data-offer-id]').forEach((btn) => {
-      btn.addEventListener('click', () => openModal(Number(btn.dataset.offerId)));
+      btn.addEventListener('click', () => openModal(btn.dataset.offerId));
     });
   }
 
@@ -336,7 +392,7 @@
   }
 
   function openModal(id) {
-    const offer = offers.find((o) => o.id === id);
+    const offer = offers.find((o) => String(o.id) === String(id));
     if (!offer) return;
 
     document.getElementById('modal-img').src = offer.image;

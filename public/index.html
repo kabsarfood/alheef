@@ -9,14 +9,20 @@
   <link rel="shortcut icon" href="/assets/favicon.ico">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="canonical" href="https://www.alheef.website/">
-  <meta name="description" content="الهيف للخدمات العقارية — خبرة وثقة في التسويق والخدمات العقارية. مكتب عقاري اكتروني يقدم خدمات احترافية في الرياض وجميع مناطق المملكة.">
   <meta name="keywords" content="عقارات, الهيف, تسويق عقاري, بيع عقارات, إدارة أملاك">
+  <meta id="meta-description" name="description" content="الهيف للخدمات العقارية — مكتب عقاري اكتروني">
+  <meta id="og-title" property="og:title" content="الهيف للخدمات العقارية">
+  <meta id="og-description" property="og:description" content="">
+  <meta id="og-image" property="og:image" content="">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.alheef.website/">
+  <link id="favicon-link" rel="icon" type="image/png" href="/assets/favicon.png">
   <title id="page-title">الهيف للخدمات العقارية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=3">
-  <link rel="stylesheet" href="/css/mobile.css?v=4">
+  <link rel="stylesheet" href="/css/main.css?v=5">
+  <link rel="stylesheet" href="/css/mobile.css?v=5">
 </head>
 <body>
 
@@ -38,6 +44,7 @@
       <nav class="nav" id="nav" aria-label="التنقل الرئيسي">
         <a href="#hero" class="nav__link">الرئيسية</a>
         <a href="#services" class="nav__link">خدماتنا</a>
+        <a href="/map.html" class="nav__link">الخريطة العقارية</a>
         <a href="#offers" class="nav__link">العروض الحالية</a>
         <a href="#request" class="nav__link">اطلب عقارك</a>
         <a href="#contact" class="nav__link">تواصل معنا</a>
@@ -148,6 +155,30 @@
           <p>جاري تحميل العروض...</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="container about__grid">
+      <div class="reveal">
+        <p class="section-label">من نحن</p>
+        <h2 class="section-title">الهيف للخدمات العقارية</h2>
+        <p class="about__text" id="about-text"></p>
+      </div>
+      <div class="about__cards reveal">
+        <article class="about-card"><h3>رؤيتنا</h3><p id="vision-text"></p></article>
+        <article class="about-card"><h3>رسالتنا</h3><p id="mission-text"></p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="testimonials" id="testimonials">
+    <div class="container">
+      <header class="section-header reveal">
+        <p class="section-label">آراء العملاء</p>
+        <h2 class="section-title">ثقة عملائنا</h2>
+      </header>
+      <div id="testimonials-grid" class="testimonials__grid"></div>
     </div>
   </section>
 
@@ -277,23 +308,8 @@
       <form class="form-card reveal" id="subscribe-form">
         <div id="subscribe-message" class="form-message"></div>
         <div class="form-group">
-          <label for="sub-name">الاسم *</label>
-          <input type="text" id="sub-name" name="name" required>
-        </div>
-        <div class="form-group">
-          <label for="sub-phone">رقم الجوال *</label>
-          <input type="tel" id="sub-phone" name="phone" placeholder="05xxxxxxxx" required dir="ltr">
-        </div>
-        <div class="form-group">
-          <label for="sub-interests">نوع العقارات المهتم بها</label>
-          <select id="sub-interests" name="interests">
-            <option value="">الكل</option>
-            <option value="فلل">فلل</option>
-            <option value="شقق">شقق</option>
-            <option value="أراضي">أراضي</option>
-            <option value="تجاري">تجاري</option>
-            <option value="استثماري">استثماري</option>
-          </select>
+          <label for="sub-email">البريد الإلكتروني *</label>
+          <input type="email" id="sub-email" name="email" placeholder="example@email.com" required dir="ltr">
         </div>
         <button type="submit" class="btn btn-gold" style="width:100%">اشترك الآن</button>
       </form>
@@ -398,6 +414,6 @@
     </div>
   </div>
 
-  <script src="/js/main.js?v=2" defer></script>
+  <script src="/js/main.js?v=5" defer></script>
 </body>
 </html>

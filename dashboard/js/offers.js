@@ -32,7 +32,7 @@ async function loadOffers() {
 }
 
 function renderOfferCard(offer) {
-  const img = offer.image || offer.images?.[0] || '';
+  const img = offer.coverImage || offer.image || offer.gallery?.[0] || '';
   return `
     <article class="offer-card" data-id="${offer.id}">
       <div class="offer-card__img">
@@ -91,7 +91,7 @@ function showViewModal(offer) {
     document.body.appendChild(modal);
   }
 
-  const img = offer.image || offer.images?.[0] || '';
+  const img = offer.coverImage || offer.image || offer.gallery?.[0] || '';
   modal.innerHTML = `
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box" style="max-width:640px">

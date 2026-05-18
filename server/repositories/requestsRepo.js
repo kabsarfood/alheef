@@ -1,94 +1,57 @@
 const { getAdmin, isEnabled } = require('../lib/supabase');
-const { rowToPropertyRequest, rowToListing } = require('../services/mappers');
+const { rowToRequest } = require('../services/mappers');
 
 const TABLE = 'requests';
 
-async function createPropertyRequest(payload) {
+async function listAll({ offset = 0, limit = 100 } = {}) {
+  if (!isEnabled()) return { items: [], total: 0 };
+  const { data, error, count } = await getAdmin()
+    .from(TABLE)
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) return { items: [], total: 0 };
+  return { items: (data || []).map(rowToRequest), total: count || 0 };
+}
+
+async function create(body) {
   if (!isEnabled()) throw new Error('Supabase غير متصل');
   const row = {
-    name: null,
-    phone: payload.phone,
-    request_type: 'property_search',
-    details: {
-      propertyType: payload.propertyType,
-      city: payload.city,
-      district: payload.district || '',
-      budget: payload.budget || '',
-      description: payload.description || '',
-    },
+    customer_name: body.customerName || body.customer_name || null,
+    customer_phone: body.customerPhone || body.customer_phone || null,
+    customer_email: body.customerEmail || body.customer_email || null,
+    request_type: body.requestType || body.request_type,
+    property_id: body.propertyId || body.property_id || null,
+    message: body.message || null,
+    status: 'new',
   };
-  const { error } = await getAdmin().from(TABLE).insert(row);
-  if (error) {
-    console.error('[requestsRepo] createPropertyRequest:', error.message);
-    throw new Error('فشل حفظ الطلب');
-  }
+  const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
+  if (error) throw new Error(error.message);
+  return rowToRequest(data);
 }
 
-async function createOwnerListing(payload) {
-  if (!isEnabled()) throw new Error('Supabase غير متصل');
-  const row = {
-    name: payload.ownerName,
-    phone: payload.phone,
-    request_type: 'owner_listing',
-    details: {
-      propertyType: payload.propertyType,
-      city: payload.city,
-      description: payload.description || '',
-      images: payload.images || [],
-    },
-  };
-  const { error } = await getAdmin().from(TABLE).insert(row);
-  if (error) {
-    console.error('[requestsRepo] createOwnerListing:', error.message);
-    throw new Error('فشل حفظ العرض');
-  }
+async function updateStatus(id, status) {
+  const { data, error } = await getAdmin().from(TABLE).update({ status }).eq('id', id).select().single();
+  if (error) throw new Error(error.message);
+  return rowToRequest(data);
 }
 
-async function listPropertyRequests() {
-  if (!isEnabled()) return [];
-  const { data, error } = await getAdmin()
-    .from(TABLE)
-    .select('*')
-    .eq('request_type', 'property_search')
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return (data || []).map(rowToPropertyRequest);
+async function remove(id) {
+  const { error } = await getAdmin().from(TABLE).delete().eq('id', id);
+  return !error;
 }
 
-async function listOwnerListings() {
-  if (!isEnabled()) return [];
-  const { data, error } = await getAdmin()
-    .from(TABLE)
-    .select('*')
-    .eq('request_type', 'owner_listing')
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return (data || []).map(rowToListing);
-}
-
-async function countPropertyRequests() {
-  if (!isEnabled()) return 0;
-  const { count } = await getAdmin()
-    .from(TABLE)
-    .select('*', { count: 'exact', head: true })
-    .eq('request_type', 'property_search');
+async function countAll() {
+  const { count } = await getAdmin().from(TABLE).select('*', { count: 'exact', head: true });
   return count || 0;
 }
 
-async function countOwnerListings() {
-  if (!isEnabled()) return 0;
+async function countByStatus(status) {
   const { count } = await getAdmin()
     .from(TABLE)
     .select('*', { count: 'exact', head: true })
-    .eq('request_type', 'owner_listing');
+    .eq('status', status);
   return count || 0;
 }
 
-module.exports = {
-  createPropertyRequest,
-  createOwnerListing,
-  listPropertyRequests,
-  listOwnerListings,
-  countPropertyRequests,
-  countOwnerListings,
-};
+module.exports = { listAll, create, updateStatus, remove, countAll, countByStatus };

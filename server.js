@@ -44,7 +44,13 @@ const dashboardDir = path.join(ROOT, 'dashboard');
 console.log('STEP 5 — Supabase');
 console.log('  PORT:', PORT);
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
-initSupabase();
+const supabaseReady = initSupabase();
+if (supabaseReady) {
+  const { ensureBuckets } = require('./server/services/storage');
+  ensureBuckets().catch((err) => console.warn('[Storage] تهيئة buckets:', err.message));
+} else {
+  console.warn('  ⚠ بدون Supabase: النماذج والعروض من الداشبورد لن تُحفظ في القاعدة');
+}
 
 console.log('STEP 6 — إعداد middleware');
 
@@ -83,6 +89,8 @@ app.get('/health', async (_req, res) => {
     port: PORT,
     uptime: process.uptime(),
     supabase,
+    site: 'https://www.alheef.website',
+    dashboard: '/dashboard/login.html',
   });
 });
 
@@ -128,6 +136,18 @@ app.get('*', (req, res, next) => {
   try {
     if (req.path.startsWith('/dashboard')) {
       return sendDashboardPage(res, req.path);
+    }
+
+    const pageMap = {
+      '/map': 'map.html',
+      '/map.html': 'map.html',
+      '/property': 'property.html',
+      '/property.html': 'property.html',
+    };
+    const pageFile = pageMap[req.path];
+    if (pageFile) {
+      const pagePath = path.join(publicDir, pageFile);
+      if (fs.existsSync(pagePath)) return res.sendFile(pagePath);
     }
 
     const indexPath = path.join(publicDir, 'index.html');

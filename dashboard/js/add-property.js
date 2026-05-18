@@ -1,5 +1,5 @@
 const PROPERTY_TYPES = [
-  'أرض', 'فيلا', 'عمارة', 'شقة', 'أرض زراعية', 'استراحة', 'عقار تجاري',
+  'أرض', 'فيلا', 'عمارة', 'شقة', 'محل', 'مكتب', 'أرض زراعية', 'استراحة', 'عقار تجاري',
 ];
 
 let imageQueue = [];
@@ -31,6 +31,10 @@ function renderForm() {
         <section class="form-section">
           <h3 class="form-section__title">معلومات العقار</h3>
           <div class="form-grid">
+            <div class="form-group full">
+              <label>عنوان الإعلان <span class="required">*</span></label>
+              <input type="text" name="title" id="title" placeholder="مثال: فيلا فاخرة — حي النرجس" required>
+            </div>
             <div class="form-group">
               <label>نوع العقار <span class="required">*</span></label>
               <select name="propertyType" id="propertyType" required>
@@ -39,13 +43,24 @@ function renderForm() {
               </select>
             </div>
             <div class="form-group">
+              <label>نوع الإعلان</label>
+              <select name="listingType" id="listingType">
+                <option value="sale">بيع</option>
+                <option value="rent">إيجار</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>مساحة العقار</label>
               <input type="text" name="area" id="area" placeholder="مثال: 450">
               <span class="form-hint">اختياري — بالمتر المربع</span>
             </div>
             <div class="form-group">
-              <label>رقم عقد الوساطة</label>
-              <input type="text" name="contractNumber" id="contractNumber" placeholder="رقم العقد">
+              <label>عدد الغرف</label>
+              <input type="number" name="bedrooms" id="bedrooms" min="0" placeholder="اختياري">
+            </div>
+            <div class="form-group">
+              <label>رقم الإعلان المرخص</label>
+              <input type="text" name="contractNumber" id="contractNumber" placeholder="رقم الترخيص / فال">
             </div>
             <div class="form-group">
               <label>السعر <span class="required">*</span></label>
@@ -58,8 +73,17 @@ function renderForm() {
             <div class="form-group full">
               <label>رابط Google Maps</label>
               <input type="url" name="mapsUrl" id="mapsUrl" placeholder="https://maps.google.com/..." dir="ltr">
-              <span class="form-hint">اختياري — أو اكتفِ بحقل الموقع النصي</span>
+              <span class="form-hint">الصق الرابط لاستخراج الإحداثيات تلقائياً، أو أدخلها يدوياً أدناه</span>
             </div>
+            <div class="form-group">
+              <label>خط العرض (Latitude)</label>
+              <input type="text" name="latitude" id="latitude" placeholder="24.7136" dir="ltr">
+            </div>
+            <div class="form-group">
+              <label>خط الطول (Longitude)</label>
+              <input type="text" name="longitude" id="longitude" placeholder="46.6753" dir="ltr">
+            </div>
+            <p class="form-hint full" style="margin-top:-0.5rem">عند إدخال الإحداثيات يظهر العقار تلقائياً على <a href="/map.html" target="_blank">الخريطة العقارية</a></p>
             <div class="form-group full">
               <label>تفاصيل العقار</label>
               <textarea name="details" id="details" placeholder="اكتب وصفاً تفصيلياً للعقار..."></textarea>
@@ -93,6 +117,7 @@ function renderForm() {
   `;
 
   document.getElementById('property-form').addEventListener('submit', handleSubmit);
+  document.getElementById('mapsUrl')?.addEventListener('change', applyCoordsFromMapsUrl);
   document.getElementById('image-input').addEventListener('change', (e) => {
     addFiles(e.target.files);
     e.target.value = '';
@@ -120,18 +145,50 @@ function bindDropZone() {
   });
 }
 
+function parseCoordsFromMapsUrl(url) {
+  if (!url) return null;
+  const at = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (at) return { lat: at[1], lng: at[2] };
+  const q = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (q) return { lat: q[1], lng: q[2] };
+  const ll = url.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (ll) return { lat: ll[1], lng: ll[2] };
+  return null;
+}
+
+function applyCoordsFromMapsUrl() {
+  const url = document.getElementById('mapsUrl')?.value?.trim();
+  const coords = parseCoordsFromMapsUrl(url);
+  if (!coords) return;
+  const latEl = document.getElementById('latitude');
+  const lngEl = document.getElementById('longitude');
+  if (latEl && !latEl.value) latEl.value = coords.lat;
+  if (lngEl && !lngEl.value) lngEl.value = coords.lng;
+}
+
 async function loadOffer(id) {
   try {
     const offer = await DashboardAPI.getOffer(id);
+    const titleEl = document.getElementById('title');
+    if (titleEl) titleEl.value = offer.title || '';
     document.getElementById('propertyType').value = offer.propertyType || '';
-    document.getElementById('area').value = String(offer.area || '').replace(/\s*م²\s*/, '');
+    const listingEl = document.getElementById('listingType');
+    if (listingEl) listingEl.value = offer.listingType || 'sale';
+    document.getElementById('area').value = offer.area != null ? String(offer.area) : '';
+    const bedEl = document.getElementById('bedrooms');
+    if (bedEl) bedEl.value = offer.bedrooms != null ? offer.bedrooms : '';
     document.getElementById('contractNumber').value = offer.contractNumber || '';
-    document.getElementById('price').value = offer.price || '';
-    document.getElementById('location').value = offer.location || '';
+    document.getElementById('price').value = offer.price != null ? offer.price : '';
+    document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
     document.getElementById('mapsUrl').value = offer.mapsUrl || '';
-    document.getElementById('details').value = offer.details || '';
+    const latEl = document.getElementById('latitude');
+    const lngEl = document.getElementById('longitude');
+    if (latEl) latEl.value = offer.latitude != null ? offer.latitude : '';
+    if (lngEl) lngEl.value = offer.longitude != null ? offer.longitude : '';
+    document.getElementById('details').value = offer.description || offer.details || '';
     document.getElementById('status').value = offer.status || 'published';
-    imageQueue = (offer.images || []).map((url) => ({ url, isExisting: true }));
+    const urls = offer.gallery?.length ? offer.gallery : (offer.images || []).map((i) => (typeof i === 'string' ? i : i.url));
+    imageQueue = urls.filter(Boolean).map((url) => ({ url, isExisting: true }));
     renderGallery();
   } catch {
     showToast('تعذر تحميل الإعلان', 'error');
@@ -188,6 +245,16 @@ async function handleSubmit(e) {
   btn.textContent = 'جاري الحفظ...';
 
   const fd = new FormData(e.target);
+  const location = fd.get('location') || '';
+  const parts = location.split('—').map((s) => s.trim());
+  fd.set('city', parts[0] || location);
+  fd.set('district', parts[1] || '');
+  if (!fd.get('title')) fd.set('title', `${fd.get('propertyType')} — ${location}`);
+  fd.set('description', fd.get('details') || '');
+  fd.set('mapsUrl', fd.get('mapsUrl') || '');
+  if (!fd.get('latitude') || !fd.get('longitude')) applyCoordsFromMapsUrl();
+  fd.set('listingType', fd.get('listingType') || 'sale');
+  if (fd.get('bedrooms') === '') fd.delete('bedrooms');
   fd.append('existingImages', JSON.stringify(
     imageQueue.filter((i) => i.isExisting).map((i) => i.url)
   ));
