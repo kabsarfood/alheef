@@ -125,17 +125,38 @@ function readMapExtras(row) {
   };
 }
 
-function propertyToRow(body) {
-  const lat = parseCoord(body.latitude ?? body.lat);
-  const lng = parseCoord(body.longitude ?? body.lng);
-  const extras = {
+/** حقول الخريطة — تُخزَّن في features إن لم تكن الأعمدة منفّذة في Supabase بعد */
+function buildMapFeatures(body) {
+  const mapFields = {
     plot_number: body.plotNumber || body.plot_number || null,
     plan_number: body.planNumber || body.plan_number || null,
     direction: body.direction || null,
     street_width: body.streetWidth || body.street_width || null,
     price_type: body.priceType || body.price_type || 'fixed',
-    contact_phone: body.contactPhone || body.contact_phone || body.agentPhone || body.agent_phone || null,
+    contact_phone: body.contactPhone || body.contact_phone || null,
   };
+
+  let f = body.features;
+  if (Array.isArray(f)) {
+    f = f.length ? { amenities: f } : {};
+  } else if (f && typeof f === 'object') {
+    f = { ...f };
+  } else {
+    f = {};
+  }
+
+  Object.entries(mapFields).forEach(([k, v]) => {
+    if (v != null && v !== '') f[k] = v;
+  });
+  return f;
+}
+
+function propertyToRow(body) {
+  const lat = parseCoord(body.latitude ?? body.lat);
+  const lng = parseCoord(body.longitude ?? body.lng);
+  const contactPhone =
+    body.contactPhone || body.contact_phone || body.agentPhone || body.agent_phone || null;
+
   return {
     title: body.title,
     slug: body.slug,
@@ -156,19 +177,28 @@ function propertyToRow(body) {
     maps_url: body.mapsUrl || body.maps_url || null,
     cover_image: body.coverImage || body.cover_image || null,
     gallery: body.gallery || [],
-    features: body.features || [],
+    features: buildMapFeatures(body),
     featured: !!body.featured,
     status: body.status || 'draft',
     agent_name: body.agentName || body.agent_name || null,
-    agent_phone: body.agentPhone || body.agent_phone || extras.contact_phone,
+    agent_phone: contactPhone,
     reference_no: body.contractNumber || body.referenceNo || body.reference_no || null,
-    plot_number: extras.plot_number,
-    plan_number: extras.plan_number,
-    direction: extras.direction,
-    street_width: extras.street_width,
-    price_type: extras.price_type,
-    contact_phone: extras.contact_phone,
     updated_at: new Date().toISOString(),
+  };
+}
+
+/** نسخة مع أعمدة منفصلة — بعد تنفيذ migration 002 في Supabase */
+function propertyToRowWithColumns(body) {
+  const row = propertyToRow(body);
+  const f = row.features && typeof row.features === 'object' ? row.features : {};
+  return {
+    ...row,
+    plot_number: f.plot_number || null,
+    plan_number: f.plan_number || null,
+    direction: f.direction || null,
+    street_width: f.street_width || null,
+    price_type: f.price_type || 'fixed',
+    contact_phone: f.contact_phone || row.agent_phone || null,
   };
 }
 
@@ -229,7 +259,8 @@ function propertyToMapProperty(p) {
     price_type: p.priceType,
     contact_phone: p.contactPhone,
     agent_phone: p.agentPhone,
-    features: {},
+    features: p.features && typeof p.features === 'object' ? p.features : {},
+    agent_phone: p.contactPhone || p.agentPhone,
   });
 }
 

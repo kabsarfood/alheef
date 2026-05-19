@@ -2,6 +2,7 @@ const { getAdmin, isEnabled } = require('../lib/supabase');
 const { rowToProperty, propertyToRow } = require('../services/mappers');
 const { uniqueSlug } = require('../utils/slug');
 const { parseCoord, isValidCoord } = require('../utils/coords');
+const { pickPropertyColumns, stripOptionalMapColumns } = require('../utils/propertyColumns');
 
 const TABLE = 'properties';
 const IMG_TABLE = 'property_images';
@@ -135,6 +136,17 @@ async function getBySlug(slug) {
   return rowToProperty(data, images);
 }
 
+async function insertPropertyRow(row) {
+  let payload = pickPropertyColumns(row);
+  let { data, error } = await getAdmin().from(TABLE).insert(payload).select().single();
+  if (error && /column|schema cache/i.test(error.message)) {
+    payload = stripOptionalMapColumns(payload);
+    ({ data, error } = await getAdmin().from(TABLE).insert(payload).select().single());
+  }
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function create(body) {
   if (!isEnabled()) {
     throw new Error(
@@ -142,9 +154,12 @@ async function create(body) {
     );
   }
   const slug = body.slug || (await uniqueSlug(body.title, (s) => slugExists(s)));
-  const row = { ...propertyToRow(body), slug, created_at: new Date().toISOString() };
-  const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
-  if (error) throw new Error(error.message);
+  const row = pickPropertyColumns({
+    ...propertyToRow(body),
+    slug,
+    created_at: new Date().toISOString(),
+  });
+  const data = await insertPropertyRow(row);
   return rowToProperty(data, []);
 }
 
@@ -162,8 +177,12 @@ async function update(id, body) {
     slug = await uniqueSlug(body.title, (s) => slugExists(s, id));
   }
 
-  const row = { ...propertyToRow({ ...existing, ...body }), slug };
-  const { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
+  const row = pickPropertyColumns({ ...propertyToRow({ ...existing, ...body }), slug });
+  let { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
+  if (error && /column|schema cache/i.test(error.message)) {
+    const safe = stripOptionalMapColumns(row);
+    ({ data, error } = await getAdmin().from(TABLE).update(safe).eq('id', id).select().single());
+  }
   if (error) throw new Error(error.message);
   const images = await loadImages(id);
   return rowToProperty(data, images);
