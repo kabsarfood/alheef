@@ -1,11 +1,14 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- الهيف للخدمات العقارية — قاعدة بيانات كاملة
--- نفّذ هذا الملف كاملاً في Supabase → SQL Editor → Run
+-- الهيف للخدمات العقارية — مخطط قاعدة البيانات الكامل
+-- نفّذ هذا الملف كاملاً في: Supabase → SQL Editor → Run
+-- لا حاجة لتعديل إضافي
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ─── Extensions (UUID) ───
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ─── إزالة الهيكل القديم (مشروع جديد أو ترقية كاملة) ───
+-- ─── إزالة الهيكل القديم ───
 DROP TABLE IF EXISTS property_images CASCADE;
 DROP TABLE IF EXISTS properties CASCADE;
 DROP TABLE IF EXISTS news CASCADE;
@@ -16,7 +19,7 @@ DROP TABLE IF EXISTS testimonials CASCADE;
 DROP TABLE IF EXISTS dashboard_users CASCADE;
 DROP TABLE IF EXISTS settings CASCADE;
 
--- ─── دالة slug ───
+-- ─── دوال مساعدة ───
 CREATE OR REPLACE FUNCTION slugify(input TEXT)
 RETURNS TEXT AS $$
 DECLARE
@@ -31,7 +34,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- ─── updated_at ───
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -41,7 +43,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 1) settings — إعدادات الموقع (صف واحد)
+-- 1) settings
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE settings (
   id TEXT PRIMARY KEY DEFAULT 'main',
@@ -62,7 +64,7 @@ CREATE TABLE settings (
   twitter TEXT,
   snapchat TEXT,
   tiktok TEXT,
-  primary_color TEXT NOT NULL DEFAULT '#000000',
+  primary_color TEXT NOT NULL DEFAULT '#1E2A38',
   secondary_color TEXT NOT NULL DEFAULT '#C5A46D',
   footer_text TEXT,
   about_text TEXT,
@@ -72,7 +74,7 @@ CREATE TABLE settings (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 2) properties — العقارات
+-- 2) properties
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE properties (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -100,6 +102,7 @@ CREATE TABLE properties (
   status TEXT NOT NULL DEFAULT 'draft',
   agent_name TEXT,
   agent_phone TEXT,
+  reference_no TEXT,
   views_count INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -108,7 +111,7 @@ CREATE TABLE properties (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 3) property_images — صور العقار
+-- 3) property_images
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE property_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -119,7 +122,7 @@ CREATE TABLE property_images (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 4) news — الأخبار
+-- 4) news
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE news (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,7 +137,7 @@ CREATE TABLE news (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 5) requests — طلبات العملاء
+-- 5) requests
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,7 +153,7 @@ CREATE TABLE requests (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 6) subscriptions — النشرة
+-- 6) subscriptions
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -159,7 +162,7 @@ CREATE TABLE subscriptions (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 7) banners — بنرات
+-- 7) banners
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE banners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -174,7 +177,7 @@ CREATE TABLE banners (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 8) testimonials — آراء العملاء
+-- 8) testimonials
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE testimonials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -188,7 +191,7 @@ CREATE TABLE testimonials (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 9) dashboard_users — مستخدمو لوحة التحكم
+-- 9) dashboard_users
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE TABLE dashboard_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -200,14 +203,17 @@ CREATE TABLE dashboard_users (
 );
 
 -- ─── Triggers ───
-CREATE TRIGGER trg_settings_updated BEFORE UPDATE ON settings
-  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+CREATE TRIGGER trg_settings_updated
+  BEFORE UPDATE ON settings
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_properties_updated BEFORE UPDATE ON properties
-  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+CREATE TRIGGER trg_properties_updated
+  BEFORE UPDATE ON properties
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_news_updated BEFORE UPDATE ON news
-  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+CREATE TRIGGER trg_news_updated
+  BEFORE UPDATE ON news
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ─── Indexes ───
 CREATE INDEX idx_properties_city ON properties (city);
@@ -215,26 +221,46 @@ CREATE INDEX idx_properties_district ON properties (district);
 CREATE INDEX idx_properties_property_type ON properties (property_type);
 CREATE INDEX idx_properties_listing_type ON properties (listing_type);
 CREATE INDEX idx_properties_price ON properties (price);
-CREATE INDEX idx_properties_featured ON properties (featured) WHERE featured = true;
 CREATE INDEX idx_properties_status ON properties (status);
+CREATE INDEX idx_properties_featured ON properties (featured) WHERE featured = true;
 CREATE INDEX idx_properties_created_at ON properties (created_at DESC);
 CREATE INDEX idx_properties_slug ON properties (slug);
+CREATE INDEX idx_properties_reference_no ON properties (reference_no) WHERE reference_no IS NOT NULL;
+CREATE INDEX idx_properties_map ON properties (latitude, longitude)
+  WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND status = 'published';
 
 CREATE INDEX idx_property_images_property ON property_images (property_id, sort_order);
 CREATE INDEX idx_news_slug ON news (slug);
+CREATE INDEX idx_news_status ON news (status);
 CREATE INDEX idx_news_created_at ON news (created_at DESC);
 CREATE INDEX idx_requests_status ON requests (status);
 CREATE INDEX idx_requests_created_at ON requests (created_at DESC);
+CREATE INDEX idx_subscriptions_email ON subscriptions (email);
 CREATE INDEX idx_banners_active_sort ON banners (active, sort_order);
 CREATE INDEX idx_testimonials_active ON testimonials (active, created_at DESC);
+CREATE INDEX idx_dashboard_users_username ON dashboard_users (username);
 
--- ─── Seed settings ───
+-- ─── Seed: إعدادات افتراضية ───
 INSERT INTO settings (
-  id, site_name, site_description, logo_url, favicon_url,
-  hero_title, hero_subtitle, hero_image, hero_mobile_image,
-  whatsapp_number, email, phone, address,
-  primary_color, secondary_color,
-  footer_text, about_text, vision_text, mission_text
+  id,
+  site_name,
+  site_description,
+  logo_url,
+  favicon_url,
+  hero_title,
+  hero_subtitle,
+  hero_image,
+  hero_mobile_image,
+  whatsapp_number,
+  email,
+  phone,
+  address,
+  primary_color,
+  secondary_color,
+  footer_text,
+  about_text,
+  vision_text,
+  mission_text
 ) VALUES (
   'main',
   'الهيف للخدمات العقارية',
@@ -249,7 +275,7 @@ INSERT INTO settings (
   'info@alheef.com',
   '050 000 0000',
   'الرياض، المملكة العربية السعودية',
-  '#000000',
+  '#1E2A38',
   '#C5A46D',
   '© الهيف للخدمات العقارية — جميع الحقوق محفوظة',
   'مكتب عقاري اكتروني يقدم خدمات التسويق والبيع وإدارة الأملاك بمعايير احترافية راقية.',
@@ -258,7 +284,7 @@ INSERT INTO settings (
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- Row Level Security
+-- Row Level Security (RLS)
 -- ═══════════════════════════════════════════════════════════════════════════
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
@@ -270,33 +296,64 @@ ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dashboard_users ENABLE ROW LEVEL SECURITY;
 
--- قراءة عامة
-CREATE POLICY settings_public_read ON settings FOR SELECT TO anon, authenticated USING (true);
+-- إزالة سياسات قديمة (إعادة التشغيل الآمن)
+DROP POLICY IF EXISTS settings_public_read ON settings;
+DROP POLICY IF EXISTS properties_public_read ON properties;
+DROP POLICY IF EXISTS property_images_public_read ON property_images;
+DROP POLICY IF EXISTS news_public_read ON news;
+DROP POLICY IF EXISTS banners_public_read ON banners;
+DROP POLICY IF EXISTS testimonials_public_read ON testimonials;
+DROP POLICY IF EXISTS requests_no_anon ON requests;
+DROP POLICY IF EXISTS subscriptions_no_anon ON subscriptions;
+DROP POLICY IF EXISTS dashboard_users_no_anon ON dashboard_users;
+DROP POLICY IF EXISTS storage_public_read ON storage.objects;
 
-CREATE POLICY properties_public_read ON properties FOR SELECT TO anon, authenticated
+-- ─── Policies: قراءة عامة ───
+CREATE POLICY settings_public_read ON settings
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY properties_public_read ON properties
+  FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
-CREATE POLICY property_images_public_read ON property_images FOR SELECT TO anon, authenticated
+CREATE POLICY property_images_public_read ON property_images
+  FOR SELECT TO anon, authenticated
   USING (
     EXISTS (
       SELECT 1 FROM properties p
-      WHERE p.id = property_images.property_id AND p.status = 'published'
+      WHERE p.id = property_images.property_id
+        AND p.status = 'published'
     )
   );
 
-CREATE POLICY news_public_read ON news FOR SELECT TO anon, authenticated
+CREATE POLICY news_public_read ON news
+  FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
-CREATE POLICY banners_public_read ON banners FOR SELECT TO anon, authenticated
+CREATE POLICY banners_public_read ON banners
+  FOR SELECT TO anon, authenticated
   USING (active = true);
 
-CREATE POLICY testimonials_public_read ON testimonials FOR SELECT TO anon, authenticated
+CREATE POLICY testimonials_public_read ON testimonials
+  FOR SELECT TO anon, authenticated
   USING (active = true);
 
--- لا وصول عام للكتابة — الخادم يستخدم service_role
-CREATE POLICY requests_no_anon ON requests FOR ALL TO anon USING (false) WITH CHECK (false);
-CREATE POLICY subscriptions_no_anon ON subscriptions FOR ALL TO anon USING (false) WITH CHECK (false);
-CREATE POLICY dashboard_users_no_anon ON dashboard_users FOR ALL TO anon USING (false) WITH CHECK (false);
+-- ─── Policies: منع الكتابة العامة (الخادم يستخدم service_role) ───
+CREATE POLICY requests_no_anon ON requests
+  FOR ALL TO anon
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY subscriptions_no_anon ON subscriptions
+  FOR ALL TO anon
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY dashboard_users_no_anon ON dashboard_users
+  FOR ALL TO anon
+  USING (false)
+  WITH CHECK (false);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Storage Buckets
@@ -308,10 +365,23 @@ VALUES
   ('banners', 'banners', true, 8388608),
   ('logos', 'logos', true, 4194304),
   ('news', 'news', true, 8388608)
-ON CONFLICT (id) DO UPDATE SET public = true;
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit;
 
--- قراءة عامة لجميع الملفات العامة
-DROP POLICY IF EXISTS storage_public_read ON storage.objects;
 CREATE POLICY storage_public_read ON storage.objects
   FOR SELECT TO anon, authenticated
-  USING (bucket_id IN ('alheef-assets', 'property-images', 'banners', 'logos', 'news'));
+  USING (
+    bucket_id IN (
+      'alheef-assets',
+      'property-images',
+      'banners',
+      'logos',
+      'news'
+    )
+  );
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- إعادة تحميل مخطط PostgREST
+-- ═══════════════════════════════════════════════════════════════════════════
+NOTIFY pgrst, 'reload schema';
