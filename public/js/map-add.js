@@ -2,6 +2,8 @@
   'use strict';
 
   const TOKEN_KEY = 'alheef_admin_token';
+  const LOGIN_URL = '/dashboard/login.html?return=' + encodeURIComponent('/map.html');
+
   let isAdmin = false;
   let addMode = false;
   let pickMarker = null;
@@ -62,6 +64,9 @@
     if (els.coordsLabel) {
       els.coordsLabel.textContent = `الموقع: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
+    if (!isAdmin && els.coordsLabel) {
+      els.coordsLabel.textContent += ' — سجّل الدخول من لوحة التحكم لحفظ الإعلان';
+    }
     els.panel.classList.add('open');
     els.panel.setAttribute('aria-hidden', 'false');
     document.body.classList.add('map-add-open');
@@ -114,11 +119,26 @@
     setTimeout(() => {
       el.classList.remove('show');
       setTimeout(() => el.remove(), 300);
-    }, 3200);
+    }, 4000);
+  }
+
+  function promptLogin() {
+    toast('يجب تسجيل الدخول في لوحة التحكم أولاً', true);
+    setTimeout(() => {
+      if (confirm('الانتقال إلى صفحة تسجيل الدخول؟')) {
+        window.location.href = LOGIN_URL;
+      }
+    }, 400);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!isAdmin) {
+      promptLogin();
+      return;
+    }
+
     if (!pendingLatLng) {
       toast('حدد الموقع بالنقر على الخريطة أولاً', true);
       return;
@@ -128,6 +148,11 @@
     const city = (fd.get('city') || '').trim();
     const district = (fd.get('district') || '').trim();
     const propertyType = fd.get('propertyType') || '';
+    if (!propertyType || !city) {
+      toast('أكمل نوع العقار والمدينة', true);
+      return;
+    }
+
     fd.set('location', [city, district].filter(Boolean).join(' — ') || city);
     fd.set('title', `${propertyType} — ${fd.get('location')}`);
     fd.set('description', fd.get('details') || '');
@@ -154,10 +179,11 @@
         headers: authHeaders(),
         body: fd,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         localStorage.removeItem(TOKEN_KEY);
-        toast('انتهت الجلسة — سجّل الدخول من لوحة التحكم', true);
+        isAdmin = false;
+        promptLogin();
         return;
       }
       if (!res.ok) throw new Error(data.message || 'فشل الحفظ');
@@ -184,28 +210,32 @@
     }
   }
 
+  function onMapClick(mapApi, e) {
+    if (!addMode) return;
+    const { lat, lng } = e.latlng;
+    setPickMarker(mapApi, lat, lng);
+    openPanel(lat, lng);
+  }
+
   function setupMapClick(mapApi) {
     const map = mapApi.map();
     if (!map) return;
-
-    map.on('click', (e) => {
-      if (!isAdmin) return;
-      if (!addMode && !els.panel?.classList.contains('open')) {
-        addMode = true;
-        els.fab?.classList.add('active');
-      }
-      const { lat, lng } = e.latlng;
-      setPickMarker(mapApi, lat, lng);
-      openPanel(lat, lng);
-    });
+    map.on('click', (e) => onMapClick(mapApi, e));
   }
 
   function bindUi(mapApi) {
     els.fab?.addEventListener('click', () => {
+      if (!isAdmin) {
+        promptLogin();
+        return;
+      }
       addMode = !addMode;
       els.fab.classList.toggle('active', addMode);
-      if (!addMode) closePanel();
-      else toast('انقر على الخريطة لتحديد موقع العقار');
+      if (!addMode) {
+        closePanel();
+        return;
+      }
+      toast('انقر على الخريطة لتحديد موقع العقار');
     });
 
     els.close?.addEventListener('click', closePanel);
@@ -214,21 +244,26 @@
     els.images?.addEventListener('change', (ev) => renderPreview(ev.target.files));
   }
 
+  function updateFabState() {
+    if (!els.fab) return;
+    if (isAdmin) {
+      els.fab.title = 'إضافة عقار — انقر ثم حدد الموقع على الخريطة';
+      els.fab.classList.remove('map-add-fab--guest');
+    } else {
+      els.fab.title = 'تسجيل الدخول مطلوب لإضافة عقار';
+      els.fab.classList.add('map-add-fab--guest');
+    }
+  }
+
   async function init() {
     isAdmin = await checkAdmin();
-    if (!isAdmin) return;
-
-    if (els.fab) {
-      els.fab.hidden = false;
-      els.fab.title = 'إضافة عقار — انقر على الخريطة';
-    }
+    updateFabState();
 
     const mapApi = await waitForMap();
     setupMapClick(mapApi);
     bindUi(mapApi);
 
     window.AlheefMapAdd = {
-      handleMarkerClick: () => false,
       isAdmin: () => isAdmin,
     };
   }

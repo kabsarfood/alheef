@@ -1,7 +1,14 @@
+function loginRedirect() {
+  const params = new URLSearchParams(location.search);
+  const ret = params.get('return');
+  if (ret && ret.startsWith('/') && !ret.startsWith('//')) return ret;
+  return '/dashboard/';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const ok = await Auth.verify();
   if (ok) {
-    window.location.href = '/dashboard/';
+    window.location.href = loginRedirect();
     return;
   }
 
@@ -28,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       Auth.setToken(data.token);
-      window.location.href = '/dashboard/';
+      window.location.href = loginRedirect();
     } catch (err) {
       errorEl.textContent = err.message || 'كلمة المرور غير صحيحة';
       errorEl.hidden = false;

@@ -16,14 +16,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
   <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=4">
+  <link rel="stylesheet" href="/css/map.css?v=5">
 </head>
 <body class="map-page">
 
   <header class="header" id="header">
     <div class="container header__inner">
       <a href="/" class="logo logo--header" aria-label="الهيف — الرئيسية">
-        <img id="site-logo" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
+        <img id="site-logo" class="logo__img" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
       </a>
       <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
@@ -98,7 +98,7 @@
         </div>
         <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
-        <button type="button" class="map-add-fab" id="map-add-fab" hidden aria-label="إضافة عقار على الخريطة">+</button>
+        <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
         <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
       </div>
     </section>
@@ -198,8 +198,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/dashboard/js/auth.js"></script>
-  <script src="/js/map.js?v=4" defer></script>
-  <script src="/js/map-add.js?v=4" defer></script>
+  <script src="/js/map.js?v=5" defer></script>
+  <script src="/js/map-add.js?v=5" defer></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     (function () {
