@@ -18,6 +18,9 @@
 
   let map;
   let cluster;
+  let layerStreet;
+  let layerSatellite;
+  let mapLayerMode = 'streets';
   let config = {};
   let allProperties = [];
   let shareTarget = null;
@@ -76,8 +79,7 @@
     return `
       <article class="map-card" data-id="${escapeHtml(p.id)}">
         <div class="map-card__gallery">
-          <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async"
->
+          <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async">
         </div>
         <div class="map-card__body">
           <p class="map-card__type">${escapeHtml(p.propertyType)}${listingLabel(p) ? ` · ${listingLabel(p)}` : ''}</p>
@@ -184,16 +186,53 @@
     });
   }
 
+  function setMapLayer(mode) {
+    if (!map || !layerStreet || !layerSatellite) return;
+    const next = mode === 'satellite' ? 'satellite' : 'streets';
+    if (next === mapLayerMode) return;
+
+    if (next === 'satellite') {
+      map.removeLayer(layerStreet);
+      layerSatellite.addTo(map);
+    } else {
+      map.removeLayer(layerSatellite);
+      layerStreet.addTo(map);
+    }
+    mapLayerMode = next;
+
+    document.querySelectorAll('.map-layer-toggle__btn').forEach((btn) => {
+      const active = btn.dataset.layer === next;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function setupLayerToggle() {
+    document.querySelectorAll('.map-layer-toggle__btn').forEach((btn) => {
+      btn.addEventListener('click', () => setMapLayer(btn.dataset.layer));
+    });
+  }
+
   function initMap() {
     map = L.map('property-map', {
       zoomControl: true,
       scrollWheelZoom: true,
     }).setView([24.7136, 46.6753], 11);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    layerStreet = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CARTO',
       maxZoom: 19,
-    }).addTo(map);
+    });
+
+    layerSatellite = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: '&copy; Esri',
+        maxZoom: 19,
+      }
+    );
+
+    layerStreet.addTo(map);
 
     cluster = L.markerClusterGroup({
       chunkedLoading: true,
@@ -203,6 +242,7 @@
       maxClusterRadius: 52,
     });
     map.addLayer(cluster);
+    setupLayerToggle();
   }
 
   function renderLegend() {

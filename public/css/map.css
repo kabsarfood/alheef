@@ -150,6 +150,47 @@
   z-index: 1;
 }
 
+.map-layer-toggle {
+  position: absolute;
+  inset-inline-end: 1rem;
+  top: 1rem;
+  z-index: 500;
+  display: flex;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--map-border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--map-shadow);
+}
+
+.map-layer-toggle__btn {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.55rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: rgba(30, 42, 56, 0.65);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.map-layer-toggle__btn + .map-layer-toggle__btn {
+  border-inline-start: 1px solid var(--map-border);
+}
+
+.map-layer-toggle__btn.active {
+  background: var(--map-navy);
+  color: #fff;
+}
+
+.map-layer-toggle__btn:hover:not(.active) {
+  background: var(--map-gold-soft);
+  color: var(--map-navy);
+}
+
 .map-legend {
   position: absolute;
   inset-inline-start: 1rem;
@@ -452,6 +493,17 @@
 }
 
 @media (max-width: 768px) {
+  .map-layer-toggle {
+    top: auto;
+    bottom: 4.5rem;
+    inset-inline-end: 0.75rem;
+  }
+
+  .map-layer-toggle__btn {
+    font-size: 0.72rem;
+    padding: 0.5rem 0.65rem;
+  }
+
   .map-legend {
     top: auto;
     bottom: 4.5rem;
