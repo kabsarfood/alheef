@@ -6,3 +6,5 @@ dockerfilePath = "Dockerfile"
 startCommand = "npm start"
 healthcheckPath = "/health"
 restartPolicyType = "on_failure"
+
+# إذا استُخدم Nixpacks تلقائياً: راجع nixpacks.toml (npm install وليس npm ci)
