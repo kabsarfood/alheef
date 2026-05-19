@@ -1,6 +1,7 @@
 const { getAdmin, isEnabled } = require('../lib/supabase');
 const { rowToProperty, propertyToRow } = require('../services/mappers');
 const { uniqueSlug } = require('../utils/slug');
+const { parseCoord, isValidCoord } = require('../utils/coords');
 
 const TABLE = 'properties';
 const IMG_TABLE = 'property_images';
@@ -54,17 +55,11 @@ async function listPublished(filters, pagination) {
   return list({ ...filters, status: 'published' }, pagination);
 }
 
-/** عقارات منشورة ذات إحداثيات — للخريطة (بدون تحميل صور إضافية) */
+/** عقارات منشورة — للخريطة مع فلترة الإحداثيات في الكود */
 async function listForMap(filters = {}) {
-  if (!isEnabled()) return [];
-  let q = getAdmin()
-    .from(TABLE)
-    .select(
-      'id, title, slug, description, property_type, listing_type, city, district, street, price, bedrooms, bathrooms, area, latitude, longitude, cover_image, gallery, reference_no, maps_url'
-    )
-    .eq('status', 'published')
-    .not('latitude', 'is', null)
-    .not('longitude', 'is', null);
+  if (!isEnabled()) return { rows: [], stats: { error: 'supabase_disabled' } };
+
+  let q = getAdmin().from(TABLE).select('*').eq('status', 'published');
 
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
@@ -74,11 +69,49 @@ async function listForMap(filters = {}) {
   if (filters.maxPrice) q = q.lte('price', filters.maxPrice);
 
   const { data, error } = await q.order('created_at', { ascending: false });
+
   if (error) {
     console.error('[propertiesRepo] listForMap:', error.message);
-    return [];
+    return { rows: [], stats: { error: error.message } };
   }
-  return data || [];
+
+  const all = data || [];
+  const withCoords = all.filter((row) => isValidCoord(row.latitude, row.longitude));
+  const missingCoords = all.length - withCoords.length;
+
+  console.log('[propertiesRepo] listForMap:', {
+    publishedTotal: all.length,
+    withValidCoords: withCoords.length,
+    missingCoords,
+    filters,
+  });
+
+  return {
+    rows: withCoords,
+    stats: {
+      publishedTotal: all.length,
+      withValidCoords: withCoords.length,
+      missingCoords,
+    },
+  };
+}
+
+async function getMapDiagnostics() {
+  if (!isEnabled()) return null;
+  const { data: published } = await getAdmin()
+    .from(TABLE)
+    .select('id, title, status, latitude, longitude')
+    .eq('status', 'published');
+  const rows = published || [];
+  return {
+    published: rows.length,
+    withCoords: rows.filter((r) => isValidCoord(r.latitude, r.longitude)).length,
+    withoutCoords: rows.filter((r) => !isValidCoord(r.latitude, r.longitude)).map((r) => ({
+      id: r.id,
+      title: r.title,
+    })),
+    draft: null,
+  };
 }
 
 async function listAll(pagination) {
@@ -146,28 +179,27 @@ async function addImages(propertyId, urls) {
   if (!urls?.length) return [];
   const existing = await loadImages(propertyId);
   let order = existing.length;
-  const rows = urls.map((url) => ({
-    property_id: propertyId,
-    image_url: url,
-    sort_order: order++,
-  }));
+  const rows = urls.map((url) => {
+    order += 1;
+    return { property_id: propertyId, image_url: url, sort_order: order };
+  });
   const { data, error } = await getAdmin().from(IMG_TABLE).insert(rows).select();
   if (error) throw new Error(error.message);
 
-  const gallery = [...existing.map((i) => i.image_url), ...urls];
-  const cover = gallery[0];
+  const allImages = await loadImages(propertyId);
+  const gallery = allImages.map((i) => i.image_url);
+  const cover = gallery[0] || null;
   await getAdmin().from(TABLE).update({ gallery, cover_image: cover }).eq('id', propertyId);
   return data;
 }
 
 async function reorderImages(propertyId, orderedIds) {
-  for (let i = 0; i < orderedIds.length; i++) {
+  for (let i = 0; i < orderedIds.length; i += 1) {
     await getAdmin().from(IMG_TABLE).update({ sort_order: i }).eq('id', orderedIds[i]).eq('property_id', propertyId);
   }
   const images = await loadImages(propertyId);
   const gallery = images.map((i) => i.image_url);
   await getAdmin().from(TABLE).update({ gallery, cover_image: gallery[0] || null }).eq('id', propertyId);
-  return images;
 }
 
 async function removeImage(imageId) {
@@ -194,6 +226,7 @@ module.exports = {
   list,
   listPublished,
   listForMap,
+  getMapDiagnostics,
   listAll,
   getById,
   getBySlug,

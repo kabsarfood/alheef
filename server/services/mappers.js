@@ -1,4 +1,5 @@
 const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
+const { parseCoord } = require('../utils/coords');
 
 function rowToSettings(row) {
   if (!row) return { ...DEFAULT_SETTINGS };
@@ -101,10 +102,40 @@ function rowToProperty(row, images = []) {
     location: [row.city, row.district].filter(Boolean).join(' — '),
     priceDisplay: row.price != null ? Number(row.price).toLocaleString('ar-SA') : '',
     contractNumber: row.reference_no || '',
+    plotNumber: row.plot_number || '',
+    planNumber: row.plan_number || '',
+    direction: row.direction || '',
+    streetWidth: row.street_width || '',
+    priceType: row.price_type || 'fixed',
+    contactPhone: row.contact_phone || row.agent_phone || '',
+  };
+}
+
+function readMapExtras(row) {
+  const f = row.features && typeof row.features === 'object' && !Array.isArray(row.features)
+    ? row.features
+    : {};
+  return {
+    plotNumber: row.plot_number || f.plot_number || f.plotNumber || '',
+    planNumber: row.plan_number || f.plan_number || f.planNumber || '',
+    direction: row.direction || f.direction || '',
+    streetWidth: row.street_width || f.street_width || f.streetWidth || '',
+    priceType: row.price_type || f.price_type || f.priceType || 'fixed',
+    contactPhone: row.contact_phone || row.agent_phone || f.contact_phone || f.contactPhone || '',
   };
 }
 
 function propertyToRow(body) {
+  const lat = parseCoord(body.latitude ?? body.lat);
+  const lng = parseCoord(body.longitude ?? body.lng);
+  const extras = {
+    plot_number: body.plotNumber || body.plot_number || null,
+    plan_number: body.planNumber || body.plan_number || null,
+    direction: body.direction || null,
+    street_width: body.streetWidth || body.street_width || null,
+    price_type: body.priceType || body.price_type || 'fixed',
+    contact_phone: body.contactPhone || body.contact_phone || body.agentPhone || body.agent_phone || null,
+  };
   return {
     title: body.title,
     slug: body.slug,
@@ -119,8 +150,8 @@ function propertyToRow(body) {
     bathrooms: body.bathrooms != null && body.bathrooms !== '' ? parseInt(body.bathrooms, 10) : null,
     area: body.area != null && body.area !== '' ? Number(body.area) : null,
     age: body.age != null && body.age !== '' ? parseInt(body.age, 10) : null,
-    latitude: body.latitude != null && body.latitude !== '' ? Number(body.latitude) : null,
-    longitude: body.longitude != null && body.longitude !== '' ? Number(body.longitude) : null,
+    latitude: lat,
+    longitude: lng,
     video_url: body.videoUrl || body.video_url || null,
     maps_url: body.mapsUrl || body.maps_url || null,
     cover_image: body.coverImage || body.cover_image || null,
@@ -129,8 +160,14 @@ function propertyToRow(body) {
     featured: !!body.featured,
     status: body.status || 'draft',
     agent_name: body.agentName || body.agent_name || null,
-    agent_phone: body.agentPhone || body.agent_phone || null,
+    agent_phone: body.agentPhone || body.agent_phone || extras.contact_phone,
     reference_no: body.contractNumber || body.referenceNo || body.reference_no || null,
+    plot_number: extras.plot_number,
+    plan_number: extras.plan_number,
+    direction: extras.direction,
+    street_width: extras.street_width,
+    price_type: extras.price_type,
+    contact_phone: extras.contact_phone,
     updated_at: new Date().toISOString(),
   };
 }
@@ -164,10 +201,46 @@ function toPublicProperty(p) {
   };
 }
 
+function propertyToMapProperty(p) {
+  if (!p) return null;
+  return rowToMapProperty({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    description: p.description,
+    property_type: p.propertyType,
+    listing_type: p.listingType,
+    city: p.city,
+    district: p.district,
+    price: p.price,
+    bedrooms: p.bedrooms,
+    bathrooms: p.bathrooms,
+    area: p.area,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    cover_image: p.coverImage,
+    gallery: p.gallery || [],
+    reference_no: p.contractNumber,
+    maps_url: p.mapsUrl,
+    plot_number: p.plotNumber,
+    plan_number: p.planNumber,
+    direction: p.direction,
+    street_width: p.streetWidth,
+    price_type: p.priceType,
+    contact_phone: p.contactPhone,
+    agent_phone: p.agentPhone,
+    features: {},
+  });
+}
+
 function rowToMapProperty(row) {
   const gallery = Array.isArray(row.gallery) ? row.gallery : [];
   const cover = row.cover_image || gallery[0] || '';
   const priceNum = row.price != null ? Number(row.price) : null;
+  const extra = readMapExtras(row);
+  const lat = parseCoord(row.latitude);
+  const lng = parseCoord(row.longitude);
+  const priceType = extra.priceType || 'fixed';
   return {
     id: row.id,
     title: row.title,
@@ -179,16 +252,22 @@ function rowToMapProperty(row) {
     district: row.district,
     location: [row.city, row.district].filter(Boolean).join(' — '),
     price: priceNum,
-    priceDisplay: priceNum != null ? priceNum.toLocaleString('ar-SA') : '',
+    priceDisplay: priceType === 'auction' ? 'على السوم' : (priceNum != null ? priceNum.toLocaleString('ar-SA') : ''),
+    priceType,
     bedrooms: row.bedrooms,
     bathrooms: row.bathrooms,
     area: row.area,
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
+    latitude: lat,
+    longitude: lng,
     coverImage: cover,
     gallery: gallery.length ? gallery : cover ? [cover] : [],
     referenceNo: row.reference_no || '',
     mapsUrl: row.maps_url || '',
+    plotNumber: extra.plotNumber,
+    planNumber: extra.planNumber,
+    direction: extra.direction,
+    streetWidth: extra.streetWidth,
+    contactPhone: extra.contactPhone,
   };
 }
 
@@ -314,6 +393,7 @@ module.exports = {
   propertyToRow,
   toPublicProperty,
   rowToMapProperty,
+  propertyToMapProperty,
   toLegacyPublicOffer,
   toPublicSettings,
   rowToNews,

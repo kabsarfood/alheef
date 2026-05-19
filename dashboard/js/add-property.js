@@ -15,7 +15,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindDropZone();
 
   if (editId) loadOffer(editId);
+  else showCoordsMapHint();
 });
+
+async function showCoordsMapHint() {
+  try {
+    const data = await DashboardAPI.request('/map/coords-warnings');
+    if (data?.withoutCoords?.length) {
+      const el = document.createElement('div');
+      el.className = 'db-banner';
+      el.style.marginBottom = '1rem';
+      el.innerHTML = `<strong>تنبيه الخريطة</strong><p>${data.withoutCoords.length} إعلاناً منشوراً بدون إحداثيات — لن يظهر على الخريطة.</p>`;
+      getPageContent()?.prepend(el);
+    }
+  } catch { /* ignore */ }
+}
 
 function renderForm() {
   const content = getPageContent();
@@ -253,6 +267,21 @@ async function handleSubmit(e) {
   fd.set('description', fd.get('details') || '');
   fd.set('mapsUrl', fd.get('mapsUrl') || '');
   if (!fd.get('latitude') || !fd.get('longitude')) applyCoordsFromMapsUrl();
+  const latEl = document.getElementById('latitude');
+  const lngEl = document.getElementById('longitude');
+  if (latEl?.value) fd.set('latitude', String(latEl.value).trim());
+  if (lngEl?.value) fd.set('longitude', String(lngEl.value).trim());
+
+  const lat = fd.get('latitude');
+  const lng = fd.get('longitude');
+  const status = fd.get('status') || 'published';
+  if (status === 'published' && (!lat || !lng)) {
+    showToast('لن يظهر على الخريطة بدون خط العرض والطول — أضف الإحداثيات أو رابط خرائط Google', 'error');
+    btn.disabled = false;
+    btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
+    return;
+  }
+
   fd.set('listingType', fd.get('listingType') || 'sale');
   if (fd.get('bedrooms') === '') fd.delete('bedrooms');
   fd.append('existingImages', JSON.stringify(
@@ -262,7 +291,13 @@ async function handleSubmit(e) {
 
   try {
     const result = await DashboardAPI.saveOffer(fd, editId);
-    showToast(result.message || 'تم الحفظ بنجاح');
+    let msg = result.message || 'تم الحفظ بنجاح';
+    if (status === 'published' && lat && lng) {
+      msg += ' — سيظهر على الخريطة العقارية';
+    } else if (status === 'published') {
+      msg += ' — لم يُضف للخريطة (بدون إحداثيات)';
+    }
+    showToast(msg);
     setTimeout(() => { window.location.href = '/dashboard/offers.html'; }, 800);
   } catch (err) {
     showToast(err.message || 'حدث خطأ', 'error');

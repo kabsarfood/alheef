@@ -23,6 +23,7 @@
   let mapLayerMode = 'streets';
   let config = {};
   let allProperties = [];
+  let markersById = new Map();
   let shareTarget = null;
   let loadGen = 0;
 
@@ -67,14 +68,20 @@
     return `${t.slice(0, n)}…`;
   }
 
+  function detailRow(label, value) {
+    if (!value) return '';
+    return `<p class="map-card__detail"><span>${label}</span> ${escapeHtml(String(value))}</p>`;
+  }
+
   function buildCardHtml(p) {
     const img = p.coverImage || (p.gallery && p.gallery[0]) || '';
-    const gallery = (p.gallery && p.gallery.length) ? p.gallery : (img ? [img] : []);
     const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
     const rooms = p.bedrooms ? `${p.bedrooms} غرف` : '';
     const area = p.area ? `${p.area} م²` : '';
-    const ref = p.referenceNo ? `رقم الإعلان: ${escapeHtml(p.referenceNo)}` : '';
+    const ref = p.referenceNo ? `رقم الترخيص: ${escapeHtml(p.referenceNo)}` : '';
     const pid = p.id;
+    const phone = (p.contactPhone || '').replace(/\D/g, '');
+    const priceLabel = p.priceType === 'auction' ? 'على السوم' : `${formatPrice(p)} ر.س`;
 
     return `
       <article class="map-card" data-id="${escapeHtml(p.id)}">
@@ -85,15 +92,21 @@
           <p class="map-card__type">${escapeHtml(p.propertyType)}${listingLabel(p) ? ` · ${listingLabel(p)}` : ''}</p>
           <h3 class="map-card__title">${escapeHtml(p.title)}</h3>
           <p class="map-card__loc">${escapeHtml(loc)}</p>
-          <div class="map-card__meta">
-            ${area ? `<span>${escapeHtml(String(area))}</span>` : ''}
-            ${rooms ? `<span>${escapeHtml(rooms)}</span>` : ''}
+          <p class="map-card__price">${priceLabel}</p>
+          <div class="map-card__details">
+            ${detailRow('المساحة', area)}
+            ${detailRow('رقم القطعة', p.plotNumber)}
+            ${detailRow('رقم المخطط', p.planNumber)}
+            ${detailRow('الاتجاه', p.direction)}
+            ${detailRow('عرض الشارع', p.streetWidth)}
+            ${ref ? `<p class="map-card__ref">${ref}</p>` : ''}
+            ${phone ? `<p class="map-card__ref">جوال: ${escapeHtml(p.contactPhone)}</p>` : ''}
           </div>
-          <p class="map-card__price">${formatPrice(p)} <span>ر.س</span></p>
-          ${ref ? `<p class="map-card__ref">${ref}</p>` : ''}
+          ${rooms ? `<div class="map-card__meta"><span>${escapeHtml(rooms)}</span></div>` : ''}
           <p class="map-card__desc">${escapeHtml(truncate(p.description, 140))}</p>
           <div class="map-card__actions">
             <a class="map-card__btn map-card__btn--primary" href="${propertyUrl(p)}">عرض التفاصيل</a>
+            ${phone ? `<a class="map-card__btn map-card__btn--call" href="tel:${phone}">اتصال</a>` : ''}
             <a class="map-card__btn map-card__btn--wa" href="#" data-wa="${pid}">واتساب</a>
             <button type="button" class="map-card__btn map-card__btn--share" data-share="${pid}">مشاركة</button>
           </div>
@@ -103,12 +116,19 @@
 
   function shareText(p) {
     const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
+    const priceLine = p.priceType === 'auction' ? 'السعر: على السوم' : `السعر: ${formatPrice(p)} ر.س`;
     const lines = [
       p.title,
       `النوع: ${p.propertyType || '—'}`,
-      `السعر: ${formatPrice(p)} ر.س`,
+      priceLine,
       loc ? `الموقع: ${loc}` : '',
-      p.referenceNo ? `رقم الإعلان: ${p.referenceNo}` : '',
+      p.area ? `المساحة: ${p.area} م²` : '',
+      p.plotNumber ? `رقم القطعة: ${p.plotNumber}` : '',
+      p.planNumber ? `رقم المخطط: ${p.planNumber}` : '',
+      p.direction ? `الاتجاه: ${p.direction}` : '',
+      p.streetWidth ? `عرض الشارع: ${p.streetWidth}` : '',
+      p.referenceNo ? `رقم الترخيص: ${p.referenceNo}` : '',
+      p.contactPhone ? `الجوال: ${p.contactPhone}` : '',
       propertyUrl(p),
     ].filter(Boolean);
     return lines.join('\n');
@@ -180,10 +200,54 @@
   function createIcon(color) {
     return L.divIcon({
       className: 'map-pin-wrap',
-      html: `<span class="map-marker" style="background:${color}"></span>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
+      html: `<span class="map-marker-pulse" style="--pin-color:${color}"><span class="map-marker-core"></span></span>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
     });
+  }
+
+  function attachMarker(p) {
+    const lat = Number(p.latitude);
+    const lng = Number(p.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    const color = markerColor(p.propertyType);
+    const marker = L.marker([lat, lng], { icon: createIcon(color) });
+
+    marker.bindPopup(buildCardHtml(p), { className: 'map-popup', maxWidth: 340 });
+    marker.on('popupopen', () => {
+      const popEl = marker.getPopup()?.getElement();
+      if (popEl) bindCardActions(popEl);
+    });
+    marker.on('click', (e) => {
+      if (window.AlheefMapAdd?.handleMarkerClick?.(e, p)) return;
+      if (MOBILE()) {
+        openSheet(p);
+        return;
+      }
+      marker.openPopup();
+    });
+
+    const prev = markersById.get(p.id);
+    if (prev) cluster.removeLayer(prev);
+    cluster.addLayer(marker);
+    markersById.set(p.id, marker);
+    return marker;
+  }
+
+  function addPropertyToMap(p) {
+    if (!p?.id || !isValidPropertyCoords(p)) return;
+    const i = allProperties.findIndex((x) => x.id === p.id);
+    if (i >= 0) allProperties[i] = p;
+    else allProperties.unshift(p);
+    attachMarker(p);
+    if (els.count) els.count.textContent = `${allProperties.length} عقار`;
+  }
+
+  function isValidPropertyCoords(p) {
+    const lat = Number(p.latitude);
+    const lng = Number(p.longitude);
+    return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
   }
 
   function setMapLayer(mode) {
@@ -387,7 +451,15 @@
       allProperties = data.items || [];
       renderMarkers(allProperties);
       if (els.count) {
-        els.count.textContent = `${allProperties.length} عقار`;
+        const meta = data.meta || {};
+        let label = `${allProperties.length} عقار`;
+        if (meta.missingCoords > 0) {
+          label += ` (${meta.missingCoords} بدون إحداثيات)`;
+        }
+        els.count.textContent = label;
+      }
+      if (data.meta) {
+        console.log('[map] properties loaded', data.meta);
       }
     } catch {
       if (els.count) els.count.textContent = 'تعذر التحميل';
@@ -398,6 +470,7 @@
 
   function renderMarkers(items) {
     cluster.clearLayers();
+    markersById.clear();
     const bounds = [];
     const batch = 80;
     let i = 0;
@@ -409,27 +482,7 @@
         const lat = Number(p.latitude);
         const lng = Number(p.longitude);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-        const color = markerColor(p.propertyType);
-        const marker = L.marker([lat, lng], { icon: createIcon(color) });
-
-        marker.bindPopup(buildCardHtml(p), {
-          className: 'map-popup',
-          maxWidth: 340,
-        });
-        marker.on('popupopen', () => {
-          const popEl = marker.getPopup()?.getElement();
-          if (popEl) bindCardActions(popEl);
-        });
-        marker.on('click', () => {
-          if (MOBILE()) {
-            openSheet(p);
-            return;
-          }
-          marker.openPopup();
-        });
-
-        cluster.addLayer(marker);
+        attachMarker(p);
         bounds.push([lat, lng]);
       }
       if (i < items.length) {
@@ -500,11 +553,26 @@
 
     await loadProperties({});
     setTimeout(() => map.invalidateSize(), 200);
+    document.dispatchEvent(new CustomEvent('alheef-map-ready'));
   }
+
+  window.AlheefMap = {
+    map: () => map,
+    cluster: () => cluster,
+    getConfig: () => config,
+    addPropertyToMap,
+    loadProperties,
+    buildCardHtml,
+    openSheet,
+    closeSheet,
+    isValidPropertyCoords,
+    markerColor,
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
+
 })();

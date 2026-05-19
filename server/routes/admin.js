@@ -10,6 +10,7 @@ const bannersRepo = require('../repositories/bannersRepo');
 const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
+const { propertyToMapProperty } = require('../services/mappers');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -28,6 +29,15 @@ router.get('/system-status', async (_req, res) => {
       hint: db.hint || null,
     },
   });
+});
+
+router.get('/map/coords-warnings', async (_req, res) => {
+  try {
+    const diag = await propertiesRepo.getMapDiagnostics();
+    res.json({ success: true, ...diag });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // ─── Stats ───
@@ -143,7 +153,13 @@ router.post('/properties', uploadMemory.array('images', 20), async (req, res) =>
     const p = await propertiesRepo.create({ ...body, features });
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
-    res.json({ success: true, property: await propertiesRepo.getById(p.id) });
+    const full = await propertiesRepo.getById(p.id);
+    res.json({
+      success: true,
+      property: full,
+      mapProperty: propertyToMapProperty(full),
+      message: 'تم الحفظ بنجاح',
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -159,7 +175,13 @@ router.post('/offers', uploadMemory.array('images', 20), async (req, res) => {
     const p = await propertiesRepo.create({ ...body, features });
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
-    res.json({ success: true, offer: await propertiesRepo.getById(p.id) });
+    const full = await propertiesRepo.getById(p.id);
+    res.json({
+      success: true,
+      offer: full,
+      mapProperty: propertyToMapProperty(full),
+      message: 'تم الحفظ بنجاح',
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

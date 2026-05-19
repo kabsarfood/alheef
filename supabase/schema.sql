@@ -103,11 +103,18 @@ CREATE TABLE properties (
   agent_name TEXT,
   agent_phone TEXT,
   reference_no TEXT,
+  plot_number TEXT,
+  plan_number TEXT,
+  direction TEXT,
+  street_width TEXT,
+  price_type TEXT DEFAULT 'fixed',
+  contact_phone TEXT,
   views_count INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT properties_status_check CHECK (status IN ('draft', 'published', 'sold', 'archived')),
-  CONSTRAINT properties_listing_type_check CHECK (listing_type IN ('sale', 'rent'))
+  CONSTRAINT properties_listing_type_check CHECK (listing_type IN ('sale', 'rent')),
+  CONSTRAINT properties_price_type_check CHECK (price_type IS NULL OR price_type IN ('fixed', 'auction'))
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════

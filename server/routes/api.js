@@ -76,18 +76,24 @@ router.get('/map/properties', async (req, res) => {
       minPrice: req.query.min_price,
       maxPrice: req.query.max_price,
     };
-    const rows = await propertiesRepo.listForMap(filters);
+    const { rows, stats } = await propertiesRepo.listForMap(filters);
     const items = rows.map(rowToMapProperty);
-    res.json({ success: true, items, total: items.length });
+    console.log('[API] GET /api/map/properties', {
+      returned: items.length,
+      publishedTotal: stats.publishedTotal,
+      withValidCoords: stats.withValidCoords,
+      missingCoords: stats.missingCoords,
+    });
+    res.json({ success: true, items, total: items.length, meta: stats });
   } catch (err) {
     console.error('[API] map/properties:', err.message);
-    res.json({ success: true, items: [], total: 0 });
+    res.json({ success: true, items: [], total: 0, meta: { error: err.message } });
   }
 });
 
 router.get('/map/filters', async (_req, res) => {
   try {
-    const rows = await propertiesRepo.listForMap({});
+    const { rows } = await propertiesRepo.listForMap({});
     const cities = [...new Set(rows.map((r) => r.city).filter(Boolean))].sort();
     const districts = [...new Set(rows.map((r) => r.district).filter(Boolean))].sort();
     const types = [...new Set(rows.map((r) => r.property_type).filter(Boolean))].sort();
