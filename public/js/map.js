@@ -243,6 +243,75 @@
     });
     map.addLayer(cluster);
     setupLayerToggle();
+    setupFullscreen();
+  }
+
+  function setupFullscreen() {
+    const wrap = document.querySelector('.map-wrap');
+    const btn = document.getElementById('map-fullscreen-btn');
+    if (!wrap || !btn) return;
+
+    const label = btn.querySelector('.map-fs-btn__label');
+    const icon = btn.querySelector('.map-fs-btn__icon');
+
+    function isFullscreen() {
+      return document.fullscreenElement === wrap || wrap.classList.contains('map-wrap--fullscreen');
+    }
+
+    function refreshMap() {
+      if (map) setTimeout(() => map.invalidateSize(), 80);
+    }
+
+    function updateUi(active) {
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.setAttribute('aria-label', active ? 'إغلاق ملء الشاشة' : 'ملء الشاشة');
+      if (label) label.textContent = active ? 'إغلاق' : 'ملء الشاشة';
+      if (icon) icon.textContent = active ? '✕' : '⛶';
+    }
+
+    function enterFallback() {
+      wrap.classList.add('map-wrap--fullscreen');
+      document.body.classList.add('map-fs-active');
+      updateUi(true);
+      refreshMap();
+    }
+
+    function exitAll() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      wrap.classList.remove('map-wrap--fullscreen');
+      document.body.classList.remove('map-fs-active');
+      updateUi(false);
+      refreshMap();
+    }
+
+    function enter() {
+      if (wrap.requestFullscreen) {
+        wrap.requestFullscreen().then(() => {
+          updateUi(true);
+          refreshMap();
+        }).catch(enterFallback);
+      } else {
+        enterFallback();
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      if (isFullscreen()) exitAll();
+      else enter();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement === wrap) {
+        updateUi(true);
+        refreshMap();
+      } else if (!wrap.classList.contains('map-wrap--fullscreen')) {
+        document.body.classList.remove('map-fs-active');
+        updateUi(false);
+        refreshMap();
+      }
+    });
   }
 
   function renderLegend() {

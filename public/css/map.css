@@ -144,10 +144,86 @@
   background: #e8e4df;
 }
 
+.map-wrap:fullscreen,
+.map-wrap:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  border-radius: 0;
+  border: none;
+}
+
+.map-wrap--fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  border-radius: 0;
+  border: none;
+}
+
+body.map-fs-active {
+  overflow: hidden;
+}
+
+body.map-fs-active .header,
+body.map-fs-active .map-hero,
+body.map-fs-active .map-filters,
+body.map-fs-active .footer {
+  display: none;
+}
+
+body.map-fs-active .map-stage.container {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+body.map-fs-active .map-stage {
+  padding-bottom: 0;
+}
+
 #property-map {
   width: 100%;
   height: 100%;
   z-index: 1;
+}
+
+.map-fs-btn {
+  position: absolute;
+  inset-inline-end: 1rem;
+  top: 3.25rem;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--map-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  color: var(--map-navy);
+  cursor: pointer;
+  box-shadow: var(--map-shadow);
+  transition: background 0.2s, color 0.2s;
+}
+
+.map-fs-btn:hover,
+.map-fs-btn[aria-pressed="true"] {
+  background: var(--map-navy);
+  color: #fff;
+}
+
+.map-fs-btn__icon {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .map-layer-toggle {
@@ -504,16 +580,65 @@
     padding: 0.5rem 0.65rem;
   }
 
+  .map-fs-btn {
+    top: auto;
+    bottom: 7.5rem;
+    inset-inline-end: 0.75rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.55rem;
+  }
+
+  .map-fs-btn__label {
+    display: none;
+  }
+
+  .map-fs-btn__icon {
+    font-size: 0.85rem;
+  }
+
+  /* دليل الألوان — أصغر بـ 30% عن الحجم السابق على الجوال */
   .map-legend {
     top: auto;
     bottom: 4.5rem;
     inset-inline-start: 0.75rem;
-    padding: 0.65rem 0.75rem;
-    font-size: 0.7rem;
+    min-width: 98px;
+    padding: 0.45rem 0.53rem;
+    border-radius: 8px;
+  }
+
+  .map-legend__title {
+    font-size: 0.49rem;
+    margin-bottom: 0.42rem;
+    letter-spacing: 0.02em;
   }
 
   .map-legend__item {
-    font-size: 0.68rem;
+    font-size: 0.48rem;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .map-legend__dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  body.map-fs-active .map-fs-btn {
+    bottom: 1rem;
+    top: auto;
+  }
+
+  body.map-fs-active .map-layer-toggle {
+    bottom: 1rem;
+  }
+
+  body.map-fs-active .map-legend {
+    bottom: 1rem;
+    inset-inline-start: 0.5rem;
+  }
+
+  body.map-fs-active .map-count {
+    bottom: 0.5rem;
   }
 
   .map-wrap {
