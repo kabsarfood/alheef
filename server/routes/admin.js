@@ -14,6 +14,22 @@ const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const router = express.Router();
 router.use(requireAdmin);
 
+// ─── حالة النظام / Supabase ───
+router.get('/system-status', async (_req, res) => {
+  const { ping, getStatus } = require('../lib/supabase');
+  const status = getStatus();
+  const db = await ping();
+  res.json({
+    supabase: {
+      configured: status.configured,
+      connected: status.enabled && db.ok,
+      url: status.url,
+      reason: db.reason || null,
+      hint: db.hint || null,
+    },
+  });
+});
+
 // ─── Stats ───
 router.get('/stats', async (_req, res) => {
   try {

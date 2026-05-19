@@ -19,6 +19,10 @@ const DashboardAPI = {
     return data;
   },
 
+  getSystemStatus() {
+    return this.request('/system-status');
+  },
+
   getStats() {
     return this.request('/stats');
   },

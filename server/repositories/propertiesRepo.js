@@ -103,7 +103,11 @@ async function getBySlug(slug) {
 }
 
 async function create(body) {
-  if (!isEnabled()) throw new Error('Supabase غير متصل');
+  if (!isEnabled()) {
+    throw new Error(
+      'قاعدة البيانات غير متصلة — أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Railway ثم أعد النشر'
+    );
+  }
   const slug = body.slug || (await uniqueSlug(body.title, (s) => slugExists(s)));
   const row = { ...propertyToRow(body), slug, created_at: new Date().toISOString() };
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
@@ -112,7 +116,11 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  if (!isEnabled()) throw new Error('Supabase غير متصل');
+  if (!isEnabled()) {
+    throw new Error(
+      'قاعدة البيانات غير متصلة — أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Railway ثم أعد النشر'
+    );
+  }
   const existing = await getById(id);
   if (!existing) return null;
 

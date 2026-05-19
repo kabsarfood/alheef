@@ -1,36 +1,64 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-
 let supabaseAdmin = null;
 let supabasePublic = null;
 let enabled = false;
+let lastUrl = '';
+
+function readEnv() {
+  const url = (
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ''
+  ).trim().replace(/\/$/, '');
+
+  const serviceKey = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_KEY ||
+    ''
+  ).trim();
+
+  const anonKey = (
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    ''
+  ).trim();
+
+  return { url, serviceKey, anonKey };
+}
 
 function initSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('[Supabase] ⚠ SUPABASE_URL أو SUPABASE_SERVICE_ROLE_KEY غير معرّف — وضع fallback');
+  const { url, serviceKey, anonKey } = readEnv();
+  lastUrl = url;
+
+  if (!url || !serviceKey) {
     enabled = false;
+    supabaseAdmin = null;
+    supabasePublic = null;
+    if (!url) {
+      console.warn('[Supabase] ⚠ SUPABASE_URL غير معرّف');
+    } else {
+      console.warn('[Supabase] ⚠ SUPABASE_SERVICE_ROLE_KEY غير معرّف');
+    }
     return false;
   }
 
   try {
-    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    supabaseAdmin = createClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    if (SUPABASE_ANON_KEY) {
-      supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    if (anonKey) {
+      supabasePublic = createClient(url, anonKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
-      console.log('[Supabase] ✓ عميل anon جاهز (للقراءة العامة الاختيارية)');
     } else {
-      console.warn('[Supabase] ⚠ SUPABASE_ANON_KEY غير معرّف — القراءة العامة عبر admin فقط');
+      supabasePublic = null;
     }
 
     enabled = true;
-    console.log('[Supabase] ✓ عميل admin جاهز');
+    console.log('[Supabase] ✓ متصل —', url);
     return true;
   } catch (err) {
     console.error('[Supabase] ✗ فشل التهيئة:', err.message);
@@ -40,12 +68,19 @@ function initSupabase() {
 }
 
 function isEnabled() {
+  if (!enabled) initSupabase();
   return enabled;
 }
 
 function getAdmin() {
-  if (!enabled || !supabaseAdmin) {
-    throw new Error('Supabase غير متصل');
+  if (!isEnabled() || !supabaseAdmin) {
+    const { url, serviceKey } = readEnv();
+    if (!url || !serviceKey) {
+      throw new Error(
+        'قاعدة البيانات غير متصلة — أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Railway (Variables) ثم Redeploy'
+      );
+    }
+    throw new Error('Supabase غير متصل — تحقق من مفتاح service_role وأعد نشر المشروع');
   }
   return supabaseAdmin;
 }
@@ -56,14 +91,35 @@ function getPublic() {
 }
 
 async function ping() {
-  if (!enabled) return { ok: false, reason: 'not_configured' };
+  if (!isEnabled()) {
+    const { url, serviceKey } = readEnv();
+    if (!url && !serviceKey) return { ok: false, reason: 'missing_env' };
+    if (!url) return { ok: false, reason: 'missing_supabase_url' };
+    if (!serviceKey) return { ok: false, reason: 'missing_service_role_key' };
+    return { ok: false, reason: 'not_initialized' };
+  }
   try {
     const { error } = await getAdmin().from('settings').select('id').limit(1);
-    if (error) return { ok: false, reason: error.message };
+    if (error) {
+      if (error.message?.includes('does not exist') || error.code === '42P01') {
+        return { ok: false, reason: 'schema_missing', hint: 'نفّذ supabase/schema.sql في SQL Editor' };
+      }
+      return { ok: false, reason: error.message };
+    }
     return { ok: true };
   } catch (err) {
     return { ok: false, reason: err.message };
   }
+}
+
+function getStatus() {
+  const { url, serviceKey, anonKey } = readEnv();
+  return {
+    configured: !!(url && serviceKey),
+    enabled: isEnabled(),
+    url: url || null,
+    hasAnonKey: !!anonKey,
+  };
 }
 
 module.exports = {
@@ -72,5 +128,8 @@ module.exports = {
   getAdmin,
   getPublic,
   ping,
-  SUPABASE_URL,
+  getStatus,
+  get SUPABASE_URL() {
+    return readEnv().url || lastUrl;
+  },
 };

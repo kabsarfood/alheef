@@ -1004,3 +1004,30 @@ button, input, select, textarea {
   .main { margin-right: 0; }
 }
 
+/* تحذير اتصال Supabase */
+.db-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius, 12px);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  color: #7f1d1d;
+}
+
+.db-banner strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.db-banner p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.db-banner__meta {
+  font-size: 0.8rem !important;
+  opacity: 0.85;
+}
+

@@ -65,6 +65,31 @@ async function initLayout(activePage, pageTitle) {
   document.getElementById('sidebar-toggle')?.addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
   bindLogout();
+  showSupabaseStatusBanner();
+}
+
+async function showSupabaseStatusBanner() {
+  const content = document.getElementById('page-content');
+  if (!content) return;
+  try {
+    const { supabase } = await DashboardAPI.getSystemStatus();
+    if (supabase?.connected) return;
+
+    const reason = supabase?.reason === 'schema_missing'
+      ? 'الجداول غير منشأة — نفّذ ملف supabase/schema.sql في Supabase → SQL Editor'
+      : 'أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Railway → Variables ثم Redeploy';
+
+    const banner = document.createElement('div');
+    banner.className = 'db-banner';
+    banner.innerHTML = `
+      <strong>⚠ قاعدة البيانات غير متصلة</strong>
+      <p>${reason}</p>
+      ${supabase?.url ? `<p class="db-banner__meta">المشروع: ${supabase.url}</p>` : ''}
+    `;
+    content.prepend(banner);
+  } catch {
+    /* تجاهل */
+  }
 }
 
 function bindLogout() {
