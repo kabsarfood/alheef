@@ -238,11 +238,75 @@ body.map-fs-active .map-stage {
   z-index: 1;
 }
 
+/* أدوات الخريطة — كمبيوتر: بجانب التكبير/التصغير */
+.map-toolbar {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .map-wrap .leaflet-top.leaflet-left {
+    top: 10px;
+    inset-inline-start: 10px;
+  }
+
+  .map-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: absolute;
+    inset-inline-start: 52px;
+    top: 10px;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .map-toolbar > * {
+    pointer-events: auto;
+  }
+
+  .map-layer-toggle--stack {
+    flex-direction: column;
+    top: auto;
+    inset-inline-end: auto;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--map-shadow);
+  }
+
+  .map-layer-toggle--stack .map-layer-toggle__btn {
+    width: 100%;
+    min-width: 4.5rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.72rem;
+  }
+
+  .map-layer-toggle--stack .map-layer-toggle__btn + .map-layer-toggle__btn {
+    border-inline-start: none;
+    border-top: 1px solid var(--map-border);
+  }
+
+  .map-fs-btn--stack {
+    position: relative;
+    inset: auto;
+    top: auto;
+    inset-inline-end: auto;
+    width: 100%;
+    min-width: 4.5rem;
+    justify-content: center;
+    padding: 0.5rem 0.55rem;
+    font-size: 0.68rem;
+    border-radius: 10px;
+    box-shadow: var(--map-shadow);
+  }
+
+  .map-fs-btn--stack .map-fs-btn__label {
+    display: inline;
+    font-size: 0.65rem;
+  }
+}
+
 .map-fs-btn {
-  position: absolute;
-  inset-inline-end: 1rem;
-  top: 3.25rem;
-  z-index: 500;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -284,6 +348,12 @@ body.map-fs-active .map-stage {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: var(--map-shadow);
+}
+
+@media (min-width: 769px) {
+  .map-wrap > .map-layer-toggle:not(.map-layer-toggle--stack) {
+    display: none;
+  }
 }
 
 .map-layer-toggle__btn {
@@ -675,41 +745,57 @@ body.map-fs-active .map-stage {
 }
 
 @media (max-width: 768px) {
-  .map-layer-toggle {
-    top: auto;
-    bottom: 4.5rem;
+  .map-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: absolute;
     inset-inline-end: 0.75rem;
+    inset-inline-start: auto;
+    top: auto;
+    bottom: 4.25rem;
+    z-index: 520;
   }
 
-  .map-layer-toggle__btn {
+  .map-layer-toggle--stack {
+    position: relative;
+    inset: auto;
+  }
+
+  .map-layer-toggle--stack .map-layer-toggle__btn {
     font-size: 0.72rem;
     padding: 0.5rem 0.65rem;
   }
 
-  .map-fs-btn {
-    top: auto;
-    bottom: 7.5rem;
-    inset-inline-end: 0.75rem;
+  .map-fs-btn--stack {
+    position: relative;
+    inset: auto;
     padding: 0.4rem 0.55rem;
     font-size: 0.55rem;
   }
 
-  .map-fs-btn__label {
+  .map-fs-btn--stack .map-fs-btn__label {
     display: none;
   }
 
-  .map-fs-btn__icon {
+  .map-fs-btn--stack .map-fs-btn__icon {
     font-size: 0.85rem;
   }
 
-  /* دليل الألوان — أصغر بـ 30% عن الحجم السابق على الجوال */
+  /* دليل الألوان — مرفوع */
   .map-legend {
     top: auto;
-    bottom: 4.5rem;
+    bottom: 7.5rem;
     inset-inline-start: 0.75rem;
     min-width: 98px;
     padding: 0.45rem 0.53rem;
     border-radius: 8px;
+  }
+
+  /* زر الإضافة — فوق بطاقة الألوان */
+  .map-add-fab {
+    bottom: 10.75rem;
+    inset-inline-start: 0.75rem;
   }
 
   .map-legend__title {
@@ -729,12 +815,7 @@ body.map-fs-active .map-stage {
     height: 7px;
   }
 
-  body.map-fs-active .map-fs-btn {
-    bottom: 1rem;
-    top: auto;
-  }
-
-  body.map-fs-active .map-layer-toggle {
+  body.map-fs-active .map-toolbar {
     bottom: 1rem;
   }
 

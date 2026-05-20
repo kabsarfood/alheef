@@ -30,7 +30,10 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   if (filters.status) q = q.eq('status', filters.status);
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
-  if (filters.propertyType) q = q.eq('property_type', filters.propertyType);
+  if (filters.propertyType) {
+    const pt = String(filters.propertyType).trim();
+    q = q.ilike('property_type', `%${pt}%`);
+  }
   if (filters.listingType) q = q.eq('listing_type', filters.listingType);
   if (filters.featured != null) q = q.eq('featured', filters.featured);
   if (filters.minPrice) q = q.gte('price', filters.minPrice);
@@ -64,7 +67,10 @@ async function listForMap(filters = {}) {
 
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
-  if (filters.propertyType) q = q.eq('property_type', filters.propertyType);
+  if (filters.propertyType) {
+    const pt = String(filters.propertyType).trim();
+    q = q.ilike('property_type', `%${pt}%`);
+  }
   if (filters.listingType) q = q.eq('listing_type', filters.listingType);
   if (filters.minPrice) q = q.gte('price', filters.minPrice);
   if (filters.maxPrice) q = q.lte('price', filters.maxPrice);

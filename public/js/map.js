@@ -2,9 +2,10 @@
   'use strict';
 
   const TYPE_COLORS = {
-    فيلا: '#C5A46D', فلل: '#C5A46D',
+    فيلا: '#C5A46D', فلل: '#C5A46D', قصر: '#B8860B', برج: '#6366F1',
     شقة: '#3B82F6', شقق: '#3B82F6', دوبلكس: '#0EA5E9',
     أرض: '#22C55E', أراضي: '#22C55E', 'أرض زراعية': '#16A34A',
+    'أرض سكنية': '#22C55E', 'أرض تجارية': '#14B8A6',
     عمارة: '#64748B', عمائر: '#64748B', عمير: '#64748B',
     محل: '#F97316', محلات: '#F97316',
     مكتب: '#EA580C', مكاتب: '#EA580C',
@@ -12,7 +13,7 @@
     استراحة: '#A855F7',
   };
 
-  const LISTING_LABEL = { sale: 'بيع', rent: 'إيجار' };
+  const LISTING_LABEL = { sale: 'بيع', rent: 'إيجار', buy_request: 'طلب شراء' };
   const MOBILE = () => window.matchMedia('(max-width: 768px)').matches;
   const SITE = 'https://www.alheef.website';
 
@@ -39,7 +40,10 @@
   };
 
   function markerColor(type) {
-    return TYPE_COLORS[(type || '').trim()] || '#1E2A38';
+    const t = (type || '').trim();
+    if (TYPE_COLORS[t]) return TYPE_COLORS[t];
+    if (t.includes('أرض')) return TYPE_COLORS['أرض'] || '#22C55E';
+    return '#1E2A38';
   }
 
   function propertyUrl(p) {
@@ -283,6 +287,10 @@
       scrollWheelZoom: true,
     }).setView([24.7136, 46.6753], 11);
 
+    if (window.matchMedia('(min-width: 769px)').matches) {
+      map.zoomControl.setPosition('topleft');
+    }
+
     layerStreet = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CARTO',
       maxZoom: 19,
@@ -381,9 +389,12 @@
   function renderLegend() {
     if (!els.legend) return;
     const items = [
-      { c: '#C5A46D', l: 'فلل' },
+      { c: '#C5A46D', l: 'فلل / قصور' },
+      { c: '#6366F1', l: 'أبراج' },
       { c: '#3B82F6', l: 'شقق' },
-      { c: '#22C55E', l: 'أراضي' },
+      { c: '#22C55E', l: 'أراضي سكنية' },
+      { c: '#14B8A6', l: 'أراضي تجارية' },
+      { c: '#16A34A', l: 'أراضي زراعية' },
       { c: '#64748B', l: 'عمائر' },
       { c: '#F97316', l: 'تجاري / محلات' },
     ];
@@ -418,27 +429,62 @@
     return s ? `?${s}` : '';
   }
 
-  async function loadFilterOptions() {
-    try {
-      const res = await fetch('/api/map/filters');
-      const data = await res.json();
-      fillSelect('filter-type', data.types);
-      fillSelect('filter-city', data.cities);
-      fillSelect('filter-district', data.districts);
-    } catch { /* ignore */ }
-  }
-
-  function fillSelect(id, options) {
+  function fillSelect(id, options, placeholder) {
     const el = document.getElementById(id);
-    if (!el || !options?.length) return;
+    if (!el) return;
     const current = el.value;
-    options.forEach((opt) => {
+    el.innerHTML = '';
+    const first = document.createElement('option');
+    first.value = '';
+    first.textContent = placeholder || 'الكل';
+    el.appendChild(first);
+    (options || []).forEach((opt) => {
       const o = document.createElement('option');
       o.value = opt;
       o.textContent = opt;
       el.appendChild(o);
     });
-    if (current) el.value = current;
+    if (current && [...el.options].some((o) => o.value === current)) el.value = current;
+  }
+
+  function fillDistrictsForCity(city) {
+    const districtEl = document.getElementById('filter-district');
+    if (!districtEl) return;
+    const loc = window.AlheefMapLocations;
+    if (!city || !loc?.districts?.[city]) {
+      districtEl.disabled = true;
+      fillSelect('filter-district', [], 'اختر المدينة أولاً');
+      districtEl.options[0].textContent = 'اختر المدينة أولاً';
+      return;
+    }
+    districtEl.disabled = false;
+    fillSelect('filter-district', loc.districts[city], 'الكل');
+  }
+
+  function setupLocationFilters() {
+    const loc = window.AlheefMapLocations;
+    if (!loc?.cities) return;
+    fillSelect('filter-city', loc.cities, 'الكل');
+
+    const cityEl = document.getElementById('filter-city');
+    cityEl?.addEventListener('change', () => {
+      fillDistrictsForCity(cityEl.value);
+    });
+  }
+
+  async function loadFilterOptions() {
+    setupLocationFilters();
+    const loc = window.AlheefMapLocations;
+    try {
+      const res = await fetch('/api/map/filters');
+      const data = await res.json();
+      const cityEl = document.getElementById('filter-city');
+      const mergedCities = [...new Set([...(loc?.cities || []), ...(data.cities || [])])].sort();
+      if (cityEl && mergedCities.length) {
+        fillSelect('filter-city', mergedCities, 'الكل');
+        if (cityEl.value) fillDistrictsForCity(cityEl.value);
+      }
+    } catch { /* locations already loaded */ }
   }
 
   async function loadProperties(filters) {
@@ -503,6 +549,7 @@
 
     document.getElementById('filter-reset')?.addEventListener('click', () => {
       els.form?.reset();
+      fillDistrictsForCity('');
       loadProperties({});
     });
 

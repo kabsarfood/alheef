@@ -113,7 +113,7 @@ CREATE TABLE properties (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT properties_status_check CHECK (status IN ('draft', 'published', 'sold', 'archived')),
-  CONSTRAINT properties_listing_type_check CHECK (listing_type IN ('sale', 'rent')),
+  CONSTRAINT properties_listing_type_check CHECK (listing_type IN ('sale', 'rent', 'buy_request')),
   CONSTRAINT properties_price_type_check CHECK (price_type IS NULL OR price_type IN ('fixed', 'auction'))
 );
 

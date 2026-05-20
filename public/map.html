@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
   <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=5">
+  <link rel="stylesheet" href="/css/map.css?v=6">
 </head>
 <body class="map-page">
 
@@ -55,11 +55,27 @@
             <option value="">الكل</option>
             <option value="sale">بيع</option>
             <option value="rent">إيجار</option>
+            <option value="buy_request">طلب شراء</option>
           </select>
         </label>
         <label>نوع العقار
           <select name="property_type" id="filter-type">
             <option value="">الكل</option>
+            <optgroup label="أراضي">
+              <option value="أرض سكنية">أرض سكنية</option>
+              <option value="أرض تجارية">أرض تجارية</option>
+              <option value="أرض زراعية">أرض زراعية</option>
+            </optgroup>
+            <optgroup label="عقارات">
+              <option value="عمارة">عمارة</option>
+              <option value="فيلا">فيلا</option>
+              <option value="قصر">قصر</option>
+              <option value="برج">برج</option>
+              <option value="شقة">شقة</option>
+              <option value="محل">محل</option>
+              <option value="مكتب">مكتب</option>
+              <option value="عقار تجاري">عقار تجاري</option>
+            </optgroup>
           </select>
         </label>
         <label>المدينة
@@ -68,8 +84,8 @@
           </select>
         </label>
         <label>الحي
-          <select name="district" id="filter-district">
-            <option value="">الكل</option>
+          <select name="district" id="filter-district" disabled>
+            <option value="">اختر المدينة أولاً</option>
           </select>
         </label>
         <label>السعر من
@@ -88,13 +104,15 @@
     <section class="map-stage container">
       <div class="map-wrap">
         <div id="property-map" role="application" aria-label="خريطة العقارات"></div>
-        <button type="button" class="map-fs-btn" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
-          <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
-          <span class="map-fs-btn__label">ملء الشاشة</span>
-        </button>
-        <div class="map-layer-toggle" role="group" aria-label="نوع الخريطة">
-          <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true">خريطة</button>
-          <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false">قمر صناعي</button>
+        <div class="map-toolbar" aria-label="أدوات الخريطة">
+          <div class="map-layer-toggle map-layer-toggle--stack" role="group" aria-label="نوع الخريطة">
+            <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true" title="خريطة">خريطة</button>
+            <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false" title="قمر صناعي">قمر</button>
+          </div>
+          <button type="button" class="map-fs-btn map-fs-btn--stack" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
+            <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
+            <span class="map-fs-btn__label">ملء الشاشة</span>
+          </button>
         </div>
         <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
@@ -197,9 +215,10 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+  <script src="/js/map-locations.js?v=6"></script>
   <script src="/dashboard/js/auth.js"></script>
-  <script src="/js/map.js?v=5" defer></script>
-  <script src="/js/map-add.js?v=5" defer></script>
+  <script src="/js/map.js?v=6" defer></script>
+  <script src="/js/map-add.js?v=6" defer></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     (function () {
