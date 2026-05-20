@@ -250,59 +250,56 @@ body.map-fs-active .map-stage {
   }
 
   .map-toolbar {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: block;
     position: absolute;
-    inset-inline-start: 52px;
-    top: 10px;
+    inset: 0;
     z-index: 1000;
     pointer-events: none;
   }
 
-  .map-toolbar > * {
-    pointer-events: auto;
-  }
-
+  /* يسار الشاشة — الموضع الأصلي + 10% للأسفل */
   .map-layer-toggle--stack {
-    flex-direction: column;
-    top: auto;
-    inset-inline-end: auto;
-    position: relative;
+    position: absolute;
+    inset-inline-end: 1rem;
+    inset-inline-start: auto;
+    top: calc(1rem + 10%);
+    flex-direction: row;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: var(--map-shadow);
+    pointer-events: auto;
   }
 
   .map-layer-toggle--stack .map-layer-toggle__btn {
-    width: 100%;
-    min-width: 4.5rem;
-    padding: 0.5rem 0.65rem;
-    font-size: 0.72rem;
+    width: auto;
+    min-width: 0;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
   }
 
   .map-layer-toggle--stack .map-layer-toggle__btn + .map-layer-toggle__btn {
-    border-inline-start: none;
-    border-top: 1px solid var(--map-border);
+    border-top: none;
+    border-inline-start: 1px solid var(--map-border);
   }
 
   .map-fs-btn--stack {
-    position: relative;
-    inset: auto;
-    top: auto;
-    inset-inline-end: auto;
-    width: 100%;
-    min-width: 4.5rem;
+    position: absolute;
+    inset-inline-end: 1rem;
+    inset-inline-start: auto;
+    top: calc(3.25rem + 10%);
+    width: auto;
+    min-width: 0;
     justify-content: center;
-    padding: 0.5rem 0.55rem;
-    font-size: 0.68rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
     border-radius: 10px;
     box-shadow: var(--map-shadow);
+    pointer-events: auto;
   }
 
   .map-fs-btn--stack .map-fs-btn__label {
     display: inline;
-    font-size: 0.65rem;
+    font-size: 0.78rem;
   }
 }
 
