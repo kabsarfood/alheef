@@ -238,72 +238,19 @@ body.map-fs-active .map-stage {
   z-index: 1;
 }
 
-/* أدوات الخريطة — كمبيوتر: بجانب التكبير/التصغير */
-.map-toolbar {
-  display: none;
+.map-mobile-tools {
+  display: contents;
 }
 
-@media (min-width: 769px) {
-  .map-wrap .leaflet-top.leaflet-left {
-    top: 10px;
-    inset-inline-start: 10px;
-  }
-
-  .map-toolbar {
-    display: block;
-    position: absolute;
-    inset: 0;
-    z-index: 1000;
-    pointer-events: none;
-  }
-
-  /* يسار الشاشة — الموضع الأصلي + 10% للأسفل */
-  .map-layer-toggle--stack {
-    position: absolute;
-    inset-inline-end: 1rem;
-    inset-inline-start: auto;
-    top: calc(1rem + 10%);
-    flex-direction: row;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: var(--map-shadow);
-    pointer-events: auto;
-  }
-
-  .map-layer-toggle--stack .map-layer-toggle__btn {
-    width: auto;
-    min-width: 0;
-    padding: 0.55rem 0.85rem;
-    font-size: 0.78rem;
-  }
-
-  .map-layer-toggle--stack .map-layer-toggle__btn + .map-layer-toggle__btn {
-    border-top: none;
-    border-inline-start: 1px solid var(--map-border);
-  }
-
-  .map-fs-btn--stack {
-    position: absolute;
-    inset-inline-end: 1rem;
-    inset-inline-start: auto;
-    top: calc(3.25rem + 10%);
-    width: auto;
-    min-width: 0;
-    justify-content: center;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.78rem;
-    border-radius: 10px;
-    box-shadow: var(--map-shadow);
-    pointer-events: auto;
-  }
-
-  .map-fs-btn--stack .map-fs-btn__label {
-    display: inline;
-    font-size: 0.78rem;
-  }
+.map-toolbar {
+  display: contents;
 }
 
 .map-fs-btn {
+  position: absolute;
+  inset-inline-end: 1rem;
+  top: 3.25rem;
+  z-index: 500;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -332,7 +279,8 @@ body.map-fs-active .map-stage {
   line-height: 1;
 }
 
-.map-layer-toggle {
+.map-layer-toggle,
+.map-layer-toggle.map-layer-toggle--stack {
   position: absolute;
   inset-inline-end: 1rem;
   top: 1rem;
@@ -345,12 +293,6 @@ body.map-fs-active .map-stage {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: var(--map-shadow);
-}
-
-@media (min-width: 769px) {
-  .map-wrap > .map-layer-toggle:not(.map-layer-toggle--stack) {
-    display: none;
-  }
 }
 
 .map-layer-toggle__btn {
@@ -391,6 +333,17 @@ body.map-fs-active .map-stage {
   padding: 0.85rem 1rem;
   min-width: 140px;
   box-shadow: var(--map-shadow);
+}
+
+/* كمبيوتر فقط: إنزال خريطة/قمر 10% وملء الشاشة 13% ورفع زر + بنسبة 5% */
+@media (min-width: 769px) {
+  .map-layer-toggle.map-layer-toggle--stack {
+    top: calc(1rem + 10%);
+  }
+
+  .map-fs-btn.map-fs-btn--stack {
+    top: calc(3.25rem + 13%);
+  }
 }
 
 .map-legend__title {
@@ -742,33 +695,79 @@ body.map-fs-active .map-stage {
 }
 
 @media (max-width: 768px) {
-  .map-toolbar {
+  .map-mobile-tools {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    align-items: stretch;
+    gap: 0.5rem;
     position: absolute;
-    inset-inline-end: 0.75rem;
-    inset-inline-start: auto;
-    top: auto;
-    bottom: 4.25rem;
+    top: 0.65rem;
+    right: 0.75rem;
+    left: auto;
+    bottom: auto;
     z-index: 520;
+    width: 106px;
+    max-width: 32vw;
+    pointer-events: none;
   }
 
-  .map-layer-toggle--stack {
+  .map-mobile-tools > * {
+    pointer-events: auto;
+  }
+
+  .map-mobile-tools .map-legend {
     position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
     inset: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: 0.45rem 0.53rem;
+    border-radius: 8px;
+    box-sizing: border-box;
   }
 
-  .map-layer-toggle--stack .map-layer-toggle__btn {
-    font-size: 0.72rem;
-    padding: 0.5rem 0.65rem;
+  .map-mobile-tools .map-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
   }
 
-  .map-fs-btn--stack {
+  .map-mobile-tools .map-layer-toggle.map-layer-toggle--stack {
     position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
     inset: auto;
-    padding: 0.4rem 0.55rem;
+    width: 100%;
+    flex-direction: row;
+  }
+
+  .map-mobile-tools .map-layer-toggle--stack .map-layer-toggle__btn {
+    flex: 1;
+    font-size: 0.68rem;
+    padding: 0.45rem 0.3rem;
+    text-align: center;
+  }
+
+  .map-mobile-tools .map-fs-btn.map-fs-btn--stack {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    inset: auto;
+    width: 100%;
+    justify-content: center;
+    padding: 0.42rem 0.5rem;
     font-size: 0.55rem;
+    box-sizing: border-box;
   }
 
   .map-fs-btn--stack .map-fs-btn__label {
@@ -779,20 +778,13 @@ body.map-fs-active .map-stage {
     font-size: 0.85rem;
   }
 
-  /* دليل الألوان — مرفوع */
-  .map-legend {
-    top: auto;
-    bottom: 7.5rem;
-    inset-inline-start: 0.75rem;
-    min-width: 98px;
-    padding: 0.45rem 0.53rem;
-    border-radius: 8px;
-  }
-
-  /* زر الإضافة — فوق بطاقة الألوان */
   .map-add-fab {
-    bottom: 10.75rem;
+    bottom: 1rem;
     inset-inline-start: 0.75rem;
+    top: auto;
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
   }
 
   .map-legend__title {
@@ -812,13 +804,10 @@ body.map-fs-active .map-stage {
     height: 7px;
   }
 
-  body.map-fs-active .map-toolbar {
-    bottom: 1rem;
-  }
-
-  body.map-fs-active .map-legend {
-    bottom: 1rem;
-    inset-inline-start: 0.5rem;
+  body.map-fs-active .map-mobile-tools {
+    top: 0.65rem;
+    right: 0.75rem;
+    bottom: auto;
   }
 
   body.map-fs-active .map-count {
@@ -858,6 +847,13 @@ body.map-fs-active .map-stage {
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(197, 164, 109, 0.45);
   transition: transform 0.2s, box-shadow 0.2s;
+}
+
+@media (min-width: 769px) {
+  .map-add-fab {
+    bottom: calc(1rem + 10%);
+    top: auto;
+  }
 }
 
 .map-add-fab.active,

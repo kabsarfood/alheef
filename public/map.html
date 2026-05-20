@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
   <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=7">
+  <link rel="stylesheet" href="/css/map.css?v=14">
 </head>
 <body class="map-page">
 
@@ -104,17 +104,19 @@
     <section class="map-stage container">
       <div class="map-wrap">
         <div id="property-map" role="application" aria-label="خريطة العقارات"></div>
-        <div class="map-toolbar" aria-label="أدوات الخريطة">
-          <div class="map-layer-toggle map-layer-toggle--stack" role="group" aria-label="نوع الخريطة">
-            <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true" title="خريطة">خريطة</button>
-            <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false" title="قمر صناعي">قمر</button>
+        <div class="map-mobile-tools">
+          <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
+          <div class="map-toolbar" aria-label="أدوات الخريطة">
+            <div class="map-layer-toggle map-layer-toggle--stack" role="group" aria-label="نوع الخريطة">
+              <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true" title="خريطة">خريطة</button>
+              <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false" title="قمر صناعي">قمر</button>
+            </div>
+            <button type="button" class="map-fs-btn map-fs-btn--stack" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
+              <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
+              <span class="map-fs-btn__label">ملء الشاشة</span>
+            </button>
           </div>
-          <button type="button" class="map-fs-btn map-fs-btn--stack" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
-            <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
-            <span class="map-fs-btn__label">ملء الشاشة</span>
-          </button>
         </div>
-        <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
         <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
         <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
