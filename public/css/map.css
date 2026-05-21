@@ -209,6 +209,19 @@
   min-height: 0 !important;
   border-radius: 0;
   border: none;
+  overflow: visible !important;
+}
+
+.map-wrap:fullscreen,
+.map-wrap:-webkit-full-screen {
+  overflow: visible !important;
+}
+
+.map-wrap--fullscreen .map-sheet,
+.map-wrap:fullscreen .map-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 1500;
 }
 
 body.map-fs-active {
@@ -603,11 +616,11 @@ body.map-fs-active .map-stage {
   border: 1px solid var(--map-gold);
 }
 
-/* Bottom Sheet — جوال */
+/* Bottom Sheet — جوال (داخل map-wrap ليعمل في ملء الشاشة) */
 .map-sheet {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 2000;
+  z-index: 1500;
   pointer-events: none;
   visibility: hidden;
 }
@@ -812,6 +825,58 @@ body.map-fs-active .map-stage {
 
   body.map-fs-active .map-count {
     bottom: 0.5rem;
+  }
+
+  /* بطاقة العقار — أصغر 25% من كل الاتجاهات */
+  .map-sheet__panel {
+    max-height: 66vh;
+    width: 75%;
+    left: 12.5%;
+    right: 12.5%;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .map-sheet .map-card__gallery {
+    height: 120px;
+  }
+
+  .map-sheet .map-card__body {
+    padding: 0.75rem;
+  }
+
+  .map-sheet .map-card__type {
+    font-size: 0.53rem;
+  }
+
+  .map-sheet .map-card__title {
+    font-size: 0.75rem;
+  }
+
+  .map-sheet .map-card__loc {
+    font-size: 0.6rem;
+  }
+
+  .map-sheet .map-card__price {
+    font-size: 0.79rem;
+  }
+
+  .map-sheet .map-card__detail,
+  .map-sheet .map-card__ref,
+  .map-sheet .map-card__desc {
+    font-size: 0.59rem;
+  }
+
+  .map-sheet .map-card__meta {
+    font-size: 0.59rem;
+  }
+
+  .map-sheet .map-card__btn {
+    font-size: 0.59rem;
+    padding: 0.38rem;
+  }
+
+  .map-sheet .map-card__actions {
+    gap: 0.34rem;
   }
 
   .map-wrap {

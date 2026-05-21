@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
   <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=14">
+  <link rel="stylesheet" href="/css/map.css?v=15">
 </head>
 <body class="map-page">
 
@@ -120,17 +120,16 @@
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
         <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
         <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
+        <div class="map-sheet" id="map-sheet" aria-hidden="true">
+          <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
+          <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
+            <div class="map-sheet__handle" aria-hidden="true"></div>
+            <div id="sheet-content"></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
-
-  <div class="map-sheet" id="map-sheet" aria-hidden="true">
-    <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
-    <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
-      <div class="map-sheet__handle" aria-hidden="true"></div>
-      <div id="sheet-content"></div>
-    </div>
-  </div>
 
   <div class="map-add-panel" id="map-add-panel" aria-hidden="true">
     <div class="map-add-panel__backdrop" id="map-add-backdrop"></div>
@@ -219,7 +218,7 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=6"></script>
   <script src="/dashboard/js/auth.js"></script>
-  <script src="/js/map.js?v=6" defer></script>
+  <script src="/js/map.js?v=7" defer></script>
   <script src="/js/map-add.js?v=6" defer></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();

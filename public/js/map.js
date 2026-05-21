@@ -194,6 +194,11 @@
     bindCardActions(els.sheetContent);
     els.sheet.classList.add('open');
     els.sheet.setAttribute('aria-hidden', 'false');
+    if (map) {
+      L.DomEvent.disableClickPropagation(els.sheet);
+      L.DomEvent.disableScrollPropagation(els.sheet);
+      setTimeout(() => map.invalidateSize(), 100);
+    }
   }
 
   function closeSheet() {
@@ -224,6 +229,7 @@
       if (popEl) bindCardActions(popEl);
     });
     marker.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
       if (window.AlheefMapAdd?.handleMarkerClick?.(e, p)) return;
       if (MOBILE()) {
         openSheet(p);
