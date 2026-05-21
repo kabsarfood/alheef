@@ -28,8 +28,11 @@
   let markersById = new Map();
   let shareTarget = null;
   let loadGen = 0;
+  let lastMapFilters = {};
   /** عند فتح بطاقة العقار: موضع العلامة على الشاشة + مستوى التكبير */
   let mapDetailLock = null;
+
+  const DEFAULT_MAP_VIEW = { lat: 24.7136, lng: 46.6753, zoom: 6 };
 
   const els = {
     loading: document.getElementById('map-loading'),
@@ -628,7 +631,41 @@
     if (current && [...el.options].some((o) => o.value === current)) el.value = current;
   }
 
-  function fillDistrictsForCity(city) {
+  function getViewForFilters(filters) {
+    const loc = window.AlheefMapLocations;
+    if (!loc?.getViewForLocation || !filters?.city) return null;
+    return loc.getViewForLocation(filters.city, filters.district || '');
+  }
+
+  function flyToFilterLocation(filters, animate = true) {
+    if (!map || mapDetailLock) return false;
+    const view = getViewForFilters(filters);
+    if (!view) return false;
+    map.flyTo([view.lat, view.lng], view.zoom, {
+      animate,
+      duration: animate ? 0.85 : 0,
+    });
+    return true;
+  }
+
+  function flyToDefaultMap(animate = true) {
+    if (!map || mapDetailLock) return;
+    map.flyTo([DEFAULT_MAP_VIEW.lat, DEFAULT_MAP_VIEW.lng], DEFAULT_MAP_VIEW.zoom, {
+      animate,
+      duration: animate ? 0.85 : 0,
+    });
+  }
+
+  function propertyMatchesLocationFilter(p, filters) {
+    if (!filters?.city && !filters?.district) return true;
+    const city = (p.city || '').trim();
+    const district = (p.district || '').trim();
+    if (filters.city && city !== filters.city) return false;
+    if (filters.district && district !== filters.district) return false;
+    return true;
+  }
+
+  function fillDistrictsForCity(city, resetDistrict = true) {
     const districtEl = document.getElementById('filter-district');
     if (!districtEl) return;
     const loc = window.AlheefMapLocations;
@@ -636,10 +673,17 @@
       districtEl.disabled = true;
       fillSelect('filter-district', [], 'اختر المدينة أولاً');
       districtEl.options[0].textContent = 'اختر المدينة أولاً';
+      if (resetDistrict) districtEl.value = '';
       return;
     }
     districtEl.disabled = false;
+    const prev = resetDistrict ? '' : districtEl.value;
     fillSelect('filter-district', loc.districts[city], 'الكل');
+    if (!resetDistrict && prev && [...districtEl.options].some((o) => o.value === prev)) {
+      districtEl.value = prev;
+    } else if (resetDistrict) {
+      districtEl.value = '';
+    }
   }
 
   function setupLocationFilters() {
@@ -648,8 +692,24 @@
     fillSelect('filter-city', loc.cities, 'الكل');
 
     const cityEl = document.getElementById('filter-city');
+    const districtEl = document.getElementById('filter-district');
+
     cityEl?.addEventListener('change', () => {
-      fillDistrictsForCity(cityEl.value);
+      fillDistrictsForCity(cityEl.value, true);
+      if (cityEl.value) {
+        flyToFilterLocation({ city: cityEl.value, district: '' });
+      } else {
+        flyToDefaultMap();
+      }
+    });
+
+    districtEl?.addEventListener('change', () => {
+      if (!cityEl?.value) return;
+      if (districtEl.value) {
+        flyToFilterLocation({ city: cityEl.value, district: districtEl.value });
+      } else {
+        flyToFilterLocation({ city: cityEl.value, district: '' });
+      }
     });
   }
 
@@ -670,13 +730,14 @@
 
   async function loadProperties(filters) {
     const gen = ++loadGen;
+    lastMapFilters = filters || {};
     els.loading?.classList.remove('hidden');
     try {
       const res = await fetch(`/api/map/properties${queryString(filters)}`);
       const data = await res.json();
       if (gen !== loadGen) return;
       allProperties = data.items || [];
-      renderMarkers(allProperties);
+      renderMarkers(allProperties, lastMapFilters);
       if (els.count) {
         const meta = data.meta || {};
         let label = `${allProperties.length} عقار`;
@@ -695,12 +756,33 @@
     }
   }
 
-  function renderMarkers(items) {
+  function renderMarkers(items, filters = {}) {
     cluster.clearLayers();
     markersById.clear();
     const bounds = [];
+    const filteredBounds = [];
+    const hasLocationFilter = !!(filters.city || filters.district);
     const batch = 80;
     let i = 0;
+
+    function finishMapView() {
+      if (!map || mapDetailLock) return;
+      if (hasLocationFilter && filters.city) {
+        if (filteredBounds.length) {
+          map.fitBounds(filteredBounds, {
+            padding: [56, 56],
+            maxZoom: filters.district ? 16 : 14,
+            animate: true,
+          });
+          return;
+        }
+        flyToFilterLocation(filters);
+        return;
+      }
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+      }
+    }
 
     function addBatch() {
       const end = Math.min(i + batch, items.length);
@@ -711,11 +793,14 @@
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
         attachMarker(p);
         bounds.push([lat, lng]);
+        if (propertyMatchesLocationFilter(p, filters)) {
+          filteredBounds.push([lat, lng]);
+        }
       }
       if (i < items.length) {
         requestAnimationFrame(addBatch);
-      } else if (bounds.length && !mapDetailLock) {
-        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+      } else {
+        finishMapView();
       }
     }
 
@@ -725,12 +810,17 @@
   function setupEvents() {
     els.form?.addEventListener('submit', (e) => {
       e.preventDefault();
-      loadProperties(filtersFromForm());
+      const filters = filtersFromForm();
+      if (filters.city || filters.district) {
+        flyToFilterLocation(filters);
+      }
+      loadProperties(filters);
     });
 
     document.getElementById('filter-reset')?.addEventListener('click', () => {
       els.form?.reset();
-      fillDistrictsForCity('');
+      fillDistrictsForCity('', true);
+      flyToDefaultMap();
       loadProperties({});
     });
 
