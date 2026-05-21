@@ -450,13 +450,30 @@
     });
   }
 
+  function ensureMapVisible() {
+    if (!map) return;
+    const wrap = document.querySelector('.map-wrap');
+    const el = document.getElementById('property-map');
+    if (wrap && el) {
+      map.invalidateSize(true);
+    }
+  }
+
   function initMap() {
-    map = L.map('property-map', {
+    const mapEl = document.getElementById('property-map');
+    if (!mapEl || typeof L === 'undefined') return;
+
+    map = L.map(mapEl, {
       zoomControl: true,
-      scrollWheelZoom: true,
+      scrollWheelZoom: !MOBILE(),
+      tap: true,
+      touchZoom: true,
+      dragging: true,
     }).setView([24.7136, 46.6753], 11);
 
-    if (window.matchMedia('(min-width: 769px)').matches) {
+    if (MOBILE()) {
+      map.zoomControl.setPosition('bottomright');
+    } else {
       map.zoomControl.setPosition('topleft');
     }
 
@@ -870,7 +887,18 @@
     } catch { config = {}; }
 
     await loadProperties({});
-    setTimeout(() => map.invalidateSize(), 200);
+    ensureMapVisible();
+    if (MOBILE()) {
+      [100, 350, 800, 1500].forEach((ms) => setTimeout(ensureMapVisible, ms));
+      window.visualViewport?.addEventListener('resize', () => {
+        setTimeout(ensureMapVisible, 80);
+      });
+      window.addEventListener('orientationchange', () => {
+        setTimeout(ensureMapVisible, 300);
+      });
+    } else {
+      setTimeout(ensureMapVisible, 200);
+    }
     document.dispatchEvent(new CustomEvent('alheef-map-ready'));
   }
 
