@@ -439,6 +439,40 @@ button, input, select, textarea {
 
 .form-group.full { grid-column: 1 / -1; }
 
+/* طلب شراء — إضافة إعلان */
+.buy-request-fields {
+  grid-column: 1 / -1;
+  padding: 1rem 1.1rem;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius);
+  margin-top: 0.25rem;
+}
+
+.buy-request-fields__intro {
+  color: #6d28d9;
+  font-weight: 600;
+  margin-bottom: 0.75rem !important;
+}
+
+.buy-request-fields__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.badge--buy-request {
+  background: rgba(139, 92, 246, 0.12);
+  color: #6d28d9;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+@media (max-width: 768px) {
+  .buy-request-fields__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .form-group label {
   font-size: 0.9rem;
   font-weight: var(--fw-subheading);

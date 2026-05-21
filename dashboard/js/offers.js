@@ -31,18 +31,29 @@ async function loadOffers() {
   }
 }
 
+function listingBadge(listingType) {
+  if (listingType === 'buy_request') {
+    return '<span class="badge badge--buy-request">طلب شراء</span>';
+  }
+  if (listingType === 'rent') return '<span class="badge">إيجار</span>';
+  return '';
+}
+
 function renderOfferCard(offer) {
   const img = offer.coverImage || offer.image || offer.gallery?.[0] || '';
+  const priceLine = offer.listingType === 'buy_request'
+    ? (offer.price != null ? `ميزانية: ${offer.priceDisplay || offer.price}` : 'بدون ميزانية')
+    : `${offer.priceDisplay || offer.price} <small>ر.س</small>`;
   return `
     <article class="offer-card" data-id="${offer.id}">
       <div class="offer-card__img">
         ${img ? `<img src="${img}" alt="${offer.title}">` : '<div style="height:100%;background:#f0eeeb"></div>'}
       </div>
       <div class="offer-card__body">
-        <p class="offer-card__type">${offer.propertyType}</p>
+        <p class="offer-card__type">${offer.propertyType} ${listingBadge(offer.listingType)}</p>
         <h3 class="offer-card__title">${offer.title}</h3>
         <p class="offer-card__meta">📍 ${offer.location}</p>
-        <p class="offer-card__price">${offer.priceDisplay || offer.price} <small>ر.س</small></p>
+        <p class="offer-card__price">${priceLine}</p>
         <div class="offer-card__footer">
           ${statusBadge(offer.status)}
           <div class="offer-card__actions">
@@ -82,6 +93,8 @@ function bindActions() {
   });
 }
 
+const USAGE_LABELS = { residential: 'سكني', commercial: 'تجاري' };
+
 function showViewModal(offer) {
   let modal = document.getElementById('view-modal');
   if (!modal) {
@@ -92,6 +105,34 @@ function showViewModal(offer) {
   }
 
   const img = offer.coverImage || offer.image || offer.gallery?.[0] || '';
+  const isBuy = offer.listingType === 'buy_request' || offer.isBuyRequest;
+  const usage = USAGE_LABELS[offer.requestUsage] || offer.requestUsage || '';
+
+  let body = '';
+  if (isBuy) {
+    body = `
+      <p style="margin-bottom:0.75rem">${listingBadge(offer.listingType)}</p>
+      <p style="color:#8a8580;margin-bottom:1rem">📍 ${offer.location}</p>
+      <p style="margin-bottom:0.5rem"><strong>نوع العقار:</strong> ${offer.requestPropertyKind || offer.propertyType || '—'}</p>
+      <p style="margin-bottom:0.5rem"><strong>التصنيف:</strong> ${usage || '—'}</p>
+      ${offer.area ? `<p style="margin-bottom:0.5rem"><strong>المساحة المطلوبة:</strong> ${offer.area} م²</p>` : ''}
+      <p style="font-size:1.15rem;font-weight:600;color:#b8956a;margin-bottom:1rem">
+        الميزانية: ${offer.price != null ? `${offer.priceDisplay || offer.price} ر.س` : 'غير محددة'}
+      </p>
+      ${offer.requestPhone ? `<p style="margin-bottom:0.5rem;padding:0.65rem;background:#f5f0ff;border-radius:8px"><strong>جوال الطالب (أدمن فقط):</strong> <a href="tel:${offer.requestPhone}">${offer.requestPhone}</a></p>` : ''}
+      ${offer.description ? `<p style="line-height:1.8;color:#4a4a4a;margin-bottom:0.75rem">${offer.description}</p>` : ''}
+      <p class="form-hint" style="margin:0">لا يظهر رقم الجوال على الخريطة العامة — يظهر في لوحة التحكم فقط.</p>
+    `;
+  } else {
+    body = `
+      <p style="color:#8a8580;margin-bottom:1rem">📍 ${offer.location}</p>
+      <p style="font-size:1.25rem;font-weight:600;color:#b8956a;margin-bottom:1rem">${offer.priceDisplay || offer.price} ر.س</p>
+      ${offer.contractNumber ? `<p style="margin-bottom:0.5rem"><strong>عقد الوساطة:</strong> ${offer.contractNumber}</p>` : ''}
+      ${offer.area ? `<p style="margin-bottom:0.5rem"><strong>المساحة:</strong> ${offer.area}</p>` : ''}
+      ${offer.description ? `<p style="line-height:1.8;color:#4a4a4a">${offer.description}</p>` : ''}
+    `;
+  }
+
   modal.innerHTML = `
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box" style="max-width:640px">
@@ -100,11 +141,7 @@ function showViewModal(offer) {
         <button class="modal__close" data-close>×</button>
       </div>
       ${img ? `<div style="aspect-ratio:16/9;border-radius:8px;overflow:hidden;margin-bottom:1rem"><img src="${img}" style="width:100%;height:100%;object-fit:cover" alt=""></div>` : ''}
-      <p style="color:#8a8580;margin-bottom:1rem">📍 ${offer.location}</p>
-      <p style="font-size:1.25rem;font-weight:600;color:#b8956a;margin-bottom:1rem">${offer.priceDisplay || offer.price} ر.س</p>
-      ${offer.contractNumber ? `<p style="margin-bottom:0.5rem"><strong>عقد الوساطة:</strong> ${offer.contractNumber}</p>` : ''}
-      ${offer.area ? `<p style="margin-bottom:0.5rem"><strong>المساحة:</strong> ${offer.area}</p>` : ''}
-      ${offer.details ? `<p style="line-height:1.8;color:#4a4a4a">${offer.details}</p>` : ''}
+      ${body}
       ${offer.mapsUrl ? `<a href="${offer.mapsUrl}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:1rem">فتح الخريطة</a>` : ''}
     </div>
   `;

@@ -14,6 +14,7 @@
   };
 
   const LISTING_LABEL = { sale: 'بيع', rent: 'إيجار', buy_request: 'طلب شراء' };
+  const USAGE_LABEL = { residential: 'سكني', commercial: 'تجاري' };
   const MOBILE = () => window.matchMedia('(max-width: 768px)').matches;
   const SITE = 'https://www.alheef.website';
 
@@ -39,7 +40,8 @@
     shareMenu: document.getElementById('share-menu'),
   };
 
-  function markerColor(type) {
+  function markerColor(type, listingType) {
+    if (listingType === 'buy_request') return '#8B5CF6';
     const t = (type || '').trim();
     if (TYPE_COLORS[t]) return TYPE_COLORS[t];
     if (t.includes('أرض')) return TYPE_COLORS['أرض'] || '#22C55E';
@@ -77,7 +79,46 @@
     return `<p class="map-card__detail"><span>${label}</span> ${escapeHtml(String(value))}</p>`;
   }
 
+  function buildBuyRequestCardHtml(p) {
+    const img = p.coverImage || (p.gallery && p.gallery[0]) || '';
+    const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
+    const area = p.area ? `${p.area} م²` : '';
+    const usage = USAGE_LABEL[p.requestUsage] || p.requestUsage || '';
+    const budgetLabel = p.price != null && p.price !== ''
+      ? `${formatPrice(p)} ر.س`
+      : 'غير محددة';
+    const pid = p.id;
+
+    return `
+      <article class="map-card map-card--buy-request" data-id="${escapeHtml(p.id)}">
+        <div class="map-card__badge">طلب شراء</div>
+        ${img ? `<div class="map-card__gallery"><img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async"></div>` : ''}
+        <div class="map-card__body">
+          <p class="map-card__type">${escapeHtml(p.propertyType || 'عقار')}${usage ? ` · ${escapeHtml(usage)}` : ''}</p>
+          <h3 class="map-card__title">${escapeHtml(p.title)}</h3>
+          <p class="map-card__loc">${escapeHtml(loc)}</p>
+          <p class="map-card__price">الميزانية: ${budgetLabel}</p>
+          <div class="map-card__details">
+            ${detailRow('المساحة المطلوبة', area)}
+            ${detailRow('نوع العقار', p.propertyType)}
+            ${detailRow('التصنيف', usage)}
+          </div>
+          <p class="map-card__desc">${escapeHtml(truncate(p.description, 140))}</p>
+          <p class="map-card__note">للتواصل وتقديم العروض استخدم الزر أدناه — رقم الطالب لا يُعرض للعامة.</p>
+          <div class="map-card__actions">
+            <button type="button" class="map-card__btn map-card__btn--offer" data-offer="${pid}">تقديم عرض</button>
+            <a class="map-card__btn map-card__btn--wa" href="#" data-wa="${pid}">واتساب</a>
+            <button type="button" class="map-card__btn map-card__btn--share" data-share="${pid}">مشاركة</button>
+          </div>
+        </div>
+      </article>`;
+  }
+
   function buildCardHtml(p) {
+    if (p.listingType === 'buy_request' || p.isBuyRequest) {
+      return buildBuyRequestCardHtml(p);
+    }
+
     const img = p.coverImage || (p.gallery && p.gallery[0]) || '';
     const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
     const rooms = p.bedrooms ? `${p.bedrooms} غرف` : '';
@@ -118,8 +159,37 @@
       </article>`;
   }
 
+  function offerMessage(p) {
+    const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
+    const usage = USAGE_LABEL[p.requestUsage] || p.requestUsage || '';
+    return [
+      'السلام عليكم، أود تقديم عرض على طلب الشراء التالي:',
+      p.title,
+      `النوع: ${p.propertyType || '—'}`,
+      usage ? `التصنيف: ${usage}` : '',
+      p.area ? `المساحة: ${p.area} م²` : '',
+      p.price != null ? `الميزانية: ${formatPrice(p)} ر.س` : '',
+      loc ? `الموقع: ${loc}` : '',
+      propertyUrl(p),
+    ].filter(Boolean).join('\n');
+  }
+
   function shareText(p) {
     const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
+    if (p.listingType === 'buy_request' || p.isBuyRequest) {
+      const usage = USAGE_LABEL[p.requestUsage] || p.requestUsage || '';
+      const lines = [
+        p.title,
+        'طلب شراء عقار',
+        `النوع: ${p.propertyType || '—'}`,
+        usage ? `التصنيف: ${usage}` : '',
+        p.area ? `المساحة: ${p.area} م²` : '',
+        p.price != null ? `الميزانية: ${formatPrice(p)} ر.س` : '',
+        loc ? `الموقع: ${loc}` : '',
+        propertyUrl(p),
+      ].filter(Boolean);
+      return lines.join('\n');
+    }
     const priceLine = p.priceType === 'auction' ? 'السعر: على السوم' : `السعر: ${formatPrice(p)} ر.س`;
     const lines = [
       p.title,
@@ -186,6 +256,16 @@
         if (p) openShare(p);
       });
     });
+    root.querySelectorAll('[data-offer]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = btn.getAttribute('data-offer');
+        const p = allProperties.find((x) => x.id === id);
+        if (!p) return;
+        const text = offerMessage(p);
+        window.open(whatsappLink(text), '_blank', 'noopener');
+      });
+    });
   }
 
   function openSheet(p) {
@@ -220,7 +300,7 @@
     const lng = Number(p.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-    const color = markerColor(p.propertyType);
+    const color = markerColor(p.propertyType, p.listingType);
     const marker = L.marker([lat, lng], { icon: createIcon(color) });
 
     marker.bindPopup(buildCardHtml(p), { className: 'map-popup', maxWidth: 340 });
