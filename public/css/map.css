@@ -487,6 +487,21 @@ body.map-fs-active .map-stage {
   pointer-events: none;
 }
 
+/* قفل الخريطة أثناء عرض تفاصيل العقار */
+.map-detail-locked {
+  cursor: default;
+}
+
+.leaflet-container.map-detail-locked .leaflet-interactive {
+  cursor: default;
+}
+
+.map-zoom-locked a {
+  pointer-events: none !important;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* بطاقة العقار — سطح المكتب */
 .map-popup.leaflet-popup-content-wrapper {
   border-radius: 14px;

@@ -28,6 +28,8 @@
   let markersById = new Map();
   let shareTarget = null;
   let loadGen = 0;
+  /** عند فتح بطاقة العقار: موضع العلامة على الشاشة + مستوى التكبير */
+  let mapDetailLock = null;
 
   const els = {
     loading: document.getElementById('map-loading'),
@@ -268,8 +270,72 @@
     });
   }
 
+  function lockMapDetail(latlng) {
+    if (!map || latlng == null) return;
+    const ll = latlng instanceof L.LatLng ? latlng : L.latLng(latlng);
+    mapDetailLock = {
+      latlng: ll,
+      anchor: map.latLngToContainerPoint(ll),
+      zoom: map.getZoom(),
+    };
+    map.scrollWheelZoom.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    map.dragging.disable();
+    map.getContainer().classList.add('map-detail-locked');
+    const zc = map.zoomControl?.getContainer?.();
+    if (zc) zc.classList.add('map-zoom-locked');
+  }
+
+  function restoreMapAnchor() {
+    if (!map || !mapDetailLock) return;
+    const current = map.latLngToContainerPoint(mapDetailLock.latlng);
+    const delta = mapDetailLock.anchor.subtract(current);
+    if (Math.abs(delta.x) > 0.5 || Math.abs(delta.y) > 0.5) {
+      map.panBy(delta, { animate: false });
+    }
+    if (map.getZoom() !== mapDetailLock.zoom) {
+      map.setZoom(mapDetailLock.zoom, { animate: false });
+    }
+  }
+
+  function unlockMapDetail() {
+    mapDetailLock = null;
+    if (!map) return;
+    map.scrollWheelZoom.enable();
+    map.doubleClickZoom.enable();
+    map.touchZoom.enable();
+    map.boxZoom.enable();
+    map.keyboard.enable();
+    map.dragging.enable();
+    map.getContainer().classList.remove('map-detail-locked');
+    const zc = map.zoomControl?.getContainer?.();
+    if (zc) zc.classList.remove('map-zoom-locked');
+  }
+
+  function refreshMapSizeKeepAnchor() {
+    if (!map) return;
+    map.invalidateSize();
+    if (!mapDetailLock) return;
+    requestAnimationFrame(() => {
+      restoreMapAnchor();
+      requestAnimationFrame(restoreMapAnchor);
+    });
+  }
+
+  function isSheetOpen() {
+    return els.sheet?.classList.contains('open');
+  }
+
   function openSheet(p) {
     if (!els.sheet || !els.sheetContent) return;
+    const lat = Number(p.latitude);
+    const lng = Number(p.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      lockMapDetail(L.latLng(lat, lng));
+    }
     els.sheetContent.innerHTML = buildCardHtml(p);
     bindCardActions(els.sheetContent);
     els.sheet.classList.add('open');
@@ -277,13 +343,17 @@
     if (map) {
       L.DomEvent.disableClickPropagation(els.sheet);
       L.DomEvent.disableScrollPropagation(els.sheet);
-      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(refreshMapSizeKeepAnchor, 100);
     }
   }
 
   function closeSheet() {
     els.sheet?.classList.remove('open');
     els.sheet?.setAttribute('aria-hidden', 'true');
+    markersById.forEach((m) => {
+      if (m.isPopupOpen?.()) m.closePopup();
+    });
+    unlockMapDetail();
   }
 
   function createIcon(color) {
@@ -303,10 +373,20 @@
     const color = markerColor(p.propertyType, p.listingType);
     const marker = L.marker([lat, lng], { icon: createIcon(color) });
 
-    marker.bindPopup(buildCardHtml(p), { className: 'map-popup', maxWidth: 340 });
+    marker.bindPopup(buildCardHtml(p), {
+      className: 'map-popup',
+      maxWidth: 340,
+      autoPan: false,
+      keepInView: false,
+    });
     marker.on('popupopen', () => {
+      lockMapDetail(marker.getLatLng());
       const popEl = marker.getPopup()?.getElement();
       if (popEl) bindCardActions(popEl);
+      requestAnimationFrame(restoreMapAnchor);
+    });
+    marker.on('popupclose', () => {
+      if (!isSheetOpen()) unlockMapDetail();
     });
     marker.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
@@ -400,6 +480,21 @@
       maxClusterRadius: 52,
     });
     map.addLayer(cluster);
+    map.on('resize', () => {
+      if (mapDetailLock) restoreMapAnchor();
+    });
+    map.on('zoom', () => {
+      if (mapDetailLock && map.getZoom() !== mapDetailLock.zoom) {
+        map.setZoom(mapDetailLock.zoom, { animate: false });
+        restoreMapAnchor();
+      }
+    });
+    map.on('moveend', () => {
+      if (mapDetailLock) restoreMapAnchor();
+    });
+    window.addEventListener('resize', () => {
+      if (mapDetailLock) setTimeout(restoreMapAnchor, 60);
+    });
     setupLayerToggle();
     setupFullscreen();
   }
@@ -417,7 +512,7 @@
     }
 
     function refreshMap() {
-      if (map) setTimeout(() => map.invalidateSize(), 80);
+      if (map) setTimeout(refreshMapSizeKeepAnchor, 80);
     }
 
     function updateUi(active) {
@@ -619,7 +714,7 @@
       }
       if (i < items.length) {
         requestAnimationFrame(addBatch);
-      } else if (bounds.length) {
+      } else if (bounds.length && !mapDetailLock) {
         map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
       }
     }
