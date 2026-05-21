@@ -223,53 +223,15 @@
   // ─── Header ───
   function setupHeader() {
     const header = document.getElementById('header');
-    const toggle = document.getElementById('menu-toggle');
-    const nav = document.getElementById('nav');
-    const overlay = document.getElementById('nav-overlay');
+    if (!header) return;
 
     window.addEventListener('scroll', () => {
       header.classList.toggle('scrolled', window.scrollY > 40);
     }, { passive: true });
-
-    function setMenuOpen(open) {
-      if (!toggle || !nav) return;
-      toggle.classList.toggle('active', open);
-      nav.classList.toggle('open', open);
-      overlay?.classList.toggle('active', open);
-      document.documentElement.classList.toggle('nav-open', open);
-      document.body.classList.toggle('nav-open', open);
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggle.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
-      overlay?.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
-
-    if (!toggle) return;
-
-    toggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setMenuOpen(!nav.classList.contains('open'));
-    });
-
-    overlay?.addEventListener('click', () => setMenuOpen(false));
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && nav.classList.contains('open')) setMenuOpen(false);
-    });
   }
 
   function closeMobileMenu() {
-    const nav = document.getElementById('nav');
-    const toggle = document.getElementById('menu-toggle');
-    const overlay = document.getElementById('nav-overlay');
-    if (!nav || !toggle) return;
-    nav.classList.remove('open');
-    toggle.classList.remove('active');
-    overlay?.classList.remove('active');
-    document.documentElement.classList.remove('nav-open');
-    document.body.classList.remove('nav-open');
-    toggle.setAttribute('aria-expanded', 'false');
-    overlay?.setAttribute('aria-hidden', 'true');
+    window.AlheefNav?.close?.();
   }
 
   /** يضمن ظهور رابط الخريطة حتى مع نسخة HTML قديمة على الاستضافة */

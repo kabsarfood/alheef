@@ -15,8 +15,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
-  <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=16">
+  <link rel="stylesheet" href="/css/mobile.css?v=7">
+  <link rel="stylesheet" href="/css/map.css?v=17">
 </head>
 <body class="map-page">
 
@@ -214,6 +214,7 @@
     </div>
   </footer>
 
+  <script src="/js/nav-mobile.js?v=1" defer></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=6"></script>
@@ -222,26 +223,6 @@
   <script src="/js/map-add.js?v=6" defer></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
-    (function () {
-      const toggle = document.getElementById('menu-toggle');
-      const nav = document.getElementById('nav');
-      const overlay = document.getElementById('nav-overlay');
-      if (!toggle || !nav) return;
-      function close() {
-        nav.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
-        overlay?.classList.remove('active');
-        document.body.classList.remove('nav-open');
-      }
-      toggle.addEventListener('click', () => {
-        const open = nav.classList.toggle('open');
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        overlay?.classList.toggle('active', open);
-        document.body.classList.toggle('nav-open', open);
-      });
-      overlay?.addEventListener('click', close);
-      nav.querySelectorAll('a').forEach((a) => a.addEventListener('click', close));
-    })();
     fetch('/api/config').then((r) => r.json()).then((c) => {
       const wa = document.getElementById('header-whatsapp');
       if (wa && c.whatsapp) {

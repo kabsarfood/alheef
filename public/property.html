@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css?v=5">
-  <link rel="stylesheet" href="/css/mobile.css?v=5">
-  <link rel="stylesheet" href="/css/map.css?v=1">
+  <link rel="stylesheet" href="/css/mobile.css?v=7">
+  <link rel="stylesheet" href="/css/map.css?v=17">
   <title id="page-title">تفاصيل العقار | الهيف</title>
   <style>
     .property-page { background: #faf8f5; min-height: 100vh; padding-bottom: 3rem; }
@@ -39,18 +39,25 @@
       <a href="/" class="logo logo--header">
         <img src="/images/logo-alheef.png" alt="الهيف" width="120" height="48">
       </a>
-      <nav class="nav" aria-label="التنقل">
+      <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
         <a href="/map.html" class="nav__link">الخريطة العقارية</a>
         <a href="/#offers" class="nav__link">العروض</a>
       </nav>
+      <div class="header__actions">
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="فتح القائمة" aria-expanded="false" aria-controls="nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
+  <div class="nav-overlay" id="nav-overlay" aria-hidden="true"></div>
 
   <main class="property-detail container" id="property-root">
     <p class="property-loading">جاري تحميل العقار…</p>
   </main>
 
+  <script src="/js/nav-mobile.js?v=1" defer></script>
   <script src="/js/property.js?v=1" defer></script>
 </body>
 </html>

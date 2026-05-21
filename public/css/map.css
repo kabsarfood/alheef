@@ -22,14 +22,20 @@
 .map-page .header {
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1001;
   height: 72px;
   min-height: 72px;
   max-height: 72px;
-  overflow: hidden;
-  background: rgba(250, 248, 245, 0.96);
-  backdrop-filter: blur(12px);
+  overflow: visible;
+  background: rgba(250, 248, 245, 0.98);
   border-bottom: 1px solid var(--map-border);
+}
+
+@media (min-width: 769px) {
+  .map-page .header {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 .map-page .header__inner {
