@@ -32,6 +32,16 @@
     overflow: hidden;
   }
 
+  /* صفحة الخريطة: لا تمنع اللمس على Leaflet */
+  body.map-page {
+    touch-action: auto;
+  }
+
+  body.map-page .map-wrap,
+  body.map-page .leaflet-container {
+    touch-action: manipulation;
+  }
+
   body {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;

@@ -450,23 +450,64 @@
     });
   }
 
+  function sizeMapContainer() {
+    const wrap = document.getElementById('map-wrap') || document.querySelector('.map-wrap');
+    const el = document.getElementById('property-map');
+    if (!wrap || !el) return;
+
+    if (MOBILE()) {
+      const h = Math.round(Math.min(Math.max(window.innerHeight * 0.52, 300), 480));
+      wrap.style.height = `${h}px`;
+      wrap.style.minHeight = `${h}px`;
+      el.style.height = `${h}px`;
+      el.style.minHeight = `${h}px`;
+    } else {
+      wrap.style.height = '';
+      wrap.style.minHeight = '';
+      el.style.height = '';
+      el.style.minHeight = '';
+    }
+  }
+
   function ensureMapVisible() {
     if (!map) return;
-    const wrap = document.querySelector('.map-wrap');
-    const el = document.getElementById('property-map');
-    if (wrap && el) {
-      map.invalidateSize(true);
-    }
+    sizeMapContainer();
+    map.invalidateSize(true);
+  }
+
+  function waitForLeaflet(maxMs = 8000) {
+    return new Promise((resolve) => {
+      if (typeof L !== 'undefined') {
+        resolve(true);
+        return;
+      }
+      const start = Date.now();
+      const t = setInterval(() => {
+        if (typeof L !== 'undefined') {
+          clearInterval(t);
+          resolve(true);
+        } else if (Date.now() - start > maxMs) {
+          clearInterval(t);
+          resolve(false);
+        }
+      }, 50);
+    });
   }
 
   function initMap() {
     const mapEl = document.getElementById('property-map');
-    if (!mapEl || typeof L === 'undefined') return;
+    if (!mapEl || typeof L === 'undefined') return false;
+
+    if (map) {
+      ensureMapVisible();
+      return true;
+    }
+
+    sizeMapContainer();
 
     map = L.map(mapEl, {
       zoomControl: true,
       scrollWheelZoom: !MOBILE(),
-      tap: true,
       touchZoom: true,
       dragging: true,
     }).setView([24.7136, 46.6753], 11);
@@ -517,6 +558,16 @@
     });
     setupLayerToggle();
     setupFullscreen();
+
+    const wrap = document.getElementById('map-wrap');
+    if (wrap && typeof IntersectionObserver !== 'undefined') {
+      const io = new IntersectionObserver((entries) => {
+        if (entries[0]?.isIntersecting) ensureMapVisible();
+      }, { threshold: 0.05 });
+      io.observe(wrap);
+    }
+
+    return true;
   }
 
   function setupFullscreen() {
@@ -876,8 +927,22 @@
   }
 
   async function init() {
+    sizeMapContainer();
     renderLegend();
-    initMap();
+
+    const hasLeaflet = await waitForLeaflet();
+    if (!hasLeaflet) {
+      els.loading?.classList.add('hidden');
+      if (els.count) els.count.textContent = 'تعذر تحميل الخريطة';
+      return;
+    }
+
+    if (!initMap()) {
+      els.loading?.classList.add('hidden');
+      if (els.count) els.count.textContent = 'تعذر تهيئة الخريطة';
+      return;
+    }
+
     setupEvents();
     await loadFilterOptions();
 
@@ -915,10 +980,18 @@
     markerColor,
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  function boot() {
+    requestAnimationFrame(() => {
+      init().catch(() => {
+        els.loading?.classList.add('hidden');
+      });
+    });
+  }
+
+  if (document.readyState === 'complete') {
+    boot();
   } else {
-    init();
+    window.addEventListener('load', boot, { once: true });
   }
 
 })();
