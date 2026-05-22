@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=5">
   <link rel="stylesheet" href="/css/mobile.css?v=8">
-  <link rel="stylesheet" href="/css/map.css?v=19">
+  <link rel="stylesheet" href="/css/map.css?v=20">
 </head>
 <body class="map-page">
 
@@ -46,35 +46,6 @@
       <span class="map-hero__badge">استكشف العروض مباشرة</span>
       <h1 class="map-hero__title">الخريطة العقارية</h1>
       <p class="map-hero__desc">تعرض الخريطة جميع إعلانات الهيف العقارية المنشورة — أراضٍ، فلل، شقق، عمائر، محلات، مكاتب، وعقارات تجارية — بمواقعها الفعلية لاختيار ما يناسبك بسرعة ووضوح.</p>
-    </section>
-
-    <section class="map-stage container" id="map-stage">
-      <div class="map-wrap" id="map-wrap">
-        <div id="property-map" role="application" aria-label="خريطة العقارات"></div>
-        <div class="map-mobile-tools">
-          <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
-          <div class="map-toolbar" aria-label="أدوات الخريطة">
-            <div class="map-layer-toggle map-layer-toggle--stack" role="group" aria-label="نوع الخريطة">
-              <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true" title="خريطة">خريطة</button>
-              <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false" title="قمر صناعي">قمر</button>
-            </div>
-            <button type="button" class="map-fs-btn map-fs-btn--stack" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
-              <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
-              <span class="map-fs-btn__label">ملء الشاشة</span>
-            </button>
-          </div>
-        </div>
-        <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
-        <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
-        <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
-        <div class="map-sheet" id="map-sheet" aria-hidden="true">
-          <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
-          <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
-            <div class="map-sheet__handle" aria-hidden="true"></div>
-            <div id="sheet-content"></div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <section class="map-filters container" aria-label="تصفية العقارات">
@@ -128,6 +99,31 @@
           <button type="button" class="map-filters__btn map-filters__btn--ghost" id="filter-reset">إعادة</button>
         </div>
       </form>
+    </section>
+
+    <section class="map-stage container" id="map-stage">
+      <div class="map-wrap" id="map-wrap">
+        <div id="property-map" role="application" aria-label="خريطة العقارات"></div>
+        <button type="button" class="map-fs-btn" id="map-fullscreen-btn" aria-label="ملء الشاشة" aria-pressed="false">
+          <span class="map-fs-btn__icon" aria-hidden="true">⛶</span>
+          <span class="map-fs-btn__label">ملء الشاشة</span>
+        </button>
+        <div class="map-layer-toggle" role="group" aria-label="نوع الخريطة">
+          <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true">خريطة</button>
+          <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false">قمر صناعي</button>
+        </div>
+        <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
+        <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
+        <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
+        <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
+        <div class="map-sheet" id="map-sheet" aria-hidden="true">
+          <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
+          <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
+            <div class="map-sheet__handle" aria-hidden="true"></div>
+            <div id="sheet-content"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
