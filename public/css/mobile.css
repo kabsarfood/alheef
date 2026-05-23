@@ -32,6 +32,11 @@
     overflow: hidden;
   }
 
+  /* الهيدر والقائمة فوق طبقة التعتيم — وإلا لا يعمل رابط الخريطة وغيره */
+  body.nav-open .header {
+    z-index: 1005;
+  }
+
   /* صفحة الخريطة: لا تمنع اللمس على Leaflet */
   body.map-page {
     touch-action: auto;
