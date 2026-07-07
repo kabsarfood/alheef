@@ -332,13 +332,39 @@
     return els.sheet?.classList.contains('open');
   }
 
+  function scrollMapIntoView() {
+    const target = document.getElementById('map-wrap') || document.getElementById('map-stage');
+    if (!target) return;
+    const header = document.querySelector('.header');
+    const headerH = header?.offsetHeight || 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH - 8;
+    window.scrollTo({ top: Math.max(0, top), behavior: MOBILE() ? 'auto' : 'smooth' });
+  }
+
+  function panMapAboveSheet(latlng) {
+    if (!map || !MOBILE() || latlng == null) return;
+    const ll = latlng instanceof L.LatLng ? latlng : L.latLng(latlng);
+    const panel = document.getElementById('sheet-panel');
+    const sheetH = panel?.getBoundingClientRect().height || Math.round(window.innerHeight * 0.5);
+    const pt = map.latLngToContainerPoint(ll);
+    const size = map.getSize();
+    const targetY = Math.max(72, (size.y - sheetH) * 0.32);
+    const dy = pt.y - targetY;
+    if (Math.abs(dy) > 4) {
+      map.panBy([0, dy], { animate: false });
+      if (mapDetailLock) {
+        mapDetailLock.anchor = map.latLngToContainerPoint(ll);
+        mapDetailLock.zoom = map.getZoom();
+      }
+    }
+  }
+
   function openSheet(p) {
     if (!els.sheet || !els.sheetContent) return;
     const lat = Number(p.latitude);
     const lng = Number(p.longitude);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      lockMapDetail(L.latLng(lat, lng));
-    }
+    const latlng = Number.isFinite(lat) && Number.isFinite(lng) ? L.latLng(lat, lng) : null;
+    if (latlng) lockMapDetail(latlng);
     els.sheetContent.innerHTML = buildCardHtml(p);
     bindCardActions(els.sheetContent);
     els.sheet.classList.add('open');
@@ -346,7 +372,19 @@
     if (map) {
       L.DomEvent.disableClickPropagation(els.sheet);
       L.DomEvent.disableScrollPropagation(els.sheet);
-      setTimeout(refreshMapSizeKeepAnchor, 100);
+      if (MOBILE()) {
+        scrollMapIntoView();
+        requestAnimationFrame(() => {
+          if (latlng) panMapAboveSheet(latlng);
+          refreshMapSizeKeepAnchor();
+        });
+        setTimeout(() => {
+          if (latlng) panMapAboveSheet(latlng);
+          refreshMapSizeKeepAnchor();
+        }, 280);
+      } else {
+        setTimeout(refreshMapSizeKeepAnchor, 100);
+      }
     }
   }
 
@@ -910,20 +948,32 @@
     });
 
     document.getElementById('share-close')?.addEventListener('click', hideShareMenu);
+  }
 
-    const params = new URLSearchParams(location.search);
-    if (params.get('slug')) {
-      setTimeout(async () => {
-        try {
-          const res = await fetch(`/api/properties/slug/${encodeURIComponent(params.get('slug'))}`);
-          const p = await res.json();
-          if (p?.latitude && p?.longitude) {
-            map.setView([p.latitude, p.longitude], 15);
-            if (MOBILE()) openSheet(p);
-          }
-        } catch { /* ignore */ }
-      }, 800);
-    }
+  async function handleSlugDeepLink(slug) {
+    if (!slug || !map) return;
+    scrollMapIntoView();
+    try {
+      const res = await fetch(`/api/properties/slug/${encodeURIComponent(slug)}`);
+      if (!res.ok) return;
+      const p = await res.json();
+      const lat = Number(p.latitude);
+      const lng = Number(p.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      ensureMapVisible();
+      map.setView([lat, lng], 15, { animate: false });
+
+      const marker = p.id ? markersById.get(p.id) : null;
+      scrollMapIntoView();
+      ensureMapVisible();
+
+      if (MOBILE()) {
+        openSheet(p);
+      } else if (marker) {
+        marker.openPopup();
+      }
+    } catch { /* ignore */ }
   }
 
   async function init() {
@@ -953,6 +1003,12 @@
 
     await loadProperties({});
     ensureMapVisible();
+
+    const slug = new URLSearchParams(location.search).get('slug');
+    if (slug) {
+      await handleSlugDeepLink(slug);
+    }
+
     if (MOBILE()) {
       [100, 350, 800, 1500].forEach((ms) => setTimeout(ensureMapVisible, ms));
       window.visualViewport?.addEventListener('resize', () => {

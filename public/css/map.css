@@ -729,6 +729,17 @@ body.map-fs-active .map-stage {
     display: block;
   }
 
+  /* لوحة التفاصيل ثابتة على الشاشة — لا تختفي مع التمرير */
+  .map-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+  }
+
+  .map-sheet__panel {
+    max-height: 58vh;
+  }
+
   .map-layer-toggle,
   .map-layer-toggle.map-layer-toggle--stack {
     top: auto;
