@@ -10,6 +10,50 @@
     return d.innerHTML;
   }
 
+  function escapeAttr(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function formatArea(area) {
+    if (area == null || area === '') return '';
+    const s = String(area).trim();
+    if (!s) return '';
+    return /م²|م2/i.test(s) ? s : `${s} م²`;
+  }
+
+  function pickDescription(p) {
+    const candidates = [p.description, p.details];
+    const f = p.features;
+    if (f && typeof f === 'object' && !Array.isArray(f)) {
+      candidates.push(f.property_description, f.details, f.description);
+    }
+    for (const c of candidates) {
+      const s = String(c ?? '').trim();
+      if (s) return s;
+    }
+    return '';
+  }
+
+  /** رابط موقع العقار على خرائط Google */
+  function googleMapsUrl(p, loc) {
+    const custom = (p.mapsUrl || '').trim();
+    if (/^https?:\/\//i.test(custom)) return custom;
+    const lat = Number(p.latitude);
+    const lng = Number(p.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+    if (loc) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+    }
+    return '';
+  }
+
   function setMeta(p) {
     const title = `${p.title} | الهيف للخدمات العقارية`;
     document.title = title;
@@ -39,9 +83,9 @@
     const loc = [p.district, p.city].filter(Boolean).join(' — ') || p.location || '';
     const price = p.price || (p.priceRaw != null ? Number(p.priceRaw).toLocaleString('ar-SA') : '—');
     const listing = LISTING[p.listingType] || '';
-    const mapLink = p.latitude && p.longitude
-      ? `/map.html?slug=${encodeURIComponent(p.slug)}`
-      : '/map.html';
+    const mapLink = googleMapsUrl(p, loc);
+    const areaText = formatArea(p.areaDisplay || p.area);
+    const description = pickDescription(p);
 
     const shareLines = [
       p.title,
@@ -65,14 +109,15 @@
       <p class="property-detail__meta">${escapeHtml(loc)}</p>
       <p class="property-detail__price">${price} <span style="font-size:0.85rem">ر.س</span></p>
       <div class="property-detail__grid">
-        ${p.area ? `<div class="property-detail__chip"><strong>المساحة</strong>${escapeHtml(String(p.area))} م²</div>` : ''}
+        <div class="property-detail__chip"><strong>المساحة</strong>${areaText ? escapeHtml(areaText) : '—'}</div>
         ${p.bedrooms ? `<div class="property-detail__chip"><strong>الغرف</strong>${p.bedrooms}</div>` : ''}
         ${p.bathrooms ? `<div class="property-detail__chip"><strong>الحمامات</strong>${p.bathrooms}</div>` : ''}
         ${p.referenceNo ? `<div class="property-detail__chip"><strong>رقم الإعلان</strong>${escapeHtml(p.referenceNo)}</div>` : ''}
       </div>
-      <div class="property-detail__desc">${escapeHtml(p.description || '')}</div>
+      <h2 class="property-detail__section-title">وصف العقار</h2>
+      <div class="property-detail__desc">${description ? escapeHtml(description) : 'لا يوجد وصف إضافي لهذا العقار.'}</div>
       <div class="property-detail__actions">
-        <a class="map-card__btn map-card__btn--primary" href="${mapLink}">عرض على الخريطة</a>
+        ${mapLink ? `<a class="map-card__btn map-card__btn--primary" href="${escapeAttr(mapLink)}" target="_blank" rel="noopener noreferrer">عرض على الخريطة</a>` : ''}
         <a class="map-card__btn map-card__btn--wa" href="${waHref}" target="_blank" rel="noopener">واتساب</a>
         <button type="button" class="map-card__btn map-card__btn--share" id="btn-share">مشاركة</button>
       </div>`;

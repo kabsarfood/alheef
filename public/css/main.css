@@ -1158,24 +1158,50 @@ ul { list-style: none; }
   font-size: var(--fs-card-title);
   font-weight: var(--fw-heading);
   color: var(--text-primary);
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.45rem;
   line-height: var(--lh-heading);
+}
+
+.modal__section-label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-heading);
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.65rem;
 }
 
 .modal__location {
   color: var(--text-primary);
   font-size: var(--fs-location);
   font-weight: var(--fw-subheading);
+  margin-bottom: 0.35rem;
+  line-height: 1.5;
+}
+
+.modal__location--sub {
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
+  margin-bottom: 0.5rem;
+}
+
+.modal__listing {
+  font-size: var(--fs-detail);
+  font-weight: var(--fw-heading);
+  color: var(--navy);
   margin-bottom: 1rem;
   line-height: 1.5;
 }
 
 .modal__desc {
   font-size: var(--fs-detail);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   line-height: var(--lh-relaxed);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.35rem;
   white-space: pre-line;
+  padding: 1rem 1.1rem;
+  background: var(--ivory);
+  border: 1px solid rgba(30, 42, 56, 0.08);
+  border-radius: var(--radius);
 }
 
 .modal__details {

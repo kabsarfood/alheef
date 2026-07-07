@@ -115,6 +115,18 @@ router.get('/properties/slug/:slug', async (req, res) => {
   }
 });
 
+router.get('/properties/id/:id', async (req, res) => {
+  try {
+    const p = await propertiesRepo.getById(req.params.id);
+    if (!p || p.status !== 'published') {
+      return res.status(404).json({ success: false, message: 'العقار غير موجود' });
+    }
+    res.json(toPublicProperty(p));
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /** توافق الواجهة القديمة */
 router.get('/offers', async (req, res) => {
   try {

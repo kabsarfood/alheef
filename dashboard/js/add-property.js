@@ -70,11 +70,21 @@ function syncListingMode() {
 
   document.querySelectorAll('[data-buy-only]').forEach((el) => {
     el.required = buy;
+    el.disabled = !buy;
   });
-  document.querySelectorAll('[data-sale-only]').forEach((el) => {
-    if (el.id === 'price') return;
+  document.querySelectorAll('.data-sale-only').forEach((el) => {
+    if (el.id === 'price' || el.id === 'property-description') return;
     el.required = !buy;
+    el.disabled = buy;
   });
+  document.querySelectorAll('#sale-fields-block input, #sale-fields-block select, #sale-fields-block textarea').forEach((el) => {
+    if (el.classList.contains('data-sale-only')) return;
+    el.disabled = buy;
+  });
+  if (propertyTypeEl) propertyTypeEl.disabled = buy;
+  if (priceEl) priceEl.disabled = buy;
+  const descEl = document.getElementById('property-description');
+  if (descEl) descEl.disabled = buy;
 }
 
 function renderForm() {
@@ -129,7 +139,7 @@ function renderForm() {
                 </div>
                 <div class="form-group full">
                   <label>تفاصيل الطلب <span class="required">*</span></label>
-                  <textarea name="details" id="detailsBuy" data-buy-only rows="4" placeholder="صف احتياجك: الحي المفضل، مواصفات، مدة الشراء..."></textarea>
+                  <textarea name="buy_description" id="detailsBuy" data-buy-only rows="4" placeholder="صف احتياجك: الحي المفضل، مواصفات، مدة الشراء..."></textarea>
                 </div>
                 <div class="form-group full">
                   <label>رقم الجوال (للأدمن فقط) <span class="required">*</span></label>
@@ -169,8 +179,9 @@ function renderForm() {
                 <input type="text" name="price" id="price" class="data-sale-only" placeholder="مثال: 3200000" required dir="ltr">
               </div>
               <div class="form-group full">
-                <label>تفاصيل العقار</label>
-                <textarea name="details" id="details" class="data-sale-only" placeholder="اكتب وصفاً تفصيلياً للعقار..."></textarea>
+                <label>وصف العقار</label>
+                <textarea name="description" id="property-description" class="data-sale-only" rows="8" placeholder="اكتب وصفاً تفصيلياً للعقار: المساحة، الشارع، القطعة، المخطط، السعر للمتر، رقم الترخيص..."></textarea>
+                <span class="form-hint">يظهر للزوار في صفحة الإعلان ونافذة التفاصيل</span>
               </div>
             </div>
 
@@ -307,7 +318,7 @@ async function loadOffer(id) {
       if (bedEl) bedEl.value = offer.bedrooms != null ? offer.bedrooms : '';
       document.getElementById('contractNumber').value = offer.contractNumber || '';
       document.getElementById('price').value = offer.price != null ? offer.price : '';
-      document.getElementById('details').value = offer.description || offer.details || '';
+      document.getElementById('property-description').value = offer.description || offer.details || '';
     }
 
     document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
@@ -402,7 +413,8 @@ async function handleSubmit(e) {
     fd.set('requestUsage', usage);
     fd.set('propertyType', kind);
     fd.set('area', area);
-    fd.set('description', details);
+    fd.set('description', (document.getElementById('detailsBuy')?.value || '').trim());
+    fd.delete('buy_description');
     fd.set('requestPhone', phone);
     if (budget) fd.set('price', budget);
     else fd.delete('price');
@@ -411,7 +423,10 @@ async function handleSubmit(e) {
     fd.delete('contractNumber');
   } else {
     if (!fd.get('title')) fd.set('title', `${fd.get('propertyType')} — ${location}`);
-    fd.set('description', fd.get('details') || '');
+    const desc = (document.getElementById('property-description')?.value || '').trim();
+    fd.set('description', desc);
+    fd.delete('details');
+    fd.delete('buy_description');
     if (!fd.get('price')) {
       showToast('السعر مطلوب لإعلانات البيع والإيجار', 'error');
       btn.disabled = false;

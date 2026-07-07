@@ -963,16 +963,8 @@
 
       ensureMapVisible();
       map.setView([lat, lng], 15, { animate: false });
-
-      const marker = p.id ? markersById.get(p.id) : null;
       scrollMapIntoView();
-      ensureMapVisible();
-
-      if (MOBILE()) {
-        openSheet(p);
-      } else if (marker) {
-        marker.openPopup();
-      }
+      setTimeout(ensureMapVisible, 150);
     } catch { /* ignore */ }
   }
 

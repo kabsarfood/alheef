@@ -24,6 +24,78 @@
     return escapeHtml(s).replace(/"/g, '&quot;');
   }
 
+  function formatArea(area) {
+    if (area == null || area === '') return '';
+    const s = String(area).trim();
+    if (!s) return '';
+    return /م²|م2/i.test(s) ? s : `${s} م²`;
+  }
+
+  function pickDescription(source) {
+    const candidates = [source.description, source.details];
+    const f = source.features;
+    if (f && typeof f === 'object' && !Array.isArray(f)) {
+      candidates.push(f.property_description, f.details, f.description);
+    }
+    for (const c of candidates) {
+      const s = String(c ?? '').trim();
+      if (s) return s;
+    }
+    return '';
+  }
+
+  const LISTING_LABEL = { sale: 'للبيع', rent: 'للإيجار', buy_request: 'طلب شراء' };
+
+  function formatLocationLines(offer) {
+    const city = (offer.city || '').trim();
+    let district = (offer.district || '').trim().replace(/^حي\s+/u, '');
+    if (city && district) {
+      return {
+        primary: `${city} — ${district}`,
+        secondary: `${city} — حي ${district}`,
+      };
+    }
+    const loc = (offer.location || '').trim();
+    const parts = loc.split('—').map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const c = parts[0];
+      const d = parts[1].replace(/^حي\s+/u, '');
+      return { primary: `${c} — ${d}`, secondary: `${c} — حي ${d}` };
+    }
+    return { primary: loc, secondary: '' };
+  }
+
+  function formatListingLine(offer) {
+    const label = LISTING_LABEL[offer.listingType] || '';
+    const type = (offer.type || '').trim();
+    if (label && type) return `${label} ${type}`;
+    return label || type || '';
+  }
+
+  function buildDetailBody(offer) {
+    let body = pickDescription(offer);
+    if (!body) {
+      const lines = [];
+      if (offer.area) lines.push(`المساحة ${formatArea(offer.area)}`);
+      if (offer.streetWidth) lines.push(`الشارع ${offer.streetWidth}`);
+      if (offer.direction) lines.push(`الاتجاه ${offer.direction}`);
+      if (offer.plotNumber || offer.planNumber) {
+        const plot = offer.plotNumber ? `رقم القطعة ${offer.plotNumber}` : '';
+        const plan = offer.planNumber ? `مخطط ${offer.planNumber}` : '';
+        lines.push([plot, plan].filter(Boolean).join(' '));
+      }
+      body = lines.join('\n');
+    }
+    const ref = offer.referenceNo || '';
+    if (ref && !body.includes(ref)) {
+      body = body ? `${body}\nإعلان مرخص - ${ref}` : `إعلان مرخص - ${ref}`;
+    }
+    if (body && !/الهيف/i.test(body)) {
+      body += '\nالهيف العقارية';
+    }
+    return body || 'لا توجد تفاصيل إضافية لهذا العقار.';
+  }
+
   // ─── Init ───
   document.addEventListener('DOMContentLoaded', init);
 
@@ -379,7 +451,7 @@
           <h3 class="offer-card__title">${escapeHtml(offer.title)}</h3>
           <p class="offer-card__location">📍 ${escapeHtml(offer.location)}</p>
           <div class="offer-card__meta">
-            <span class="offer-card__area">${escapeHtml(offer.area)}</span>
+            <span class="offer-card__area">${offer.area ? `المساحة ${escapeHtml(formatArea(offer.area))}` : '—'}</span>
             <span class="offer-card__price">${escapeHtml(offer.price)} <span>ر.س</span></span>
           </div>
           <div class="offer-card__actions">
@@ -417,6 +489,8 @@
 
   function mergePublicProperty(offer, p) {
     const loc = p.location || [p.district, p.city].filter(Boolean).join(' — ');
+    const area = formatArea(p.areaDisplay || p.area) || formatArea(offer.area) || '';
+    const description = pickDescription(p);
     return {
       ...offer,
       id: p.id || offer.id,
@@ -424,10 +498,46 @@
       title: p.title || offer.title,
       type: p.propertyType || p.type || offer.type,
       location: loc || offer.location,
-      area: p.area ? `${p.area} م²` : offer.area,
+      area,
       price: p.price || offer.price,
       image: p.coverImage || p.image || offer.image,
-      description: p.description || offer.description || '',
+      description,
+      bedrooms: p.bedrooms ?? offer.bedrooms,
+      bathrooms: p.bathrooms ?? offer.bathrooms,
+      referenceNo: p.referenceNo || offer.referenceNo || '',
+      city: p.city || offer.city || '',
+      district: p.district || offer.district || '',
+      listingType: p.listingType || offer.listingType || '',
+      plotNumber: p.plotNumber || offer.plotNumber || '',
+      planNumber: p.planNumber || offer.planNumber || '',
+      streetWidth: p.streetWidth || offer.streetWidth || '',
+      direction: p.direction || offer.direction || '',
+    };
+  }
+
+  async function fetchFullOffer(offer) {
+    const tryFetch = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    };
+
+    try {
+      if (offer.slug) {
+        const full = await tryFetch(`/api/properties/slug/${encodeURIComponent(offer.slug)}`);
+        if (full) return mergePublicProperty(offer, full);
+      }
+      if (offer.id) {
+        const full = await tryFetch(`/api/properties/id/${encodeURIComponent(offer.id)}`);
+        if (full) return mergePublicProperty(offer, full);
+      }
+    } catch {
+      /* استخدم البيانات المحلية */
+    }
+    return {
+      ...offer,
+      area: formatArea(offer.area) || offer.area || '',
+      description: pickDescription(offer),
     };
   }
 
@@ -435,17 +545,7 @@
     let offer = offers.find((o) => String(o.id) === String(id));
     if (!offer) return;
 
-    if (offer.slug) {
-      try {
-        const res = await fetch(`/api/properties/slug/${encodeURIComponent(offer.slug)}`);
-        if (res.ok) {
-          const full = await res.json();
-          offer = mergePublicProperty(offer, full);
-        }
-      } catch {
-        /* استخدم البيانات المحلية */
-      }
-    }
+    offer = await fetchFullOffer(offer);
 
     const imgEl = document.getElementById('modal-img');
     if (imgEl) {
@@ -455,22 +555,37 @@
     }
 
     setModalText('modal-title', offer.title);
-    setModalText('modal-location', offer.location);
-    setModalText('modal-type', offer.type);
-    setModalText('modal-area', offer.area);
-    setModalText('modal-loc-short', offer.location.split('—')[0]?.trim() || offer.location);
-    setModalText('modal-price', offer.price ? `${offer.price} ر.س` : '—');
+
+    const locLines = formatLocationLines(offer);
+    setModalText('modal-location', locLines.primary);
+    const locSub = document.getElementById('modal-location-sub');
+    if (locSub) {
+      if (locLines.secondary && locLines.secondary !== locLines.primary) {
+        locSub.textContent = locLines.secondary;
+        locSub.hidden = false;
+      } else {
+        locSub.textContent = '';
+        locSub.hidden = true;
+      }
+    }
+
+    const listingEl = document.getElementById('modal-listing');
+    const listingLine = formatListingLine(offer);
+    if (listingEl) {
+      listingEl.textContent = listingLine;
+      listingEl.hidden = !listingLine;
+    }
 
     const descEl = document.getElementById('modal-desc');
     if (descEl) {
-      if (offer.description) {
-        descEl.textContent = offer.description;
-        descEl.hidden = false;
-      } else {
-        descEl.textContent = '';
-        descEl.hidden = true;
-      }
+      descEl.textContent = buildDetailBody(offer);
+      descEl.hidden = false;
     }
+
+    setModalText('modal-type', offer.type);
+    setModalText('modal-area', formatArea(offer.area) || '—');
+    setModalText('modal-loc-short', locLines.primary || offer.location || '—');
+    setModalText('modal-price', offer.price ? `${offer.price} ر.س` : '—');
 
     const detailLink = document.getElementById('modal-detail-link');
     if (detailLink) {

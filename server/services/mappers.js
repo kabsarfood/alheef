@@ -16,6 +16,44 @@ function parseNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** عرض المساحة بصيغة موحّدة */
+function formatArea(area) {
+  if (area == null || area === '') return '';
+  const s = String(area).trim();
+  if (!s) return '';
+  return /م²|م2/i.test(s) ? s : `${s} م²`;
+}
+
+/** يستخرج وصف العقار من أي مصدر متاح (عمود أو حقول قديمة أو features) */
+function resolveDescription(body) {
+  if (!body) return '';
+  const candidates = [body.description, body.details, body.buy_description];
+  const f = body.features;
+  if (f && typeof f === 'object' && !Array.isArray(f)) {
+    candidates.push(f.property_description, f.details, f.description);
+  }
+  for (const c of candidates) {
+    const s = String(c ?? '').trim();
+    if (s) return s;
+  }
+  return '';
+}
+
+function readDescriptionFromRow(row) {
+  if (!row) return '';
+  if (row.description != null && String(row.description).trim()) {
+    return String(row.description).trim();
+  }
+  const f = row.features;
+  if (f && typeof f === 'object' && !Array.isArray(f)) {
+    for (const key of ['property_description', 'details', 'description']) {
+      const v = f[key];
+      if (v != null && String(v).trim()) return String(v).trim();
+    }
+  }
+  return '';
+}
+
 function rowToSettings(row) {
   if (!row) return { ...DEFAULT_SETTINGS };
   return {
@@ -89,7 +127,7 @@ function rowToProperty(row, images = []) {
     id: row.id,
     title: row.title,
     slug: row.slug,
-    description: row.description,
+    description: readDescriptionFromRow(row),
     propertyType: row.property_type,
     listingType: row.listing_type,
     city: row.city,
@@ -98,7 +136,7 @@ function rowToProperty(row, images = []) {
     price: row.price,
     bedrooms: row.bedrooms,
     bathrooms: row.bathrooms,
-    area: row.area,
+    area: parseNumber(row.area) ?? (row.area != null && row.area !== '' ? row.area : null),
     age: row.age,
     latitude: row.latitude,
     longitude: row.longitude,
@@ -187,6 +225,9 @@ function buildMapFeatures(body) {
     if (reqPhone) f.request_phone = reqPhone;
   }
 
+  const desc = resolveDescription(body);
+  if (desc) f.property_description = desc;
+
   return f;
 }
 
@@ -208,7 +249,7 @@ function propertyToRow(body) {
   return {
     title: body.title,
     slug: body.slug,
-    description: body.description || '',
+    description: resolveDescription(body),
     property_type: propertyType,
     listing_type: listing,
     city: body.city,
@@ -255,7 +296,7 @@ function toPublicProperty(p) {
     id: p.id,
     title: p.title,
     slug: p.slug,
-    description: p.description,
+    description: resolveDescription(p),
     type: p.propertyType,
     propertyType: p.propertyType,
     listingType: p.listingType,
@@ -267,6 +308,7 @@ function toPublicProperty(p) {
     bedrooms: p.bedrooms,
     bathrooms: p.bathrooms,
     area: p.area,
+    areaDisplay: formatArea(p.area),
     latitude: p.latitude,
     longitude: p.longitude,
     image: p.coverImage,
@@ -275,6 +317,10 @@ function toPublicProperty(p) {
     featured: p.featured,
     features: p.features,
     referenceNo: p.contractNumber || '',
+    plotNumber: p.plotNumber || '',
+    planNumber: p.planNumber || '',
+    direction: p.direction || '',
+    streetWidth: p.streetWidth || '',
     mapsUrl: p.mapsUrl || '',
   };
 }
@@ -285,7 +331,7 @@ function propertyToMapProperty(p) {
     id: p.id,
     title: p.title,
     slug: p.slug,
-    description: p.description,
+    description: resolveDescription(p),
     property_type: p.propertyType,
     listing_type: p.listingType,
     city: p.city,
@@ -328,7 +374,7 @@ function rowToMapProperty(row) {
     id: row.id,
     title: row.title,
     slug: row.slug,
-    description: row.description || '',
+    description: readDescriptionFromRow(row) || row.description || '',
     propertyType: row.property_type,
     listingType: row.listing_type,
     isBuyRequest,
@@ -431,10 +477,10 @@ function toLegacyPublicOffer(p) {
     title: p.title,
     type: p.propertyType,
     location: p.location,
-    area: p.area ? `${p.area} م²` : '',
+    area: formatArea(p.area),
     price: p.priceDisplay,
     image: p.coverImage,
-    description: p.description || '',
+    description: resolveDescription(p),
     listingType: p.listingType || '',
   };
 }

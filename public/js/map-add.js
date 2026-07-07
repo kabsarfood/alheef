@@ -155,7 +155,7 @@
 
     fd.set('location', [city, district].filter(Boolean).join(' — ') || city);
     fd.set('title', `${propertyType} — ${fd.get('location')}`);
-    fd.set('description', fd.get('details') || '');
+    fd.set('description', (fd.get('description') || '').trim());
     fd.set('latitude', String(pendingLatLng.lat));
     fd.set('longitude', String(pendingLatLng.lng));
     fd.set('status', 'published');

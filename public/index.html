@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=9">
-  <link rel="stylesheet" href="/css/mobile.css?v=9">
+  <link rel="stylesheet" href="/css/main.css?v=10">
+  <link rel="stylesheet" href="/css/mobile.css?v=10">
 </head>
 <body>
 
@@ -391,9 +391,12 @@
     <div class="modal__content">
       <button class="modal__close" id="modal-close" aria-label="إغلاق">×</button>
       <div class="modal__image"><img id="modal-img" src="" alt=""></div>
+      <p class="modal__section-label">تفاصيل ومساحة</p>
       <h3 class="modal__title" id="modal-title"></h3>
       <p class="modal__location" id="modal-location"></p>
-      <p class="modal__desc" id="modal-desc"></p>
+      <p class="modal__location modal__location--sub" id="modal-location-sub" hidden></p>
+      <p class="modal__listing" id="modal-listing"></p>
+      <div class="modal__desc" id="modal-desc"></div>
       <div class="modal__details">
         <div class="modal__detail">
           <p class="modal__detail-label">النوع</p>
@@ -418,6 +421,6 @@
   </div>
 
   <script src="/js/nav-mobile.js?v=2" defer></script>
-  <script src="/js/main.js?v=8" defer></script>
+  <script src="/js/main.js?v=11" defer></script>
 </body>
 </html>
