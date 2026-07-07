@@ -1,6 +1,21 @@
 const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
 const { parseCoord } = require('../utils/coords');
 
+/** يحوّل قيمة رقمية قد تحتوي أرقاماً عربية أو وحدة (م²) إلى رقم، وإلا null */
+function parseNumber(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const normalized = String(value)
+    .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/,/g, '')
+    .replace(/[^\d.]/g, '')
+    .trim();
+  if (!normalized) return null;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
 function rowToSettings(row) {
   if (!row) return { ...DEFAULT_SETTINGS };
   return {
@@ -199,10 +214,10 @@ function propertyToRow(body) {
     city: body.city,
     district: body.district || null,
     street: body.street || null,
-    price: priceRaw != null && priceRaw !== '' ? Number(priceRaw) : null,
+    price: parseNumber(priceRaw),
     bedrooms: body.bedrooms != null && body.bedrooms !== '' ? parseInt(body.bedrooms, 10) : null,
     bathrooms: body.bathrooms != null && body.bathrooms !== '' ? parseInt(body.bathrooms, 10) : null,
-    area: body.area != null && body.area !== '' ? Number(body.area) : null,
+    area: parseNumber(body.area),
     age: body.age != null && body.age !== '' ? parseInt(body.age, 10) : null,
     latitude: lat,
     longitude: lng,
@@ -412,12 +427,15 @@ function rowToSubscription(row) {
 function toLegacyPublicOffer(p) {
   return {
     id: p.id,
+    slug: p.slug,
     title: p.title,
     type: p.propertyType,
     location: p.location,
     area: p.area ? `${p.area} م²` : '',
     price: p.priceDisplay,
     image: p.coverImage,
+    description: p.description || '',
+    listingType: p.listingType || '',
   };
 }
 

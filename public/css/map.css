@@ -97,19 +97,20 @@
 }
 
 .map-hero__title {
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-size: var(--fs-section-title, clamp(1.375rem, 2.8vw, 2rem));
   font-weight: 800;
   color: var(--map-navy);
   margin: 0 0 0.5rem;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .map-hero__desc {
   max-width: 36rem;
   margin: 0 auto;
-  font-size: 0.95rem;
-  color: rgba(30, 42, 56, 0.65);
-  line-height: 1.7;
+  font-size: var(--fs-section-subtitle, clamp(1rem, 1.5vw, 1.125rem));
+  color: var(--text-secondary, #1a1a1a);
+  font-weight: 600;
+  line-height: 1.85;
 }
 
 .map-filters {
@@ -132,9 +133,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.7rem;
+  font-size: var(--fs-caption, 0.75rem);
   font-weight: 700;
-  color: rgba(30, 42, 56, 0.55);
+  color: var(--text-primary, var(--map-navy));
   flex: 1 1 120px;
   min-width: 100px;
 }
@@ -142,7 +143,7 @@
 .map-filters select,
 .map-filters input {
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui, 1rem);
   font-weight: 600;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--map-border);
@@ -159,7 +160,7 @@
 
 .map-filters__btn {
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui, 1rem);
   font-weight: 700;
   padding: 0.6rem 1.1rem;
   border-radius: 10px;
@@ -451,7 +452,9 @@ body.map-fs-active .map-stage {
 
 .map-card__detail {
   margin: 0.15rem 0;
-  color: rgba(30, 42, 56, 0.75);
+  color: var(--text-secondary, #1a1a1a);
+  font-size: var(--fs-detail, clamp(0.875rem, 1vw, 1rem));
+  line-height: 1.55;
 }
 
 .map-card__detail span {
@@ -536,16 +539,19 @@ body.map-fs-active .map-stage {
 }
 
 .map-card__title {
-  font-size: 1rem;
+  font-size: var(--fs-card-title, clamp(1.125rem, 1.4vw, 1.375rem));
   font-weight: 800;
   margin: 0 0 0.35rem;
   line-height: 1.35;
+  color: var(--text-primary, var(--map-navy));
 }
 
 .map-card__loc {
-  font-size: 0.8rem;
-  color: rgba(30, 42, 56, 0.6);
+  font-size: var(--fs-location, clamp(0.9375rem, 1.1vw, 1.125rem));
+  color: var(--text-primary, var(--map-navy));
+  font-weight: 700;
   margin-bottom: 0.5rem;
+  line-height: 1.5;
 }
 
 .map-card__meta {
@@ -558,16 +564,17 @@ body.map-fs-active .map-stage {
 }
 
 .map-card__price {
-  font-size: 1.05rem;
+  font-size: var(--fs-card-price, clamp(1.3125rem, 2vw, 1.75rem));
   font-weight: 800;
   color: var(--map-navy);
   margin-bottom: 0.35rem;
+  line-height: 1.2;
 }
 
 .map-card__price span {
-  font-size: 0.75rem;
+  font-size: var(--fs-caption, 0.75rem);
   font-weight: 600;
-  color: rgba(30, 42, 56, 0.5);
+  color: var(--text-secondary, #1a1a1a);
 }
 
 .map-card__ref {
@@ -577,9 +584,9 @@ body.map-fs-active .map-stage {
 }
 
 .map-card__desc {
-  font-size: 0.78rem;
-  line-height: 1.55;
-  color: rgba(30, 42, 56, 0.65);
+  font-size: var(--fs-detail, clamp(0.875rem, 1vw, 1rem));
+  line-height: 1.65;
+  color: var(--text-secondary, #1a1a1a);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -599,7 +606,7 @@ body.map-fs-active .map-stage {
   justify-content: center;
   gap: 0.35rem;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: var(--fs-ui, 1rem);
   font-weight: 700;
   padding: 0.5rem;
   border-radius: 8px;
@@ -760,12 +767,12 @@ body.map-fs-active .map-stage {
   }
 
   .map-legend__title {
-    font-size: 0.65rem;
+    font-size: var(--fs-caption, 0.75rem);
     margin-bottom: 0.5rem;
   }
 
   .map-legend__item {
-    font-size: 0.68rem;
+    font-size: var(--fs-caption, 0.75rem);
     gap: 0.4rem;
   }
 
@@ -968,7 +975,7 @@ body.map-fs-active .map-stage {
 .map-add-form select,
 .map-add-form textarea {
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-ui, 1rem);
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--map-border);
   border-radius: 10px;
@@ -1033,7 +1040,7 @@ body.map-fs-active .map-stage {
   background: var(--map-navy);
   color: #fff;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-ui, 1rem);
   font-weight: 800;
   cursor: pointer;
 }

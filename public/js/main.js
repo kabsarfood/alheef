@@ -14,6 +14,16 @@
 
   let offers = [];
 
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function escapeAttr(s) {
+    return escapeHtml(s).replace(/"/g, '&quot;');
+  }
+
   // ─── Init ───
   document.addEventListener('DOMContentLoaded', init);
 
@@ -335,7 +345,11 @@
     });
 
     grid.querySelectorAll('[data-offer-id]').forEach((btn) => {
-      btn.addEventListener('click', () => openModal(btn.dataset.offerId));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void openModal(btn.dataset.offerId);
+      });
     });
   }
 
@@ -354,21 +368,22 @@
 
   function renderOfferCard(offer, index) {
     const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location}`;
+    const img = offer.image || '';
     return `
       <article class="offer-card" style="transition-delay:${index * 0.08}s">
         <div class="offer-card__image">
-          <img src="${offer.image}" alt="${offer.title}" loading="lazy" decoding="async" width="640" height="400">
-          <span class="offer-card__badge">${offer.type}</span>
+          <img src="${escapeAttr(img)}" alt="${escapeAttr(offer.title)}" loading="lazy" decoding="async" width="640" height="400">
+          <span class="offer-card__badge">${escapeHtml(offer.type)}</span>
         </div>
         <div class="offer-card__body">
-          <h3 class="offer-card__title">${offer.title}</h3>
-          <p class="offer-card__location">📍 ${offer.location}</p>
+          <h3 class="offer-card__title">${escapeHtml(offer.title)}</h3>
+          <p class="offer-card__location">📍 ${escapeHtml(offer.location)}</p>
           <div class="offer-card__meta">
-            <span class="offer-card__area">${offer.area}</span>
-            <span class="offer-card__price">${offer.price} <span>ر.س</span></span>
+            <span class="offer-card__area">${escapeHtml(offer.area)}</span>
+            <span class="offer-card__price">${escapeHtml(offer.price)} <span>ر.س</span></span>
           </div>
           <div class="offer-card__actions">
-            <button class="btn btn-outline btn-sm" data-offer-id="${offer.id}">التفاصيل</button>
+            <button type="button" class="btn btn-outline btn-sm" data-offer-id="${escapeAttr(offer.id)}">التفاصيل</button>
             <a href="${whatsappLink(msg)}" class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener">واتساب</a>
           </div>
         </div>
@@ -379,34 +394,101 @@
   // ─── Modal ───
   function setupModal() {
     const modal = document.getElementById('offer-modal');
-    const close = () => modal.classList.remove('active');
+    if (!modal) return;
 
-    document.getElementById('modal-close').addEventListener('click', close);
-    document.getElementById('modal-close-btn').addEventListener('click', close);
-    document.getElementById('modal-backdrop').addEventListener('click', close);
+    const close = () => {
+      modal.classList.remove('active');
+      document.body.classList.remove('modal-open');
+    };
+
+    document.getElementById('modal-close')?.addEventListener('click', close);
+    document.getElementById('modal-close-btn')?.addEventListener('click', close);
+    document.getElementById('modal-backdrop')?.addEventListener('click', close);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape' && modal.classList.contains('active')) close();
     });
   }
 
-  function openModal(id) {
-    const offer = offers.find((o) => String(o.id) === String(id));
+  function setModalText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || '—';
+  }
+
+  function mergePublicProperty(offer, p) {
+    const loc = p.location || [p.district, p.city].filter(Boolean).join(' — ');
+    return {
+      ...offer,
+      id: p.id || offer.id,
+      slug: p.slug || offer.slug,
+      title: p.title || offer.title,
+      type: p.propertyType || p.type || offer.type,
+      location: loc || offer.location,
+      area: p.area ? `${p.area} م²` : offer.area,
+      price: p.price || offer.price,
+      image: p.coverImage || p.image || offer.image,
+      description: p.description || offer.description || '',
+    };
+  }
+
+  async function openModal(id) {
+    let offer = offers.find((o) => String(o.id) === String(id));
     if (!offer) return;
 
-    document.getElementById('modal-img').src = offer.image;
-    document.getElementById('modal-img').alt = offer.title;
-    document.getElementById('modal-title').textContent = offer.title;
-    document.getElementById('modal-location').textContent = offer.location;
-    document.getElementById('modal-type').textContent = offer.type;
-    document.getElementById('modal-area').textContent = offer.area;
-    document.getElementById('modal-loc-short').textContent = offer.location.split('—')[0]?.trim() || offer.location;
-    document.getElementById('modal-price').textContent = `${offer.price} ر.س`;
+    if (offer.slug) {
+      try {
+        const res = await fetch(`/api/properties/slug/${encodeURIComponent(offer.slug)}`);
+        if (res.ok) {
+          const full = await res.json();
+          offer = mergePublicProperty(offer, full);
+        }
+      } catch {
+        /* استخدم البيانات المحلية */
+      }
+    }
+
+    const imgEl = document.getElementById('modal-img');
+    if (imgEl) {
+      imgEl.src = offer.image || '';
+      imgEl.alt = offer.title || '';
+      imgEl.style.display = offer.image ? '' : 'none';
+    }
+
+    setModalText('modal-title', offer.title);
+    setModalText('modal-location', offer.location);
+    setModalText('modal-type', offer.type);
+    setModalText('modal-area', offer.area);
+    setModalText('modal-loc-short', offer.location.split('—')[0]?.trim() || offer.location);
+    setModalText('modal-price', offer.price ? `${offer.price} ر.س` : '—');
+
+    const descEl = document.getElementById('modal-desc');
+    if (descEl) {
+      if (offer.description) {
+        descEl.textContent = offer.description;
+        descEl.hidden = false;
+      } else {
+        descEl.textContent = '';
+        descEl.hidden = true;
+      }
+    }
+
+    const detailLink = document.getElementById('modal-detail-link');
+    if (detailLink) {
+      if (offer.slug) {
+        detailLink.href = `/property.html?slug=${encodeURIComponent(offer.slug)}`;
+        detailLink.style.display = '';
+      } else {
+        detailLink.style.display = 'none';
+      }
+    }
 
     const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location} — ${offer.price} ر.س`;
-    document.getElementById('modal-whatsapp').href = whatsappLink(msg);
+    const wa = document.getElementById('modal-whatsapp');
+    if (wa) wa.href = whatsappLink(msg);
 
-    document.getElementById('offer-modal').classList.add('active');
+    const modal = document.getElementById('offer-modal');
+    modal?.classList.add('active');
+    document.body.classList.add('modal-open');
   }
 
   // ─── Forms ───
