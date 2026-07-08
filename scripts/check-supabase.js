@@ -8,7 +8,11 @@ require('dotenv').config();
 const { initSupabase, isEnabled, getAdmin, SUPABASE_URL } = require('../server/lib/supabase');
 const { ensureBucket, BUCKET } = require('../server/services/storage');
 
-const TABLES = ['settings', 'properties', 'property_images', 'news', 'requests', 'subscriptions', 'banners', 'testimonials', 'dashboard_users'];
+const TABLES = [
+  'settings', 'properties', 'property_images', 'news', 'requests', 'subscriptions',
+  'banners', 'testimonials', 'dashboard_users',
+  'marketer_join_requests', 'marketers', 'admin_notifications', 'push_subscriptions',
+];
 
 async function checkTable(name) {
   const { error } = await getAdmin().from(name).select('*', { count: 'exact', head: true });
@@ -69,6 +73,17 @@ async function main() {
   if (settings?.site_name) {
     console.log(`\n── الإعدادات ──`);
     console.log(`  ✓ اسم الموقع: ${settings.site_name}`);
+  }
+
+  const { error: marketerColErr } = await getAdmin().from('properties').select('marketer_id, reviewed_at').limit(1);
+  if (marketerColErr) {
+    allOk = false;
+    console.log(`\n── أعمدة المسوقين على properties ──`);
+    console.log(`  ✗ ${marketerColErr.message}`);
+    console.log('    → npm run migrate:sql أو نفّذ supabase/migrations/APPLY_NOW.sql');
+  } else {
+    console.log(`\n── نظام المسوقين ──`);
+    console.log('  ✓ أعمدة المراجعة والمسوق على properties');
   }
 
   console.log('\n═══════════════════════════════════════');

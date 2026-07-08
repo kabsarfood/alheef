@@ -389,6 +389,123 @@ CREATE POLICY storage_public_read ON storage.objects
   );
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 11) نظام فريق المسوقين + مراجعة الإعلانات (004 + 005)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS marketer_join_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  national_id TEXT NOT NULL,
+  fal_license TEXT NOT NULL,
+  marketing_zone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  admin_note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+  CONSTRAINT marketer_join_status_check CHECK (
+    status IN ('pending', 'approved', 'rejected', 'needs_info')
+  )
+);
+
+CREATE TABLE IF NOT EXISTS marketers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  join_request_id UUID REFERENCES marketer_join_requests(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL UNIQUE,
+  national_id TEXT NOT NULL,
+  fal_license TEXT NOT NULL,
+  marketing_zone TEXT NOT NULL,
+  password_hash TEXT,
+  must_set_password BOOLEAN NOT NULL DEFAULT true,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS marketer_id UUID REFERENCES marketers(id) ON DELETE SET NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS license_expires_at DATE;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS brokerage_contract_no TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS facade TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS internal_notes TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_by TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved_by TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS homepage_published BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS inquiry_count INT NOT NULL DEFAULT 0;
+
+ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_status_check;
+ALTER TABLE properties ADD CONSTRAINT properties_status_check CHECK (
+  status IN (
+    'draft', 'pending_review', 'needs_changes', 'approved_published',
+    'published', 'hidden', 'expired', 'archived', 'sold', 'rejected'
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_properties_marketer ON properties(marketer_id);
+CREATE INDEX IF NOT EXISTS idx_properties_license_expires ON properties(license_expires_at);
+
+CREATE TABLE IF NOT EXISTS admin_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL DEFAULT 'property_pending_review',
+  title TEXT NOT NULL,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  marketer_id UUID REFERENCES marketers(id) ON DELETE SET NULL,
+  payload JSONB NOT NULL DEFAULT '{}',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_read ON admin_notifications(is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_property ON admin_notifications(property_id);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'client' CHECK (role IN ('admin', 'marketer', 'client')),
+  user_id TEXT,
+  marketer_id UUID REFERENCES marketers(id) ON DELETE CASCADE,
+  client_key TEXT,
+  email TEXT,
+  preferences JSONB NOT NULL DEFAULT '{}',
+  offers_enabled BOOLEAN NOT NULL DEFAULT false,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_role ON push_subscriptions(role, is_active);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_marketer ON push_subscriptions(marketer_id) WHERE marketer_id IS NOT NULL;
+
+ALTER TABLE marketer_join_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS marketer_join_requests_no_anon ON marketer_join_requests;
+DROP POLICY IF EXISTS marketers_no_anon ON marketers;
+DROP POLICY IF EXISTS admin_notifications_no_anon ON admin_notifications;
+DROP POLICY IF EXISTS push_subscriptions_no_anon ON push_subscriptions;
+
+CREATE POLICY marketer_join_requests_no_anon ON marketer_join_requests
+  FOR ALL TO anon USING (false) WITH CHECK (false);
+
+CREATE POLICY marketers_no_anon ON marketers
+  FOR ALL TO anon USING (false) WITH CHECK (false);
+
+CREATE POLICY admin_notifications_no_anon ON admin_notifications
+  FOR ALL TO anon USING (false) WITH CHECK (false);
+
+CREATE POLICY push_subscriptions_no_anon ON push_subscriptions
+  FOR ALL TO anon USING (false) WITH CHECK (false);
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- إعادة تحميل مخطط PostgREST
 -- ═══════════════════════════════════════════════════════════════════════════
 NOTIFY pgrst, 'reload schema';

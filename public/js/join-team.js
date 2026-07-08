@@ -12,6 +12,19 @@
     { value: 'center_riyadh', label: 'تسويق وسط الرياض' },
   ];
 
+  function showMsg(el, text, type) {
+    if (!el) return;
+    el.textContent = text;
+    el.className = `form-message show ${type}`;
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function hideMsg(el) {
+    if (!el) return;
+    el.textContent = '';
+    el.className = 'form-message';
+  }
+
   function init() {
     const openBtns = [
       document.getElementById('join-team-btn'),
@@ -42,17 +55,28 @@
       e.preventDefault();
       const msg = document.getElementById('join-team-message');
       const btn = form.querySelector('button[type="submit"]');
+      if (!btn) return;
+
+      hideMsg(msg);
       btn.disabled = true;
-      if (msg) { msg.textContent = ''; msg.className = 'form-message'; }
+      const originalText = btn.textContent;
+      btn.textContent = 'جاري الإرسال...';
 
       const fd = new FormData(form);
       const body = {
-        fullName: fd.get('fullName'),
-        phone: fd.get('phone'),
-        nationalId: fd.get('nationalId'),
-        falLicense: fd.get('falLicense'),
+        fullName: String(fd.get('fullName') || '').trim(),
+        phone: String(fd.get('phone') || '').trim(),
+        nationalId: String(fd.get('nationalId') || '').trim(),
+        falLicense: String(fd.get('falLicense') || '').trim(),
         marketingZone: fd.get('marketingZone'),
       };
+
+      if (!body.fullName || !body.phone || !body.nationalId || !body.falLicense || !body.marketingZone) {
+        showMsg(msg, 'يرجى تعبئة جميع الحقول المطلوبة', 'error');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
 
       try {
         const res = await fetch('/api/marketer/join', {
@@ -60,21 +84,25 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'تعذر الإرسال');
-        if (msg) {
-          msg.textContent = data.message || 'تم استلام طلبك، وسيتم مراجعته من إدارة مكتب الهيف.';
-          msg.className = 'form-message success';
+        let data = {};
+        try { data = await res.json(); } catch { /* ignore */ }
+
+        if (!res.ok) {
+          throw new Error(data.message || 'تعذر إرسال الطلب — حاول لاحقاً');
         }
+
+        showMsg(msg, data.message || 'تم استلام طلبك، وسيتم مراجعته من إدارة مكتب الهيف.', 'success');
         form.reset();
+        if (zoneSelect) {
+          zoneSelect.innerHTML = '<option value="">اختر نطاق التسويق</option>'
+            + ZONES.map((z) => `<option value="${z.value}">${z.label}</option>`).join('');
+        }
         setTimeout(closeModal, 2800);
       } catch (err) {
-        if (msg) {
-          msg.textContent = err.message || 'حدث خطأ';
-          msg.className = 'form-message error';
-        }
+        showMsg(msg, err.message || 'حدث خطأ — تحقق من الاتصال وحاول مرة أخرى', 'error');
       } finally {
         btn.disabled = false;
+        btn.textContent = originalText;
       }
     });
   }

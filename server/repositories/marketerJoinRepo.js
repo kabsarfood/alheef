@@ -35,7 +35,12 @@ async function createRequest(body) {
   if (pending) throw new Error('لديك طلب قيد المراجعة بالفعل');
 
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (/does not exist|schema cache/i.test(error.message)) {
+      throw new Error('نظام طلبات الانضمام غير مهيأ بعد — تواصل مع إدارة المكتب');
+    }
+    throw new Error(error.message);
+  }
   return data;
 }
 

@@ -67,6 +67,15 @@ if (supabaseReady) {
   } catch (err) {
     console.warn('[Push] تهيئة VAPID:', err.message);
   }
+  const { applyMigrationsIfNeeded } = require('./server/lib/sqlMigrations');
+  applyMigrationsIfNeeded({ silent: false })
+    .then((r) => {
+      if (r.applied) console.log('[Schema] ✓ تم تفعيل جداول فريق المسوقين وطلبات الانضمام');
+      else if (r.skipped === 'no_password') {
+        console.warn('[Schema] ⚠ لإرسال طلبات «كن أحد فريق الهيف» أضف SUPABASE_DB_PASSWORD في المتغيرات');
+      }
+    })
+    .catch((err) => console.warn('[Schema] هجرة:', err.message));
 } else {
   console.warn('  ⚠ بدون Supabase: النماذج والعروض من الداشبورد لن تُحفظ في القاعدة');
 }

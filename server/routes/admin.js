@@ -31,6 +31,26 @@ router.get('/system-status', async (_req, res) => {
   });
 });
 
+router.post('/apply-schema', async (_req, res) => {
+  try {
+    const { applyMigrationsIfNeeded, isMarketerSchemaReady } = require('../lib/sqlMigrations');
+    const before = await isMarketerSchemaReady();
+    const result = await applyMigrationsIfNeeded({ silent: true });
+    const after = await isMarketerSchemaReady();
+    res.json({
+      success: result.ok !== false,
+      before,
+      after,
+      ...result,
+      message: after
+        ? 'تم تفعيل جداول فريق المسوقين وطلبات الانضمام'
+        : (result.message || 'تعذر التفعيل — تحقق من SUPABASE_DB_PASSWORD'),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.get('/map/coords-warnings', async (_req, res) => {
   try {
     const diag = await propertiesRepo.getMapDiagnostics();
