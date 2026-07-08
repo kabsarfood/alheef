@@ -38,8 +38,17 @@ try {
 }
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 8080;
 const HOST = '0.0.0.0';
+
+/** Liveness — سريع، بدون Supabase (لـ Railway Healthcheck) */
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: 'alheef',
+    time: new Date().toISOString(),
+  });
+});
 
 const ROOT = __dirname;
 const publicDir = path.join(ROOT, 'public');
@@ -96,10 +105,10 @@ if (fs.existsSync(publicDir)) {
 
 console.log('STEP 7 — ربط API');
 
-app.get('/health', async (_req, res) => {
+app.get('/health/ready', async (_req, res) => {
   const supabase = await pingSupabase();
-  res.status(200).json({
-    ok: true,
+  res.status(supabase.ok ? 200 : 503).json({
+    ok: supabase.ok,
     service: 'alheef',
     port: PORT,
     uptime: process.uptime(),
