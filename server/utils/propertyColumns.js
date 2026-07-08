@@ -56,6 +56,8 @@ const OPTIONAL_MAP_COLUMNS = [
   'contact_phone',
 ];
 
+const { MARKETER_DB_COLUMNS } = require('./marketerFeatures');
+
 function pickPropertyColumns(row, { allowOptional = false } = {}) {
   const out = {};
   for (const [key, value] of Object.entries(row || {})) {
@@ -73,6 +75,7 @@ function pickPropertyColumns(row, { allowOptional = false } = {}) {
 function stripOptionalMapColumns(row) {
   const safe = { ...row };
   OPTIONAL_MAP_COLUMNS.forEach((k) => delete safe[k]);
+  MARKETER_DB_COLUMNS.forEach((k) => delete safe[k]);
   return safe;
 }
 

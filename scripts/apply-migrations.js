@@ -10,15 +10,19 @@ const path = require('path');
 const tls = require('tls');
 const crypto = require('crypto');
 
-const MIGRATIONS = ['004_marketer_system.sql', '005_property_review_notifications.sql', '006_push_subscriptions.sql'];
+const MIGRATIONS = ['APPLY_NOW.sql'];
 
 function readPassword() {
-  return (
+  const url = process.env.DATABASE_URL || '';
+  if (String(url).startsWith('postgres')) return { connectionString: url.trim() };
+  const password = (
     process.env.SUPABASE_DB_PASSWORD ||
     process.env.POSTGRES_PASSWORD ||
     process.env.PGPASSWORD ||
+    process.env.ADMIN_PASSWORD ||
     ''
   ).trim();
+  return { password };
 }
 
 function projectRef() {
@@ -42,17 +46,12 @@ function xor(a, b) {
 }
 
 function scramCredentials(password, salt, iterations) {
-  const salted = hi(password + salt);
-  let prev = salted;
-  for (let i = 1; i < iterations; i += 1) {
-    prev = hi(prev);
-    for (let j = 0; j < prev.length; j += 1) salted[j] ^= prev[j];
-  }
-  return salted;
+  return crypto.pbkdf2Sync(password, salt, iterations, 32, 'sha256');
 }
 
 class PgClient {
-  constructor({ host, port, user, password, database }) {
+  constructor({ host, port, user, password, database, connectionString }) {
+    this.connectionString = connectionString || null;
     this.host = host;
     this.port = port || 5432;
     this.user = user || 'postgres';
@@ -127,17 +126,41 @@ class PgClient {
 
   connect() {
     return new Promise((resolve, reject) => {
-      this.socket = tls.connect({ host: this.host, port: this.port, servername: this.host });
+      const timer = setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 20000);
+
+      if (this.connectionString) {
+        try {
+          const u = new URL(this.connectionString);
+          this.host = u.hostname;
+          this.port = Number(u.port || 5432);
+          this.user = decodeURIComponent(u.username);
+          this.password = decodeURIComponent(u.password);
+          this.database = u.pathname.replace(/^\//, '') || 'postgres';
+        } catch (e) {
+          clearTimeout(timer);
+          reject(e);
+          return;
+        }
+      }
+
+      const tlsOpts = {
+        host: this.host,
+        port: this.port,
+        servername: this.host,
+        rejectUnauthorized: process.env.SUPABASE_TLS_INSECURE !== '1',
+      };
+      this.socket = tls.connect(tlsOpts);
       this.socket.on('data', (c) => this._onData(c));
       this.socket.once('error', reject);
       this.socket.once('secureConnect', async () => {
         try {
           const params = `user\0${this.user}\0database\0${this.database}\0client_encoding\0UTF8\0`;
-          const startup = Buffer.alloc(8 + Buffer.byteLength(params));
-          startup.writeInt32BE(startup.length, 0);
+          const paramBuf = Buffer.from(params, 'utf8');
+          const startup = Buffer.alloc(8 + paramBuf.length);
+          startup.writeInt32BE(4 + 4 + paramBuf.length, 0);
           startup.writeInt32BE(196608, 4);
-          startup.write(params, 8, 'utf8');
-          this.socket.write(Buffer.concat([Buffer.from([0]), startup]));
+          paramBuf.copy(startup, 8);
+          this.socket.write(startup);
 
           const auth = await this._wait();
           if (auth.t === 'sasl') {
@@ -178,11 +201,14 @@ class PgClient {
             if (fin.t !== 'sasl_fin') throw new Error('فشل إتمام SCRAM');
             await this._wait();
           }
+          clearTimeout(timer);
           resolve();
         } catch (e) {
+          clearTimeout(timer);
           reject(e);
         }
       });
+      this.socket.once('error', (e) => { clearTimeout(timer); reject(e); });
     });
   }
 
@@ -200,11 +226,15 @@ class PgClient {
   }
 }
 
-async function verifyColumn() {
+async function verifySchema() {
   const { createClient } = require('@supabase/supabase-js');
   const c = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const { error } = await c.from('properties').select('marketer_id').limit(1);
-  return !error;
+  const checks = await Promise.all([
+    c.from('properties').select('marketer_id').limit(1),
+    c.from('marketers').select('id').limit(1),
+    c.from('admin_notifications').select('id').limit(1),
+  ]);
+  return checks.every((r) => !r.error);
 }
 
 async function main() {
@@ -212,28 +242,56 @@ async function main() {
   console.log('  الهيف — تطبيق هجرات قاعدة البيانات');
   console.log('═══════════════════════════════════════\n');
 
-  if (await verifyColumn()) {
+  if (await verifySchema()) {
     console.log('✓ الهجرة مُطبَّقة مسبقاً');
     return;
   }
 
-  const password = readPassword();
+  const creds = readPassword();
   const ref = projectRef();
-  if (!ref || !password) {
+  if (!ref && !creds.connectionString) {
     console.error('✗ أضف SUPABASE_DB_PASSWORD في ملف .env');
     console.log('  Supabase → Settings → Database → Database password');
     process.exit(1);
   }
+  if (!creds.connectionString && !creds.password) {
+    console.error('✗ كلمة مرور قاعدة البيانات غير متوفرة');
+    process.exit(1);
+  }
 
-  const client = new PgClient({
-    host: `db.${ref}.supabase.co`,
-    password,
-  });
+  const regions = ['me-south-1', 'eu-central-1', 'eu-west-1', 'ap-south-1', 'us-east-1'];
+  const hosts = creds.connectionString
+    ? [{ connectionString: creds.connectionString }]
+    : [
+      { host: `db.${ref}.supabase.co`, port: 5432, user: 'postgres', password: creds.password },
+      ...regions.flatMap((r) => ([
+        { host: `aws-0-${r}.pooler.supabase.com`, port: 5432, user: `postgres.${ref}`, password: creds.password },
+        { host: `aws-0-${r}.pooler.supabase.com`, port: 6543, user: `postgres.${ref}`, password: creds.password },
+      ])),
+    ];
+
+  let client;
+  let lastErr;
+  for (const h of hosts) {
+    client = new PgClient(h);
+    try {
+      console.log(`جاري الاتصال (${h.connectionString ? 'DATABASE_URL' : `${h.host}:${h.port}`})…`);
+      await client.connect();
+      console.log('✓ متصل\n');
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      client.end();
+      console.log(`  ✗ ${e.message}`);
+    }
+  }
+  if (lastErr) {
+    console.error('\n✗ فشل الاتصال بقاعدة البيانات — تحقق من SUPABASE_DB_PASSWORD');
+    process.exit(1);
+  }
 
   try {
-    console.log('جاري الاتصال…');
-    await client.connect();
-    console.log('✓ متصل\n');
 
     for (const file of MIGRATIONS) {
       const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', file), 'utf8');
@@ -253,10 +311,10 @@ async function main() {
     }
     client.end();
     await new Promise((r) => setTimeout(r, 1500));
-    if (await verifyColumn()) {
-      console.log('\n✓ اكتملت الهجرة بنجاح');
+    if (await verifySchema()) {
+      console.log('\n✓ اكتملت الهجرة بنجاح — النظام جاهز 100%');
     } else {
-      console.log('\n⚠ نفّذت الأوامر — انتظر دقيقة ثم أعد التحقق');
+      console.log('\n⚠ نُفّذت الأوامر — أعد تحميل schema cache في Supabase (دقيقة)');
     }
   } catch (e) {
     client.end();

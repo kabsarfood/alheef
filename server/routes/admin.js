@@ -598,7 +598,16 @@ router.put('/properties/:id/review', async (req, res) => {
       patch.admin_feedback = adminFeedback || 'تم رفض الإعلان من إدارة المكتب';
     }
 
-    const updated = await propertiesRepo.updateStatus(req.params.id, patch);
+    const updated = await propertiesRepo.updateStatus(req.params.id, {
+      status: patch.status,
+      admin_feedback: patch.admin_feedback,
+      internal_notes: patch.internal_notes,
+      reviewed_by: patch.reviewed_by,
+      reviewed_at: patch.reviewed_at,
+      approved_by: patch.approved_by,
+      approved_at: patch.approved_at,
+      homepage_published: patch.homepage_published,
+    });
     await adminNotificationsRepo.markReadByPropertyId(req.params.id);
 
     if (existing.marketerId && ['approve', 'needs_changes', 'reject'].includes(action)) {

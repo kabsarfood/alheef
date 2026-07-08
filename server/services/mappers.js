@@ -1,5 +1,8 @@
 const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
 const { parseCoord } = require('../utils/coords');
+const {
+  readMeta, resolveWorkflowStatus, injectIntoFeatures, metaFromBody, workflowToDbPatch, isWorkflowStatus,
+} = require('../utils/marketerFeatures');
 
 /** يحوّل قيمة رقمية قد تحتوي أرقاماً عربية أو وحدة (م²) إلى رقم، وإلا null */
 function parseNumber(value) {
@@ -118,6 +121,7 @@ function settingsToRow(app) {
 function rowToProperty(row, images = []) {
   if (!row) return null;
   const extra = readMapExtras(row);
+  const meta = readMeta(row);
   const gallery = images.length
     ? images.map((i) => i.image_url)
     : Array.isArray(row.gallery)
@@ -147,7 +151,8 @@ function rowToProperty(row, images = []) {
     images: images.map((i) => ({ id: i.id, url: i.image_url, sortOrder: i.sort_order })),
     features: row.features || [],
     featured: row.featured,
-    status: row.status,
+    status: resolveWorkflowStatus(row.status, meta),
+    dbStatus: row.status,
     agentName: row.agent_name,
     agentPhone: row.agent_phone,
     viewsCount: row.views_count,
@@ -166,18 +171,18 @@ function rowToProperty(row, images = []) {
     requestUsage: extra.requestUsage,
     requestPhone: extra.requestPhone,
     isBuyRequest: extra.isBuyRequest,
-    marketerId: row.marketer_id || null,
-    licenseExpiresAt: row.license_expires_at || null,
-    brokerageContractNo: row.brokerage_contract_no || '',
-    facade: row.facade || row.direction || '',
-    internalNotes: row.internal_notes || '',
-    adminFeedback: row.admin_feedback || '',
-    reviewedBy: row.reviewed_by || null,
-    reviewedAt: row.reviewed_at || null,
-    approvedBy: row.approved_by || null,
-    approvedAt: row.approved_at || null,
-    homepagePublished: !!row.homepage_published,
-    inquiryCount: row.inquiry_count || 0,
+    marketerId: meta.marketerId,
+    licenseExpiresAt: meta.licenseExpiresAt,
+    brokerageContractNo: meta.brokerageContractNo,
+    facade: meta.facade || row.direction || '',
+    internalNotes: meta.internalNotes,
+    adminFeedback: meta.adminFeedback,
+    reviewedBy: meta.reviewedBy,
+    reviewedAt: meta.reviewedAt,
+    approvedBy: meta.approvedBy,
+    approvedAt: meta.approvedAt,
+    homepagePublished: meta.homepagePublished,
+    inquiryCount: meta.inquiryCount,
   };
 }
 
@@ -240,7 +245,17 @@ function buildMapFeatures(body) {
   const desc = resolveDescription(body);
   if (desc) f.property_description = desc;
 
+  const meta = metaFromBody(body);
+  if (meta.marketerId || meta.workflowStatus) {
+    return injectIntoFeatures(f, meta);
+  }
   return f;
+}
+
+function resolveDbStatus(body) {
+  const status = body.status || 'draft';
+  if (!isWorkflowStatus(status)) return status;
+  return workflowToDbPatch(status, metaFromBody(body)).dbStatus;
 }
 
 function propertyToRow(body) {
@@ -257,6 +272,8 @@ function propertyToRow(body) {
     : (body.propertyType || body.property_type);
 
   const priceRaw = isBuy ? (body.budget ?? body.price) : body.price;
+  const features = buildMapFeatures(body);
+  const dbStatus = resolveDbStatus(body);
 
   return {
     title: body.title,
@@ -278,9 +295,9 @@ function propertyToRow(body) {
     maps_url: body.mapsUrl || body.maps_url || null,
     cover_image: body.coverImage || body.cover_image || null,
     gallery: body.gallery || [],
-    features: buildMapFeatures(body),
+    features,
     featured: !!body.featured,
-    status: body.status || 'draft',
+    status: dbStatus,
     agent_name: body.agentName || body.agent_name || null,
     agent_phone: isBuy ? (body.requestPhone || body.request_phone || null) : contactPhone,
     reference_no: body.licenseNumber || body.contractNumber || body.referenceNo || body.reference_no || null,

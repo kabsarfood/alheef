@@ -85,7 +85,7 @@ router.post('/test-admin', requireDb, optionalAuth, async (req, res) => {
     if (!req.auth || req.auth.role !== 'admin') {
       return res.status(401).json({ success: false, message: 'غير مصرح — يرجى تسجيل دخول الأدمن' });
     }
-    const sent = await pushNotifications.sendToAdmins({
+    await pushNotifications.sendToAdmins({
       title: 'اختبار إشعارات الهيف',
       body: 'تم تفعيل إشعارات PWA بنجاح — مكتب الهيف للخدمات العقارية',
       url: '/dashboard/property-reviews.html',

@@ -128,6 +128,7 @@ async function initAdminNotifications() {
       document.getElementById('enable-push-btn')?.addEventListener('click', async () => {
         try {
           await window.AlheefPWA.promptRolePush();
+          await DashboardAPI.testPushNotification().catch(() => {});
           await render();
         } catch {
           alert('تعذر تفعيل الإشعارات — تحقق من إعدادات المتصفح');

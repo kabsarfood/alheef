@@ -197,6 +197,15 @@ const DashboardAPI = {
   markAllNotificationsRead() {
     return this.request('/notifications/read-all', { method: 'PUT' });
   },
+
+  testPushNotification() {
+    const headers = Auth.authHeaders({ 'Content-Type': 'application/json' });
+    return fetch('/api/push/test-admin', { method: 'POST', headers })
+      .then((res) => res.json().then((data) => {
+        if (!res.ok) throw new Error(data.message || 'فشل إرسال الاختبار');
+        return data;
+      }));
+  },
 };
 
 function showToast(message, type = 'success') {

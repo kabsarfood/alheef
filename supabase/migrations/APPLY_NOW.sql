@@ -1,7 +1,41 @@
--- نفّذ هذا الملف في Supabase → SQL Editor إذا لم تتوفر SUPABASE_DB_PASSWORD
+-- نفّذ هذا الملف في Supabase → SQL Editor
 -- https://supabase.com/dashboard/project/imostnqoxeqefshtzcxd/sql/new
 
--- أعمدة العقارات (فريق المسوقين)
+-- ═══ جداول فريق المسوقين ═══
+CREATE TABLE IF NOT EXISTS marketer_join_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  national_id TEXT NOT NULL,
+  fal_license TEXT NOT NULL,
+  marketing_zone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  admin_note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+  CONSTRAINT marketer_join_status_check CHECK (
+    status IN ('pending', 'approved', 'rejected', 'needs_info')
+  )
+);
+
+CREATE TABLE IF NOT EXISTS marketers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  join_request_id UUID REFERENCES marketer_join_requests(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL UNIQUE,
+  national_id TEXT NOT NULL,
+  fal_license TEXT NOT NULL,
+  marketing_zone TEXT NOT NULL,
+  password_hash TEXT,
+  must_set_password BOOLEAN NOT NULL DEFAULT true,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ═══ أعمدة العقارات ═══
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS marketer_id UUID REFERENCES marketers(id) ON DELETE SET NULL;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS license_expires_at DATE;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS brokerage_contract_no TEXT;

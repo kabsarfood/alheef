@@ -4,6 +4,9 @@ const { uniqueSlug } = require('../utils/slug');
 const { parseCoord, isValidCoord } = require('../utils/coords');
 const { pickPropertyColumns, stripOptionalMapColumns } = require('../utils/propertyColumns');
 const { PUBLIC_STATUSES } = require('../utils/propertyStatus');
+const {
+  isWorkflowStatus, dbStatusForWorkflowFilter,
+} = require('../utils/marketerFeatures');
 
 const TABLE = 'properties';
 const IMG_TABLE = 'property_images';
@@ -26,25 +29,35 @@ async function slugExists(slug, excludeId = null) {
 
 async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   if (!isEnabled()) return { items: [], total: 0 };
-  let q = getAdmin().from(TABLE).select('*', { count: 'exact' });
 
-  if (filters.status) {
-    if (Array.isArray(filters.status)) q = q.in('status', filters.status);
-    else q = q.eq('status', filters.status);
+  const workflowFilter = filters.status && isWorkflowStatus(filters.status) ? filters.status : null;
+  const marketerId = filters.marketerId || null;
+  const query = { ...filters };
+  delete query.marketerId;
+  if (workflowFilter) query.status = dbStatusForWorkflowFilter(workflowFilter);
+
+  const inMemoryFilter = !!(workflowFilter || marketerId);
+  const fetchLimit = inMemoryFilter ? Math.max(limit, 300) : limit;
+  const fetchOffset = inMemoryFilter ? 0 : offset;
+
+  let q = getAdmin().from(TABLE).select('*', { count: inMemoryFilter ? undefined : 'exact' });
+
+  if (query.status) {
+    if (Array.isArray(query.status)) q = q.in('status', query.status);
+    else q = q.eq('status', query.status);
   }
-  if (filters.marketerId) q = q.eq('marketer_id', filters.marketerId);
-  if (filters.city) q = q.ilike('city', `%${filters.city}%`);
-  if (filters.district) q = q.ilike('district', `%${filters.district}%`);
-  if (filters.propertyType) {
-    const pt = String(filters.propertyType).trim();
+  if (query.city) q = q.ilike('city', `%${query.city}%`);
+  if (query.district) q = q.ilike('district', `%${query.district}%`);
+  if (query.propertyType) {
+    const pt = String(query.propertyType).trim();
     q = q.ilike('property_type', `%${pt}%`);
   }
-  if (filters.listingType) q = q.eq('listing_type', filters.listingType);
-  if (filters.featured != null) q = q.eq('featured', filters.featured);
-  if (filters.minPrice) q = q.gte('price', filters.minPrice);
-  if (filters.maxPrice) q = q.lte('price', filters.maxPrice);
+  if (query.listingType) q = q.eq('listing_type', query.listingType);
+  if (query.featured != null) q = q.eq('featured', query.featured);
+  if (query.minPrice) q = q.gte('price', query.minPrice);
+  if (query.maxPrice) q = q.lte('price', query.maxPrice);
 
-  q = q.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+  q = q.order('created_at', { ascending: false }).range(fetchOffset, fetchOffset + fetchLimit - 1);
 
   const { data, error, count } = await q;
   if (error) {
@@ -52,10 +65,19 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
     return { items: [], total: 0 };
   }
 
-  const items = [];
+  let items = [];
   for (const row of data || []) {
     const images = await loadImages(row.id);
     items.push(rowToProperty(row, images));
+  }
+
+  if (workflowFilter) items = items.filter((p) => p.status === workflowFilter);
+  if (marketerId) items = items.filter((p) => p.marketerId === marketerId);
+
+  if (inMemoryFilter) {
+    const total = items.length;
+    items = items.slice(offset, offset + limit);
+    return { items, total };
   }
   return { items, total: count || 0 };
 }
@@ -286,21 +308,26 @@ async function expireLicenses() {
 }
 
 async function countPendingReview() {
-  if (!isEnabled()) return 0;
-  const { count } = await getAdmin()
-    .from(TABLE)
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending_review');
-  return count || 0;
+  const { items } = await list({ status: 'pending_review' }, { limit: 500 });
+  return items.length;
 }
 
 async function updateStatus(id, patch) {
   if (!isEnabled()) throw new Error('قاعدة البيانات غير متصلة');
-  const row = { ...patch, updated_at: new Date().toISOString() };
-  const { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
-  if (error) throw new Error(error.message);
-  const images = await loadImages(id);
-  return rowToProperty(data, images);
+  const existing = await getById(id);
+  if (!existing) throw new Error('غير موجود');
+  const body = {
+    ...existing,
+    adminFeedback: patch.admin_feedback ?? existing.adminFeedback,
+    internalNotes: patch.internal_notes ?? existing.internalNotes,
+    reviewedBy: patch.reviewed_by ?? existing.reviewedBy,
+    reviewedAt: patch.reviewed_at ?? existing.reviewedAt,
+    approvedBy: patch.approved_by ?? existing.approvedBy,
+    approvedAt: patch.approved_at ?? existing.approvedAt,
+    homepagePublished: patch.homepage_published ?? existing.homepagePublished,
+    status: patch.status ?? existing.status,
+  };
+  return update(id, body);
 }
 
 module.exports = {
