@@ -6,31 +6,36 @@ function getSecret() {
   return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'alheef-admin-secret';
 }
 
-function createToken() {
-  const payload = {
-    role: 'admin',
+function createToken(payload = {}) {
+  const data = {
+    role: payload.role || 'admin',
+    userId: payload.userId || null,
+    marketerId: payload.marketerId || null,
     exp: Date.now() + TOKEN_TTL_MS,
   };
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const sig = crypto.createHmac('sha256', getSecret()).update(data).digest('base64url');
-  return `${data}.${sig}`;
+  const encoded = Buffer.from(JSON.stringify(data)).toString('base64url');
+  const sig = crypto.createHmac('sha256', getSecret()).update(encoded).digest('base64url');
+  return `${encoded}.${sig}`;
+}
+
+function parseToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [encoded, sig] = parts;
+  const expected = crypto.createHmac('sha256', getSecret()).update(encoded).digest('base64url');
+  if (sig !== expected) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    if (!payload.exp || payload.exp <= Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 function verifyToken(token) {
-  if (!token || typeof token !== 'string') return false;
-  const parts = token.split('.');
-  if (parts.length !== 2) return false;
-
-  const [data, sig] = parts;
-  const expected = crypto.createHmac('sha256', getSecret()).update(data).digest('base64url');
-  if (sig !== expected) return false;
-
-  try {
-    const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
-    return payload.role === 'admin' && payload.exp > Date.now();
-  } catch {
-    return false;
-  }
+  return !!parseToken(token);
 }
 
 function checkPassword(password) {
@@ -42,19 +47,39 @@ function checkPassword(password) {
   return password === adminPassword;
 }
 
-function requireAdmin(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : req.headers['x-admin-token'];
+function requireRole(...roles) {
+  return (req, res, next) => {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : req.headers['x-admin-token'] || req.headers['x-marketer-token'];
+    const payload = parseToken(token);
+    if (!payload || !roles.includes(payload.role)) {
+      return res.status(401).json({ success: false, message: 'غير مصرح — يرجى تسجيل الدخول' });
+    }
+    req.auth = payload;
+    next();
+  };
+}
 
-  if (!verifyToken(token)) {
-    return res.status(401).json({ success: false, message: 'غير مصرح — يرجى تسجيل الدخول' });
+const requireAdmin = requireRole('admin');
+const requireMarketer = requireRole('marketer');
+
+function requireAdminOrMarketer(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : req.headers['x-admin-token'] || req.headers['x-marketer-token'];
+  const payload = parseToken(token);
+  if (!payload || !['admin', 'marketer'].includes(payload.role)) {
+    return res.status(401).json({ success: false, message: 'غير مصرح' });
   }
+  req.auth = payload;
   next();
 }
 
 module.exports = {
   createToken,
+  parseToken,
   verifyToken,
   checkPassword,
   requireAdmin,
+  requireMarketer,
+  requireAdminOrMarketer,
 };

@@ -147,6 +147,56 @@ const DashboardAPI = {
       return data;
     });
   },
+
+  getMarketerJoinRequests(status = '') {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request(`/marketer-join-requests${q}`);
+  },
+
+  updateMarketerJoinRequest(id, body) {
+    return this.request(`/marketer-join-requests/${id}`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+  },
+
+  getMarketers() {
+    return this.request('/marketers');
+  },
+
+  updateMarketerStatus(id, status) {
+    return this.request(`/marketers/${id}/status`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  getPropertyReviews(status = 'pending_review') {
+    return this.request(`/property-reviews?status=${encodeURIComponent(status)}`);
+  },
+
+  reviewProperty(id, body) {
+    return this.request(`/properties/${id}/review`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+  },
+
+  getNotifications(unreadOnly = false) {
+    const q = unreadOnly ? '?unread=true' : '';
+    return this.request(`/notifications${q}`);
+  },
+
+  markNotificationRead(id) {
+    return this.request(`/notifications/${id}/read`, { method: 'PUT' });
+  },
+
+  markAllNotificationsRead() {
+    return this.request('/notifications/read-all', { method: 'PUT' });
+  },
 };
 
 function showToast(message, type = 'success') {

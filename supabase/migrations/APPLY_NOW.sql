@@ -1,0 +1,43 @@
+-- نفّذ هذا الملف في Supabase → SQL Editor إذا لم تتوفر SUPABASE_DB_PASSWORD
+-- https://supabase.com/dashboard/project/imostnqoxeqefshtzcxd/sql/new
+
+-- أعمدة العقارات (فريق المسوقين)
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS marketer_id UUID REFERENCES marketers(id) ON DELETE SET NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS license_expires_at DATE;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS brokerage_contract_no TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS facade TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS internal_notes TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_by TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved_by TEXT;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS homepage_published BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS inquiry_count INT NOT NULL DEFAULT 0;
+
+-- حالات الإعلان (بما فيها pending_review و rejected)
+ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_status_check;
+ALTER TABLE properties ADD CONSTRAINT properties_status_check CHECK (
+  status IN (
+    'draft', 'pending_review', 'needs_changes', 'approved_published',
+    'published', 'hidden', 'expired', 'archived', 'sold', 'rejected'
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_properties_marketer ON properties(marketer_id);
+CREATE INDEX IF NOT EXISTS idx_properties_license_expires ON properties(license_expires_at);
+
+-- إشعارات مراجعة الإعلانات (إن لم تكن موجودة)
+CREATE TABLE IF NOT EXISTS admin_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL DEFAULT 'property_pending_review',
+  title TEXT NOT NULL,
+  property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+  marketer_id UUID REFERENCES marketers(id) ON DELETE SET NULL,
+  payload JSONB NOT NULL DEFAULT '{}',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_read ON admin_notifications(is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_property ON admin_notifications(property_id);

@@ -43,14 +43,16 @@ router.get('/map/coords-warnings', async (_req, res) => {
 // ─── Stats ───
 router.get('/stats', async (_req, res) => {
   try {
-    const [offers, published, news, requests, subscriptions] = await Promise.all([
+    const [offers, published, pendingReview, unreadNotifications, news, requests, subscriptions] = await Promise.all([
       propertiesRepo.countAll(),
       propertiesRepo.countPublished(),
+      propertiesRepo.countPendingReview(),
+      adminNotificationsRepo.countUnread(),
       newsRepo.countAll(),
       requestsRepo.countAll(),
       subscriptionsRepo.countAll(),
     ]);
-    res.json({ offers, published, news, requests, subscriptions, listings: 0 });
+    res.json({ offers, published, pendingReview, unreadNotifications, news, requests, subscriptions, listings: 0 });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -400,6 +402,228 @@ router.get('/subscriptions', async (req, res) => {
 
 router.delete('/subscriptions/:id', async (req, res) => {
   res.json({ success: await subscriptionsRepo.remove(req.params.id) });
+});
+
+// ─── طلبات انضمام المسوقين ───
+const marketerJoinRepo = require('../repositories/marketerJoinRepo');
+const marketersRepo = require('../repositories/marketersRepo');
+const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
+const pushNotifications = require('../services/pushNotifications');
+const { PUBLIC_STATUSES, JOIN_STATUS_LABELS, PROPERTY_STATUS_LABELS, zoneLabel } = require('../utils/marketerZones');
+
+function mapJoinRow(r) {
+  return {
+    id: r.id,
+    fullName: r.full_name,
+    phone: r.phone,
+    nationalId: r.national_id,
+    falLicense: r.fal_license,
+    marketingZone: r.marketing_zone,
+    marketingZoneLabel: zoneLabel(r.marketing_zone),
+    status: r.status,
+    statusLabel: JOIN_STATUS_LABELS[r.status] || r.status,
+    adminNote: r.admin_note || '',
+    createdAt: r.created_at,
+    reviewedAt: r.reviewed_at,
+  };
+}
+
+router.get('/marketer-join-requests', async (req, res) => {
+  try {
+    const rows = await marketerJoinRepo.listAll({ status: req.query.status });
+    res.json({ success: true, items: rows.map(mapJoinRow) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/marketer-join-requests/:id', async (req, res) => {
+  try {
+    const { status, adminNote, action } = req.body;
+    const request = await marketerJoinRepo.getById(req.params.id);
+    if (!request) return res.status(404).json({ success: false, message: 'الطلب غير موجود' });
+
+    const nextStatus = status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action === 'needs_info' ? 'needs_info' : request.status);
+    const updated = await marketerJoinRepo.updateStatus(request.id, {
+      status: nextStatus,
+      adminNote,
+      reviewedBy: 'admin',
+    });
+
+    let marketer = null;
+    let approvalMessage = null;
+    if (nextStatus === 'approved') {
+      marketer = await marketersRepo.createFromJoinRequest(updated);
+      approvalMessage = 'تمت الموافقة عليك لتكون أحد فريق المسوقين لدى مكتب الهيف للخدمات العقارية.';
+    }
+
+    res.json({
+      success: true,
+      request: mapJoinRow(updated),
+      marketer: marketer ? marketersRepo.toPublic(marketer) : null,
+      approvalMessage,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/marketers', async (_req, res) => {
+  try {
+    const rows = await marketersRepo.listAll();
+    res.json({
+      success: true,
+      items: rows.map((m) => ({
+        ...marketersRepo.toPublic(m),
+        nationalId: m.national_id,
+        falLicense: m.fal_license,
+        marketingZoneLabel: zoneLabel(m.marketing_zone),
+        statusLabel: m.status === 'active' ? 'نشط' : m.status === 'suspended' ? 'موقوف' : m.status,
+        createdAt: m.created_at,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/marketers/:id/status', async (req, res) => {
+  try {
+    const m = await marketersRepo.setStatus(req.params.id, req.body.status);
+    res.json({ success: true, marketer: marketersRepo.toPublic(m) });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ─── مراجعة إعلانات المسوقين ───
+router.get('/notifications', async (req, res) => {
+  try {
+    const unreadOnly = req.query.unread === 'true';
+    const items = await adminNotificationsRepo.list({ unreadOnly, limit: 30 });
+    const unreadCount = await adminNotificationsRepo.countUnread();
+    res.json({ success: true, items, unreadCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/notifications/:id/read', async (req, res) => {
+  try {
+    const item = await adminNotificationsRepo.markRead(req.params.id);
+    res.json({ success: true, item });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/notifications/read-all', async (_req, res) => {
+  try {
+    await adminNotificationsRepo.markAllRead();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/property-reviews', async (req, res) => {
+  try {
+    const status = req.query.status || 'pending_review';
+    const { items } = await propertiesRepo.list({ status }, { limit: 200 });
+    const marketers = await marketersRepo.listAll();
+    const marketerMap = Object.fromEntries(marketers.map((m) => [m.id, m]));
+    res.json({
+      success: true,
+      items: items.map((p) => {
+        const marketer = p.marketerId ? marketerMap[p.marketerId] : null;
+        return {
+          id: p.id,
+          title: p.title,
+          status: p.status,
+          statusLabel: PROPERTY_STATUS_LABELS[p.status] || p.status,
+          marketerId: p.marketerId,
+          marketerName: marketer?.full_name || '—',
+          propertyType: p.propertyType,
+          city: p.city,
+          district: p.district,
+          price: p.priceDisplay,
+          priceRaw: p.price,
+          createdAt: p.createdAt,
+          reviewedAt: p.reviewedAt,
+          reviewedBy: p.reviewedBy,
+          approvedAt: p.approvedAt,
+          approvedBy: p.approvedBy,
+          homepagePublished: p.homepagePublished,
+          licenseExpiresAt: p.licenseExpiresAt,
+          adminFeedback: p.adminFeedback || '',
+        };
+      }),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/properties/:id/review', async (req, res) => {
+  try {
+    const { action, adminFeedback, internalNotes } = req.body;
+    const existing = await propertiesRepo.getById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'غير موجود' });
+
+    const now = new Date().toISOString();
+    const patch = {
+      admin_feedback: adminFeedback ?? existing.adminFeedback,
+      internal_notes: internalNotes ?? existing.internalNotes,
+      reviewed_by: req.auth?.userId || 'admin',
+      reviewed_at: now,
+    };
+
+    if (action === 'approve') {
+      patch.status = 'approved_published';
+      patch.approved_at = now;
+      patch.approved_by = req.auth?.userId || 'admin';
+      patch.homepage_published = true;
+    } else if (action === 'needs_changes') {
+      patch.status = 'needs_changes';
+      patch.admin_feedback = adminFeedback || 'يرجى تعديل الإعلان وفق الملاحظات';
+    } else if (action === 'hide') {
+      patch.status = 'hidden';
+      patch.homepage_published = false;
+    } else if (action === 'archive') {
+      patch.status = 'archived';
+      patch.homepage_published = false;
+    } else if (action === 'reject') {
+      patch.status = 'rejected';
+      patch.homepage_published = false;
+      patch.admin_feedback = adminFeedback || 'تم رفض الإعلان من إدارة المكتب';
+    }
+
+    const updated = await propertiesRepo.updateStatus(req.params.id, patch);
+    await adminNotificationsRepo.markReadByPropertyId(req.params.id);
+
+    if (existing.marketerId && ['approve', 'needs_changes', 'reject'].includes(action)) {
+      pushNotifications.notifyMarketerPropertyReview({
+        marketerId: existing.marketerId,
+        propertyId: existing.id,
+        action,
+        feedback: patch.admin_feedback || updated.adminFeedback || '',
+      }).catch((err) => console.error('[push] marketer review:', err.message));
+    }
+
+    if (action === 'approve') {
+      pushNotifications.notifyClientsNewOffer({
+        id: updated.id,
+        slug: updated.slug,
+        title: updated.title,
+        city: updated.city,
+        district: updated.district,
+      }).catch((err) => console.error('[push] new offer:', err.message));
+    }
+
+    res.json({ success: true, property: updated });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = router;

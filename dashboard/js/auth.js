@@ -37,7 +37,7 @@ const Auth = {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      return res.ok && data.authenticated;
+      return res.ok && data.authenticated && data.role === 'admin';
     } catch {
       return false;
     }

@@ -3,6 +3,7 @@ const { rowToProperty, propertyToRow } = require('../services/mappers');
 const { uniqueSlug } = require('../utils/slug');
 const { parseCoord, isValidCoord } = require('../utils/coords');
 const { pickPropertyColumns, stripOptionalMapColumns } = require('../utils/propertyColumns');
+const { PUBLIC_STATUSES } = require('../utils/propertyStatus');
 
 const TABLE = 'properties';
 const IMG_TABLE = 'property_images';
@@ -27,7 +28,11 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   if (!isEnabled()) return { items: [], total: 0 };
   let q = getAdmin().from(TABLE).select('*', { count: 'exact' });
 
-  if (filters.status) q = q.eq('status', filters.status);
+  if (filters.status) {
+    if (Array.isArray(filters.status)) q = q.in('status', filters.status);
+    else q = q.eq('status', filters.status);
+  }
+  if (filters.marketerId) q = q.eq('marketer_id', filters.marketerId);
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
   if (filters.propertyType) {
@@ -56,14 +61,18 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
 }
 
 async function listPublished(filters, pagination) {
-  return list({ ...filters, status: 'published' }, pagination);
+  return list({ ...filters, status: PUBLIC_STATUSES }, pagination);
+}
+
+async function listByMarketer(marketerId, filters = {}, pagination = {}) {
+  return list({ ...filters, marketerId }, pagination);
 }
 
 /** عقارات منشورة — للخريطة مع فلترة الإحداثيات في الكود */
 async function listForMap(filters = {}) {
   if (!isEnabled()) return { rows: [], stats: { error: 'supabase_disabled' } };
 
-  let q = getAdmin().from(TABLE).select('*').eq('status', 'published');
+  let q = getAdmin().from(TABLE).select('*').in('status', PUBLIC_STATUSES);
 
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
@@ -135,8 +144,14 @@ async function getById(id) {
 
 async function getBySlug(slug) {
   if (!isEnabled()) return null;
-  const { data } = await getAdmin().from(TABLE).select('*').eq('slug', slug).eq('status', 'published').maybeSingle();
+  const { data } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('slug', slug)
+    .in('status', PUBLIC_STATUSES)
+    .maybeSingle();
   if (!data) return null;
+  if (data.license_expires_at && new Date(data.license_expires_at) < new Date()) return null;
   const images = await loadImages(data.id);
   await getAdmin().from(TABLE).update({ views_count: (data.views_count || 0) + 1 }).eq('id', data.id);
   return rowToProperty(data, images);
@@ -243,13 +258,55 @@ async function countPublished() {
   const { count } = await getAdmin()
     .from(TABLE)
     .select('*', { count: 'exact', head: true })
-    .eq('status', 'published');
+    .in('status', PUBLIC_STATUSES);
   return count || 0;
+}
+
+async function expireLicenses() {
+  if (!isEnabled()) return { count: 0, items: [] };
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .update({ status: 'expired', updated_at: new Date().toISOString() })
+    .in('status', PUBLIC_STATUSES)
+    .lt('license_expires_at', today)
+    .not('license_expires_at', 'is', null)
+    .select('id, marketer_id, title, district');
+  if (error) {
+    console.error('[propertiesRepo] expireLicenses:', error.message);
+    return { count: 0, items: [] };
+  }
+  const items = (data || []).map((r) => ({
+    id: r.id,
+    marketerId: r.marketer_id,
+    title: r.title,
+    district: r.district,
+  }));
+  return { count: items.length, items };
+}
+
+async function countPendingReview() {
+  if (!isEnabled()) return 0;
+  const { count } = await getAdmin()
+    .from(TABLE)
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending_review');
+  return count || 0;
+}
+
+async function updateStatus(id, patch) {
+  if (!isEnabled()) throw new Error('قاعدة البيانات غير متصلة');
+  const row = { ...patch, updated_at: new Date().toISOString() };
+  const { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
+  if (error) throw new Error(error.message);
+  const images = await loadImages(id);
+  return rowToProperty(data, images);
 }
 
 module.exports = {
   list,
   listPublished,
+  listByMarketer,
   listForMap,
   getMapDiagnostics,
   listAll,
@@ -257,10 +314,13 @@ module.exports = {
   getBySlug,
   create,
   update,
+  updateStatus,
   remove,
   addImages,
   reorderImages,
   removeImage,
   countAll,
   countPublished,
+  countPendingReview,
+  expireLicenses,
 };

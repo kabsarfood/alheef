@@ -166,6 +166,18 @@ function rowToProperty(row, images = []) {
     requestUsage: extra.requestUsage,
     requestPhone: extra.requestPhone,
     isBuyRequest: extra.isBuyRequest,
+    marketerId: row.marketer_id || null,
+    licenseExpiresAt: row.license_expires_at || null,
+    brokerageContractNo: row.brokerage_contract_no || '',
+    facade: row.facade || row.direction || '',
+    internalNotes: row.internal_notes || '',
+    adminFeedback: row.admin_feedback || '',
+    reviewedBy: row.reviewed_by || null,
+    reviewedAt: row.reviewed_at || null,
+    approvedBy: row.approved_by || null,
+    approvedAt: row.approved_at || null,
+    homepagePublished: !!row.homepage_published,
+    inquiryCount: row.inquiry_count || 0,
   };
 }
 
@@ -271,7 +283,13 @@ function propertyToRow(body) {
     status: body.status || 'draft',
     agent_name: body.agentName || body.agent_name || null,
     agent_phone: isBuy ? (body.requestPhone || body.request_phone || null) : contactPhone,
-    reference_no: body.contractNumber || body.referenceNo || body.reference_no || null,
+    reference_no: body.licenseNumber || body.contractNumber || body.referenceNo || body.reference_no || null,
+    brokerage_contract_no: body.brokerageContractNo || body.brokerage_contract_no || null,
+    license_expires_at: body.licenseExpiresAt || body.license_expires_at || null,
+    facade: body.facade || body.direction || null,
+    internal_notes: body.internalNotes || body.internal_notes || null,
+    admin_feedback: body.adminFeedback || body.admin_feedback || null,
+    marketer_id: body.marketerId || body.marketer_id || null,
     updated_at: new Date().toISOString(),
   };
 }

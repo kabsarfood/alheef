@@ -17,6 +17,8 @@ let cors;
 let apiRoutes;
 let adminRoutes;
 let authRoutes;
+let marketerRoutes;
+let pushRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -26,6 +28,8 @@ try {
   apiRoutes = require('./server/routes/api');
   adminRoutes = require('./server/routes/admin');
   authRoutes = require('./server/routes/auth');
+  marketerRoutes = require('./server/routes/marketer');
+  pushRoutes = require('./server/routes/push');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -40,6 +44,7 @@ const HOST = '0.0.0.0';
 const ROOT = __dirname;
 const publicDir = path.join(ROOT, 'public');
 const dashboardDir = path.join(ROOT, 'dashboard');
+const marketerDir = path.join(ROOT, 'marketer');
 
 console.log('STEP 5 — Supabase');
 console.log('  PORT:', PORT);
@@ -48,6 +53,11 @@ const supabaseReady = initSupabase();
 if (supabaseReady) {
   const { ensureBuckets } = require('./server/services/storage');
   ensureBuckets().catch((err) => console.warn('[Storage] تهيئة buckets:', err.message));
+  try {
+    require('./server/services/pushNotifications').initVapid();
+  } catch (err) {
+    console.warn('[Push] تهيئة VAPID:', err.message);
+  }
 } else {
   console.warn('  ⚠ بدون Supabase: النماذج والعروض من الداشبورد لن تُحفظ في القاعدة');
 }
@@ -72,6 +82,11 @@ if (fs.existsSync(dashboardDir)) {
   console.log('  static /dashboard ✓');
 }
 
+if (fs.existsSync(marketerDir)) {
+  app.use('/marketer', express.static(marketerDir));
+  console.log('  static /marketer ✓');
+}
+
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   console.log('  static /public ✓');
@@ -94,7 +109,9 @@ app.get('/health', async (_req, res) => {
   });
 });
 
+app.use('/api/push', pushRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/marketer', marketerRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -107,6 +124,20 @@ app.get('/api/config', async (_req, res) => {
     res.status(500).json({ success: false, message: 'تعذر تحميل الإعدادات' });
   }
 });
+
+function sendMarketerPage(res, requestPath) {
+  const base = path.resolve(marketerDir);
+  let fileName = 'index.html';
+  if (requestPath && requestPath !== '/marketer' && requestPath !== '/marketer/') {
+    const segment = requestPath.replace(/^\/marketer\/?/, '');
+    const safe = path.basename(segment);
+    if (safe && safe.endsWith('.html')) fileName = safe;
+  }
+  const filePath = path.resolve(base, fileName);
+  if (!filePath.startsWith(base)) return res.status(400).send('مسار غير صالح');
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  return res.sendFile(path.join(base, 'index.html'));
+}
 
 function sendDashboardPage(res, requestPath) {
   const base = path.resolve(dashboardDir);
@@ -134,6 +165,9 @@ function sendDashboardPage(res, requestPath) {
 
 app.get('*', (req, res, next) => {
   try {
+    if (req.path.startsWith('/marketer')) {
+      return sendMarketerPage(res, req.path);
+    }
     if (req.path.startsWith('/dashboard')) {
       return sendDashboardPage(res, req.path);
     }
@@ -182,4 +216,26 @@ app.listen(PORT, HOST, () => {
   console.log(`الهيف — الخادم يعمل على المنفذ ${PORT}`);
   console.log(`الاستماع على ${HOST}:${PORT}`);
   console.log('Health check: GET /health');
+
+  const { expireLicenses } = require('./server/repositories/propertiesRepo');
+  const pushNotifications = require('./server/services/pushNotifications');
+  const runExpire = () => {
+    expireLicenses().then(({ count, items }) => {
+      if (count > 0) {
+        console.log(`[expireLicenses] تم تحديث ${count} إعلان منتهي الترخيص`);
+        items.forEach((item) => {
+          if (!item.marketerId) return;
+          pushNotifications.notifyMarketerPropertyReview({
+            marketerId: item.marketerId,
+            propertyId: item.id,
+            action: 'expired',
+            title: 'انتهى ترخيص إعلانك',
+            feedback: item.title || item.district || '',
+          }).catch((err) => console.warn('[push] expire:', err.message));
+        });
+      }
+    }).catch((err) => console.warn('[expireLicenses]', err.message));
+  };
+  runExpire();
+  setInterval(runExpire, 60 * 60 * 1000);
 });

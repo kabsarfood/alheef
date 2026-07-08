@@ -20,6 +20,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     '<div class="stats-grid" id="stats-grid">',
     '  <div class="loading"><div class="spinner"></div></div>',
     '</div>',
+    '<div class="card" style="margin-bottom:1.5rem" id="pending-ads-card">',
+    '  <div class="card__header"><h2 class="card__title">إعلانات بانتظار الموافقة</h2></div>',
+    '  <div class="card__body" id="pending-ads-wrap"><div class="loading"><div class="spinner"></div></div></div>',
+    '</div>',
     '<div class="card" style="margin-bottom:1.5rem">',
     '  <div class="card__header"><h2 class="card__title">إجراءات سريعة</h2></div>',
     '  <div class="card__body">',
@@ -56,10 +60,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('stats-grid').innerHTML = [
       `<div class="stat-card"><p class="stat-card__label">إجمالي العروض</p><p class="stat-card__value stat-card__value--gold">${stats.offers}</p></div>`,
       `<div class="stat-card"><p class="stat-card__label">منشور</p><p class="stat-card__value">${stats.published}</p></div>`,
-      `<div class="stat-card"><p class="stat-card__label">الأخبار</p><p class="stat-card__value">${stats.news}</p></div>`,
+      `<div class="stat-card"><p class="stat-card__label">بانتظار الموافقة</p><p class="stat-card__value">${stats.pendingReview || 0}</p></div>`,
+      `<div class="stat-card"><p class="stat-card__label">إشعارات جديدة</p><p class="stat-card__value">${stats.unreadNotifications || 0}</p></div>`,
       `<div class="stat-card"><p class="stat-card__label">طلبات العملاء</p><p class="stat-card__value">${stats.requests}</p></div>`,
-      `<div class="stat-card"><p class="stat-card__label">الاشتراكات</p><p class="stat-card__value">${stats.subscriptions}</p></div>`,
     ].join('');
+
+    const { items: pendingAds = [] } = await DashboardAPI.getPropertyReviews('pending_review');
+    const pendingWrap = document.getElementById('pending-ads-wrap');
+    if (!pendingAds.length) {
+      pendingWrap.innerHTML = '<p class="empty-state">لا توجد إعلانات بانتظار الموافقة</p>';
+    } else {
+      pendingWrap.innerHTML = pendingAds.slice(0, 6).map((p) => `
+        <div class="pending-ad-row">
+          <div>
+            <strong>${p.title}</strong>
+            <p class="form-hint">${p.marketerName} — ${p.propertyType} — ${p.district} — ${p.price} ر.س</p>
+          </div>
+          <a href="/dashboard/property-reviews.html?property=${p.id}" class="btn btn-primary btn-sm">مراجعة الإعلان</a>
+        </div>
+      `).join('');
+    }
 
     const rawReq = await DashboardAPI.getRequests();
     const requests = Array.isArray(rawReq) ? rawReq : rawReq.data || [];
