@@ -1280,6 +1280,14 @@ body.modal-open {
   width: 100%;
 }
 
+.join-team-form .form-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(30, 42, 56, 0.55);
+  font-weight: 600;
+}
+
 .header__join-btn,
 .header__team-login {
   white-space: nowrap;

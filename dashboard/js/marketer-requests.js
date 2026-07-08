@@ -37,11 +37,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!rows.length) return '<p class="empty-state">لا توجد طلبات</p>';
     return `<div class="table-wrap"><table class="table table--cards">
       <thead><tr>
-        <th>الاسم</th><th>الجوال</th><th>الهوية</th><th>رخصة فال</th><th>نطاق التسويق</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th>
+        <th>الاسم</th><th>الجوال</th><th>البريد</th><th>الهوية</th><th>رخصة فال</th><th>نطاق التسويق</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th>
       </tr></thead>
       <tbody>${rows.map((r) => `<tr data-id="${r.id}">
         <td data-label="الاسم">${r.fullName}</td>
         <td data-label="الجوال" dir="ltr">${r.phone}</td>
+        <td data-label="البريد" dir="ltr">${r.email || '—'}</td>
         <td data-label="الهوية">${r.nationalId}</td>
         <td data-label="رخصة فال">${r.falLicense}</td>
         <td data-label="النطاق">${r.marketingZoneLabel || r.marketingZone}</td>

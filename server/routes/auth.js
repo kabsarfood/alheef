@@ -1,8 +1,13 @@
 const express = require('express');
 const { createToken, verifyToken, checkPassword, parseToken } = require('../middleware/auth');
 const marketersRepo = require('../repositories/marketersRepo');
+const passwordResetRepo = require('../repositories/passwordResetRepo');
+const { sendPasswordResetEmail, buildResetUrl } = require('../services/emailService');
+const { normalizeEmail, isValidEmail } = require('../utils/email');
 
 const router = express.Router();
+
+const FORGOT_MSG = 'إذا كان البريد مسجّلاً ومعتمداً، سيصلك رابط إعادة تعيين كلمة المرور خلال دقائق.';
 
 router.post('/login', (req, res) => {
   const { password } = req.body;
@@ -23,9 +28,16 @@ router.post('/login', (req, res) => {
 
 router.post('/marketer/login', async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    if (!phone) return res.status(400).json({ success: false, message: 'أدخل رقم الجوال' });
-    const result = await marketersRepo.verifyLogin(phone, password);
+    const login = req.body.login || req.body.phone || req.body.email;
+    const { password } = req.body;
+    if (!login) {
+      return res.status(400).json({ success: false, message: 'أدخل رقم الجوال أو البريد الإلكتروني' });
+    }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'أدخل كلمة المرور' });
+    }
+
+    const result = await marketersRepo.verifyLogin(login, password);
     if (!result.ok) {
       if (result.reason === 'needs_password') {
         return res.status(403).json({
@@ -36,6 +48,7 @@ router.post('/marketer/login', async (req, res) => {
       }
       return res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
     }
+
     const token = createToken({ role: 'marketer', marketerId: result.marketer.id, userId: result.marketer.id });
     res.json({
       success: true,
@@ -65,7 +78,7 @@ router.post('/marketer/setup-password', async (req, res) => {
     const token = createToken({ role: 'marketer', marketerId: marketer.id, userId: marketer.id });
     res.json({
       success: true,
-      message: 'تمت الموافقة عليك لتكون أحد فريق المسوقين لدى مكتب الهيف للخدمات العقارية.',
+      message: 'تم إنشاء كلمة المرور بنجاح',
       token,
       role: 'marketer',
       marketer: marketersRepo.toPublic(marketer),
@@ -76,10 +89,49 @@ router.post('/marketer/setup-password', async (req, res) => {
 });
 
 router.post('/marketer/forgot-password', async (req, res) => {
-  res.json({
-    success: true,
-    message: 'تواصل مع إدارة مكتب الهيف عبر واتساب لإعادة تعيين كلمة المرور.',
-  });
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: 'أدخل بريداً إلكترونياً صالحاً' });
+    }
+
+    const marketer = await marketersRepo.findApprovedByEmail(email);
+    if (marketer) {
+      const { token } = await passwordResetRepo.createToken(marketer.id);
+      const resetUrl = buildResetUrl(token);
+      await sendPasswordResetEmail(email, resetUrl);
+    }
+
+    res.json({ success: true, message: FORGOT_MSG });
+  } catch (err) {
+    console.warn('[auth] forgot-password:', err.message);
+    res.json({ success: true, message: FORGOT_MSG });
+  }
+});
+
+router.post('/marketer/reset-password', async (req, res) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+    if (!token) return res.status(400).json({ success: false, message: 'رابط غير صالح' });
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'كلمة المرور 6 أحرف على الأقل' });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'كلمتا المرور غير متطابقتين' });
+    }
+
+    const row = await passwordResetRepo.findValidToken(token);
+    if (!row) {
+      return res.status(400).json({ success: false, message: 'الرابط منتهٍ أو غير صالح — اطلب رابطاً جديداً' });
+    }
+
+    await marketersRepo.setPassword(row.marketer_id, password);
+    await passwordResetRepo.markUsed(row.id);
+
+    res.json({ success: true, message: 'تم تعيين كلمة المرور الجديدة — يمكنك تسجيل الدخول الآن' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 router.get('/verify', (req, res) => {
@@ -102,4 +154,3 @@ router.post('/logout', (_req, res) => {
 });
 
 module.exports = router;
-

@@ -25,6 +25,10 @@
     el.className = 'form-message';
   }
 
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+  }
+
   function init() {
     const openBtns = [
       document.getElementById('join-team-btn'),
@@ -66,13 +70,34 @@
       const body = {
         fullName: String(fd.get('fullName') || '').trim(),
         phone: String(fd.get('phone') || '').trim(),
+        email: String(fd.get('email') || '').trim(),
         nationalId: String(fd.get('nationalId') || '').trim(),
         falLicense: String(fd.get('falLicense') || '').trim(),
         marketingZone: fd.get('marketingZone'),
+        password: String(fd.get('password') || ''),
+        confirmPassword: String(fd.get('confirmPassword') || ''),
       };
 
-      if (!body.fullName || !body.phone || !body.nationalId || !body.falLicense || !body.marketingZone) {
+      if (!body.fullName || !body.phone || !body.email || !body.nationalId || !body.falLicense || !body.marketingZone) {
         showMsg(msg, 'يرجى تعبئة جميع الحقول المطلوبة', 'error');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      if (!isValidEmail(body.email)) {
+        showMsg(msg, 'أدخل بريداً إلكترونياً صالحاً', 'error');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      if (body.password.length < 6) {
+        showMsg(msg, 'كلمة المرور 6 أحرف على الأقل', 'error');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      if (body.password !== body.confirmPassword) {
+        showMsg(msg, 'كلمتا المرور غير متطابقتين', 'error');
         btn.disabled = false;
         btn.textContent = originalText;
         return;

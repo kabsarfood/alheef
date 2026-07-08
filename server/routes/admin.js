@@ -436,6 +436,7 @@ function mapJoinRow(r) {
     id: r.id,
     fullName: r.full_name,
     phone: r.phone,
+    email: r.email || '',
     nationalId: r.national_id,
     falLicense: r.fal_license,
     marketingZone: r.marketing_zone,

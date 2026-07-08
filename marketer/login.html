@@ -1,11 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="الهيف">
-  <link rel="stylesheet" href="/css/pwa.css">
+  <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>دخول فريق الهيف</title>
@@ -13,12 +9,13 @@
   <link rel="stylesheet" href="/dashboard/css/dashboard.css">
   <link rel="stylesheet" href="/dashboard/css/login.css">
   <style>
-    .login-tabs { display:flex; gap:0.5rem; margin-bottom:1rem; }
-    .login-tab { flex:1; padding:0.55rem; border:1px solid var(--border); background:var(--bg); border-radius:var(--radius); cursor:pointer; font-family:inherit; font-weight:600; }
+    .login-tabs { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .login-tab { flex:1; min-width:90px; padding:0.55rem; border:1px solid var(--border); background:var(--bg); border-radius:var(--radius); cursor:pointer; font-family:inherit; font-weight:600; font-size:0.85rem; }
     .login-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
     .login-form label { display:block; margin:0.65rem 0 0.35rem; font-weight:600; font-size:0.9rem; }
     .login-form input { width:100%; padding:0.65rem 0.75rem; border:1px solid var(--border); border-radius:var(--radius); font-family:inherit; }
     .login-message { min-height:1.25rem; font-size:0.9rem; margin-bottom:0.5rem; color:var(--danger); }
+    .login-message.success { color:#1a7a3a; }
     .login-hint { font-size:0.85rem; color:var(--text-secondary); margin:0.75rem 0; }
     .login-footer { text-align:center; margin-top:1.25rem; font-size:0.9rem; }
     .login-card__logo { width:56px; height:56px; margin:0 auto 1rem; border-radius:var(--radius); background:var(--gold-bg); border:1px solid var(--gold-border); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800; color:var(--gold); }
@@ -27,45 +24,52 @@
 <body class="login-page">
   <div class="login-page__bg"></div>
   <div class="login-card">
-      <div class="login-card__brand">
-        <div class="login-card__logo">ه</div>
-        <h1>دخول فريق الهيف</h1>
-        <p>لوحة مسوقي مكتب الهيف للخدمات العقارية</p>
-      </div>
-
-      <div class="login-tabs">
-        <button type="button" class="login-tab active" data-tab="login">تسجيل الدخول</button>
-        <button type="button" class="login-tab" data-tab="setup">إنشاء كلمة مرور</button>
-      </div>
-
-      <form id="login-form" class="login-form">
-        <div id="login-message" class="login-message"></div>
-        <label>رقم الجوال</label>
-        <input type="tel" name="phone" id="login-phone" placeholder="05xxxxxxxx" dir="ltr" required>
-        <label>كلمة المرور</label>
-        <input type="password" name="password" id="login-password" required>
-        <button type="submit" class="btn btn-primary">دخول</button>
-        <p class="login-hint"><a href="#" id="forgot-link">نسيت كلمة المرور؟</a></p>
-      </form>
-
-      <form id="setup-form" class="login-form" hidden>
-        <div id="setup-message" class="login-message"></div>
-        <p class="login-hint">للمسوقين المعتمدين من الإدارة — أنشئ كلمة مرور لأول مرة</p>
-        <label>رقم الجوال</label>
-        <input type="tel" name="phone" placeholder="05xxxxxxxx" dir="ltr" required>
-        <label>رقم الهوية / البطاقة</label>
-        <input type="text" name="nationalId" required>
-        <label>كلمة المرور الجديدة</label>
-        <input type="password" name="password" minlength="6" required>
-        <label>تأكيد كلمة المرور</label>
-        <input type="password" name="confirmPassword" minlength="6" required>
-        <button type="submit" class="btn btn-primary">حفظ والدخول</button>
-      </form>
-
-      <p class="login-footer"><a href="/" class="login-card__back">← العودة للموقع</a></p>
+    <div class="login-card__brand">
+      <div class="login-card__logo">ه</div>
+      <h1>دخول فريق الهيف</h1>
+      <p>لوحة مسوقي مكتب الهيف للخدمات العقارية</p>
     </div>
+
+    <div class="login-tabs">
+      <button type="button" class="login-tab active" data-tab="login">تسجيل الدخول</button>
+      <button type="button" class="login-tab" data-tab="setup">إنشاء كلمة مرور</button>
+      <button type="button" class="login-tab" data-tab="forgot">نسيت كلمة المرور</button>
+    </div>
+
+    <form id="login-form" class="login-form">
+      <div id="login-message" class="login-message"></div>
+      <label>رقم الجوال أو البريد الإلكتروني</label>
+      <input type="text" name="login" id="login-identifier" placeholder="05xxxxxxxx أو email@example.com" dir="ltr" required autocomplete="username">
+      <label>كلمة المرور</label>
+      <input type="password" name="password" id="login-password" required autocomplete="current-password">
+      <button type="submit" class="btn btn-primary">دخول</button>
+    </form>
+
+    <form id="setup-form" class="login-form" hidden>
+      <div id="setup-message" class="login-message"></div>
+      <p class="login-hint">للمسوقين المعتمدين الذين لم يُفعّل حسابهم بعد</p>
+      <label>رقم الجوال</label>
+      <input type="tel" name="phone" placeholder="05xxxxxxxx" dir="ltr" required>
+      <label>رقم الهوية / البطاقة</label>
+      <input type="text" name="nationalId" required>
+      <label>كلمة المرور الجديدة</label>
+      <input type="password" name="password" minlength="6" required autocomplete="new-password">
+      <label>تأكيد كلمة المرور</label>
+      <input type="password" name="confirmPassword" minlength="6" required autocomplete="new-password">
+      <button type="submit" class="btn btn-primary">حفظ والدخول</button>
+    </form>
+
+    <form id="forgot-form" class="login-form" hidden>
+      <div id="forgot-message" class="login-message"></div>
+      <p class="login-hint">أدخل بريدك الإلكتروني المسجّل — سيصلك رابط إعادة التعيين إذا كان حسابك معتمداً</p>
+      <label>البريد الإلكتروني</label>
+      <input type="email" name="email" placeholder="example@email.com" dir="ltr" required autocomplete="email">
+      <button type="submit" class="btn btn-primary">إرسال رابط الاستعادة</button>
+    </form>
+
+    <p class="login-footer"><a href="/" class="login-card__back">← العودة للموقع</a></p>
+  </div>
   <script src="/marketer/js/auth.js"></script>
-  <script src="/marketer/js/login.js"></script>
-  <script src="/js/pwa.js" defer></script>
+  <script src="/marketer/js/login.js?v=2"></script>
 </body>
 </html>

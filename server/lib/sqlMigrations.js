@@ -6,6 +6,7 @@ const path = require('path');
 
 const MIGRATION_FILE = path.join(__dirname, '..', '..', 'supabase', 'migrations', 'APPLY_NOW.sql');
 const PUSH_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '006_push_subscriptions.sql');
+const EMAIL_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '007_marketer_email_password.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -91,6 +92,7 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
     if (!silent) console.log('[Schema] متصل بقاعدة البيانات — تطبيق الهجرة…');
     await runSqlFile(client, MIGRATION_FILE, 'APPLY_NOW');
     await runSqlFile(client, PUSH_MIGRATION, '006_push');
+    await runSqlFile(client, EMAIL_MIGRATION, '007_email');
     await client.end();
 
     await new Promise((r) => setTimeout(r, 1200));
