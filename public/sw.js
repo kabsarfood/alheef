@@ -2,7 +2,7 @@
 /**
  * Service Worker — مكتب الهيف للخدمات العقارية
  */
-const CACHE_NAME = 'alheef-pwa-v1';
+const CACHE_NAME = 'alheef-pwa-v2';
 const PRECACHE = [
   '/',
   '/index.html',
