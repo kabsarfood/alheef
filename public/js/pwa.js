@@ -12,6 +12,9 @@
 
   let deferredInstallPrompt = null;
   let vapidPublicKey = null;
+  let swRegistration = null;
+  let pendingSwWorker = null;
+  let isReloadingForUpdate = false;
 
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
@@ -152,18 +155,83 @@
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+      swRegistration = reg;
+
       navigator.serviceWorker.addEventListener('message', (event) => {
         const msg = event.data;
         if (msg && msg.type === 'ALHEEF_NAVIGATE' && msg.url) {
           window.location.href = msg.url;
         }
       });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (isReloadingForUpdate) return;
+        isReloadingForUpdate = true;
+        window.location.reload();
+      });
+
+      reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        trackSwUpdate(worker);
+      });
+
+      if (reg.waiting) {
+        pendingSwWorker = reg.waiting;
+        showUpdateBanner();
+      }
+
+      reg.update().catch(() => {});
+      setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+
       return reg;
     } catch (err) {
       console.warn('[PWA] SW registration failed:', err);
       return null;
     }
+  }
+
+  function trackSwUpdate(worker) {
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+        pendingSwWorker = worker;
+        showUpdateBanner();
+      }
+    });
+  }
+
+  function showUpdateBanner() {
+    if (document.getElementById('pwa-update-banner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-update-banner';
+    banner.className = 'pwa-update-banner';
+    banner.setAttribute('role', 'alert');
+    banner.innerHTML = `
+      <span class="pwa-update-banner__text">يتوفر تحديث جديد للتطبيق</span>
+      <button type="button" class="pwa-update-banner__btn">تحديث الآن</button>
+      <button type="button" class="pwa-update-banner__dismiss" aria-label="لاحقاً">×</button>
+    `;
+
+    banner.querySelector('.pwa-update-banner__btn')?.addEventListener('click', applyPendingUpdate);
+    banner.querySelector('.pwa-update-banner__dismiss')?.addEventListener('click', () => banner.remove());
+
+    document.body.appendChild(banner);
+  }
+
+  function applyPendingUpdate() {
+    const worker = pendingSwWorker || swRegistration?.waiting;
+    if (!worker) {
+      window.location.reload();
+      return;
+    }
+    isReloadingForUpdate = true;
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    setTimeout(() => window.location.reload(), 1500);
   }
 
   async function subscribePush(options = {}) {
@@ -368,6 +436,8 @@
     getClientKey,
     promptInstall: onInstallClick,
     promptRolePush,
+    checkForUpdates: () => swRegistration?.update(),
+    applyUpdate: applyPendingUpdate,
   };
 
   if (document.readyState === 'loading') {

@@ -1,22 +1,75 @@
 /* eslint-disable no-restricted-globals */
 /**
  * Service Worker — مكتب الهيف للخدمات العقارية
+ * BUILD_ID يُستبدل عند التقديم من الخادم مع كل نشر
  */
-const CACHE_NAME = 'alheef-pwa-v2';
+const BUILD_ID = '__APP_BUILD__';
+const CACHE_NAME = `alheef-pwa-${BUILD_ID}`;
+
 const PRECACHE = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
-  '/css/main.css',
-  '/css/mobile.css',
-  '/css/pwa.css',
-  '/js/pwa.js',
-  '/js/main.js',
-  '/js/nav-mobile.js',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
   '/assets/icon-maskable-512.png',
 ];
+
+function isHtmlRequest(request, url) {
+  if (request.mode === 'navigate') return true;
+  const accept = request.headers.get('accept') || '';
+  if (accept.includes('text/html')) return true;
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) return true;
+  return false;
+}
+
+function isStaticAsset(url) {
+  return /\.(css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname)
+    || url.pathname.startsWith('/assets/')
+    || url.pathname.startsWith('/css/')
+    || url.pathname.startsWith('/js/')
+    || url.pathname.startsWith('/images/');
+}
+
+async function networkFirst(request, fallbackUrl) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const res = await fetch(request);
+    if (res && res.status === 200) {
+      cache.put(request, res.clone());
+    }
+    return res;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (fallbackUrl) {
+      const fallback = await cache.match(fallbackUrl);
+      if (fallback) return fallback;
+    }
+    throw new Error('offline');
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkFetch = fetch(request)
+    .then((res) => {
+      if (res && res.status === 200) cache.put(request, res.clone());
+      return res;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    networkFetch.catch(() => {});
+    return cached;
+  }
+
+  const res = await networkFetch;
+  if (res) return res;
+  const fallback = await cache.match('/index.html');
+  if (fallback) return fallback;
+  return new Response('غير متصل', { status: 503, statusText: 'Offline' });
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -29,31 +82,30 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname === '/sw.js') return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
-        .then((res) => {
-          if (!res || res.status !== 200 || res.type === 'opaque') return res;
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return res;
-        })
-        .catch(() => caches.match('/index.html'));
-    })
-  );
+  if (isHtmlRequest(request, url)) {
+    event.respondWith(networkFirst(request, '/index.html'));
+    return;
+  }
+
+  if (isStaticAsset(url)) {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  event.respondWith(networkFirst(request, '/index.html'));
 });
 
 function parsePushData(event) {

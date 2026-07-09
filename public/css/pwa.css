@@ -4,6 +4,54 @@
   display: none !important;
 }
 
+.pwa-update-banner {
+  position: fixed;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: min(92vw, 420px);
+  padding: 0.75rem 1rem;
+  background: var(--navy, #1e2a38);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(30, 42, 56, 0.28);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.pwa-update-banner__text {
+  flex: 1;
+  font-weight: 600;
+}
+
+.pwa-update-banner__btn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  background: var(--gold, #c9a227);
+  color: var(--navy, #1e2a38);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pwa-update-banner__dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+
 .pwa-install-btn--link {
   background: none;
   border: none;

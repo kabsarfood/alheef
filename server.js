@@ -54,6 +54,7 @@ const ROOT = __dirname;
 const publicDir = path.join(ROOT, 'public');
 const dashboardDir = path.join(ROOT, 'dashboard');
 const marketerDir = path.join(ROOT, 'marketer');
+const { getAppBuild } = require('./server/utils/appBuild');
 
 console.log('STEP 5 — Supabase');
 console.log('  PORT:', PORT);
@@ -94,6 +95,37 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+/** PWA — معرّف البناء و Service Worker ديناميكي (يتغيّر مع كل نشر) */
+app.get('/api/pwa-meta', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ build: getAppBuild(), name: 'مكتب الهيف للخدمات العقارية' });
+});
+
+app.get('/sw.js', (_req, res) => {
+  const swPath = path.join(publicDir, 'sw.js');
+  if (!fs.existsSync(swPath)) return res.status(404).send('Not found');
+  const build = getAppBuild();
+  const content = fs.readFileSync(swPath, 'utf8').replace(/__APP_BUILD__/g, build);
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.send(content);
+});
+
+/** لا تخزّن صفحات HTML في المتصفح — لضمان وصول التحديثات */
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const p = req.path;
+  if (p.endsWith('.html') || p === '/manifest.webmanifest') {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    return next();
+  }
+  if (!path.extname(p) && !p.startsWith('/api')) {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  }
+  next();
+});
 
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir));
