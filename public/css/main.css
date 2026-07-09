@@ -1299,15 +1299,8 @@ body.modal-open {
   font-weight: 600;
 }
 
-.header__join-btn,
 .header__team-login {
   white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .header__join-btn {
-    display: none;
-  }
 }
 
 /* ─── Animations ─── */

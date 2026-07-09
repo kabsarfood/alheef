@@ -150,6 +150,10 @@ async function main() {
   const onHomepage = listed && ['published', 'approved_published'].includes(listed.status);
   console.log(onHomepage ? '✓ الإعلان ظاهر للعامة (باسم المكتب — بدون اسم المسوق في API العام)' : '✗ الإعلان غير منشور للعامة');
 
+  const slugRes = await api(`/api/properties/slug/${encodeURIComponent(listed.slug)}`);
+  const detailOk = slugRes.ok && slugRes.data?.slug === listed.slug;
+  console.log(detailOk ? '✓ صفحة تفاصيل الإعلان متاحة للعامة' : '✗ صفحة تفاصيل الإعلان غير متاحة');
+
   console.log('\n═══ انتهى الاختبار ═══');
 }
 

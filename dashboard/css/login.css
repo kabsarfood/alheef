@@ -36,18 +36,12 @@
 }
 
 .login-card__icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 1rem;
-  border: 1px solid var(--gold-border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--gold);
-  background: var(--gold-bg);
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 0.75rem;
+  display: block;
+  object-fit: contain;
+  border-radius: 22%;
 }
 
 .login-card__brand h1 {

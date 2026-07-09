@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <link rel="manifest" href="/manifest.webmanifest">
@@ -18,15 +18,15 @@
     .login-message.success { color:#1a7a3a; }
     .login-hint { font-size:0.85rem; color:var(--text-secondary); margin:0.75rem 0; }
     .login-footer { text-align:center; margin-top:1.25rem; font-size:0.9rem; }
-    .login-card__logo { width:56px; height:56px; margin:0 auto 1rem; border-radius:var(--radius); background:var(--gold-bg); border:1px solid var(--gold-border); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800; color:var(--gold); }
+    .login-card__logo { width:80px; height:80px; margin:0 auto 0.75rem; display:block; object-fit:contain; border-radius:22%; }
   </style>
 </head>
 <body class="login-page">
   <div class="login-page__bg"></div>
   <div class="login-card">
     <div class="login-card__brand">
-      <div class="login-card__logo">ه</div>
-      <h1>دخول فريق الهيف</h1>
+      <img src="/assets/app-icon.png?v=3" alt="الهيف العقارية" class="login-card__logo" width="80" height="80">
+      <h1>الهيف العقارية</h1>
       <p>لوحة مسوقي مكتب الهيف للخدمات العقارية</p>
     </div>
 
@@ -70,6 +70,6 @@
     <p class="login-footer"><a href="/" class="login-card__back">← العودة للموقع</a></p>
   </div>
   <script src="/marketer/js/auth.js"></script>
-  <script src="/marketer/js/login.js?v=2"></script>
+  <script src="/marketer/js/login.js?v=3"></script>
 </body>
 </html>

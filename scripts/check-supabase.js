@@ -6,7 +6,7 @@
 require('dotenv').config();
 
 const { initSupabase, isEnabled, getAdmin, SUPABASE_URL } = require('../server/lib/supabase');
-const { ensureBucket, BUCKET } = require('../server/services/storage');
+const { ensureBuckets, BUCKETS } = require('../server/services/storage');
 
 const TABLES = [
   'settings', 'properties', 'property_images', 'news', 'requests', 'subscriptions',
@@ -57,12 +57,13 @@ async function main() {
 
   console.log('\n── التخزين (صور الشعار والعقارات) ──');
   try {
-    await ensureBucket();
-    const { data, error } = await getAdmin().storage.from(BUCKET).list('', { limit: 1 });
+    await ensureBuckets();
+    const bucket = BUCKETS.assets;
+    const { data, error } = await getAdmin().storage.from(bucket).list('', { limit: 1 });
     if (error) {
-      console.log(`  ⚠ bucket "${BUCKET}": ${error.message}`);
+      console.log(`  ⚠ bucket "${bucket}": ${error.message}`);
     } else {
-      console.log(`  ✓ bucket "${BUCKET}" جاهز`);
+      console.log(`  ✓ bucket "${bucket}" جاهز`);
     }
   } catch (err) {
     console.log(`  ✗ التخزين: ${err.message}`);

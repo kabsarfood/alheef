@@ -45,14 +45,16 @@ function initSupabase() {
   }
 
   try {
-    supabaseAdmin = createClient(url, serviceKey, {
+    const { retryFetch } = require('./retryFetch');
+    const clientOptions = {
       auth: { autoRefreshToken: false, persistSession: false },
-    });
+      global: { fetch: retryFetch },
+    };
+
+    supabaseAdmin = createClient(url, serviceKey, clientOptions);
 
     if (anonKey) {
-      supabasePublic = createClient(url, anonKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
+      supabasePublic = createClient(url, anonKey, clientOptions);
     } else {
       supabasePublic = null;
     }

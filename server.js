@@ -7,6 +7,22 @@ try {
   console.warn('STEP 2 — dotenv تحذير:', err.message);
 }
 
+/** Windows محلي — إعادة التشغيل بشهادات النظام لتفادي fetch failed مع Supabase */
+if (
+  process.platform === 'win32' &&
+  process.env.NODE_ENV !== 'production' &&
+  !process.env.ALHEEF_SKIP_SYSTEM_CA &&
+  !process.execArgv.some((a) => a.includes('use-system-ca'))
+) {
+  const { spawnSync } = require('child_process');
+  console.log('[SSL] Windows — إعادة التشغيل بشهادات النظام (--use-system-ca)');
+  const result = spawnSync(process.execPath, ['--use-system-ca', ...process.argv.slice(1)], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  process.exit(result.status ?? (result.error ? 1 : 0));
+}
+
 const path = require('path');
 const fs = require('fs');
 
@@ -284,8 +300,15 @@ app.listen(PORT, HOST, () => {
           }).catch((err) => console.warn('[push] expire:', err.message));
         });
       }
-    }).catch((err) => console.warn('[expireLicenses]', err.message));
+    }).catch((err) => {
+      const msg = String(err?.message || err);
+      if (/fetch failed/i.test(msg)) {
+        console.warn('[expireLicenses] تعذر الاتصال بـ Supabase مؤقتاً — سيُعاد المحاولة لاحقاً');
+      } else {
+        console.warn('[expireLicenses]', msg);
+      }
+    });
   };
-  runExpire();
+  setTimeout(runExpire, 2500);
   setInterval(runExpire, 60 * 60 * 1000);
 });

@@ -12,7 +12,7 @@ const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const pushNotifications = require('../services/pushNotifications');
-const { isEnabled } = require('../lib/supabase');
+const { isPublicStatus } = require('../utils/propertyStatus');
 
 const router = express.Router();
 
@@ -107,7 +107,7 @@ router.get('/map/filters', async (_req, res) => {
 router.get('/properties/slug/:slug', async (req, res) => {
   try {
     const p = await propertiesRepo.getBySlug(req.params.slug);
-    if (!p || p.status !== 'published') {
+    if (!p || !isPublicStatus(p.status)) {
       return res.status(404).json({ success: false, message: 'العقار غير موجود' });
     }
     res.json(toPublicProperty(p));
@@ -119,7 +119,7 @@ router.get('/properties/slug/:slug', async (req, res) => {
 router.get('/properties/id/:id', async (req, res) => {
   try {
     const p = await propertiesRepo.getById(req.params.id);
-    if (!p || p.status !== 'published') {
+    if (!p || !isPublicStatus(p.status)) {
       return res.status(404).json({ success: false, message: 'العقار غير موجود' });
     }
     res.json(toPublicProperty(p));

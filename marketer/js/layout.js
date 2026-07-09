@@ -23,8 +23,8 @@ async function initMarketerLayout(activePage, pageTitle) {
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__brand">
         <a href="/marketer/" class="sidebar__logo">
-          <div class="sidebar__logo-icon">ه</div>
-          <div class="sidebar__logo-text"><strong>الهيف</strong><span>لوحة مسوق الهيف</span></div>
+          <img src="/assets/app-icon.png?v=3" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">
+          <div class="sidebar__logo-text"><strong>الهيف العقارية</strong><span>لوحة مسوق الهيف</span></div>
         </a>
       </div>
       <nav class="sidebar__nav">${navHtml}</nav>

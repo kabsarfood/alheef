@@ -31,7 +31,6 @@
 
   function init() {
     const openBtns = [
-      document.getElementById('join-team-btn'),
       document.getElementById('join-team-btn-hero'),
     ].filter(Boolean);
     const modal = document.getElementById('join-team-modal');
