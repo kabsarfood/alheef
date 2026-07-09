@@ -7,6 +7,7 @@
   const CLIENT_KEY = 'alheef_client_key';
   const PUSH_CONSENT_KEY = 'alheef_push_offers_consent';
   const INSTALL_LABEL = 'تثبيت تطبيق الهيف';
+  const INSTALL_LABEL_NAV = 'تثبيت التطبيق';
   const IOS_HINT = 'اضغط مشاركة ثم إضافة إلى الشاشة الرئيسية';
 
   let deferredInstallPrompt = null;
@@ -61,7 +62,6 @@
 
   function ensureInstallButtons() {
     const selectors = [
-      { root: '.header__actions', position: 'prepend' },
       { root: '#nav', position: 'append' },
       { root: '.footer__links', position: 'append' },
       { root: '#topbar-actions', position: 'prepend' },
@@ -92,6 +92,8 @@
 
       if (root === '#nav') {
         btn.className = 'nav__link pwa-install-btn pwa-install-btn--nav';
+        btn.textContent = INSTALL_LABEL_NAV;
+        btn.setAttribute('aria-label', INSTALL_LABEL);
       }
 
       if (root === '.login-card') {
@@ -112,7 +114,7 @@
   function ensureIosHint() {
     if (document.getElementById('pwa-ios-hint')) return;
     const targets = [
-      document.querySelector('.header__actions'),
+      document.querySelector('#nav'),
       document.querySelector('#topbar-actions'),
       document.querySelector('.login-card'),
     ].filter(Boolean);

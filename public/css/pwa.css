@@ -16,12 +16,13 @@
 }
 
 .pwa-install-btn--nav {
-  width: 100%;
-  text-align: right;
+  width: auto;
+  text-align: inherit;
   background: none;
   border: none;
   font: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .pwa-ios-hint {
@@ -58,8 +59,38 @@
   display: none;
 }
 
+/* لا يظهر زر التثبيت داخل أزرار الهيدر — يبقى في القائمة والفوتر */
+.header__actions > .pwa-install-btn,
+.header__actions > .pwa-ios-hint {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .nav .pwa-install-btn--nav {
+    font-size: 0.9rem;
+  }
+}
+
 @media (max-width: 768px) {
-  .header__actions > .pwa-install-btn {
-    display: none;
+  .pwa-install-btn--nav {
+    width: 100%;
+    text-align: right;
+    padding: 1rem 1.15rem;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    font-size: 1.1rem;
+    font-weight: var(--fw-subheading);
+    color: var(--text-primary);
+  }
+
+  .pwa-install-btn--nav:active,
+  .pwa-install-btn--nav:hover {
+    background: var(--gold-subtle);
+    border-color: var(--gold-border);
+  }
+
+  #nav .pwa-ios-hint {
+    padding: 0 1.15rem 0.75rem;
+    max-width: none;
   }
 }
