@@ -10,7 +10,7 @@ OUT = ROOT / "public" / "assets"
 CURSOR_SRC = Path(
     r"C:\Users\USER\.cursor\projects\c-Users-USER-Desktop-ALHEEF\assets"
     r"\c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_903b2233186f19f262e6edb916dd1e14_images"
-    r"_______________-7a9bf506-3d05-444a-b642-7833a75c315e.png"
+    r"__________-_______________-58288bdf-ef0d-4edc-b32c-8da118f234ce.png"
 )
 
 NAVY = (30, 42, 56, 255)

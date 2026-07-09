@@ -47,7 +47,7 @@ async function initLayout(activePage, pageTitle) {
     '<aside class="sidebar" id="sidebar">',
     '  <div class="sidebar__brand">',
     '    <a href="/dashboard/" class="sidebar__logo">',
-    '      <img src="/assets/app-icon.png?v=3" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">',
+    '      <img src="/assets/app-icon.png?v=4" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">',
     '      <div class="sidebar__logo-text"><strong>الهيف العقارية</strong><span>لوحة التحكم</span></div>',
     '    </a>',
     '  </div>',

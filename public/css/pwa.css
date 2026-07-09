@@ -1,76 +1,58 @@
-/* PWA — زر التثبيت وإرشاد iOS */
-.pwa-install-btn[hidden],
+/* PWA — زر تنزيل / تحديث التطبيق */
+.pwa-app-btn[hidden],
 .pwa-ios-hint[hidden] {
   display: none !important;
 }
 
-.pwa-update-banner {
-  position: fixed;
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10050;
-  display: flex;
+.pwa-app-btn {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
-  max-width: min(92vw, 420px);
-  padding: 0.75rem 1rem;
-  background: var(--navy, #1e2a38);
-  color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 28px rgba(30, 42, 56, 0.28);
-  font-size: 0.88rem;
-  line-height: 1.4;
-}
-
-.pwa-update-banner__text {
-  flex: 1;
-  font-weight: 600;
-}
-
-.pwa-update-banner__btn {
-  flex-shrink: 0;
-  border: none;
-  border-radius: 8px;
-  padding: 0.45rem 0.85rem;
-  background: var(--gold, #c9a227);
-  color: var(--navy, #1e2a38);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
+  justify-content: center;
+  gap: 0.35rem;
   white-space: nowrap;
-}
-
-.pwa-update-banner__dismiss {
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.25rem;
-  line-height: 1;
+  font-family: inherit;
   cursor: pointer;
-  padding: 0 0.15rem;
 }
 
-.pwa-install-btn--link {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: right;
-  width: 100%;
+.pwa-app-btn__badge {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #e53935;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.35);
+  display: none;
+  pointer-events: none;
 }
 
-.pwa-install-btn--nav {
+.pwa-app-btn--notify .pwa-app-btn__badge {
+  display: block;
+  animation: pwa-badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pwa-badge-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+
+.pwa-app-btn--header,
+.pwa-app-btn--topbar,
+.pwa-app-btn--login {
+  min-height: 44px;
+}
+
+.pwa-app-btn--nav {
   width: auto;
   text-align: inherit;
   background: none;
   border: none;
   font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
+  color: inherit;
+  padding: 0;
 }
 
 .pwa-ios-hint {
@@ -99,28 +81,32 @@
   margin-top: 0.5rem;
 }
 
-.topbar__actions .pwa-install-btn {
+.topbar__actions .pwa-app-btn--topbar {
   margin-left: 0.35rem;
 }
 
-.topbar__actions .pwa-ios-hint {
+.header__actions .pwa-app-btn--header {
+  flex-shrink: 0;
+}
+
+.header__actions .pwa-ios-hint {
   display: none;
 }
 
-/* لا يظهر زر التثبيت داخل أزرار الهيدر — يبقى في القائمة والفوتر */
-.header__actions > .pwa-install-btn,
-.header__actions > .pwa-ios-hint {
-  display: none !important;
-}
-
-@media (min-width: 769px) {
-  .nav .pwa-install-btn--nav {
-    font-size: 0.9rem;
+@media (min-width: 901px) {
+  #nav .pwa-app-btn--nav {
+    display: none;
   }
 }
 
-@media (max-width: 768px) {
-  .pwa-install-btn--nav {
+@media (max-width: 900px) {
+  .header__actions .pwa-app-btn--header {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .pwa-app-btn--nav {
     width: 100%;
     text-align: right;
     padding: 1rem 1.15rem;
@@ -129,12 +115,18 @@
     font-size: 1.1rem;
     font-weight: var(--fw-subheading);
     color: var(--text-primary);
+    justify-content: flex-start;
   }
 
-  .pwa-install-btn--nav:active,
-  .pwa-install-btn--nav:hover {
+  .pwa-app-btn--nav:active,
+  .pwa-app-btn--nav:hover {
     background: var(--gold-subtle);
     border-color: var(--gold-border);
+  }
+
+  .pwa-app-btn--nav .pwa-app-btn__badge {
+    top: 0.65rem;
+    left: 0.65rem;
   }
 
   #nav .pwa-ios-hint {

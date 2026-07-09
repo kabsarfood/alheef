@@ -1,20 +1,26 @@
 /**
- * PWA — تثبيت التطبيق، الإشعارات، والشارة
+ * PWA — تنزيل / تحديث التطبيق، الإشعارات، والشارة
  */
 (function () {
   'use strict';
 
   const CLIENT_KEY = 'alheef_client_key';
   const PUSH_CONSENT_KEY = 'alheef_push_offers_consent';
-  const INSTALL_LABEL = 'تثبيت تطبيق الهيف';
-  const INSTALL_LABEL_NAV = 'تثبيت التطبيق';
-  const IOS_HINT = 'اضغط مشاركة ثم إضافة إلى الشاشة الرئيسية';
+  const INSTALL_KEY = 'alheef_pwa_installed';
+  const IOS_HINT = 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية» لتثبيت تطبيق الهيف';
+
+  const LABELS = {
+    download: 'تنزيل',
+    update: 'تحديث',
+  };
 
   let deferredInstallPrompt = null;
   let vapidPublicKey = null;
   let swRegistration = null;
   let pendingSwWorker = null;
   let isReloadingForUpdate = false;
+  let hasPendingUpdate = false;
+  let buttonMode = 'download';
 
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
@@ -23,6 +29,10 @@
 
   function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  function isPWASupported() {
+    return 'serviceWorker' in navigator;
   }
 
   function getClientKey() {
@@ -63,44 +73,58 @@
     return vapidPublicKey;
   }
 
-  function ensureInstallButtons() {
-    const selectors = [
-      { root: '#nav', position: 'append' },
-      { root: '.footer__links', position: 'append' },
-      { root: '#topbar-actions', position: 'prepend' },
-      { root: '.login-card', position: 'append' },
+  async function isAppInstalled() {
+    if (isStandalone()) return true;
+
+    if ('getInstalledRelatedApps' in navigator) {
+      try {
+        const apps = await navigator.getInstalledRelatedApps();
+        if (apps && apps.length > 0) {
+          localStorage.setItem(INSTALL_KEY, '1');
+          return true;
+        }
+        localStorage.removeItem(INSTALL_KEY);
+        return false;
+      } catch {
+        /* fall through */
+      }
+    }
+
+    return localStorage.getItem(INSTALL_KEY) === '1';
+  }
+
+  function createAppButton(variant) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `pwa-app-btn pwa-app-btn--${variant}`;
+    btn.dataset.mode = 'download';
+    btn.setAttribute('aria-label', 'تنزيل تطبيق الهيف');
+    btn.innerHTML = `
+      <span class="pwa-app-btn__label">${LABELS.download}</span>
+      <span class="pwa-app-btn__badge" aria-hidden="true"></span>
+    `;
+    btn.addEventListener('click', onAppButtonClick);
+    return btn;
+  }
+
+  function ensureAppButtons() {
+    const placements = [
+      { root: '#nav', position: 'prepend', variant: 'nav' },
+      { root: '.header__actions', position: 'prepend', variant: 'header' },
+      { root: '#topbar-actions', position: 'prepend', variant: 'topbar' },
+      { root: '.login-card', position: 'append', variant: 'login' },
     ];
 
-    selectors.forEach(({ root, position }) => {
+    placements.forEach(({ root, position, variant }) => {
       const container = document.querySelector(root);
       if (!container) return;
-      if (container.querySelector('.pwa-install-btn')) return;
+      if (container.querySelector(`.pwa-app-btn--${variant}`)) return;
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-outline btn-sm pwa-install-btn';
-      btn.textContent = INSTALL_LABEL;
-      btn.hidden = true;
-      btn.addEventListener('click', onInstallClick);
-
-      if (root === '.footer__links') {
-        const li = document.createElement('li');
-        li.appendChild(btn);
-        btn.className = 'pwa-install-btn pwa-install-btn--link';
-        btn.hidden = true;
-        if (position === 'append') container.appendChild(li);
-        else container.prepend(li);
-        return;
+      const btn = createAppButton(variant);
+      if (variant === 'header' || variant === 'topbar' || variant === 'login') {
+        btn.classList.add('btn', 'btn-outline', 'btn-sm');
       }
-
-      if (root === '#nav') {
-        btn.className = 'nav__link pwa-install-btn pwa-install-btn--nav';
-        btn.textContent = INSTALL_LABEL_NAV;
-        btn.setAttribute('aria-label', INSTALL_LABEL);
-      }
-
-      if (root === '.login-card') {
-        btn.className = 'btn btn-outline btn-sm pwa-install-btn pwa-install-btn--login';
+      if (variant === 'login') {
         btn.style.marginTop = '1rem';
         btn.style.width = '100%';
       }
@@ -108,52 +132,101 @@
       if (position === 'prepend') container.prepend(btn);
       else container.appendChild(btn);
     });
-
-    if (isIOS() && !isStandalone()) {
-      ensureIosHint();
-    }
   }
 
   function ensureIosHint() {
-    if (document.getElementById('pwa-ios-hint')) return;
+    if (!isIOS() || isStandalone()) return;
     const targets = [
+      document.querySelector('.header__actions'),
       document.querySelector('#nav'),
       document.querySelector('#topbar-actions'),
       document.querySelector('.login-card'),
     ].filter(Boolean);
+    if (!targets.length || document.getElementById('pwa-ios-hint')) return;
 
-    if (!targets.length) return;
     const hint = document.createElement('p');
     hint.id = 'pwa-ios-hint';
     hint.className = 'pwa-ios-hint';
     hint.textContent = IOS_HINT;
-    hint.hidden = isStandalone();
     targets[0].appendChild(hint);
   }
 
-  function setInstallButtonsVisible(show) {
-    document.querySelectorAll('.pwa-install-btn').forEach((btn) => {
-      btn.hidden = !show;
-    });
-    const hint = document.getElementById('pwa-ios-hint');
-    if (hint) hint.hidden = isStandalone() || !isIOS();
+  function syncPendingUpdateState() {
+    hasPendingUpdate = !!(pendingSwWorker || swRegistration?.waiting);
   }
 
-  async function onInstallClick() {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      const { outcome } = await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-      if (outcome === 'accepted') setInstallButtonsVisible(false);
+  async function refreshAppButtonState() {
+    if (!isPWASupported()) {
+      document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
+        btn.hidden = true;
+      });
       return;
     }
-    if (isIOS()) {
-      alert(IOS_HINT);
+
+    syncPendingUpdateState();
+    const installed = await isAppInstalled();
+    buttonMode = installed ? 'update' : 'download';
+
+    const showDownload = !installed && (deferredInstallPrompt || isIOS() || !installed);
+    const visible = installed || showDownload;
+
+    document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
+      btn.hidden = !visible;
+      btn.dataset.mode = buttonMode;
+      const label = btn.querySelector('.pwa-app-btn__label');
+      if (label) label.textContent = LABELS[buttonMode];
+
+      btn.classList.toggle('pwa-app-btn--download', buttonMode === 'download');
+      btn.classList.toggle('pwa-app-btn--update', buttonMode === 'update');
+      btn.classList.toggle('pwa-app-btn--notify', buttonMode === 'update' && hasPendingUpdate);
+
+      if (buttonMode === 'update') {
+        btn.setAttribute('aria-label', hasPendingUpdate ? 'تحديث التطبيق — يتوفر إصدار جديد' : 'تحديث التطبيق');
+      } else {
+        btn.setAttribute('aria-label', 'تنزيل تطبيق الهيف');
+      }
+    });
+
+    const hint = document.getElementById('pwa-ios-hint');
+    if (hint) hint.hidden = installed || !isIOS();
+  }
+
+  async function onAppButtonClick() {
+    if (buttonMode === 'download') {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        if (outcome === 'accepted') {
+          localStorage.setItem(INSTALL_KEY, '1');
+        }
+        await refreshAppButtonState();
+        return;
+      }
+      if (isIOS()) {
+        alert(IOS_HINT);
+      } else {
+        alert('التثبيت غير متاح حالياً من هذا المتصفح. جرّب Chrome أو Edge على الجوال أو سطح المكتب.');
+      }
+      return;
+    }
+
+    if (hasPendingUpdate) {
+      applyPendingUpdate();
+      return;
+    }
+
+    try {
+      await swRegistration?.update();
+    } catch { /* ignore */ }
+
+    if (!hasPendingUpdate) {
+      alert('أنت تستخدم أحدث نسخة من التطبيق.');
     }
   }
 
   async function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) return null;
+    if (!isPWASupported()) return null;
     try {
       const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
       swRegistration = reg;
@@ -179,13 +252,16 @@
 
       if (reg.waiting) {
         pendingSwWorker = reg.waiting;
-        showUpdateBanner();
+        refreshAppButtonState();
       }
 
       reg.update().catch(() => {});
       setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        if (document.visibilityState === 'visible') {
+          reg.update().catch(() => {});
+          refreshAppButtonState();
+        }
       });
 
       return reg;
@@ -199,28 +275,9 @@
     worker.addEventListener('statechange', () => {
       if (worker.state === 'installed' && navigator.serviceWorker.controller) {
         pendingSwWorker = worker;
-        showUpdateBanner();
+        refreshAppButtonState();
       }
     });
-  }
-
-  function showUpdateBanner() {
-    if (document.getElementById('pwa-update-banner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'pwa-update-banner';
-    banner.className = 'pwa-update-banner';
-    banner.setAttribute('role', 'alert');
-    banner.innerHTML = `
-      <span class="pwa-update-banner__text">يتوفر تحديث جديد للتطبيق</span>
-      <button type="button" class="pwa-update-banner__btn">تحديث الآن</button>
-      <button type="button" class="pwa-update-banner__dismiss" aria-label="لاحقاً">×</button>
-    `;
-
-    banner.querySelector('.pwa-update-banner__btn')?.addEventListener('click', applyPendingUpdate);
-    banner.querySelector('.pwa-update-banner__dismiss')?.addEventListener('click', () => banner.remove());
-
-    document.body.appendChild(banner);
   }
 
   function applyPendingUpdate() {
@@ -235,7 +292,7 @@
   }
 
   async function subscribePush(options = {}) {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!isPWASupported() || !('PushManager' in window)) {
       return { ok: false, reason: 'unsupported' };
     }
 
@@ -284,7 +341,7 @@
   }
 
   async function unsubscribePush() {
-    if (!('serviceWorker' in navigator)) return;
+    if (!isPWASupported()) return;
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
@@ -399,24 +456,27 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
-      if (!isStandalone()) setInstallButtonsVisible(true);
+      refreshAppButtonState();
     });
 
     window.addEventListener('appinstalled', () => {
       deferredInstallPrompt = null;
-      setInstallButtonsVisible(false);
+      localStorage.setItem(INSTALL_KEY, '1');
+      refreshAppButtonState();
     });
 
-    if (!isStandalone()) {
-      if (deferredInstallPrompt || isIOS()) setInstallButtonsVisible(true);
-    }
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
+      refreshAppButtonState();
+    });
   }
 
   async function init() {
-    ensureInstallButtons();
+    ensureAppButtons();
+    ensureIosHint();
     initInstallPrompt();
     bindSubscribeForm();
     await registerServiceWorker();
+    await refreshAppButtonState();
 
     const auth = getAuthContext();
     if (auth.role !== 'client' && Notification.permission === 'granted') {
@@ -434,10 +494,11 @@
     hasOffersConsent,
     isStandalone,
     getClientKey,
-    promptInstall: onInstallClick,
+    promptInstall: onAppButtonClick,
     promptRolePush,
     checkForUpdates: () => swRegistration?.update(),
     applyUpdate: applyPendingUpdate,
+    refreshAppButtonState,
   };
 
   if (document.readyState === 'loading') {
