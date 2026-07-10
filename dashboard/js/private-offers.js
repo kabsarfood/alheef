@@ -51,6 +51,13 @@ async function loadAccess() {
     const codeDisplay = document.getElementById('access-code-display')?.value || '••••••••';
     el.innerHTML = `
       <h3>رابط المشاركة ورمز الدخول</h3>
+      ${accessInfo.active ? '' : `
+        <div class="access-warning" id="access-warning">
+          <strong>⚠ الصفحة موقوفة حاليًا</strong>
+          <p>العملاء لا يستطيعون الدخول حتى تفعّل الصفحة.</p>
+          <button type="button" class="btn btn-gold btn-sm" id="btn-activate-now">تفعيل الصفحة الآن</button>
+        </div>
+      `}
       <p class="text-muted">شارك الرابط مع العميل المهتم — لن يظهر في الموقع العام. الرابط مشفّر ولا يكشف نوع الصفحة.</p>
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1">
@@ -78,6 +85,13 @@ async function loadAccess() {
       <p id="generated-code-hint" class="text-muted" style="margin-top:.75rem">${accessInfo.hasCode ? 'كل رابط جديد يُنشئ رمز دخول جديدًا مرتبطًا به — انسخهما معًا' : 'اضغط «رابط جديد» لإنشاء رابط ورمز مرتبطين'}</p>
     `;
 
+    document.getElementById('btn-activate-now')?.addEventListener('click', async () => {
+      await DashboardAPI.setPrivateAccessActive(true);
+      accessInfo.active = true;
+      document.getElementById('access-active').checked = true;
+      document.getElementById('access-warning')?.remove();
+      showToast('تم تفعيل الصفحة — يمكن للعملاء الدخول الآن');
+    });
     document.getElementById('btn-copy-url')?.addEventListener('click', () => {
       navigator.clipboard.writeText(accessInfo.shareUrl).then(() => showToast('تم نسخ الرابط'));
     });
@@ -210,14 +224,14 @@ function openOfferModal(id) {
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>الموقع / اللوكيشن</label>
-            <input name="location" value="${existing?.location || ''}" placeholder="رابط خرائط أو وصف الموقع">
+            <input name="location" value="${existing?.location || ''}" placeholder="مثال: التقاطع السادس — أو سطر ثانٍ برابط الخريطة">
           </div>
           <div class="form-group">
             <label><input type="checkbox" name="showLocation" value="true" ${existing?.showLocation !== false ? 'checked' : ''}> إظهار الموقع للعميل</label>
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>وصف مختصر</label>
-            <textarea name="shortDescription" rows="3">${existing?.shortDescription || ''}</textarea>
+            <textarea name="shortDescription" rows="3" placeholder="السطر الأول: اسم الحي (مثل المهدية) — باقي الأسطر: وصف إضافي">${existing?.shortDescription || ''}</textarea>
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>صور العقار ${id ? '(اختياري — تُضاف للمعرض)' : '*'}</label>

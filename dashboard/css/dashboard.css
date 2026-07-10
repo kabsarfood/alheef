@@ -909,6 +909,21 @@ button, input, select, textarea {
   opacity: 0.4;
 }
 
+.access-warning {
+  background: var(--danger-bg);
+  border: 1px solid rgba(192, 57, 43, 0.25);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--danger);
+}
+
+.access-warning p {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
 .loading {
   text-align: center;
   padding: 2rem;

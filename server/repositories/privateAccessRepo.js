@@ -114,6 +114,7 @@ async function regenerateSlug() {
     .update({
       page_slug: slug,
       access_code_hash: hashPassword(plainCode),
+      active: true,
       updated_at: new Date().toISOString(),
     })
     .eq('id', ACCESS_ID)

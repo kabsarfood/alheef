@@ -103,36 +103,66 @@
   }
 
   function renderOffer(o) {
-    const imgs = (o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []);
+    const actions = `
+      <div class="private-offer-card__actions">
+        <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">تحميل PDF للعرض</button>
+      </div>
+    `;
+    return `
+      <article class="private-offer-card" id="offer-${o.id}">
+        ${buildOfferCardInner(o, null, actions)}
+      </article>
+    `;
+  }
+
+  function buildOfferCardInner(o, imageSources, extraBodyHtml = '') {
+    const imgs = imageSources || ((o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []));
     const galleryHtml = imgs.length
       ? `<div class="private-offer-card__gallery">${imgs.map((u) => `<img src="${u}" alt="" loading="lazy">`).join('')}</div>`
       : '';
     const locationHtml = o.showLocation && o.location
-      ? `<div class="private-offer-card__location"><dt>الموقع</dt><dd>${isUrl(o.location) ? `<a href="${o.location}" target="_blank" rel="noopener">عرض على الخريطة</a>` : escapeHtml(o.location)}</dd></div>`
+      ? `<div class="private-offer-card__location"><dt>الموقع</dt><dd>${locationContent(o.location)}</dd></div>`
       : '';
 
     return `
-      <article class="private-offer-card" id="offer-${o.id}">
-        ${galleryHtml}
-        <div class="private-offer-card__body">
-          <span class="private-offer-card__number">${escapeHtml(o.offerNumber)}</span>
-          <div class="private-offer-card__price">${escapeHtml(o.priceDisplay || '—')}</div>
-          <dl class="private-offer-card__meta">
-            <div><dt>نوع العقار</dt><dd>${escapeHtml(o.propertyTypeLabel)}</dd></div>
-            <div><dt>المساحة</dt><dd>${o.area != null ? o.area + ' م²' : '—'}</dd></div>
-            <div><dt>الشارع</dt><dd>${escapeHtml(o.street || '—')}</dd></div>
-            <div><dt>رقم القطعة</dt><dd>${escapeHtml(o.plotNumber || '—')}</dd></div>
-            <div><dt>رقم المخطط</dt><dd>${escapeHtml(o.planNumber || '—')}</dd></div>
-            <div><dt>الحالة</dt><dd>${escapeHtml(o.statusLabel)}</dd></div>
-            ${locationHtml}
-          </dl>
-          ${o.shortDescription ? `<p class="private-offer-card__desc">${escapeHtml(o.shortDescription)}</p>` : ''}
-          <div class="private-offer-card__actions">
-            <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">تحميل PDF للعرض</button>
-          </div>
-        </div>
-      </article>
+      ${galleryHtml}
+      <div class="private-offer-card__body">
+        <span class="private-offer-card__number">${escapeHtml(o.offerNumber)}</span>
+        <div class="private-offer-card__price">${escapeHtml(o.priceDisplay || '—')}</div>
+        <dl class="private-offer-card__meta">
+          <div><dt>نوع العقار</dt><dd>${escapeHtml(o.propertyTypeLabel)}</dd></div>
+          <div><dt>المساحة</dt><dd>${o.area != null ? o.area + ' م²' : '—'}</dd></div>
+          <div><dt>الشارع</dt><dd>${escapeHtml(o.street || '—')}</dd></div>
+          <div><dt>رقم القطعة</dt><dd>${escapeHtml(o.plotNumber || '—')}</dd></div>
+          <div><dt>رقم المخطط</dt><dd>${escapeHtml(o.planNumber || '—')}</dd></div>
+          <div><dt>الحالة</dt><dd>${escapeHtml(o.statusLabel)}</dd></div>
+          ${locationHtml}
+        </dl>
+        ${o.shortDescription ? `<p class="private-offer-card__desc">${formatMultiline(o.shortDescription)}</p>` : ''}
+        ${extraBodyHtml}
+      </div>
     `;
+  }
+
+  function locationContent(location) {
+    const loc = String(location || '').trim();
+    if (!loc) return '—';
+    if (isUrl(loc)) {
+      return `<a href="${escapeAttr(loc)}" target="_blank" rel="noopener">عرض على الخريطة</a>`;
+    }
+    return formatMultiline(loc);
+  }
+
+  function formatMultiline(text) {
+    return escapeHtml(text).replace(/\n/g, '<br>');
+  }
+
+  function escapeAttr(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   function isUrl(s) {
@@ -147,49 +177,106 @@
       .replace(/"/g, '&quot;');
   }
 
-  function pdfRow(label, value) {
-    return `
-      <div class="private-pdf__row">
-        <span class="private-pdf__row-label">${label}</span>
-        <span class="private-pdf__row-value">${value}</span>
-      </div>
-    `;
+  const PDF_A4_WIDTH = 794;
+
+  function showPdfToast(msg, isError = false) {
+    const el = document.getElementById('pdf-toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `pdf-toast${isError ? ' pdf-toast--error' : ''}`;
+    el.hidden = false;
+    clearTimeout(showPdfToast._t);
+    showPdfToast._t = setTimeout(() => { el.hidden = true; }, isError ? 4500 : 2800);
   }
 
-  function buildPdfElement(o) {
-    const imgs = (o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []);
-    const imgsHtml = imgs.length
-      ? `<div class="private-pdf__images">${imgs.map((u) => `<img src="${u}" alt="" crossorigin="anonymous">`).join('')}</div>`
-      : '';
-
-    const locationRow = o.showLocation && o.location
-      ? pdfRow('الموقع / اللوكيشن', escapeHtml(isUrl(o.location) ? o.location : o.location))
-      : '';
-
-    const el = document.createElement('div');
-    el.className = 'private-pdf';
-    el.setAttribute('dir', 'rtl');
-    el.setAttribute('lang', 'ar');
-    el.innerHTML = `
-      <div class="private-pdf__offer-no">
-        <div class="private-pdf__offer-no-label">رقم العرض</div>
-        <div class="private-pdf__offer-no-value">${escapeHtml(o.offerNumber)}</div>
-      </div>
-      ${pdfRow('نوع العقار', escapeHtml(o.propertyTypeLabel))}
-      ${pdfRow('المساحة', o.area != null ? `${o.area} م²` : '—')}
-      ${pdfRow('الشارع', escapeHtml(o.street || '—'))}
-      ${pdfRow('رقم القطعة', escapeHtml(o.plotNumber || '—'))}
-      ${pdfRow('رقم المخطط', escapeHtml(o.planNumber || '—'))}
-      ${pdfRow('السعر', escapeHtml(o.priceDisplay || '—'))}
-      ${locationRow}
-      ${o.shortDescription ? `<div class="private-pdf__desc"><strong>وصف مختصر:</strong><br>${escapeHtml(o.shortDescription)}</div>` : ''}
-      ${imgsHtml}
-      <p class="private-pdf__disclaimer">${PDF_DISCLAIMER}</p>
-    `;
-    return el;
+  async function imageToDataUrl(url) {
+    if (!url) return null;
+    const bust = `${url}${url.includes('?') ? '&' : '?'}pdf=${Date.now()}`;
+    try {
+      const res = await fetch(bust, { mode: 'cors', cache: 'no-store' });
+      if (!res.ok) throw new Error('fetch');
+      const blob = await res.blob();
+      const bitmap = await createImageBitmap(blob);
+      const maxW = 1200;
+      let w = bitmap.width;
+      let h = bitmap.height;
+      if (w > maxW) {
+        h = Math.round(h * maxW / w);
+        w = maxW;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      if (bitmap.close) bitmap.close();
+      return canvas.toDataURL('image/jpeg', 0.9);
+    } catch {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const maxW = 1200;
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            if (w > maxW) {
+              h = Math.round(h * maxW / w);
+              w = maxW;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.9));
+          } catch {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = bust;
+      });
+    }
   }
 
-  function waitForHtml2Pdf(timeoutMs = 12000) {
+  async function preparePdfImages(urls) {
+    const list = (urls || []).filter(Boolean);
+    return Promise.all(list.map((url) => imageToDataUrl(url)));
+  }
+
+  async function buildPdfElement(offer) {
+    const card = document.getElementById(`offer-${offer.id}`);
+    if (!card) {
+      throw new Error('تعذر إيجاد العرض على الصفحة');
+    }
+
+    const clone = card.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.classList.add('private-pdf__card');
+    clone.querySelector('.private-offer-card__actions')?.remove();
+
+    const imgEls = [...clone.querySelectorAll('.private-offer-card__gallery img')];
+    const rawUrls = imgEls.map((img) => img.getAttribute('src')).filter(Boolean);
+    const dataUrls = await preparePdfImages(rawUrls);
+    imgEls.forEach((img, i) => {
+      if (dataUrls[i]) img.src = dataUrls[i];
+      img.removeAttribute('loading');
+    });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'private-pdf';
+    wrap.setAttribute('dir', 'rtl');
+    wrap.setAttribute('lang', 'ar');
+    wrap.appendChild(clone);
+
+    const disclaimer = document.createElement('p');
+    disclaimer.className = 'private-pdf__disclaimer';
+    disclaimer.textContent = PDF_DISCLAIMER;
+    wrap.appendChild(disclaimer);
+
+    return wrap;
+  }
+
+  function waitForHtml2Pdf(timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
       if (typeof html2pdf !== 'undefined') return resolve();
       const start = Date.now();
@@ -210,29 +297,61 @@
       try {
         await Promise.all([
           document.fonts.load('400 16px Cairo'),
+          document.fonts.load('600 16px Cairo'),
           document.fonts.load('700 16px Cairo'),
-          document.fonts.load('800 24px Cairo'),
+          document.fonts.load('800 28px Cairo'),
         ]);
         await document.fonts.ready;
       } catch { /* continue */ }
     }
+    await new Promise((r) => setTimeout(r, 120));
   }
 
-  function preloadImages(urls) {
-    return Promise.all((urls || []).map((url) => new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+  function waitForImagesIn(el) {
+    const imgs = [...el.querySelectorAll('img')];
+    return Promise.all(imgs.map((img) => new Promise((resolve) => {
+      if (img.complete && img.naturalWidth > 0) return resolve();
       img.onload = () => resolve();
       img.onerror = () => resolve();
-      img.src = url;
+      setTimeout(resolve, 8000);
     })));
   }
 
-  function pdfScale() {
+  function pdfRenderScale() {
     const w = window.innerWidth || 1024;
-    if (w < 480) return 1.4;
-    if (w < 768) return 1.6;
-    return 2;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    if (w < 480) return Math.max(2, Math.min(dpr * 1.2, 2.5));
+    if (w < 768) return Math.max(2, Math.min(dpr * 1.1, 2.2));
+    return Math.min(Math.max(dpr, 2), 3);
+  }
+
+  function pdfOptions(offerNumber) {
+    const scale = pdfRenderScale();
+    return {
+      margin: [8, 8, 10, 8],
+      filename: `${offerNumber}.pdf`,
+      image: { type: 'jpeg', quality: 0.93 },
+      html2canvas: {
+        scale,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: PDF_A4_WIDTH,
+        width: PDF_A4_WIDTH,
+        letterRendering: true,
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true,
+        precision: 16,
+      },
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['.private-offer-card__gallery', '.private-offer-card__meta', '.private-offer-card__desc', '.private-pdf__disclaimer'] },
+    };
   }
 
   let pdfBusy = false;
@@ -245,43 +364,27 @@
     btn.disabled = true;
     btn.classList.add('is-loading');
     btn.textContent = 'جاري التحميل...';
+    showPdfToast('جاري إنشاء PDF...');
 
-    const host = document.createElement('div');
-    host.style.cssText = 'position:fixed;left:0;top:0;width:794px;opacity:0;pointer-events:none;z-index:-1';
-    document.body.appendChild(host);
+    const host = document.getElementById('pdf-render-root') || document.body;
+    const slot = document.createElement('div');
+    host.appendChild(slot);
 
     try {
       await waitForHtml2Pdf();
       await waitForFonts();
 
-      const imgs = (offer.gallery && offer.gallery.length) ? offer.gallery : (offer.coverImage ? [offer.coverImage] : []);
-      await preloadImages(imgs);
-
-      const pdfEl = buildPdfElement(offer);
-      host.appendChild(pdfEl);
-
+      const pdfEl = await buildPdfElement(offer);
+      slot.appendChild(pdfEl);
+      await waitForImagesIn(pdfEl);
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      await html2pdf().set({
-        margin: [10, 10, 12, 10],
-        filename: `${offer.offerNumber}.pdf`,
-        image: { type: 'jpeg', quality: 0.9 },
-        html2canvas: {
-          scale: pdfScale(),
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: '#ffffff',
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 794,
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      }).from(pdfEl).save();
+      await html2pdf().set(pdfOptions(offer.offerNumber)).from(pdfEl).save();
+      showPdfToast('تم تحميل PDF بنجاح');
     } catch (err) {
-      alert(err.message || 'تعذر إنشاء ملف PDF');
+      showPdfToast(err.message || 'تعذر إنشاء ملف PDF', true);
     } finally {
-      host.remove();
+      slot.remove();
       btn.disabled = false;
       btn.classList.remove('is-loading');
       btn.textContent = originalText;
