@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=7">
   <link rel="stylesheet" href="/css/mobile.css?v=9">
-  <link rel="stylesheet" href="/css/map.css?v=42">
+  <link rel="stylesheet" href="/css/map.css?v=43">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="map-page">
@@ -119,7 +119,6 @@
         </div>
         <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
-        <button type="button" class="map-add-fab" id="map-add-fab" aria-label="إضافة عقار على الخريطة" title="إضافة عقار">+</button>
         <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
         <div class="map-sheet" id="map-sheet" aria-hidden="true">
           <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
@@ -131,75 +130,6 @@
       </div>
     </section>
   </main>
-
-  <div class="map-add-panel" id="map-add-panel" aria-hidden="true">
-    <div class="map-add-panel__backdrop" id="map-add-backdrop"></div>
-    <div class="map-add-panel__sheet" role="dialog" aria-modal="true" aria-labelledby="map-add-title">
-      <div class="map-add-panel__handle" aria-hidden="true"></div>
-      <header class="map-add-panel__head">
-        <h2 id="map-add-title">إضافة عقار على الخريطة</h2>
-        <button type="button" class="map-add-panel__close" id="map-add-close" aria-label="إغلاق">×</button>
-      </header>
-      <form id="map-add-form" class="map-add-form" enctype="multipart/form-data">
-        <p class="map-add-form__coords" id="map-add-coords-label">انقر على الخريطة لتحديد الموقع</p>
-        <input type="hidden" name="latitude" id="map-add-lat">
-        <input type="hidden" name="longitude" id="map-add-lng">
-        <input type="hidden" name="status" value="published">
-        <label>نوع العقار <span class="req">*</span>
-          <select name="propertyType" required>
-            <option value="">اختر</option>
-            <option>فيلا</option><option>شقة</option><option>أرض</option>
-            <option>عمارة</option><option>محل</option><option>مكتب</option>
-            <option>عقار تجاري</option><option>استراحة</option>
-          </select>
-        </label>
-        <label>غرض العقار
-          <select name="listingType"><option value="sale">بيع</option><option value="rent">إيجار</option></select>
-        </label>
-        <label>مساحة العقار (م²)
-          <input type="number" name="area" min="0" step="any" placeholder="450">
-        </label>
-        <div class="map-add-form__row">
-          <label>رقم القطعة <input type="text" name="plotNumber" placeholder="123"></label>
-          <label>رقم المخطط <input type="text" name="planNumber" placeholder="456"></label>
-        </div>
-        <div class="map-add-form__row">
-          <label>الاتجاه <input type="text" name="direction" placeholder="شمال"></label>
-          <label>عرض الشارع <input type="text" name="streetWidth" placeholder="15 م"></label>
-        </div>
-        <label>السعر (ر.س) <span class="req">*</span>
-          <input type="number" name="price" required min="0" dir="ltr" placeholder="3200000">
-        </label>
-        <fieldset class="map-add-form__price-type">
-          <legend>نوع السعر</legend>
-          <label><input type="radio" name="priceType" value="fixed" checked> مبلغ ثابت</label>
-          <label><input type="radio" name="priceType" value="auction"> على السوم</label>
-        </fieldset>
-        <label>رقم الترخيص
-          <input type="text" name="contractNumber" placeholder="رقم فال / الترخيص">
-        </label>
-        <label>رقم الجوال
-          <input type="tel" name="contactPhone" placeholder="05xxxxxxxx" dir="ltr">
-        </label>
-        <div class="map-add-form__row">
-          <label>المدينة <span class="req">*</span>
-            <input type="text" name="city" required placeholder="الرياض">
-          </label>
-          <label>اسم الحي
-            <input type="text" name="district" placeholder="النرجس">
-          </label>
-        </div>
-        <label>وصف مختصر
-          <textarea name="description" rows="6" placeholder="وصف العقار…"></textarea>
-        </label>
-        <label>صور العقار
-          <input type="file" name="images" id="map-add-images" accept="image/*" multiple>
-        </label>
-        <div class="map-add-form__preview" id="map-add-preview"></div>
-        <button type="submit" class="map-add-form__submit" id="map-add-submit">حفظ وإظهار على الخريطة</button>
-      </form>
-    </div>
-  </div>
 
   <div class="map-share-menu" id="share-menu" aria-hidden="true">
     <div class="map-share-menu__box">
@@ -221,7 +151,6 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
   <script src="/js/map.js?v=13"></script>
-  <script src="/js/map-add.js?v=6" defer></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     fetch('/api/config').then((r) => r.json()).then((c) => {

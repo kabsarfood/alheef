@@ -206,6 +206,60 @@ const DashboardAPI = {
         return data;
       }));
   },
+
+  getPrivateOffersAccess() {
+    return this.request('/private-offers/access');
+  },
+
+  updatePrivateAccessCode(accessCode) {
+    return this.request('/private-offers/access/code', {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ accessCode }),
+    });
+  },
+
+  regeneratePrivateAccessCode() {
+    return this.request('/private-offers/access/regenerate-code', { method: 'POST' });
+  },
+
+  regeneratePrivateSlug() {
+    return this.request('/private-offers/access/regenerate-slug', { method: 'POST' });
+  },
+
+  setPrivateAccessActive(active) {
+    return this.request('/private-offers/access/active', {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ active }),
+    });
+  },
+
+  getPrivateOffers() {
+    return this.request('/private-offers').then((d) => d.offers || []);
+  },
+
+  savePrivateOffer(formData, id = null) {
+    const url = `${this.base}${id ? `/private-offers/${id}` : '/private-offers'}`;
+    return fetch(url, {
+      method: id ? 'PUT' : 'POST',
+      headers: Auth.authHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (res.status === 401) {
+        Auth.clearToken();
+        window.location.replace(Auth.LOGIN_PATH);
+        throw new Error('انتهت الجلسة');
+      }
+      if (!res.ok) throw new Error(data.message || 'حدث خطأ');
+      return data;
+    });
+  },
+
+  deletePrivateOffer(id) {
+    return this.request(`/private-offers/${id}`, { method: 'DELETE' });
+  },
 };
 
 function showToast(message, type = 'success') {

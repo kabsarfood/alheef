@@ -8,6 +8,7 @@ const BUCKETS = {
   banners: 'banners',
   logos: 'logos',
   news: 'news',
+  privateOffers: 'alheef-assets',
 };
 
 const MIME = {
@@ -26,6 +27,7 @@ function resolveBucket(folder) {
   if (folder === 'banners' || folder === 'banner') return BUCKETS.banners;
   if (folder === 'logos' || folder === 'logo') return BUCKETS.logos;
   if (folder === 'news') return BUCKETS.news;
+  if (folder === 'private-offers' || folder === 'private_offers') return BUCKETS.privateOffers;
   return BUCKETS.assets;
 }
 

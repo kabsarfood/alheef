@@ -793,9 +793,7 @@ body.map-fs-active .map-stage {
   }
 
   .map-add-fab {
-    bottom: 1rem;
-    inset-inline-start: 0.75rem;
-    top: auto;
+    display: none !important;
   }
 
   body.map-fs-active .map-fs-btn,
@@ -833,24 +831,9 @@ body.map-fs-active .map-stage {
   }
 }
 
-/* إضافة عقار من الخريطة — أدمن */
+/* إضافة عقار من الخريطة — مُعطّل (الإدارة من لوحة التحكم فقط) */
 .map-add-fab {
-  position: absolute;
-  inset-inline-start: 1rem;
-  bottom: 1rem;
-  z-index: 520;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: var(--map-gold);
-  color: var(--map-navy);
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(197, 164, 109, 0.45);
-  transition: transform 0.2s, box-shadow 0.2s;
+  display: none !important;
 }
 
 
@@ -866,6 +849,7 @@ body.map-fs-active .map-stage {
 }
 
 .map-add-panel {
+  display: none !important;
   position: fixed;
   inset: 0;
   z-index: 2500;

@@ -35,6 +35,7 @@ let adminRoutes;
 let authRoutes;
 let marketerRoutes;
 let pushRoutes;
+let privateOffersRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -46,6 +47,7 @@ try {
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
+  privateOffersRoutes = require('./server/routes/privateOffers');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -71,6 +73,7 @@ const publicDir = path.join(ROOT, 'public');
 const dashboardDir = path.join(ROOT, 'dashboard');
 const marketerDir = path.join(ROOT, 'marketer');
 const { getAppBuild } = require('./server/utils/appBuild');
+const { PRIVATE_PAGE_RE } = require('./server/utils/privateOffersPath');
 
 console.log('STEP 5 — Supabase');
 console.log('  PORT:', PORT);
@@ -143,6 +146,19 @@ app.use((req, res, next) => {
   next();
 });
 
+function sendPrivateOffersPage(res) {
+  const pagePath = path.join(publicDir, 'private-offers.html');
+  if (!fs.existsSync(pagePath)) {
+    return res.status(404).send('الصفحة غير موجودة');
+  }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  return res.sendFile(pagePath);
+}
+
+/** العروض الخاصة — قبل static لضمان عدم إعادة التوجيه للصفحة الرئيسية */
+app.get(PRIVATE_PAGE_RE, (req, res) => sendPrivateOffersPage(res));
+
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir));
   console.log('  static /dashboard ✓');
@@ -176,6 +192,7 @@ app.get('/health/ready', async (_req, res) => {
 });
 
 app.use('/api/push', pushRoutes);
+app.use('/api/private-offers', privateOffersRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/marketer', marketerRoutes);
 app.use('/api', apiRoutes);
@@ -236,6 +253,10 @@ app.get('*', (req, res, next) => {
     }
     if (req.path.startsWith('/dashboard')) {
       return sendDashboardPage(res, req.path);
+    }
+
+    if (PRIVATE_PAGE_RE.test(req.path)) {
+      return sendPrivateOffersPage(res);
     }
 
     const pageMap = {

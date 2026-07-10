@@ -469,6 +469,111 @@ function rowToBanner(row) {
   };
 }
 
+function rowToPrivateOffer(row) {
+  if (!row) return null;
+  const gallery = Array.isArray(row.gallery) ? row.gallery : [];
+  return {
+    id: row.id,
+    offerNumber: row.offer_number,
+    propertyType: row.property_type,
+    area: row.area != null ? Number(row.area) : null,
+    street: row.street || '',
+    plotNumber: row.plot_number || '',
+    planNumber: row.plan_number || '',
+    price: row.price != null ? Number(row.price) : null,
+    location: row.location || '',
+    showLocation: row.show_location !== false,
+    shortDescription: row.short_description || '',
+    coverImage: row.cover_image || gallery[0] || '',
+    gallery,
+    status: row.status || 'available',
+    internalNotes: row.internal_notes || '',
+    visible: row.visible !== false,
+    active: row.active !== false,
+    sortOrder: row.sort_order ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function privateOfferToRow(body) {
+  const gallery = Array.isArray(body.gallery) ? body.gallery : undefined;
+  return {
+    property_type: body.propertyType,
+    area: body.area != null && body.area !== '' ? Number(body.area) : null,
+    street: body.street,
+    plot_number: body.plotNumber,
+    plan_number: body.planNumber,
+    price: body.price != null && body.price !== '' ? Number(body.price) : null,
+    location: body.location,
+    show_location: body.showLocation,
+    short_description: body.shortDescription,
+    cover_image: body.coverImage,
+    gallery,
+    status: body.status,
+    internal_notes: body.internalNotes,
+    visible: body.visible,
+    active: body.active,
+    sort_order: body.sortOrder != null ? Number(body.sortOrder) : undefined,
+  };
+}
+
+const PRIVATE_PROPERTY_TYPES = {
+  land: 'أرض',
+  villa: 'فيلا',
+  apartment: 'شقة',
+  building: 'عمارة',
+  investment: 'استثماري',
+  other: 'غير ذلك',
+};
+
+const PRIVATE_OFFER_STATUS = {
+  available: 'متاح',
+  reserved: 'محجوز',
+  sold: 'مباع',
+  hidden: 'مخفي',
+};
+
+function formatPrivatePrice(price) {
+  if (price == null || price === '') return '—';
+  return `${Number(price).toLocaleString('ar-SA')} ر.س`;
+}
+
+function toPublicPrivateOffer(offer) {
+  if (!offer) return null;
+  return {
+    id: offer.id,
+    offerNumber: offer.offerNumber,
+    propertyType: offer.propertyType,
+    propertyTypeLabel: PRIVATE_PROPERTY_TYPES[offer.propertyType] || offer.propertyType,
+    area: offer.area,
+    street: offer.street,
+    plotNumber: offer.plotNumber,
+    planNumber: offer.planNumber,
+    price: offer.price,
+    priceDisplay: formatPrivatePrice(offer.price),
+    location: offer.showLocation ? offer.location : '',
+    showLocation: offer.showLocation,
+    shortDescription: offer.shortDescription,
+    coverImage: offer.coverImage,
+    gallery: offer.gallery || [],
+    status: offer.status,
+    statusLabel: PRIVATE_OFFER_STATUS[offer.status] || offer.status,
+  };
+}
+
+function rowToPrivateAccess(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    pageSlug: row.page_slug,
+    hasCode: !!row.access_code_hash,
+    active: row.active !== false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function rowToTestimonial(row) {
   if (!row) return null;
   return {
@@ -573,4 +678,11 @@ module.exports = {
   rowToTestimonial,
   rowToRequest,
   rowToSubscription,
+  rowToPrivateOffer,
+  privateOfferToRow,
+  toPublicPrivateOffer,
+  rowToPrivateAccess,
+  PRIVATE_PROPERTY_TYPES,
+  PRIVATE_OFFER_STATUS,
+  formatPrivatePrice,
 };

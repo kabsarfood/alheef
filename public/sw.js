@@ -29,6 +29,14 @@ function isStaticAsset(url) {
     || url.pathname.startsWith('/images/');
 }
 
+function isStaffPath(url) {
+  return url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/marketer');
+}
+
+function isPrivatePath(url) {
+  return /^\/(?:v|p)\/[A-Za-z0-9_-]{8,64}\/?$/.test(url.pathname);
+}
+
 async function networkFirst(request, fallbackUrl) {
   const cache = await caches.open(CACHE_NAME);
   try {
@@ -95,7 +103,25 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
   if (url.pathname === '/sw.js') return;
 
+  if (isStaffPath(url)) {
+    event.respondWith(
+      fetch(request).catch(() => new Response('يتطلب اتصالاً بالإنترنت', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      }))
+    );
+    return;
+  }
+
   if (isHtmlRequest(request, url)) {
+    if (isPrivatePath(url)) {
+      event.respondWith(networkFirst(request));
+      return;
+    }
+    if (url.pathname === '/map' || url.pathname === '/map.html') {
+      event.respondWith(networkFirst(request, '/map.html'));
+      return;
+    }
     event.respondWith(networkFirst(request, '/index.html'));
     return;
   }

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /v/
+Disallow: /p/
+Disallow: /dashboard/
+Disallow: /marketer/

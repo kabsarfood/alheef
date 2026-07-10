@@ -10,6 +10,9 @@ const bannersRepo = require('../repositories/bannersRepo');
 const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
+const privateOffersRepo = require('../repositories/privateOffersRepo');
+const privateAccessRepo = require('../repositories/privateAccessRepo');
+const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 const { propertyToMapProperty } = require('../services/mappers');
 
 const router = express.Router();
@@ -653,6 +656,153 @@ router.put('/properties/:id/review', async (req, res) => {
     res.json({ success: true, property: updated });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ─── العروض الخاصة ───
+router.get('/private-offers/access', async (_req, res) => {
+  try {
+    const access = await privateAccessRepo.ensureAccessConfig();
+    res.json({
+      success: true,
+      access: {
+        pageSlug: access.pageSlug,
+        shareUrl: buildPrivateShareUrl(access.pageSlug),
+        hasCode: access.hasCode,
+        active: access.active,
+        updatedAt: access.updatedAt,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/access/code', async (req, res) => {
+  try {
+    const code = String(req.body.accessCode || '').trim();
+    if (!code) return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
+    await privateAccessRepo.updateAccessCode(code);
+    res.json({ success: true, message: 'تم تحديث رمز الدخول', accessCode: code });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/private-offers/access/regenerate-code', async (_req, res) => {
+  try {
+    const access = await privateAccessRepo.regenerateAccessCode();
+    res.json({ success: true, accessCode: access.plainCode });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/private-offers/access/regenerate-slug', async (_req, res) => {
+  try {
+    const access = await privateAccessRepo.regenerateSlug();
+    res.json({
+      success: true,
+      pageSlug: access.pageSlug,
+      shareUrl: buildPrivateShareUrl(access.pageSlug),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/access/active', async (req, res) => {
+  try {
+    const access = await privateAccessRepo.setAccessActive(req.body.active !== false);
+    res.json({ success: true, active: access.active });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/private-offers', async (_req, res) => {
+  try {
+    const offers = await privateOffersRepo.listAll();
+    res.json({ success: true, offers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+function parsePrivateOfferBody(body) {
+  return {
+    propertyType: body.propertyType || 'other',
+    area: body.area,
+    street: body.street,
+    plotNumber: body.plotNumber,
+    planNumber: body.planNumber,
+    price: body.price,
+    location: body.location,
+    showLocation: body.showLocation !== 'false' && body.showLocation !== false,
+    shortDescription: body.shortDescription,
+    coverImage: body.coverImage,
+    gallery: body.gallery ? JSON.parse(body.gallery) : undefined,
+    status: body.status || 'available',
+    internalNotes: body.internalNotes,
+    visible: body.visible !== 'false' && body.visible !== false,
+    active: body.active !== 'false' && body.active !== false,
+    sortOrder: body.sortOrder != null ? Number(body.sortOrder) : 0,
+  };
+}
+
+router.post('/private-offers', uploadMemory.fields([
+  { name: 'images', maxCount: 20 },
+]), async (req, res) => {
+  try {
+    const body = parsePrivateOfferBody(req.body);
+    const files = req.files?.images || [];
+    if (files.length) {
+      const urls = await uploadFiles(files, 'private-offers');
+      body.gallery = urls;
+      body.coverImage = urls[0];
+    }
+    if (!body.coverImage && !body.gallery?.length) {
+      return res.status(400).json({ success: false, message: 'يرجى إرفاق صورة واحدة على الأقل' });
+    }
+    const offer = await privateOffersRepo.create(body);
+    res.json({ success: true, offer });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/:id', uploadMemory.fields([
+  { name: 'images', maxCount: 20 },
+]), async (req, res) => {
+  try {
+    const existing = await privateOffersRepo.getById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'العرض غير موجود' });
+
+    const body = parsePrivateOfferBody(req.body);
+    const files = req.files?.images || [];
+    if (files.length) {
+      const urls = await uploadFiles(files, 'private-offers');
+      const keepGallery = body.gallery || existing.gallery || [];
+      body.gallery = [...keepGallery, ...urls];
+      if (!body.coverImage) body.coverImage = body.gallery[0];
+    } else if (body.gallery === undefined) {
+      body.gallery = existing.gallery;
+      body.coverImage = body.coverImage || existing.coverImage;
+    }
+
+    const offer = await privateOffersRepo.update(req.params.id, body);
+    res.json({ success: true, offer });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/private-offers/:id', async (req, res) => {
+  try {
+    const ok = await privateOffersRepo.remove(req.params.id);
+    res.json({ success: ok });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

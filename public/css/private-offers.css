@@ -1,0 +1,270 @@
+.private-page {
+  background: var(--ivory, #faf9f7);
+  min-height: 100vh;
+}
+
+.private-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.private-gate__card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(30, 42, 56, 0.08);
+  text-align: center;
+}
+
+.private-gate__logo {
+  margin: 0 auto 1.25rem;
+  display: block;
+}
+
+.private-gate__card h1 {
+  font-size: 1.35rem;
+  margin-bottom: 0.5rem;
+  color: var(--navy, #1E2A38);
+}
+
+.private-gate__card p {
+  color: #666;
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.private-gate__card label {
+  display: block;
+  text-align: right;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.private-gate__card input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.private-gate__error {
+  color: #c0392b;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.private-offers__header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+  background: var(--navy, #1E2A38);
+  color: #fff;
+}
+
+.private-offers__header img {
+  margin: 0 auto 1rem;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.private-offers__header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.private-offers__header p {
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+.private-offer-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(30, 42, 56, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+.private-offer-card__gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 4px;
+}
+
+.private-offer-card__gallery img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.private-offer-card__body {
+  padding: 1.25rem;
+}
+
+.private-offer-card__number {
+  display: inline-block;
+  background: var(--gold, #C5A46D);
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.private-offer-card__price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--navy, #1E2A38);
+  margin: 0.5rem 0;
+}
+
+.private-offer-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.92rem;
+}
+
+.private-offer-card__meta dt {
+  color: #888;
+  font-weight: 600;
+}
+
+.private-offer-card__meta dd {
+  margin: 0 0 0.5rem;
+  color: #333;
+}
+
+.private-offer-card__desc {
+  color: #555;
+  line-height: 1.7;
+  margin: 1rem 0;
+}
+
+.private-offer-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.private-offer-card__location a {
+  color: var(--gold, #C5A46D);
+  word-break: break-all;
+}
+
+.private-offers .empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.private-offer-card__actions .btn.is-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* قالب PDF — يُستخدم داخل html2pdf */
+.private-pdf {
+  width: 210mm;
+  max-width: 100%;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: embed;
+  color: #1E2A38;
+  background: #fff;
+  padding: 20px 24px;
+  box-sizing: border-box;
+}
+
+.private-pdf__offer-no {
+  background: #C5A46D;
+  color: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.private-pdf__offer-no-label {
+  font-size: 13px;
+  opacity: 0.92;
+  margin-bottom: 4px;
+}
+
+.private-pdf__offer-no-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.private-pdf__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.private-pdf__row-label {
+  color: #777;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.private-pdf__row-value {
+  text-align: left;
+  word-break: break-word;
+}
+
+.private-pdf__desc {
+  margin: 16px 0;
+  line-height: 1.85;
+  font-size: 14px;
+  color: #333;
+}
+
+.private-pdf__images img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 10px;
+  display: block;
+}
+
+.private-pdf__disclaimer {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: #f7f6f4;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #666;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .private-offer-card__gallery img {
+    height: 120px;
+  }
+}

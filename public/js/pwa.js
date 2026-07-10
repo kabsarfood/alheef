@@ -108,6 +108,10 @@
   }
 
   function ensureAppButtons() {
+    if (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/marketer')) {
+      return;
+    }
+
     const placements = [
       { root: '#nav', position: 'prepend', variant: 'nav' },
       { root: '.header__actions', position: 'prepend', variant: 'header' },
@@ -135,6 +139,9 @@
   }
 
   function ensureIosHint() {
+    if (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/marketer')) {
+      return;
+    }
     if (!isIOS() || isStandalone()) return;
     const targets = [
       document.querySelector('.header__actions'),

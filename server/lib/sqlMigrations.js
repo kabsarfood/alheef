@@ -7,6 +7,7 @@ const path = require('path');
 const MIGRATION_FILE = path.join(__dirname, '..', '..', 'supabase', 'migrations', 'APPLY_NOW.sql');
 const PUSH_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '006_push_subscriptions.sql');
 const EMAIL_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '007_marketer_email_password.sql');
+const PRIVATE_OFFERS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '008_private_offers.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -71,19 +72,28 @@ async function isNotificationsSchemaReady() {
   return !error;
 }
 
+async function isPrivateOffersSchemaReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('private_offers').select('id').limit(1);
+  return !error;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
     isEmailPasswordSchemaReady(),
+    isPrivateOffersSchemaReady(),
   ]);
   return {
     marketer,
     notifications,
     push,
     emailPassword,
-    allReady: marketer && notifications && push && emailPassword,
+    privateOffers,
+    allReady: marketer && notifications && push && emailPassword && privateOffers,
   };
 }
 
@@ -149,6 +159,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, EMAIL_MIGRATION, '007_email');
       applied.push('007_marketer_email_password');
     }
+    if (!status.privateOffers) {
+      await runSqlFile(client, PRIVATE_OFFERS_MIGRATION, '008_private_offers');
+      applied.push('008_private_offers');
+    }
 
     await client.end();
 
@@ -169,6 +183,7 @@ module.exports = {
   isPushSchemaReady,
   isEmailPasswordSchemaReady,
   isNotificationsSchemaReady,
+  isPrivateOffersSchemaReady,
   getSchemaStatus,
   getConnectionConfig,
 };

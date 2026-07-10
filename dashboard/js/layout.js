@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { section: 'الإدارة', items: [
     { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة عقار', page: 'add-property' },
     { href: '/dashboard/offers.html', icon: '◇', label: 'العقارات', page: 'offers' },
+    { href: '/dashboard/private-offers.html', icon: '◈', label: 'العروض الخاصة', page: 'private-offers' },
     { href: '/dashboard/banners.html', icon: '▣', label: 'البنرات', page: 'banners' },
     { href: '/dashboard/news.html', icon: '◉', label: 'الأخبار', page: 'news' },
     { href: '/dashboard/testimonials.html', icon: '★', label: 'آراء العملاء', page: 'testimonials' },

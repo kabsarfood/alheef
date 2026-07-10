@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="googlebot" content="noindex, nofollow">
+  <title>عروض خاصة — مكتب الهيف</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=10">
+  <link rel="stylesheet" href="/css/private-offers.css?v=2">
+</head>
+<body class="private-page">
+
+  <div id="gate-view" class="private-gate">
+    <div class="private-gate__card">
+      <img src="/images/logo-alheef.png" alt="الهيف العقارية" class="private-gate__logo" width="180" height="50">
+      <h1>العروض الخاصة</h1>
+      <p>هذه الصفحة خاصة. أدخل رمز الدخول الذي استلمته من فريق مكتب الهيف.</p>
+      <form id="gate-form">
+        <label for="access-code">رمز الدخول</label>
+        <input id="access-code" name="code" type="text" autocomplete="off" required placeholder="أدخل الرمز">
+        <button type="submit" class="btn btn-gold btn-block">دخول</button>
+        <p id="gate-error" class="private-gate__error" hidden></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="offers-view" class="private-offers" hidden>
+    <header class="private-offers__header">
+      <img src="/images/logo-alheef.png" alt="الهيف العقارية" width="160" height="44">
+      <h1>عروض خاصة لك</h1>
+      <p>اختر العرض المناسب وأرسل رقم العرض لفريقنا للمتابعة</p>
+    </header>
+    <main class="container" id="offers-container">
+      <div class="loading"><div class="spinner"></div></div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="/js/private-offers.js?v=4"></script>
+</body>
+</html>

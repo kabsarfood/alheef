@@ -1,21 +1,27 @@
 const crypto = require('crypto');
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PRIVATE_VIEWER_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getSecret() {
   return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'alheef-admin-secret';
 }
 
 function createToken(payload = {}) {
+  const ttl = payload.ttlMs || TOKEN_TTL_MS;
   const data = {
     role: payload.role || 'admin',
     userId: payload.userId || null,
     marketerId: payload.marketerId || null,
-    exp: Date.now() + TOKEN_TTL_MS,
+    exp: Date.now() + ttl,
   };
   const encoded = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = crypto.createHmac('sha256', getSecret()).update(encoded).digest('base64url');
   return `${encoded}.${sig}`;
+}
+
+function createPrivateViewerToken() {
+  return createToken({ role: 'private_viewer', ttlMs: PRIVATE_VIEWER_TTL_MS });
 }
 
 function parseToken(token) {
@@ -62,6 +68,7 @@ function requireRole(...roles) {
 
 const requireAdmin = requireRole('admin');
 const requireMarketer = requireRole('marketer');
+const requirePrivateViewer = requireRole('private_viewer');
 
 function requireAdminOrMarketer(req, res, next) {
   const header = req.headers.authorization || '';
@@ -76,10 +83,12 @@ function requireAdminOrMarketer(req, res, next) {
 
 module.exports = {
   createToken,
+  createPrivateViewerToken,
   parseToken,
   verifyToken,
   checkPassword,
   requireAdmin,
   requireMarketer,
   requireAdminOrMarketer,
+  requirePrivateViewer,
 };
