@@ -1,17 +1,18 @@
 (function () {
-  const TOKEN_KEY = 'alheef_private_token';
   const PDF_DISCLAIMER = 'هذا العرض مخصص للاطلاع فقط، ولا يحتوي على بيانات تواصل أو بيانات مالك.';
   const slugMatch = window.location.pathname.match(/^\/(?:v|p)\/([A-Za-z0-9_-]{8,64})\/?$/);
   const slug = slugMatch ? slugMatch[1] : '';
+  const TOKEN_KEY = `alheef_private_token_${slug}`;
 
   const gateView = document.getElementById('gate-view');
   const offersView = document.getElementById('offers-view');
   const gateForm = document.getElementById('gate-form');
   const gateError = document.getElementById('gate-error');
   const offersContainer = document.getElementById('offers-container');
+  const accessCodeInput = document.getElementById('access-code');
 
   if (!slug) {
-    document.body.innerHTML = '<p style="text-align:center;padding:3rem">الرابط غير صالح</p>';
+    document.body.innerHTML = '<p style="text-align:center;padding:3rem;font-family:Cairo,sans-serif">الرابط غير صالح</p>';
     return;
   }
 
@@ -29,13 +30,38 @@
 
   function showGate() {
     gateView.hidden = false;
+    gateView.classList.remove('is-hidden');
     offersView.hidden = true;
+    offersView.classList.add('is-hidden');
+    offersView.setAttribute('aria-hidden', 'true');
+    document.title = 'عروض خاصة — مكتب الهيف';
   }
 
   function showOffers() {
     gateView.hidden = true;
+    gateView.classList.add('is-hidden');
     offersView.hidden = false;
+    offersView.classList.remove('is-hidden');
+    offersView.setAttribute('aria-hidden', 'false');
+    document.title = 'عروض خاصة لك — مكتب الهيف';
   }
+
+  function readCodeFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('code') || params.get('c') || '').trim();
+  }
+
+  function prefillCodeFromUrl() {
+    const code = readCodeFromUrl();
+    if (code && accessCodeInput) {
+      accessCodeInput.value = code;
+      accessCodeInput.focus();
+    }
+    return code;
+  }
+
+  showGate();
+  prefillCodeFromUrl();
 
   async function checkSession() {
     const token = getToken();
@@ -284,6 +310,7 @@
       await loadOffers();
     } else {
       showGate();
+      prefillCodeFromUrl();
     }
   })();
 })();

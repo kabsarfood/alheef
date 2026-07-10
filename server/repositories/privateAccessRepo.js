@@ -27,15 +27,18 @@ async function ensureAccessConfig() {
   if (data) return rowToPrivateAccess(data);
 
   const slug = generateSlug();
+  const plainCode = generateAccessCode();
   const row = {
     id: ACCESS_ID,
     page_slug: slug,
-    access_code_hash: null,
+    access_code_hash: hashPassword(plainCode),
     active: true,
   };
   const { data: created, error } = await getAdmin().from(ACCESS_TABLE).insert(row).select().single();
   if (error) throw new Error(error.message);
-  return rowToPrivateAccess(created);
+  const access = rowToPrivateAccess(created);
+  access.plainCode = plainCode;
+  return access;
 }
 
 async function getAccessConfig() {
@@ -52,6 +55,17 @@ async function getAccessBySlug(slug) {
     .select('*')
     .eq('page_slug', slug)
     .eq('active', true)
+    .maybeSingle();
+  return rowToPrivateAccess(data);
+}
+
+/** يجلب السجل بالرابط حتى لو كانت الصفحة موقوفة — لتمييز رسالة الخطأ */
+async function getAccessBySlugAny(slug) {
+  if (!isEnabled() || !slug) return null;
+  const { data } = await getAdmin()
+    .from(ACCESS_TABLE)
+    .select('*')
+    .eq('page_slug', slug)
     .maybeSingle();
   return rowToPrivateAccess(data);
 }
@@ -94,17 +108,21 @@ async function regenerateAccessCode() {
 async function regenerateSlug() {
   await ensureAccessConfig();
   const slug = generateSlug();
+  const plainCode = generateAccessCode();
   const { data, error } = await getAdmin()
     .from(ACCESS_TABLE)
     .update({
       page_slug: slug,
+      access_code_hash: hashPassword(plainCode),
       updated_at: new Date().toISOString(),
     })
     .eq('id', ACCESS_ID)
     .select()
     .single();
   if (error) throw new Error(error.message);
-  return rowToPrivateAccess(data);
+  const access = rowToPrivateAccess(data);
+  access.plainCode = plainCode;
+  return access;
 }
 
 async function setAccessActive(active) {
@@ -125,6 +143,7 @@ module.exports = {
   ensureAccessConfig,
   getAccessConfig,
   getAccessBySlug,
+  getAccessBySlugAny,
   updateAccessCode,
   regenerateAccessCode,
   regenerateSlug,

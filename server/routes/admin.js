@@ -705,6 +705,7 @@ router.post('/private-offers/access/regenerate-slug', async (_req, res) => {
       success: true,
       pageSlug: access.pageSlug,
       shareUrl: buildPrivateShareUrl(access.pageSlug),
+      accessCode: access.plainCode,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

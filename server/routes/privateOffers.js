@@ -23,9 +23,18 @@ router.post('/verify', requireDb, async (req, res) => {
       return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
     }
 
-    const access = await privateAccessRepo.getAccessBySlug(slug);
-    if (!access || !access.active) {
-      return res.status(404).json({ success: false, message: 'الرابط غير صالح' });
+    const access = await privateAccessRepo.getAccessBySlugAny(slug);
+    if (!access) {
+      return res.status(404).json({
+        success: false,
+        message: 'هذا الرابط لم يعد صالحًا — ربما تم إنشاء رابط جديد. اطلب الرابط المحدّث من مكتب الهيف',
+      });
+    }
+    if (!access.active) {
+      return res.status(403).json({
+        success: false,
+        message: 'صفحة العروض الخاصة موقوفة مؤقتًا — تواصل مع مكتب الهيف',
+      });
     }
 
     const { data: row } = await require('../lib/supabase').getAdmin()

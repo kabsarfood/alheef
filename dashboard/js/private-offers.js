@@ -58,6 +58,7 @@ async function loadAccess() {
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
             <input id="share-url" value="${accessInfo.shareUrl}" readonly dir="ltr" style="flex:1;min-width:200px">
             <button type="button" class="btn btn-outline btn-sm" id="btn-copy-url">نسخ الرابط</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-copy-both">نسخ الرابط + الرمز</button>
             <button type="button" class="btn btn-outline btn-sm" id="btn-regen-slug">رابط جديد</button>
           </div>
         </div>
@@ -74,19 +75,31 @@ async function loadAccess() {
           <label><input type="checkbox" id="access-active" ${accessInfo.active ? 'checked' : ''}> الصفحة مفعّلة</label>
         </div>
       </div>
-      <p id="generated-code-hint" class="text-muted" style="margin-top:.75rem">${accessInfo.hasCode ? '' : 'لم يُعرّف رمز دخول بعد — أنشئ رمزًا وشاركه مع العميل'}</p>
+      <p id="generated-code-hint" class="text-muted" style="margin-top:.75rem">${accessInfo.hasCode ? 'كل رابط جديد يُنشئ رمز دخول جديدًا مرتبطًا به — انسخهما معًا' : 'اضغط «رابط جديد» لإنشاء رابط ورمز مرتبطين'}</p>
     `;
 
     document.getElementById('btn-copy-url')?.addEventListener('click', () => {
       navigator.clipboard.writeText(accessInfo.shareUrl).then(() => showToast('تم نسخ الرابط'));
     });
+    document.getElementById('btn-copy-both')?.addEventListener('click', () => {
+      const code = document.getElementById('access-code-input')?.value.trim();
+      if (!code) return showToast('لا يوجد رمز دخول — أنشئ رمزًا أولاً', 'error');
+      const text = `رابط العروض الخاصة:\n${accessInfo.shareUrl}\n\nرمز الدخول:\n${code}`;
+      navigator.clipboard.writeText(text).then(() => showToast('تم نسخ الرابط والرمز'));
+    });
     document.getElementById('btn-regen-slug')?.addEventListener('click', async () => {
-      if (!confirm('سيتوقف الرابط القديم عن العمل. هل تريد إنشاء رابط جديد؟')) return;
+      if (!confirm('سيتوقف الرابط والرمز القديمان. سيتم إنشاء رابط ورمز جديدين مرتبطين. هل تريد المتابعة؟')) return;
       const r = await DashboardAPI.regeneratePrivateSlug();
       accessInfo.shareUrl = r.shareUrl;
       accessInfo.pageSlug = r.pageSlug;
+      accessInfo.hasCode = true;
       document.getElementById('share-url').value = r.shareUrl;
-      showToast('تم إنشاء رابط جديد');
+      if (r.accessCode) {
+        document.getElementById('access-code-input').value = r.accessCode;
+        document.getElementById('generated-code-hint').textContent =
+          `رابط ورمز جديدان — انسخهما معًا وشاركهما مع العميل. الرمز: ${r.accessCode}`;
+      }
+      showToast('تم إنشاء رابط ورمز جديدين');
     });
     document.getElementById('btn-save-code')?.addEventListener('click', async () => {
       const code = document.getElementById('access-code-input').value.trim();
@@ -96,7 +109,9 @@ async function loadAccess() {
       showToast('تم حفظ رمز الدخول');
     });
     document.getElementById('btn-regen-code')?.addEventListener('click', async () => {
+      if (accessInfo.hasCode && !confirm('سيتوقف الرمز القديم عن العمل فورًا. هل تريد إنشاء رمز جديد؟')) return;
       const r = await DashboardAPI.regeneratePrivateAccessCode();
+      accessInfo.hasCode = true;
       document.getElementById('access-code-input').value = r.accessCode;
       document.getElementById('generated-code-hint').textContent = `الرمز الجديد: ${r.accessCode} — انسخه وشاركه مع العميل`;
       showToast('تم إنشاء رمز جديد');
