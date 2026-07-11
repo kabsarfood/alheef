@@ -20,8 +20,12 @@ function createToken(payload = {}) {
   return `${encoded}.${sig}`;
 }
 
-function createPrivateViewerToken() {
-  return createToken({ role: 'private_viewer', ttlMs: PRIVATE_VIEWER_TTL_MS });
+function createPrivateViewerToken(clientAccessId) {
+  return createToken({
+    role: 'private_viewer',
+    userId: clientAccessId || null,
+    ttlMs: PRIVATE_VIEWER_TTL_MS,
+  });
 }
 
 function parseToken(token) {

@@ -11,7 +11,8 @@ const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const privateOffersRepo = require('../repositories/privateOffersRepo');
-const privateAccessRepo = require('../repositories/privateAccessRepo');
+const privateClientsRepo = require('../repositories/privateClientsRepo');
+const siteAnalyticsRepo = require('../repositories/siteAnalyticsRepo');
 const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 const { propertyToMapProperty } = require('../services/mappers');
 
@@ -66,7 +67,7 @@ router.get('/map/coords-warnings', async (_req, res) => {
 // ─── Stats ───
 router.get('/stats', async (_req, res) => {
   try {
-    const [offers, published, pendingReview, unreadNotifications, news, requests, subscriptions] = await Promise.all([
+    const [offers, published, pendingReview, unreadNotifications, news, requests, subscriptions, siteAnalytics, privateClients] = await Promise.all([
       propertiesRepo.countAll(),
       propertiesRepo.countPublished(),
       propertiesRepo.countPendingReview(),
@@ -74,8 +75,21 @@ router.get('/stats', async (_req, res) => {
       newsRepo.countAll(),
       requestsRepo.countAll(),
       subscriptionsRepo.countAll(),
+      siteAnalyticsRepo.getSummary(),
+      privateClientsRepo.getClientsVisitSummary(),
     ]);
-    res.json({ offers, published, pendingReview, unreadNotifications, news, requests, subscriptions, listings: 0 });
+    res.json({
+      offers,
+      published,
+      pendingReview,
+      unreadNotifications,
+      news,
+      requests,
+      subscriptions,
+      listings: 0,
+      siteAnalytics,
+      privateClients,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -659,65 +673,108 @@ router.put('/properties/:id/review', async (req, res) => {
   }
 });
 
-// ─── العروض الخاصة ───
-router.get('/private-offers/access', async (_req, res) => {
+// ─── العروض الخاصة — إعدادات عامة وعملاء بروابط مستقلة ───
+router.get('/private-offers/settings', async (_req, res) => {
   try {
-    const access = await privateAccessRepo.ensureAccessConfig();
+    const settings = await privateClientsRepo.getSettings();
+    const summary = await privateClientsRepo.getClientsVisitSummary();
+    res.json({ success: true, settings, summary });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/settings/active', async (req, res) => {
+  try {
+    const settings = await privateClientsRepo.setGlobalActive(req.body.active !== false);
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/private-offers/clients', async (_req, res) => {
+  try {
+    const clients = await privateClientsRepo.listClients();
     res.json({
       success: true,
-      access: {
-        pageSlug: access.pageSlug,
-        shareUrl: buildPrivateShareUrl(access.pageSlug),
-        hasCode: access.hasCode,
-        active: access.active,
-        updatedAt: access.updatedAt,
-      },
+      clients: clients.map((c) => ({
+        ...c,
+        shareUrl: buildPrivateShareUrl(c.pageSlug),
+      })),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-router.put('/private-offers/access/code', async (req, res) => {
+router.post('/private-offers/clients', async (req, res) => {
   try {
-    const code = String(req.body.accessCode || '').trim();
-    if (!code) return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
-    await privateAccessRepo.updateAccessCode(code);
-    res.json({ success: true, message: 'تم تحديث رمز الدخول', accessCode: code });
+    const client = await privateClientsRepo.createClient({
+      clientLabel: req.body.clientLabel,
+    });
+    res.json({
+      success: true,
+      client: {
+        ...client,
+        shareUrl: buildPrivateShareUrl(client.pageSlug),
+      },
+      accessCode: client.plainCode,
+    });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
 });
 
-router.post('/private-offers/access/regenerate-code', async (_req, res) => {
+router.put('/private-offers/clients/:id/code', async (req, res) => {
   try {
-    const access = await privateAccessRepo.regenerateAccessCode();
-    res.json({ success: true, accessCode: access.plainCode });
+    const code = String(req.body.accessCode || '').trim();
+    if (!code) return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
+    const client = await privateClientsRepo.updateClientCode(req.params.id, code);
+    res.json({
+      success: true,
+      accessCode: client.plainCode,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
-router.post('/private-offers/access/regenerate-slug', async (_req, res) => {
+router.post('/private-offers/clients/:id/regenerate', async (req, res) => {
   try {
-    const access = await privateAccessRepo.regenerateSlug();
+    const client = await privateClientsRepo.regenerateClientAccess(req.params.id);
     res.json({
       success: true,
-      pageSlug: access.pageSlug,
-      shareUrl: buildPrivateShareUrl(access.pageSlug),
-      accessCode: access.plainCode,
+      accessCode: client.plainCode,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-router.put('/private-offers/access/active', async (req, res) => {
+router.put('/private-offers/clients/:id/active', async (req, res) => {
   try {
-    const access = await privateAccessRepo.setAccessActive(req.body.active !== false);
-    res.json({ success: true, active: access.active });
+    const client = await privateClientsRepo.setClientActive(req.params.id, req.body.active !== false);
+    res.json({
+      success: true,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/clients/:id/label', async (req, res) => {
+  try {
+    const client = await privateClientsRepo.updateClientLabel(req.params.id, req.body.clientLabel);
+    res.json({
+      success: true,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
@@ -729,6 +786,14 @@ router.get('/private-offers', async (_req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+async function notifyPrivateOfferIfNeeded(offer, existing = null) {
+  if (!pushNotifications.shouldNotifyPrivateOffer(offer)) return;
+  if (existing && pushNotifications.shouldNotifyPrivateOffer(existing)) return;
+  const globalActive = await privateClientsRepo.isGlobalActive();
+  if (!globalActive) return;
+  await pushNotifications.notifyClientsPrivateOffer(offer);
+}
 
 function parsePrivateOfferBody(body) {
   return {
@@ -766,6 +831,7 @@ router.post('/private-offers', uploadMemory.fields([
       return res.status(400).json({ success: false, message: 'يرجى إرفاق صورة واحدة على الأقل' });
     }
     const offer = await privateOffersRepo.create(body);
+    notifyPrivateOfferIfNeeded(offer).catch((err) => console.error('[push] private offer:', err.message));
     res.json({ success: true, offer });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -792,6 +858,7 @@ router.put('/private-offers/:id', uploadMemory.fields([
     }
 
     const offer = await privateOffersRepo.update(req.params.id, body);
+    notifyPrivateOfferIfNeeded(offer, existing).catch((err) => console.error('[push] private offer:', err.message));
     res.json({ success: true, offer });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

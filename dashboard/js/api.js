@@ -207,31 +207,55 @@ const DashboardAPI = {
       }));
   },
 
-  getPrivateOffersAccess() {
-    return this.request('/private-offers/access');
+  getPrivateOffersSettings() {
+    return this.request('/private-offers/settings');
   },
 
-  updatePrivateAccessCode(accessCode) {
-    return this.request('/private-offers/access/code', {
+  setPrivateGlobalActive(active) {
+    return this.request('/private-offers/settings/active', {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ active }),
+    });
+  },
+
+  getPrivateClients() {
+    return this.request('/private-offers/clients').then((d) => d.clients || []);
+  },
+
+  createPrivateClient(clientLabel) {
+    return this.request('/private-offers/clients', {
+      method: 'POST',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ clientLabel }),
+    });
+  },
+
+  updatePrivateClientCode(id, accessCode) {
+    return this.request(`/private-offers/clients/${id}/code`, {
       method: 'PUT',
       headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ accessCode }),
     });
   },
 
-  regeneratePrivateAccessCode() {
-    return this.request('/private-offers/access/regenerate-code', { method: 'POST' });
+  regeneratePrivateClient(id) {
+    return this.request(`/private-offers/clients/${id}/regenerate`, { method: 'POST' });
   },
 
-  regeneratePrivateSlug() {
-    return this.request('/private-offers/access/regenerate-slug', { method: 'POST' });
-  },
-
-  setPrivateAccessActive(active) {
-    return this.request('/private-offers/access/active', {
+  setPrivateClientActive(id, active) {
+    return this.request(`/private-offers/clients/${id}/active`, {
       method: 'PUT',
       headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ active }),
+    });
+  },
+
+  updatePrivateClientLabel(id, clientLabel) {
+    return this.request(`/private-offers/clients/${id}/label`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ clientLabel }),
     });
   },
 

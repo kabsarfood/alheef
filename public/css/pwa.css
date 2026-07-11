@@ -81,6 +81,35 @@
   margin-top: 0.5rem;
 }
 
+.pwa-push-banner {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  width: min(420px, calc(100% - 1.5rem));
+  background: #fff;
+  border: 1px solid rgba(30, 42, 56, 0.1);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 12px 32px rgba(30, 42, 56, 0.16);
+  text-align: center;
+}
+
+.pwa-push-banner p {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #1E2A38;
+}
+
+.pwa-push-banner__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .topbar__actions .pwa-app-btn--topbar {
   margin-left: 0.35rem;
 }

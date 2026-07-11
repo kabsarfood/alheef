@@ -8,6 +8,7 @@ const MIGRATION_FILE = path.join(__dirname, '..', '..', 'supabase', 'migrations'
 const PUSH_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '006_push_subscriptions.sql');
 const EMAIL_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '007_marketer_email_password.sql');
 const PRIVATE_OFFERS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '008_private_offers.sql');
+const CLIENTS_ANALYTICS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '009_private_clients_analytics.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -79,13 +80,29 @@ async function isPrivateOffersSchemaReady() {
   return !error;
 }
 
+async function isPrivateClientsSchemaReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('private_client_access').select('id').limit(1);
+  return !error;
+}
+
+async function isSiteAnalyticsSchemaReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('site_visit_stats').select('visit_date').limit(1);
+  return !error;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
     isEmailPasswordSchemaReady(),
     isPrivateOffersSchemaReady(),
+    isPrivateClientsSchemaReady(),
+    isSiteAnalyticsSchemaReady(),
   ]);
   return {
     marketer,
@@ -93,7 +110,9 @@ async function getSchemaStatus() {
     push,
     emailPassword,
     privateOffers,
-    allReady: marketer && notifications && push && emailPassword && privateOffers,
+    privateClients,
+    siteAnalytics,
+    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics,
   };
 }
 
@@ -163,6 +182,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, PRIVATE_OFFERS_MIGRATION, '008_private_offers');
       applied.push('008_private_offers');
     }
+    if (!status.privateClients || !status.siteAnalytics) {
+      await runSqlFile(client, CLIENTS_ANALYTICS_MIGRATION, '009_private_clients_analytics');
+      applied.push('009_private_clients_analytics');
+    }
 
     await client.end();
 
@@ -184,6 +207,8 @@ module.exports = {
   isEmailPasswordSchemaReady,
   isNotificationsSchemaReady,
   isPrivateOffersSchemaReady,
+  isPrivateClientsSchemaReady,
+  isSiteAnalyticsSchemaReady,
   getSchemaStatus,
   getConnectionConfig,
 };

@@ -36,6 +36,7 @@ let authRoutes;
 let marketerRoutes;
 let pushRoutes;
 let privateOffersRoutes;
+let analyticsRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -48,6 +49,7 @@ try {
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
   privateOffersRoutes = require('./server/routes/privateOffers');
+  analyticsRoutes = require('./server/routes/analytics');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -195,6 +197,7 @@ app.get('/health/ready', async (_req, res) => {
 });
 
 app.use('/api/push', pushRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/private-offers', privateOffersRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/marketer', marketerRoutes);

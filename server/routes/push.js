@@ -30,7 +30,7 @@ router.get('/vapid-public-key', (_req, res) => {
 
 router.post('/subscribe', requireDb, optionalAuth, async (req, res) => {
   try {
-    const { subscription, role, clientKey, email, preferences, offersEnabled } = req.body || {};
+    const { subscription, role, clientKey, email, preferences, offersEnabled, privateOffersEnabled, privateSlug } = req.body || {};
     if (!subscription || !subscription.endpoint) {
       return res.status(400).json({ success: false, message: 'اشتراك غير صالح' });
     }
@@ -51,6 +51,11 @@ router.post('/subscribe', requireDb, optionalAuth, async (req, res) => {
       /* اشتراك عميل بدون موافقة إشعارات العروض */
     }
 
+    const mergedPreferences = {
+      ...(preferences && typeof preferences === 'object' ? preferences : {}),
+    };
+    if (privateSlug) mergedPreferences.privateSlug = String(privateSlug).trim();
+
     const row = await pushSubscriptionsRepo.upsert({
       subscription,
       role: resolvedRole,
@@ -58,8 +63,9 @@ router.post('/subscribe', requireDb, optionalAuth, async (req, res) => {
       marketerId,
       clientKey: clientKey || null,
       email: email || null,
-      preferences: preferences || {},
-      offersEnabled: resolvedRole === 'client' ? !!offersEnabled : false,
+      preferences: mergedPreferences,
+      offersEnabled: !!offersEnabled,
+      privateOffersEnabled: !!privateOffersEnabled,
     });
 
     res.json({ success: true, subscription: row });

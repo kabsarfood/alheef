@@ -547,6 +547,49 @@ ALTER TABLE private_offers_access ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private_offers ENABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- عملاء بروابط مستقلة + إحصائيات الزوار
+-- ═══════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS private_offers_settings (
+  id TEXT PRIMARY KEY DEFAULT 'main',
+  active BOOLEAN NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS private_client_access (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_label TEXT NOT NULL DEFAULT '',
+  page_slug TEXT NOT NULL UNIQUE,
+  access_code_hash TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  visit_count INT NOT NULL DEFAULT 0,
+  login_count INT NOT NULL DEFAULT 0,
+  last_visit_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_private_client_access_slug ON private_client_access (page_slug);
+
+CREATE TABLE IF NOT EXISTS site_visit_stats (
+  visit_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  page_path TEXT NOT NULL DEFAULT '/',
+  views INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (visit_date, page_path)
+);
+
+CREATE TABLE IF NOT EXISTS site_visit_sessions (
+  session_key TEXT PRIMARY KEY,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  page_count INT NOT NULL DEFAULT 1
+);
+
+ALTER TABLE private_offers_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private_client_access ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_visit_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_visit_sessions ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- إعادة تحميل مخطط PostgREST
 -- ═══════════════════════════════════════════════════════════════════════════
 NOTIFY pgrst, 'reload schema';

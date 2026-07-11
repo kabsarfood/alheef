@@ -575,6 +575,22 @@ function rowToPrivateAccess(row) {
   };
 }
 
+function rowToPrivateClient(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    clientLabel: row.client_label || '',
+    pageSlug: row.page_slug,
+    hasCode: !!row.access_code_hash,
+    active: row.active !== false,
+    visitCount: row.visit_count ?? 0,
+    loginCount: row.login_count ?? 0,
+    lastVisitAt: row.last_visit_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function rowToTestimonial(row) {
   if (!row) return null;
   return {
@@ -683,6 +699,7 @@ module.exports = {
   privateOfferToRow,
   toPublicPrivateOffer,
   rowToPrivateAccess,
+  rowToPrivateClient,
   PRIVATE_PROPERTY_TYPES,
   PRIVATE_OFFER_STATUS,
   formatPrivatePrice,

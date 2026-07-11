@@ -5,7 +5,10 @@ try {
   console.warn('[push] حزمة web-push غير مثبتة — نفّذ npm install');
 }
 const pushSubscriptionsRepo = require('../repositories/pushSubscriptionsRepo');
+const privateClientsRepo = require('../repositories/privateClientsRepo');
 const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
+const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
+const { PRIVATE_PROPERTY_TYPES } = require('./mappers');
 
 let vapidReady = false;
 
@@ -121,14 +124,58 @@ async function notifyClientsNewOffer(property) {
   if (!subs.length) return;
 
   const payload = {
-    title: 'عرض عقاري جديد يناسبك',
+    title: 'إعلان عقاري جديد',
     body: [property.title, property.district, property.city].filter(Boolean).join(' — ').slice(0, 180),
     url: property.slug ? `/property.html?slug=${property.slug}` : `/property.html?id=${property.id}`,
     type: 'new_offer',
     tag: `offer-${property.id}`,
+    badgeCount: 1,
+    icon: '/assets/icon-192.png?v=5',
+    badge: '/assets/icon-192.png?v=5',
   };
 
   await sendToMany(subs, payload);
+}
+
+async function notifyClientsPrivateOffer(offer) {
+  const subs = await pushSubscriptionsRepo.listPrivateOfferSubscribers();
+  if (!subs.length || !offer) return;
+
+  const typeLabel = PRIVATE_PROPERTY_TYPES[offer.propertyType] || offer.propertyType || 'عرض خاص';
+  const parts = [
+    typeLabel,
+    offer.area != null ? `${offer.area} م²` : '',
+    offer.street || '',
+    offer.offerNumber,
+  ].filter(Boolean);
+  const body = parts.join(' — ').slice(0, 180);
+
+  const bySlug = new Map();
+  subs.forEach((sub) => {
+    const slug = sub.preferences?.privateSlug;
+    if (!slug) return;
+    if (!bySlug.has(slug)) bySlug.set(slug, []);
+    bySlug.get(slug).push(sub);
+  });
+
+  for (const [slug, rows] of bySlug) {
+    const client = await privateClientsRepo.getClientBySlug(slug);
+    if (!client) continue;
+    await sendToMany(rows, {
+      title: 'عرض خاص جديد',
+      body,
+      url: buildPrivateShareUrl(slug),
+      type: 'private_offer',
+      tag: `private-${offer.id}`,
+      badgeCount: 1,
+      icon: '/assets/icon-192.png?v=5',
+      badge: '/assets/icon-192.png?v=5',
+    });
+  }
+}
+
+function shouldNotifyPrivateOffer(offer) {
+  return !!(offer && offer.visible && offer.active && offer.status !== 'hidden');
 }
 
 function generateVapidKeys() {
@@ -146,5 +193,7 @@ module.exports = {
   notifyAdminsClientRequest,
   notifyMarketerPropertyReview,
   notifyClientsNewOffer,
+  notifyClientsPrivateOffer,
+  shouldNotifyPrivateOffer,
   generateVapidKeys,
 };

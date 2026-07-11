@@ -15,22 +15,28 @@ const STATUS_OPTIONS = [
   { value: 'hidden', label: 'مخفي' },
 ];
 
-let accessInfo = null;
+let settingsInfo = { active: true };
+let clientsCache = [];
 let offersCache = [];
+const clientPlainCodes = new Map();
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initLayout('private-offers', 'العروض الخاصة');
-  setTopbarActions('<button class="btn btn-gold btn-sm" id="btn-add">＋ عرض خاص جديد</button>');
+  setTopbarActions(`
+    <button class="btn btn-outline btn-sm" id="btn-add-client">＋ عميل جديد</button>
+    <button class="btn btn-gold btn-sm" id="btn-add">＋ عرض خاص جديد</button>
+  `);
   renderShell();
-  await Promise.all([loadAccess(), loadOffers()]);
+  await Promise.all([loadClientsPanel(), loadOffers()]);
   document.getElementById('btn-add')?.addEventListener('click', () => openOfferModal());
+  document.getElementById('btn-add-client')?.addEventListener('click', () => openAddClientModal());
 });
 
 function renderShell() {
   getPageContent().innerHTML = `
-    <section class="card" id="access-panel">
+    <section class="card" id="clients-panel">
       <div class="card__body">
-        <h3>رابط المشاركة ورمز الدخول</h3>
+        <h3>عملاء العروض الخاصة — رابط وكلمة سر لكل عميل</h3>
         <div class="loading"><div class="spinner"></div></div>
       </div>
     </section>
@@ -43,101 +49,197 @@ function renderShell() {
   `;
 }
 
-async function loadAccess() {
-  const el = document.getElementById('access-panel')?.querySelector('.card__body');
+function formatVisitDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return '—';
+  }
+}
+
+async function loadClientsPanel() {
+  const el = document.getElementById('clients-panel')?.querySelector('.card__body');
   if (!el) return;
   try {
-    const data = await DashboardAPI.getPrivateOffersAccess();
-    accessInfo = data.access;
-    const codeDisplay = document.getElementById('access-code-display')?.value || '••••••••';
+    const data = await DashboardAPI.getPrivateOffersSettings();
+    settingsInfo = data.settings || { active: true };
+    clientsCache = await DashboardAPI.getPrivateClients();
+    const summary = data.summary || {};
+
     el.innerHTML = `
-      <h3>رابط المشاركة ورمز الدخول</h3>
-      ${accessInfo.active ? '' : `
-        <div class="access-warning" id="access-warning">
-          <strong>⚠ الصفحة موقوفة حاليًا</strong>
-          <p>العملاء لا يستطيعون الدخول حتى تفعّل الصفحة.</p>
-          <button type="button" class="btn btn-gold btn-sm" id="btn-activate-now">تفعيل الصفحة الآن</button>
+      <h3>عملاء العروض الخاصة — رابط وكلمة سر لكل عميل</h3>
+      <p class="text-muted">كل عميل يطلب العروض يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> — لا علاقة بين العملاء.</p>
+      ${!settingsInfo.active ? `
+        <div class="access-warning">
+          <strong>⚠ صفحة العروض الخاصة موقوفة</strong>
+          <p>لن يتمكن أي عميل من الدخول حتى التفعيل.</p>
         </div>
-      `}
-      <p class="text-muted">شارك الرابط مع العميل المهتم — لن يظهر في الموقع العام. الرابط مشفّر ولا يكشف نوع الصفحة.</p>
-      <div class="form-grid">
-        <div class="form-group" style="grid-column:1/-1">
-          <label>رابط الصفحة الخاصة</label>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <input id="share-url" value="${accessInfo.shareUrl}" readonly dir="ltr" style="flex:1;min-width:200px">
-            <button type="button" class="btn btn-outline btn-sm" id="btn-copy-url">نسخ الرابط</button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-copy-both">نسخ الرابط + الرمز</button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-regen-slug">رابط جديد</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>رمز الدخول</label>
-          <input id="access-code-input" placeholder="أدخل رمزًا جديدًا أو أنشئه تلقائيًا">
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;gap:.5rem;flex-wrap:wrap">
-          <button type="button" class="btn btn-gold btn-sm" id="btn-save-code">حفظ الرمز</button>
-          <button type="button" class="btn btn-outline btn-sm" id="btn-regen-code">إنشاء رمز عشوائي</button>
-        </div>
-        <div class="form-group">
-          <label>حالة الصفحة</label>
-          <label><input type="checkbox" id="access-active" ${accessInfo.active ? 'checked' : ''}> الصفحة مفعّلة</label>
-        </div>
+      ` : ''}
+      <div class="form-group" style="margin:.75rem 0">
+        <label><input type="checkbox" id="global-active" ${settingsInfo.active ? 'checked' : ''}> تفعيل صفحة العروض الخاصة (عام)</label>
       </div>
-      <p id="generated-code-hint" class="text-muted" style="margin-top:.75rem">${accessInfo.hasCode ? 'كل رابط جديد يُنشئ رمز دخول جديدًا مرتبطًا به — انسخهما معًا' : 'اضغط «رابط جديد» لإنشاء رابط ورمز مرتبطين'}</p>
+      <div class="stats-grid" style="margin-bottom:1rem">
+        <div class="stat-card"><p class="stat-card__label">عملاء</p><p class="stat-card__value">${summary.totalClients || 0}</p></div>
+        <div class="stat-card"><p class="stat-card__label">نشطون</p><p class="stat-card__value">${summary.activeClients || 0}</p></div>
+        <div class="stat-card"><p class="stat-card__label">مرات الدخول</p><p class="stat-card__value">${summary.totalLogins || 0}</p></div>
+      </div>
+      <div id="clients-list"></div>
     `;
 
-    document.getElementById('btn-activate-now')?.addEventListener('click', async () => {
-      await DashboardAPI.setPrivateAccessActive(true);
-      accessInfo.active = true;
-      document.getElementById('access-active').checked = true;
-      document.getElementById('access-warning')?.remove();
-      showToast('تم تفعيل الصفحة — يمكن للعملاء الدخول الآن');
-    });
-    document.getElementById('btn-copy-url')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(accessInfo.shareUrl).then(() => showToast('تم نسخ الرابط'));
-    });
-    document.getElementById('btn-copy-both')?.addEventListener('click', () => {
-      const code = document.getElementById('access-code-input')?.value.trim();
-      if (!code) return showToast('لا يوجد رمز دخول — أنشئ رمزًا أولاً', 'error');
-      const text = `رابط العروض الخاصة:\n${accessInfo.shareUrl}\n\nرمز الدخول:\n${code}`;
-      navigator.clipboard.writeText(text).then(() => showToast('تم نسخ الرابط والرمز'));
-    });
-    document.getElementById('btn-regen-slug')?.addEventListener('click', async () => {
-      if (!confirm('سيتوقف الرابط والرمز القديمان. سيتم إنشاء رابط ورمز جديدين مرتبطين. هل تريد المتابعة؟')) return;
-      const r = await DashboardAPI.regeneratePrivateSlug();
-      accessInfo.shareUrl = r.shareUrl;
-      accessInfo.pageSlug = r.pageSlug;
-      accessInfo.hasCode = true;
-      document.getElementById('share-url').value = r.shareUrl;
-      if (r.accessCode) {
-        document.getElementById('access-code-input').value = r.accessCode;
-        document.getElementById('generated-code-hint').textContent =
-          `رابط ورمز جديدان — انسخهما معًا وشاركهما مع العميل. الرمز: ${r.accessCode}`;
-      }
-      showToast('تم إنشاء رابط ورمز جديدين');
-    });
-    document.getElementById('btn-save-code')?.addEventListener('click', async () => {
-      const code = document.getElementById('access-code-input').value.trim();
-      if (!code) return showToast('أدخل رمز الدخول', 'error');
-      await DashboardAPI.updatePrivateAccessCode(code);
-      document.getElementById('generated-code-hint').textContent = `الرمز المحفوظ: ${code}`;
-      showToast('تم حفظ رمز الدخول');
-    });
-    document.getElementById('btn-regen-code')?.addEventListener('click', async () => {
-      if (accessInfo.hasCode && !confirm('سيتوقف الرمز القديم عن العمل فورًا. هل تريد إنشاء رمز جديد؟')) return;
-      const r = await DashboardAPI.regeneratePrivateAccessCode();
-      accessInfo.hasCode = true;
-      document.getElementById('access-code-input').value = r.accessCode;
-      document.getElementById('generated-code-hint').textContent = `الرمز الجديد: ${r.accessCode} — انسخه وشاركه مع العميل`;
-      showToast('تم إنشاء رمز جديد');
-    });
-    document.getElementById('access-active')?.addEventListener('change', async (e) => {
-      await DashboardAPI.setPrivateAccessActive(e.target.checked);
+    document.getElementById('global-active')?.addEventListener('change', async (e) => {
+      await DashboardAPI.setPrivateGlobalActive(e.target.checked);
+      settingsInfo.active = e.target.checked;
       showToast(e.target.checked ? 'تم تفعيل الصفحة' : 'تم إيقاف الصفحة');
     });
+
+    renderClientsList();
   } catch {
-    el.innerHTML = '<p class="empty-state">تعذر تحميل إعدادات الرابط</p>';
+    el.innerHTML = '<p class="empty-state">تعذر تحميل بيانات العملاء</p>';
   }
+}
+
+function renderClientsList() {
+  const list = document.getElementById('clients-list');
+  if (!list) return;
+  if (!clientsCache.length) {
+    list.innerHTML = '<p class="empty-state">لا يوجد عملاء بعد — اضغط «عميل جديد» لإنشاء رابط ورمز</p>';
+    return;
+  }
+
+  list.innerHTML = `
+    <div class="table-wrap">
+      <table class="table table--cards">
+        <thead>
+          <tr>
+            <th>العميل</th>
+            <th>الرابط</th>
+            <th>الدخول</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${clientsCache.map((c) => `
+            <tr data-client="${c.id}">
+              <td data-label="العميل">
+                <input class="client-label-input" data-id="${c.id}" value="${c.clientLabel || ''}" style="min-width:120px">
+              </td>
+              <td data-label="الرابط" dir="ltr">
+                <input readonly value="${c.shareUrl}" style="min-width:200px;font-size:.85rem" data-url="${c.id}">
+              </td>
+              <td data-label="الدخول">${c.loginCount || 0} — آخر: ${formatVisitDate(c.lastVisitAt)}</td>
+              <td data-label="الحالة">${c.active ? 'نشط' : 'موقوف'}</td>
+              <td data-label="إجراءات">
+                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ</button>
+                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
+                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  list.querySelectorAll('.client-label-input').forEach((input) => {
+    input.addEventListener('change', async () => {
+      await DashboardAPI.updatePrivateClientLabel(input.dataset.id, input.value.trim());
+      showToast('تم تحديث اسم العميل');
+    });
+  });
+
+  list.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => copyClientCredentials(btn.dataset.copy));
+  });
+
+  list.querySelectorAll('[data-regen]').forEach((btn) => {
+    btn.addEventListener('click', () => regenerateClient(btn.dataset.regen));
+  });
+
+  list.querySelectorAll('[data-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => toggleClient(btn.dataset.toggle));
+  });
+}
+
+async function copyClientCredentials(id) {
+  const client = clientsCache.find((c) => c.id === id);
+  if (!client) return;
+  const code = clientPlainCodes.get(id);
+  const text = code
+    ? `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${code}`
+    : client.shareUrl;
+  await navigator.clipboard.writeText(text);
+  showToast(code ? 'تم نسخ الرابط والرمز' : 'تم نسخ الرابط — الرمز يظهر عند الإنشاء أو «رابط جديد»');
+}
+
+async function regenerateClient(id) {
+  if (!confirm('سيتوقف الرابط والرمز القديمان لهذا العميل. هل تريد إنشاء رابط ورمز جديدين؟')) return;
+  const r = await DashboardAPI.regeneratePrivateClient(id);
+  const idx = clientsCache.findIndex((c) => c.id === id);
+  if (idx >= 0) {
+    clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
+  }
+  renderClientsList();
+  if (r.accessCode) {
+    clientPlainCodes.set(id, r.accessCode);
+    const client = clientsCache.find((c) => c.id === id);
+    const text = `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${r.accessCode}`;
+    await navigator.clipboard.writeText(text);
+    showToast(`تم إنشاء رابط ورمز جديدين — الرمز: ${r.accessCode}`);
+  }
+}
+
+async function toggleClient(id) {
+  const client = clientsCache.find((c) => c.id === id);
+  if (!client) return;
+  const r = await DashboardAPI.setPrivateClientActive(id, !client.active);
+  const idx = clientsCache.findIndex((c) => c.id === id);
+  if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
+  renderClientsList();
+  showToast(r.client.active ? 'تم تفعيل رابط العميل' : 'تم إيقاف رابط العميل');
+}
+
+function openAddClientModal() {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal active';
+  wrap.innerHTML = `
+    <div class="modal__backdrop"></div>
+    <div class="card" style="max-width:480px;margin:2rem auto;position:relative;z-index:2">
+      <form id="client-form">
+        <h3>عميل جديد — رابط ورمز مستقل</h3>
+        <div class="form-group">
+          <label>اسم العميل (للتذكير فقط)</label>
+          <input name="clientLabel" placeholder="مثال: أحمد — عميل VIP" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-gold">إنشاء الرابط والرمز</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  wrap.querySelector('.modal__backdrop').onclick = () => wrap.remove();
+  wrap.querySelector('#client-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const label = new FormData(e.target).get('clientLabel');
+    try {
+      const r = await DashboardAPI.createPrivateClient(String(label || '').trim());
+      clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl });
+      wrap.remove();
+      renderClientsList();
+      if (r.accessCode) {
+        clientPlainCodes.set(r.client.id, r.accessCode);
+        const text = `رابط العروض الخاصة:\n${r.client.shareUrl}\n\nرمز الدخول:\n${r.accessCode}`;
+        await navigator.clipboard.writeText(text);
+        showToast(`تم الإنشاء — الرمز: ${r.accessCode} (تم النسخ)`);
+      } else {
+        showToast('تم إنشاء العميل');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 }
 
 async function loadOffers() {

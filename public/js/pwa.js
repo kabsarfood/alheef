@@ -6,6 +6,8 @@
 
   const CLIENT_KEY = 'alheef_client_key';
   const PUSH_CONSENT_KEY = 'alheef_push_offers_consent';
+  const PUSH_PRIVATE_CONSENT_KEY = 'alheef_push_private_consent';
+  const PUSH_PROMPTED_KEY = 'alheef_push_install_prompted';
   const INSTALL_KEY = 'alheef_pwa_installed';
   const IOS_HINT = 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية» لتثبيت تطبيق الهيف';
 
@@ -326,9 +328,14 @@
       role: options.role || auth.role,
       clientKey: getClientKey(),
       preferences: options.preferences || {},
-      offersEnabled: options.offersEnabled !== false,
+      offersEnabled: !!options.offersEnabled,
+      privateOffersEnabled: !!options.privateOffersEnabled,
       email: options.email || null,
     };
+    if (options.privateSlug) {
+      body.privateSlug = options.privateSlug;
+      body.preferences = { ...body.preferences, privateSlug: options.privateSlug };
+    }
 
     const headers = { 'Content-Type': 'application/json' };
     if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
@@ -343,6 +350,9 @@
 
     if (options.offersEnabled) {
       localStorage.setItem(PUSH_CONSENT_KEY, '1');
+    }
+    if (options.privateOffersEnabled) {
+      localStorage.setItem(PUSH_PRIVATE_CONSENT_KEY, '1');
     }
     return { ok: true, data };
   }
@@ -365,6 +375,76 @@
 
   function hasOffersConsent() {
     return localStorage.getItem(PUSH_CONSENT_KEY) === '1';
+  }
+
+  function hasPrivateConsent() {
+    return localStorage.getItem(PUSH_PRIVATE_CONSENT_KEY) === '1';
+  }
+
+  function showPushBanner(message, onEnable) {
+    if (document.getElementById('pwa-push-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'pwa-push-banner';
+    banner.className = 'pwa-push-banner';
+    banner.innerHTML = `
+      <p>${message}</p>
+      <div class="pwa-push-banner__actions">
+        <button type="button" class="btn btn-gold btn-sm" data-push-enable>تفعيل الإشعارات</button>
+        <button type="button" class="btn btn-outline btn-sm" data-push-dismiss>لاحقاً</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+    banner.querySelector('[data-push-enable]')?.addEventListener('click', async () => {
+      try {
+        await onEnable();
+        banner.remove();
+      } catch {
+        /* ignore */
+      }
+    });
+    banner.querySelector('[data-push-dismiss]')?.addEventListener('click', () => banner.remove());
+  }
+
+  async function promptOffersPush() {
+    if (!isPWASupported() || !('PushManager' in window)) {
+      return { ok: false, reason: 'unsupported' };
+    }
+    if (Notification.permission === 'denied') return { ok: false, reason: 'denied' };
+    return subscribePush({ role: 'client', offersEnabled: true, privateOffersEnabled: hasPrivateConsent() });
+  }
+
+  async function promptPrivateOffersPush(privateSlug) {
+    if (!isPWASupported() || !('PushManager' in window)) {
+      return { ok: false, reason: 'unsupported' };
+    }
+    if (Notification.permission === 'denied') return { ok: false, reason: 'denied' };
+    return subscribePush({
+      role: 'client',
+      offersEnabled: hasOffersConsent(),
+      privateOffersEnabled: true,
+      privateSlug: privateSlug || null,
+    });
+  }
+
+  async function promptPushAfterInstall() {
+    if (!isPWASupported() || !('PushManager' in window)) return;
+    if (Notification.permission === 'denied') return;
+    if (localStorage.getItem(PUSH_PROMPTED_KEY)) return;
+    localStorage.setItem(PUSH_PROMPTED_KEY, '1');
+
+    if (Notification.permission === 'granted') {
+      await subscribePush({
+        role: 'client',
+        offersEnabled: true,
+        privateOffersEnabled: hasPrivateConsent(),
+      }).catch(() => {});
+      return;
+    }
+
+    showPushBanner(
+      'فعّل الإشعارات لتصلك الإعلانات العقارية الجديدة على أيقونة التطبيق',
+      () => subscribePush({ role: 'client', offersEnabled: true }),
+    );
   }
 
   async function setBadge(count) {
@@ -470,6 +550,7 @@
       deferredInstallPrompt = null;
       localStorage.setItem(INSTALL_KEY, '1');
       refreshAppButtonState();
+      setTimeout(() => promptPushAfterInstall(), 1200);
     });
 
     window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
@@ -489,7 +570,11 @@
     if (auth.role !== 'client' && Notification.permission === 'granted') {
       autoSubscribeRole();
     } else if (auth.role === 'client' && hasOffersConsent() && Notification.permission === 'granted') {
-      subscribePush({ role: 'client', offersEnabled: true }).catch(() => {});
+      subscribePush({ role: 'client', offersEnabled: true, privateOffersEnabled: hasPrivateConsent() }).catch(() => {});
+    }
+
+    if (isStandalone() && auth.role === 'client' && Notification.permission === 'default') {
+      setTimeout(() => promptPushAfterInstall(), 2000);
     }
   }
 
@@ -499,10 +584,14 @@
     setBadge,
     clearBadge,
     hasOffersConsent,
+    hasPrivateConsent,
     isStandalone,
     getClientKey,
     promptInstall: onAppButtonClick,
     promptRolePush,
+    promptOffersPush,
+    promptPrivateOffersPush,
+    promptPushAfterInstall,
     checkForUpdates: () => swRegistration?.update(),
     applyUpdate: applyPendingUpdate,
     refreshAppButtonState,

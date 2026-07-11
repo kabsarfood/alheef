@@ -124,13 +124,17 @@ router.get('/properties/:id', requireMarketer, async (req, res) => {
   }
 });
 
-/** مسوق — إضافة إعلان (دائماً pending_review) */
+/** مسوق — إضافة إعلان (نشر مباشر بدون مراجعة) */
 router.post('/properties', requireMarketer, upload.array('images', 20), async (req, res) => {
   try {
+    const now = new Date().toISOString();
     const body = {
       ...req.body,
       marketerId: req.auth.marketerId,
-      status: 'pending_review',
+      status: 'approved_published',
+      homepage_published: true,
+      approved_at: now,
+      approved_by: req.auth.marketerId,
       listingType: req.body.listingType || 'sale',
     };
     const p = await propertiesRepo.create(body);
@@ -138,30 +142,17 @@ router.post('/properties', requireMarketer, upload.array('images', 20), async (r
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
     const full = await propertiesRepo.getById(p.id);
 
-    try {
-      const marketer = await marketersRepo.getById(req.auth.marketerId);
-      await adminNotificationsRepo.createPropertyPendingReview({
-        propertyId: full.id,
-        marketerId: req.auth.marketerId,
-        marketerName: marketer?.full_name || '',
-        propertyType: full.propertyType || '',
-        district: full.district || '',
-        price: full.priceDisplay || (full.price != null ? String(full.price) : ''),
-        createdAt: full.createdAt,
-      });
-      pushNotifications.notifyAdminsPropertyPendingReview({
-        propertyId: full.id,
-        marketerName: marketer?.full_name || '',
-        propertyType: full.propertyType || '',
-        district: full.district || '',
-      }).catch((err) => console.error('[push] pending review:', err.message));
-    } catch (notifyErr) {
-      console.error('[marketer] notification:', notifyErr.message);
-    }
+    pushNotifications.notifyClientsNewOffer({
+      id: full.id,
+      slug: full.slug,
+      title: full.title,
+      city: full.city,
+      district: full.district,
+    }).catch((err) => console.error('[push] new offer:', err.message));
 
     res.json({
       success: true,
-      message: 'تم إرسال الإعلان لمراجعة إدارة المكتب',
+      message: 'تم نشر الإعلان على الموقع',
       property: full,
     });
   } catch (err) {
@@ -182,7 +173,10 @@ router.put('/properties/:id', requireMarketer, upload.array('images', 20), async
     const body = {
       ...req.body,
       marketerId: req.auth.marketerId,
-      status: existing.status === 'needs_changes' ? 'pending_review' : existing.status,
+      status: existing.status === 'needs_changes' ? 'approved_published' : existing.status,
+      homepage_published: existing.status === 'needs_changes' ? true : undefined,
+      approved_at: existing.status === 'needs_changes' ? new Date().toISOString() : undefined,
+      approved_by: existing.status === 'needs_changes' ? req.auth.marketerId : undefined,
     };
     const p = await propertiesRepo.update(req.params.id, body);
     const urls = await uploadFiles(req.files, 'properties');
@@ -190,26 +184,13 @@ router.put('/properties/:id', requireMarketer, upload.array('images', 20), async
     const full = await propertiesRepo.getById(p.id);
 
     if (existing.status === 'needs_changes') {
-      try {
-        const marketer = await marketersRepo.getById(req.auth.marketerId);
-        await adminNotificationsRepo.createPropertyPendingReview({
-          propertyId: full.id,
-          marketerId: req.auth.marketerId,
-          marketerName: marketer?.full_name || '',
-          propertyType: full.propertyType || '',
-          district: full.district || '',
-          price: full.priceDisplay || (full.price != null ? String(full.price) : ''),
-          createdAt: full.createdAt,
-        });
-        pushNotifications.notifyAdminsPropertyPendingReview({
-          propertyId: full.id,
-          marketerName: marketer?.full_name || '',
-          propertyType: full.propertyType || '',
-          district: full.district || '',
-        }).catch((err) => console.error('[push] resubmit:', err.message));
-      } catch (notifyErr) {
-        console.error('[marketer] resubmit notification:', notifyErr.message);
-      }
+      pushNotifications.notifyClientsNewOffer({
+        id: full.id,
+        slug: full.slug,
+        title: full.title,
+        city: full.city,
+        district: full.district,
+      }).catch((err) => console.error('[push] new offer:', err.message));
     }
 
     res.json({

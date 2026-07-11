@@ -149,6 +149,54 @@
     offersView.classList.remove('is-hidden');
     offersView.setAttribute('aria-hidden', 'false');
     document.title = 'عروض خاصة لك';
+    initPrivatePushPrompt();
+  }
+
+  function initPrivatePushPrompt() {
+    if (!window.AlheefPWA || typeof Notification === 'undefined') return;
+    const bannerKey = `private_push_banner_${slug}`;
+
+    if (Notification.permission === 'granted') {
+      if (window.AlheefPWA.hasPrivateConsent()) {
+        window.AlheefPWA.subscribePush({
+          role: 'client',
+          offersEnabled: window.AlheefPWA.hasOffersConsent(),
+          privateOffersEnabled: true,
+          privateSlug: slug,
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    if (Notification.permission === 'denied' || sessionStorage.getItem(bannerKey)) return;
+
+    const existing = document.getElementById('private-push-banner');
+    if (existing) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'private-push-banner';
+    banner.className = 'private-push-banner';
+    banner.innerHTML = `
+      <p>فعّل الإشعارات لتصلك <strong>العروض الخاصة الجديدة</strong> على أيقونة التطبيق</p>
+      <div class="private-push-banner__actions">
+        <button type="button" class="btn btn-gold btn-sm" id="private-push-enable">تفعيل الإشعارات</button>
+        <button type="button" class="btn btn-outline btn-sm" id="private-push-dismiss">لاحقاً</button>
+      </div>
+    `;
+    offersView.insertBefore(banner, offersView.querySelector('.private-toolbar'));
+
+    document.getElementById('private-push-enable')?.addEventListener('click', async () => {
+      try {
+        await window.AlheefPWA.promptPrivateOffersPush(slug);
+        banner.remove();
+      } catch {
+        /* ignore */
+      }
+    });
+    document.getElementById('private-push-dismiss')?.addEventListener('click', () => {
+      sessionStorage.setItem(bannerKey, '1');
+      banner.remove();
+    });
   }
 
   function readCodeFromUrl() {

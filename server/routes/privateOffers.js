@@ -3,7 +3,7 @@ const { isEnabled } = require('../lib/supabase');
 const { createPrivateViewerToken, requirePrivateViewer, parseToken } = require('../middleware/auth');
 const { verifyPassword } = require('../utils/password');
 const privateOffersRepo = require('../repositories/privateOffersRepo');
-const privateAccessRepo = require('../repositories/privateAccessRepo');
+const privateClientsRepo = require('../repositories/privateClientsRepo');
 const { toPublicPrivateOffer } = require('../services/mappers');
 
 const router = express.Router();
@@ -23,34 +23,35 @@ router.post('/verify', requireDb, async (req, res) => {
       return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
     }
 
-    const access = await privateAccessRepo.getAccessBySlugAny(slug);
-    if (!access) {
-      return res.status(404).json({
-        success: false,
-        message: 'هذا الرابط لم يعد صالحًا — ربما تم إنشاء رابط جديد. اطلب الرابط المحدّث من مكتب الهيف',
-      });
-    }
-    if (!access.active) {
+    const globalActive = await privateClientsRepo.isGlobalActive();
+    if (!globalActive) {
       return res.status(403).json({
         success: false,
         message: 'صفحة العروض الخاصة موقوفة مؤقتًا — تواصل مع مكتب الهيف',
       });
     }
 
-    const { data: row } = await require('../lib/supabase').getAdmin()
-      .from('private_offers_access')
-      .select('access_code_hash')
-      .eq('page_slug', slug)
-      .maybeSingle();
-
-    if (!row?.access_code_hash) {
-      return res.status(503).json({ success: false, message: 'رمز الدخول غير مفعّل بعد — تواصل مع المكتب' });
+    const client = await privateClientsRepo.getClientBySlugAny(slug);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'هذا الرابط غير صالح — اطلب رابطًا جديدًا من مكتب الهيف',
+      });
     }
-    if (!verifyPassword(code, row.access_code_hash)) {
+    if (!client.active) {
+      return res.status(403).json({
+        success: false,
+        message: 'هذا الرابط متوقف — اطلب رابطًا جديدًا من مكتب الهيف',
+      });
+    }
+
+    const hash = await privateClientsRepo.getClientCodeHash(slug);
+    if (!hash || !verifyPassword(code, hash)) {
       return res.status(401).json({ success: false, message: 'رمز الدخول غير صحيح' });
     }
 
-    const token = createPrivateViewerToken();
+    await privateClientsRepo.recordClientLogin(client.id);
+    const token = createPrivateViewerToken(client.id);
     res.json({ success: true, token });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -64,7 +65,7 @@ router.get('/session', (req, res) => {
   if (!payload || payload.role !== 'private_viewer') {
     return res.json({ authenticated: false });
   }
-  res.json({ authenticated: true });
+  res.json({ authenticated: true, clientId: payload.userId || null });
 });
 
 router.get('/', requireDb, requirePrivateViewer, async (_req, res) => {

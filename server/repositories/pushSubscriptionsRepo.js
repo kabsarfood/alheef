@@ -31,10 +31,16 @@ function subscriptionKeys(sub) {
   };
 }
 
-async function upsert({ subscription, role, userId, marketerId, clientKey, email, preferences, offersEnabled }) {
+async function upsert({ subscription, role, userId, marketerId, clientKey, email, preferences, offersEnabled, privateOffersEnabled }) {
   if (!isEnabled()) throw new Error('قاعدة البيانات غير متصلة');
   const { endpoint, p256dh, auth } = subscriptionKeys(subscription);
   if (!endpoint || !p256dh || !auth) throw new Error('بيانات الاشتراك غير مكتملة');
+
+  const mergedPreferences = {
+    ...(preferences && typeof preferences === 'object' ? preferences : {}),
+    listings: !!offersEnabled,
+    privateOffers: !!privateOffersEnabled,
+  };
 
   const row = {
     endpoint,
@@ -45,7 +51,7 @@ async function upsert({ subscription, role, userId, marketerId, clientKey, email
     marketer_id: marketerId || null,
     client_key: clientKey || null,
     email: email ? email.trim().toLowerCase() : null,
-    preferences: preferences && typeof preferences === 'object' ? preferences : {},
+    preferences: mergedPreferences,
     offers_enabled: !!offersEnabled,
     is_active: true,
     updated_at: new Date().toISOString(),
@@ -111,6 +117,44 @@ async function listOfferSubscribers() {
   return (data || []).map(mapRow);
 }
 
+async function listPrivateOfferSubscribers() {
+  if (!isEnabled()) return [];
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('role', 'client')
+    .eq('is_active', true);
+  if (error) return [];
+  return (data || [])
+    .filter((row) => row.preferences && row.preferences.privateOffers === true)
+    .map(mapRow);
+}
+
+async function mergeSubscriptionPreferences(endpoint, patch = {}) {
+  if (!isEnabled() || !endpoint) return null;
+  const { data: existing } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('endpoint', endpoint)
+    .maybeSingle();
+  if (!existing) return null;
+  const prefs = { ...(existing.preferences || {}), ...patch };
+  const offersEnabled = patch.listings != null ? !!patch.listings : !!existing.offers_enabled;
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .update({
+      preferences: prefs,
+      offers_enabled: offersEnabled,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('endpoint', endpoint)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapRow(data);
+}
+
 module.exports = {
   upsert,
   deactivate,
@@ -118,5 +162,7 @@ module.exports = {
   listByRole,
   listByMarketerId,
   listOfferSubscribers,
+  listPrivateOfferSubscribers,
+  mergeSubscriptionPreferences,
   mapRow,
 };

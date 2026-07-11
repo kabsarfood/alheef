@@ -141,13 +141,13 @@ function parsePushData(event) {
     return raw && typeof raw === 'object' ? raw : {};
   } catch {
     const text = event.data ? event.data.text() : '';
-    return { title: 'الهيف', body: text || 'إشعار جديد' };
+    return { title: 'إشعار جديد', body: text || 'إشعار جديد' };
   }
 }
 
 self.addEventListener('push', (event) => {
   const data = parsePushData(event);
-  const title = data.title || 'مكتب الهيف للخدمات العقارية';
+  const title = data.title || 'إشعار جديد';
   const options = {
     body: data.body || '',
     icon: data.icon || '/assets/icon-192.png',
