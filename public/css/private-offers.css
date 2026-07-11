@@ -1,5 +1,5 @@
 .private-page {
-  background: #faf9f7;
+  background: #f3f1ed;
   min-height: 100vh;
   margin: 0;
   font-family: 'Cairo', sans-serif;
@@ -11,7 +11,6 @@
   display: none !important;
 }
 
-/* أزرار — مستقلة بدون main.css */
 .private-page .btn {
   display: inline-flex;
   align-items: center;
@@ -23,7 +22,11 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.private-page .btn:active {
+  transform: scale(0.98);
 }
 
 .private-page .btn-gold {
@@ -32,14 +35,14 @@
 }
 
 .private-page .btn-outline {
-  background: transparent;
+  background: #fff;
   color: #1E2A38;
-  border: 1px solid rgba(30, 42, 56, 0.2);
+  border: 1px solid rgba(30, 42, 56, 0.15);
 }
 
 .private-page .btn-sm {
-  padding: 0.55rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
 }
 
 .private-page .loading {
@@ -63,11 +66,16 @@
 }
 
 .private-page .container {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: 1rem 0.75rem 3rem;
 }
 
+.btn-block {
+  width: 100%;
+}
+
+/* بوابة الدخول */
 .private-gate {
   min-height: 100vh;
   display: flex;
@@ -94,7 +102,7 @@
 .private-gate__card h1 {
   font-size: 1.35rem;
   margin-bottom: 0.5rem;
-  color: var(--navy, #1E2A38);
+  color: #1E2A38;
 }
 
 .private-gate__card p {
@@ -120,6 +128,7 @@
   letter-spacing: 0.15em;
   text-align: center;
   margin-bottom: 1rem;
+  box-sizing: border-box;
 }
 
 .private-gate__error {
@@ -128,39 +137,507 @@
   font-size: 0.9rem;
 }
 
-.btn-block {
-  width: 100%;
-}
-
+/* رأس الصفحة */
 .private-offers__header {
   text-align: center;
-  padding: 2rem 1rem 1rem;
-  background: var(--navy, #1E2A38);
+  padding: 1.75rem 1rem 1.25rem;
+  background: linear-gradient(160deg, #1E2A38 0%, #2a3a4d 100%);
   color: #fff;
 }
 
 .private-offers__header img {
-  margin: 0 auto 1rem;
+  margin: 0 auto 0.85rem;
   display: block;
   filter: brightness(0) invert(1);
 }
 
 .private-offers__header h1 {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   margin-bottom: 0.35rem;
 }
 
 .private-offers__header p {
   opacity: 0.85;
+  font-size: 0.92rem;
+}
+
+/* شريط البحث والفلاتر */
+.private-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(243, 241, 237, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(30, 42, 56, 0.08);
+  padding: 0.85rem 0.75rem 1rem;
+}
+
+.private-toolbar__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.private-search {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.private-search__icon {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 0.95rem;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.private-search input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid rgba(30, 42, 56, 0.12);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: #fff;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(30, 42, 56, 0.04);
+}
+
+.private-search input:focus {
+  outline: none;
+  border-color: #C5A46D;
+  box-shadow: 0 0 0 3px rgba(197, 164, 109, 0.2);
+}
+
+.private-type-tabs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.private-type-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.private-type-tab {
+  flex-shrink: 0;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 42, 56, 0.12);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1E2A38;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.private-type-tab.is-active {
+  background: #1E2A38;
+  color: #fff;
+  border-color: #1E2A38;
+}
+
+.private-type-filters {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 42, 56, 0.08);
+}
+
+.private-type-filters__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.private-type-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #666;
+}
+
+.private-type-filters select {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  background: #fafafa;
+}
+
+.private-results-count {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  color: #777;
+  font-weight: 600;
+}
+
+/* شبكة البطاقات */
+.offers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .offers-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .offers-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.1rem;
+  }
+}
+
+/* بطاقة العرض */
+.po-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(30, 42, 56, 0.07);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.po-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(30, 42, 56, 0.1);
+}
+
+.po-card__media {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: #e8e6e2;
+  cursor: pointer;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.po-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s;
+}
+
+.po-card__media:hover img {
+  transform: scale(1.04);
+}
+
+.po-card__media-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.po-card__photos-badge {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  background: rgba(30, 42, 56, 0.82);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.po-card__body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.po-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.po-chip {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: #f3f1ed;
+  color: #444;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.po-chip--type {
+  background: rgba(197, 164, 109, 0.18);
+  color: #8a6d3b;
+}
+
+.po-chip--district {
+  background: rgba(30, 42, 56, 0.08);
+  color: #1E2A38;
+}
+
+.po-card__price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1E2A38;
+  line-height: 1.3;
+}
+
+.po-card__location {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+.po-card__location a {
+  color: #C5A46D;
+  text-decoration: none;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.po-card__desc {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: #666;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.po-card__footer {
+  margin-top: auto;
+  padding-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border-top: 1px solid #f0eeea;
+}
+
+.po-card__number {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #C5A46D;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.po-card__footer .btn.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .po-card__body {
+    padding: 0.9rem;
+  }
+
+  .po-chip {
+    font-size: 0.74rem;
+  }
+
+  .po-card__price {
+    font-size: 1.05rem;
+  }
+
+  .po-card__location,
+  .po-card__desc {
+    font-size: 0.78rem;
+  }
+}
+
+.private-offers .empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+  grid-column: 1 / -1;
+}
+
+/* معرض الصور */
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 14, 20, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.photo-lightbox__close {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.photo-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.8rem;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.photo-lightbox__nav--prev {
+  right: 0.65rem;
+}
+
+.photo-lightbox__nav--next {
+  left: 0.65rem;
+}
+
+.photo-lightbox__stage {
+  width: min(100%, 900px);
+  max-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.photo-lightbox__stage img {
+  max-width: 100%;
+  max-height: calc(100vh - 180px);
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.photo-lightbox__counter {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.photo-lightbox__thumbs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 0.75rem 0 0;
+  scrollbar-width: thin;
+}
+
+.photo-lightbox__thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  opacity: 0.55;
+}
+
+.photo-lightbox__thumb.is-active {
+  border-color: #C5A46D;
+  opacity: 1;
+}
+
+.photo-lightbox__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+body.lightbox-open {
+  overflow: hidden;
+}
+
+/* PDF — قالب الطباعة */
+.pdf-render-root {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 794px;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
+  transform: translateX(-10000px);
+}
+
+.pdf-render-slot {
+  width: 794px;
+  background: #fff;
+}
+
+.pdf-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1E2A38;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  max-width: calc(100% - 2rem);
+  text-align: center;
+}
+
+.pdf-toast--error {
+  background: #b91c1c;
 }
 
 .private-offer-card {
   background: #fff;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(30, 42, 56, 0.06);
-  margin-bottom: 1.5rem;
 }
 
 .private-offer-card__gallery {
@@ -182,7 +659,7 @@
 
 .private-offer-card__number {
   display: inline-block;
-  background: var(--gold, #C5A46D);
+  background: #C5A46D;
   color: #fff;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
@@ -194,7 +671,7 @@
 .private-offer-card__price {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--navy, #1E2A38);
+  color: #1E2A38;
   margin: 0.5rem 0;
 }
 
@@ -222,64 +699,9 @@
   margin: 1rem 0;
 }
 
-.private-offer-card__actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-}
-
 .private-offer-card__location a {
-  color: var(--gold, #C5A46D);
+  color: #C5A46D;
   word-break: break-all;
-}
-
-.private-offers .empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #666;
-}
-
-.private-offer-card__actions .btn.is-loading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.private-offer-card__actions .btn {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* قالب PDF — يُستخدم داخل html2pdf */
-.pdf-render-root {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 794px;
-  z-index: -9999;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.pdf-toast {
-  position: fixed;
-  bottom: 1.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1E2A38;
-  color: #fff;
-  padding: 0.75rem 1.25rem;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  z-index: 9999;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  max-width: calc(100% - 2rem);
-  text-align: center;
-}
-
-.pdf-toast--error {
-  background: #b91c1c;
 }
 
 .private-pdf {
@@ -301,11 +723,24 @@
 }
 
 .private-pdf .private-offer-card__gallery {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
 }
 
 .private-pdf .private-offer-card__gallery img {
-  height: 200px;
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.private-pdf .private-offer-card__location dd {
+  word-break: break-word;
+  line-height: 1.75;
 }
 
 .private-pdf .private-offer-card__body {
@@ -338,8 +773,12 @@
   page-break-inside: avoid;
 }
 
-@media (max-width: 600px) {
-  .private-offer-card__gallery img {
-    height: 120px;
+@media (max-width: 380px) {
+  .private-type-filters__row {
+    grid-template-columns: 1fr;
+  }
+
+  .po-chip {
+    font-size: 0.64rem;
   }
 }

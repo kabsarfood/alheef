@@ -4,12 +4,117 @@
   const slug = slugMatch ? slugMatch[1] : '';
   const TOKEN_KEY = `alheef_private_token_${slug}`;
 
+  const TYPE_TABS = [
+    { value: '', label: 'الكل' },
+    { value: 'land', label: 'أرض' },
+    { value: 'villa', label: 'فلل' },
+    { value: 'apartment', label: 'شقق' },
+    { value: 'building', label: 'عمائر' },
+    { value: 'farm', label: 'مزارع' },
+  ];
+
+  const TYPE_FILTERS = {
+    land: {
+      area: [
+        { value: '', label: 'كل المساحات' },
+        { value: '0-500', label: 'أقل من 500 م²' },
+        { value: '500-1000', label: '500 — 1000 م²' },
+        { value: '1000-2000', label: '1000 — 2000 م²' },
+        { value: '2000+', label: 'أكثر من 2000 م²' },
+      ],
+      price: [
+        { value: '', label: 'كل الأسعار' },
+        { value: '0-500000', label: 'أقل من 500 ألف' },
+        { value: '500000-1000000', label: '500 — 1 مليون' },
+        { value: '1000000-2000000', label: '1 — 2 مليون' },
+        { value: '2000000+', label: 'أكثر من 2 مليون' },
+      ],
+    },
+    villa: {
+      area: [
+        { value: '', label: 'كل المساحات' },
+        { value: '0-300', label: 'أقل من 300 م²' },
+        { value: '300-450', label: '300 — 450 م²' },
+        { value: '450-600', label: '450 — 600 م²' },
+        { value: '600+', label: 'أكثر من 600 م²' },
+      ],
+      price: [
+        { value: '', label: 'كل الأسعار' },
+        { value: '0-1500000', label: 'أقل من 1.5 مليون' },
+        { value: '1500000-2500000', label: '1.5 — 2.5 مليون' },
+        { value: '2500000-4000000', label: '2.5 — 4 مليون' },
+        { value: '4000000+', label: 'أكثر من 4 مليون' },
+      ],
+    },
+    apartment: {
+      area: [
+        { value: '', label: 'كل المساحات' },
+        { value: '0-120', label: 'أقل من 120 م²' },
+        { value: '120-180', label: '120 — 180 م²' },
+        { value: '180-250', label: '180 — 250 م²' },
+        { value: '250+', label: 'أكثر من 250 م²' },
+      ],
+      price: [
+        { value: '', label: 'كل الأسعار' },
+        { value: '0-600000', label: 'أقل من 600 ألف' },
+        { value: '600000-1000000', label: '600 — 1 مليون' },
+        { value: '1000000-1500000', label: '1 — 1.5 مليون' },
+        { value: '1500000+', label: 'أكثر من 1.5 مليون' },
+      ],
+    },
+    building: {
+      area: [
+        { value: '', label: 'كل المساحات' },
+        { value: '0-500', label: 'أقل من 500 م²' },
+        { value: '500-900', label: '500 — 900 م²' },
+        { value: '900-1500', label: '900 — 1500 م²' },
+        { value: '1500+', label: 'أكثر من 1500 م²' },
+      ],
+      price: [
+        { value: '', label: 'كل الأسعار' },
+        { value: '0-3000000', label: 'أقل من 3 مليون' },
+        { value: '3000000-6000000', label: '3 — 6 مليون' },
+        { value: '6000000-10000000', label: '6 — 10 مليون' },
+        { value: '10000000+', label: 'أكثر من 10 مليون' },
+      ],
+    },
+    farm: {
+      area: [
+        { value: '', label: 'كل المساحات' },
+        { value: '0-5000', label: 'أقل من 5000 م²' },
+        { value: '5000-20000', label: '5000 — 20000 م²' },
+        { value: '20000-50000', label: '20000 — 50000 م²' },
+        { value: '50000+', label: 'أكثر من 50000 م²' },
+      ],
+      price: [
+        { value: '', label: 'كل الأسعار' },
+        { value: '0-1000000', label: 'أقل من 1 مليون' },
+        { value: '1000000-3000000', label: '1 — 3 مليون' },
+        { value: '3000000-7000000', label: '3 — 7 مليون' },
+        { value: '7000000+', label: 'أكثر من 7 مليون' },
+      ],
+    },
+  };
+
   const gateView = document.getElementById('gate-view');
   const offersView = document.getElementById('offers-view');
   const gateForm = document.getElementById('gate-form');
   const gateError = document.getElementById('gate-error');
   const offersContainer = document.getElementById('offers-container');
   const accessCodeInput = document.getElementById('access-code');
+  const typeTabsEl = document.getElementById('type-tabs');
+  const typeFiltersEl = document.getElementById('type-filters');
+  const searchInput = document.getElementById('offers-search');
+  const resultsCountEl = document.getElementById('results-count');
+  const lightboxEl = document.getElementById('photo-lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxCounter = document.getElementById('lightbox-counter');
+  const lightboxThumbs = document.getElementById('lightbox-thumbs');
+
+  let allOffers = [];
+  let filterState = { type: '', q: '', area: '', price: '' };
+  let lightboxState = { images: [], index: 0 };
+  let pdfBusy = false;
 
   if (!slug) {
     document.body.innerHTML = '<p style="text-align:center;padding:3rem;font-family:Cairo,sans-serif">الرابط غير صالح</p>';
@@ -82,6 +187,271 @@
     setToken(data.token);
   }
 
+  function offerImages(o) {
+    return (o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []);
+  }
+
+  function offerDistrict(o) {
+    const desc = String(o.shortDescription || '').trim();
+    if (desc) {
+      const first = desc.split('\n').map((s) => s.trim()).find(Boolean);
+      if (first) return first;
+    }
+    return String(o.street || '').trim();
+  }
+
+  function offerExtraDesc(o) {
+    const desc = String(o.shortDescription || '').trim();
+    if (!desc) return '';
+    const lines = desc.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (lines.length <= 1) return desc;
+    return lines.slice(1).join('\n');
+  }
+
+  function parseRange(value) {
+    if (!value) return null;
+    if (value.endsWith('+')) {
+      const min = Number(value.replace('+', ''));
+      return { min, max: Infinity };
+    }
+    const [a, b] = value.split('-').map(Number);
+    return { min: a, max: b };
+  }
+
+  function inRange(num, rangeValue) {
+    if (num == null || num === '') return !rangeValue;
+    const range = parseRange(rangeValue);
+    if (!range) return true;
+    const n = Number(num);
+    if (Number.isNaN(n)) return false;
+    return n >= range.min && n <= range.max;
+  }
+
+  function offerSearchText(o) {
+    return [
+      o.offerNumber,
+      o.propertyTypeLabel,
+      o.street,
+      o.plotNumber,
+      o.planNumber,
+      o.location,
+      o.shortDescription,
+      offerDistrict(o),
+      o.priceDisplay,
+    ].filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function filterOffers(offers) {
+    let list = offers.slice();
+    if (filterState.type) {
+      list = list.filter((o) => o.propertyType === filterState.type);
+    }
+    if (filterState.q) {
+      const q = filterState.q.trim().toLowerCase();
+      list = list.filter((o) => offerSearchText(o).includes(q));
+    }
+    if (filterState.area) {
+      list = list.filter((o) => inRange(o.area, filterState.area));
+    }
+    if (filterState.price) {
+      list = list.filter((o) => inRange(o.price, filterState.price));
+    }
+    return list;
+  }
+
+  function renderTypeTabs() {
+    typeTabsEl.innerHTML = TYPE_TABS.map((t) => `
+      <button type="button" class="private-type-tab${filterState.type === t.value ? ' is-active' : ''}"
+        data-type="${escapeAttr(t.value)}" role="tab" aria-selected="${filterState.type === t.value}">
+        ${escapeHtml(t.label)}
+      </button>
+    `).join('');
+  }
+
+  function renderTypeFilters() {
+    const cfg = TYPE_FILTERS[filterState.type];
+    if (!cfg) {
+      typeFiltersEl.hidden = true;
+      typeFiltersEl.innerHTML = '';
+      return;
+    }
+    typeFiltersEl.hidden = false;
+    typeFiltersEl.innerHTML = `
+      <div class="private-type-filters__row">
+        <label>
+          <span>المساحة</span>
+          <select id="filter-area">
+            ${cfg.area.map((o) => `<option value="${escapeAttr(o.value)}"${filterState.area === o.value ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
+          </select>
+        </label>
+        <label>
+          <span>السعر</span>
+          <select id="filter-price">
+            ${cfg.price.map((o) => `<option value="${escapeAttr(o.value)}"${filterState.price === o.value ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+    `;
+    typeFiltersEl.querySelector('#filter-area')?.addEventListener('change', (e) => {
+      filterState.area = e.target.value;
+      renderOffersGrid();
+    });
+    typeFiltersEl.querySelector('#filter-price')?.addEventListener('change', (e) => {
+      filterState.price = e.target.value;
+      renderOffersGrid();
+    });
+  }
+
+  function renderOffersGrid() {
+    const filtered = filterOffers(allOffers);
+    if (!allOffers.length) {
+      offersContainer.innerHTML = '<p class="empty-state">لا توجد عروض متاحة حالياً</p>';
+      resultsCountEl.hidden = true;
+      return;
+    }
+    if (!filtered.length) {
+      offersContainer.innerHTML = '<p class="empty-state">لا توجد نتائج مطابقة — جرّب تغيير البحث أو الفلاتر</p>';
+      resultsCountEl.hidden = false;
+      resultsCountEl.textContent = '0 عرض';
+      return;
+    }
+    offersContainer.innerHTML = `<div class="offers-grid">${filtered.map(renderOfferCard).join('')}</div>`;
+    resultsCountEl.hidden = false;
+    resultsCountEl.textContent = `${filtered.length} عرض`;
+    bindCardEvents(filtered);
+    preloadOfferImages(filtered);
+  }
+
+  function renderOfferCard(o) {
+    const imgs = offerImages(o);
+    const cover = imgs[0] || '';
+    const district = offerDistrict(o);
+    const extraDesc = offerExtraDesc(o);
+    const locationHtml = o.showLocation && o.location ? locationContent(o.location) : '';
+
+    const chips = [
+      chip(o.propertyTypeLabel, 'type'),
+      o.area != null ? chip(`${o.area} م²`) : '',
+      o.planNumber ? chip(`مخطط ${escapeHtml(o.planNumber)}`) : '',
+      o.plotNumber ? chip(`قطعة ${escapeHtml(o.plotNumber)}`) : '',
+      district ? chip(escapeHtml(district), 'district') : '',
+    ].filter(Boolean).join('');
+
+    return `
+      <article class="po-card" id="offer-${o.id}">
+        <button type="button" class="po-card__media" data-gallery="${escapeAttr(o.id)}" aria-label="عرض صور العقار">
+          ${cover
+            ? `<img src="${escapeAttr(cover)}" alt="" loading="lazy">`
+            : '<div class="po-card__media-placeholder">بدون صورة</div>'}
+          ${imgs.length > 1 ? `<span class="po-card__photos-badge">${imgs.length} صور</span>` : ''}
+        </button>
+        <div class="po-card__body">
+          <div class="po-card__chips">${chips}</div>
+          <div class="po-card__price">${escapeHtml(o.priceDisplay || '—')}</div>
+          ${locationHtml ? `<div class="po-card__location">${locationHtml}</div>` : ''}
+          ${extraDesc ? `<p class="po-card__desc">${formatMultiline(extraDesc)}</p>` : ''}
+          <div class="po-card__footer">
+            <span class="po-card__number">${escapeHtml(o.offerNumber)}</span>
+            <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">PDF</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function chip(text, mod = '') {
+    const cls = mod ? ` po-chip--${mod}` : '';
+    return `<span class="po-chip${cls}">${text}</span>`;
+  }
+
+  function bindCardEvents(offers) {
+    offersContainer.querySelectorAll('[data-gallery]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const offer = offers.find((o) => o.id === btn.dataset.gallery);
+        if (!offer) return;
+        const imgs = offerImages(offer);
+        if (!imgs.length) return;
+        openLightbox(imgs, 0);
+      });
+    });
+    offersContainer.querySelectorAll('[data-pdf]').forEach((btn) => {
+      btn.addEventListener('click', () => downloadPdf(btn, offers.find((o) => o.id === btn.dataset.pdf)));
+    });
+  }
+
+  function bindToolbarEvents() {
+    typeTabsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-type]');
+      if (!btn) return;
+      filterState.type = btn.dataset.type;
+      filterState.area = '';
+      filterState.price = '';
+      renderTypeTabs();
+      renderTypeFilters();
+      renderOffersGrid();
+    });
+
+    let searchTimer;
+    searchInput?.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        filterState.q = searchInput.value;
+        renderOffersGrid();
+      }, 180);
+    });
+  }
+
+  function openLightbox(images, index) {
+    lightboxState = { images, index: Math.max(0, Math.min(index, images.length - 1)) };
+    updateLightbox();
+    lightboxEl.hidden = false;
+    document.body.classList.add('lightbox-open');
+  }
+
+  function closeLightbox() {
+    lightboxEl.hidden = true;
+    document.body.classList.remove('lightbox-open');
+    lightboxImg.src = '';
+  }
+
+  function updateLightbox() {
+    const { images, index } = lightboxState;
+    if (!images.length) return closeLightbox();
+    lightboxImg.src = images[index];
+    lightboxCounter.textContent = `${index + 1} / ${images.length}`;
+    lightboxThumbs.innerHTML = images.map((url, i) => `
+      <button type="button" class="photo-lightbox__thumb${i === index ? ' is-active' : ''}" data-index="${i}">
+        <img src="${escapeAttr(url)}" alt="">
+      </button>
+    `).join('');
+  }
+
+  function lightboxStep(delta) {
+    const { images, index } = lightboxState;
+    if (!images.length) return;
+    lightboxState.index = (index + delta + images.length) % images.length;
+    updateLightbox();
+  }
+
+  document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
+  document.getElementById('lightbox-prev')?.addEventListener('click', () => lightboxStep(-1));
+  document.getElementById('lightbox-next')?.addEventListener('click', () => lightboxStep(1));
+  lightboxThumbs?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-index]');
+    if (!btn) return;
+    lightboxState.index = Number(btn.dataset.index);
+    updateLightbox();
+  });
+  lightboxEl?.addEventListener('click', (e) => {
+    if (e.target === lightboxEl) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (lightboxEl.hidden) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lightboxStep(1);
+    if (e.key === 'ArrowRight') lightboxStep(-1);
+  });
+
   async function loadOffers() {
     offersContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     const res = await fetch('/api/private-offers', { headers: authHeaders() });
@@ -91,38 +461,22 @@
       return;
     }
     const data = await res.json();
-    const offers = data.offers || [];
-    if (!offers.length) {
-      offersContainer.innerHTML = '<p class="empty-state">لا توجد عروض متاحة حالياً</p>';
-      return;
-    }
-    offersContainer.innerHTML = offers.map(renderOffer).join('');
-    offersContainer.querySelectorAll('[data-pdf]').forEach((btn) => {
-      btn.addEventListener('click', () => downloadPdf(btn, offers.find((o) => o.id === btn.dataset.pdf)));
-    });
+    allOffers = data.offers || [];
+    renderTypeTabs();
+    renderTypeFilters();
+    renderOffersGrid();
   }
 
-  function renderOffer(o) {
-    const actions = `
-      <div class="private-offer-card__actions">
-        <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">تحميل PDF للعرض</button>
-      </div>
-    `;
-    return `
-      <article class="private-offer-card" id="offer-${o.id}">
-        ${buildOfferCardInner(o, null, actions)}
-      </article>
-    `;
-  }
-
-  function buildOfferCardInner(o, imageSources, extraBodyHtml = '') {
-    const imgs = imageSources || ((o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []));
+  function buildOfferCardInner(o, imageSources, extraBodyHtml = '', options = {}) {
+    const forPdf = options.forPdf === true;
+    const imgs = imageSources || offerImages(o);
     const galleryHtml = imgs.length
-      ? `<div class="private-offer-card__gallery">${imgs.map((u) => `<img src="${u}" alt="" loading="lazy">`).join('')}</div>`
+      ? `<div class="private-offer-card__gallery">${imgs.map((u) => `<img src="${escapeAttr(u)}" alt=""${forPdf ? '' : ' loading="lazy"'}>`).join('')}</div>`
       : '';
     const locationHtml = o.showLocation && o.location
-      ? `<div class="private-offer-card__location"><dt>الموقع</dt><dd>${locationContent(o.location)}</dd></div>`
+      ? `<div class="private-offer-card__location"><dt>الموقع</dt><dd>${forPdf ? locationContentForPdf(o.location) : locationContent(o.location)}</dd></div>`
       : '';
+    const district = offerDistrict(o);
 
     return `
       ${galleryHtml}
@@ -132,10 +486,10 @@
         <dl class="private-offer-card__meta">
           <div><dt>نوع العقار</dt><dd>${escapeHtml(o.propertyTypeLabel)}</dd></div>
           <div><dt>المساحة</dt><dd>${o.area != null ? o.area + ' م²' : '—'}</dd></div>
+          ${district ? `<div><dt>الحي</dt><dd>${escapeHtml(district)}</dd></div>` : ''}
           <div><dt>الشارع</dt><dd>${escapeHtml(o.street || '—')}</dd></div>
           <div><dt>رقم القطعة</dt><dd>${escapeHtml(o.plotNumber || '—')}</dd></div>
           <div><dt>رقم المخطط</dt><dd>${escapeHtml(o.planNumber || '—')}</dd></div>
-          <div><dt>الحالة</dt><dd>${escapeHtml(o.statusLabel)}</dd></div>
           ${locationHtml}
         </dl>
         ${o.shortDescription ? `<p class="private-offer-card__desc">${formatMultiline(o.shortDescription)}</p>` : ''}
@@ -146,10 +500,16 @@
 
   function locationContent(location) {
     const loc = String(location || '').trim();
-    if (!loc) return '—';
+    if (!loc) return '';
     if (isUrl(loc)) {
-      return `<a href="${escapeAttr(loc)}" target="_blank" rel="noopener">عرض على الخريطة</a>`;
+      return `<a href="${escapeAttr(loc)}" target="_blank" rel="noopener">📍 عرض على الخريطة</a>`;
     }
+    return formatMultiline(loc);
+  }
+
+  function locationContentForPdf(location) {
+    const loc = String(location || '').trim();
+    if (!loc) return '—';
     return formatMultiline(loc);
   }
 
@@ -166,7 +526,7 @@
   }
 
   function isUrl(s) {
-    return /^https?:\/\//i.test(s);
+    return /^https?:\/\//i.test(String(s).trim());
   }
 
   function escapeHtml(s) {
@@ -189,15 +549,25 @@
     showPdfToast._t = setTimeout(() => { el.hidden = true; }, isError ? 4500 : 2800);
   }
 
+  function preloadOfferImages(offers) {
+    (offers || []).forEach((o) => {
+      offerImages(o).forEach((url) => {
+        const img = new Image();
+        img.src = url;
+      });
+    });
+  }
+
   async function imageToDataUrl(url) {
     if (!url) return null;
+    if (url.startsWith('data:')) return url;
     const bust = `${url}${url.includes('?') ? '&' : '?'}pdf=${Date.now()}`;
     try {
-      const res = await fetch(bust, { mode: 'cors', cache: 'no-store' });
+      const res = await fetch(bust, { mode: 'cors', cache: 'no-store', credentials: 'same-origin' });
       if (!res.ok) throw new Error('fetch');
       const blob = await res.blob();
       const bitmap = await createImageBitmap(blob);
-      const maxW = 1200;
+      const maxW = 1400;
       let w = bitmap.width;
       let h = bitmap.height;
       if (w > maxW) {
@@ -209,14 +579,14 @@
       canvas.height = h;
       canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
       if (bitmap.close) bitmap.close();
-      return canvas.toDataURL('image/jpeg', 0.9);
+      return canvas.toDataURL('image/jpeg', 0.92);
     } catch {
       return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           try {
-            const maxW = 1200;
+            const maxW = 1400;
             let w = img.naturalWidth;
             let h = img.naturalHeight;
             if (w > maxW) {
@@ -227,52 +597,36 @@
             canvas.width = w;
             canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.9));
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
           } catch {
-            resolve(null);
+            resolve(url);
           }
         };
-        img.onerror = () => resolve(null);
+        img.onerror = () => resolve(url);
         img.src = bust;
       });
     }
   }
 
   async function preparePdfImages(urls) {
-    const list = (urls || []).filter(Boolean);
-    return Promise.all(list.map((url) => imageToDataUrl(url)));
+    return Promise.all((urls || []).filter(Boolean).map((url) => imageToDataUrl(url)));
   }
 
   async function buildPdfElement(offer) {
-    const card = document.getElementById(`offer-${offer.id}`);
-    if (!card) {
-      throw new Error('تعذر إيجاد العرض على الصفحة');
-    }
-
-    const clone = card.cloneNode(true);
-    clone.removeAttribute('id');
-    clone.classList.add('private-pdf__card');
-    clone.querySelector('.private-offer-card__actions')?.remove();
-
-    const imgEls = [...clone.querySelectorAll('.private-offer-card__gallery img')];
-    const rawUrls = imgEls.map((img) => img.getAttribute('src')).filter(Boolean);
-    const dataUrls = await preparePdfImages(rawUrls);
-    imgEls.forEach((img, i) => {
-      if (dataUrls[i]) img.src = dataUrls[i];
-      img.removeAttribute('loading');
-    });
+    const rawImgs = offerImages(offer);
+    const dataUrls = await preparePdfImages(rawImgs);
+    const pdfImgs = rawImgs.map((url, i) => dataUrls[i] || url);
 
     const wrap = document.createElement('div');
     wrap.className = 'private-pdf';
     wrap.setAttribute('dir', 'rtl');
     wrap.setAttribute('lang', 'ar');
-    wrap.appendChild(clone);
-
-    const disclaimer = document.createElement('p');
-    disclaimer.className = 'private-pdf__disclaimer';
-    disclaimer.textContent = PDF_DISCLAIMER;
-    wrap.appendChild(disclaimer);
-
+    wrap.innerHTML = `
+      <article class="private-offer-card private-pdf__card">
+        ${buildOfferCardInner(offer, pdfImgs, '', { forPdf: true })}
+      </article>
+      <p class="private-pdf__disclaimer">${PDF_DISCLAIMER}</p>
+    `;
     return wrap;
   }
 
@@ -310,10 +664,11 @@
   function waitForImagesIn(el) {
     const imgs = [...el.querySelectorAll('img')];
     return Promise.all(imgs.map((img) => new Promise((resolve) => {
-      if (img.complete && img.naturalWidth > 0) return resolve();
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-      setTimeout(resolve, 8000);
+      const done = () => resolve();
+      if (img.complete && img.naturalWidth > 0) return done();
+      img.onload = done;
+      img.onerror = done;
+      setTimeout(done, 12000);
     })));
   }
 
@@ -326,13 +681,12 @@
   }
 
   function pdfOptions(offerNumber) {
-    const scale = pdfRenderScale();
     return {
       margin: [8, 8, 10, 8],
       filename: `${offerNumber}.pdf`,
       image: { type: 'jpeg', quality: 0.93 },
       html2canvas: {
-        scale,
+        scale: pdfRenderScale(),
         useCORS: true,
         allowTaint: false,
         logging: false,
@@ -350,11 +704,18 @@
         compress: true,
         precision: 16,
       },
-      pagebreak: { mode: ['css', 'legacy'], avoid: ['.private-offer-card__gallery', '.private-offer-card__meta', '.private-offer-card__desc', '.private-pdf__disclaimer'] },
+      pagebreak: {
+        mode: ['css', 'legacy'],
+        avoid: [
+          '.private-offer-card__gallery img',
+          '.private-offer-card__meta > div',
+          '.private-offer-card__desc',
+          '.private-offer-card__location',
+          '.private-pdf__disclaimer',
+        ],
+      },
     };
   }
-
-  let pdfBusy = false;
 
   async function downloadPdf(btn, offer) {
     if (!offer || pdfBusy || btn.disabled) return;
@@ -363,22 +724,24 @@
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.classList.add('is-loading');
-    btn.textContent = 'جاري التحميل...';
-    showPdfToast('جاري إنشاء PDF...');
+    btn.textContent = '...';
+    showPdfToast('جاري تحضير الصور...');
 
-    const host = document.getElementById('pdf-render-root') || document.body;
+    const host = document.getElementById('pdf-render-root');
     const slot = document.createElement('div');
-    host.appendChild(slot);
+    slot.className = 'pdf-render-slot';
+    if (host) host.appendChild(slot);
 
     try {
+      if (!host) throw new Error('تعذر إعداد PDF');
       await waitForHtml2Pdf();
       await waitForFonts();
-
       const pdfEl = await buildPdfElement(offer);
       slot.appendChild(pdfEl);
+      showPdfToast('جاري إنشاء PDF...');
       await waitForImagesIn(pdfEl);
+      await new Promise((r) => setTimeout(r, 200));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
       await html2pdf().set(pdfOptions(offer.offerNumber)).from(pdfEl).save();
       showPdfToast('تم تحميل PDF بنجاح');
     } catch (err) {
@@ -405,6 +768,8 @@
       gateError.hidden = false;
     }
   });
+
+  bindToolbarEvents();
 
   (async function init() {
     const ok = await checkSession();

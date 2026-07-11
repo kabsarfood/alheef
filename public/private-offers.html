@@ -8,7 +8,7 @@
   <title>عروض خاصة — مكتب الهيف</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/private-offers.css?v=6">
+  <link rel="stylesheet" href="/css/private-offers.css?v=8">
 </head>
 <body class="private-page">
 
@@ -35,12 +35,38 @@
       <h1>عروض خاصة لك</h1>
       <p>اختر العرض المناسب وأرسل رقم العرض لفريقنا للمتابعة</p>
     </header>
-    <main class="container" id="offers-container">
-      <div class="loading"><div class="spinner"></div></div>
+
+    <section class="private-toolbar" aria-label="بحث وتصفية">
+      <div class="private-toolbar__inner">
+        <div class="private-search">
+          <span class="private-search__icon" aria-hidden="true">🔍</span>
+          <input id="offers-search" type="search" placeholder="ابحث بالحي، الشارع، رقم العرض، القطعة..." autocomplete="off">
+        </div>
+        <div class="private-type-tabs" id="type-tabs" role="tablist" aria-label="نوع العقار"></div>
+        <div class="private-type-filters" id="type-filters" hidden></div>
+        <p class="private-results-count" id="results-count" hidden></p>
+      </div>
+    </section>
+
+    <main class="container">
+      <div id="offers-container">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
     </main>
   </div>
 
+  <div id="photo-lightbox" class="photo-lightbox" hidden role="dialog" aria-modal="true" aria-label="معرض الصور">
+    <button type="button" class="photo-lightbox__close" id="lightbox-close" aria-label="إغلاق">×</button>
+    <button type="button" class="photo-lightbox__nav photo-lightbox__nav--prev" id="lightbox-prev" aria-label="الصورة السابقة">‹</button>
+    <div class="photo-lightbox__stage">
+      <img id="lightbox-img" src="" alt="">
+      <p class="photo-lightbox__counter" id="lightbox-counter"></p>
+    </div>
+    <button type="button" class="photo-lightbox__nav photo-lightbox__nav--next" id="lightbox-next" aria-label="الصورة التالية">›</button>
+    <div class="photo-lightbox__thumbs" id="lightbox-thumbs"></div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="/js/private-offers.js?v=8"></script>
+  <script src="/js/private-offers.js?v=10"></script>
 </body>
 </html>

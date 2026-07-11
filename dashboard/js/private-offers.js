@@ -3,6 +3,7 @@ const PROPERTY_TYPES = [
   { value: 'villa', label: 'فيلا' },
   { value: 'apartment', label: 'شقة' },
   { value: 'building', label: 'عمارة' },
+  { value: 'farm', label: 'مزرعة' },
   { value: 'investment', label: 'استثماري' },
   { value: 'other', label: 'غير ذلك' },
 ];

@@ -523,6 +523,7 @@ const PRIVATE_PROPERTY_TYPES = {
   villa: 'فيلا',
   apartment: 'شقة',
   building: 'عمارة',
+  farm: 'مزرعة',
   investment: 'استثماري',
   other: 'غير ذلك',
 };
