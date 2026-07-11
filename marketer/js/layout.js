@@ -1,4 +1,4 @@
-const MARKETER_NAV = [
+﻿const MARKETER_NAV = [
   { href: '/marketer/', label: 'لوحة مسوق الهيف', page: 'index' },
   { href: '/marketer/add-property.html', label: 'إضافة إعلان جديد', page: 'add-property' },
   { href: '/marketer/properties.html', label: 'إعلاناتي', page: 'properties' },
@@ -23,7 +23,7 @@ async function initMarketerLayout(activePage, pageTitle) {
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__brand">
         <a href="/marketer/" class="sidebar__logo">
-          <img src="/assets/app-icon.png?v=4" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">
+          <img src="/assets/app-icon.png?v=5" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">
           <div class="sidebar__logo-text"><strong>الهيف العقارية</strong><span>لوحة مسوق الهيف</span></div>
         </a>
       </div>

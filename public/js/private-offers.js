@@ -139,7 +139,7 @@
     offersView.hidden = true;
     offersView.classList.add('is-hidden');
     offersView.setAttribute('aria-hidden', 'true');
-    document.title = 'عروض خاصة — مكتب الهيف';
+    document.title = 'عروض خاصة';
   }
 
   function showOffers() {
@@ -148,7 +148,7 @@
     offersView.hidden = false;
     offersView.classList.remove('is-hidden');
     offersView.setAttribute('aria-hidden', 'false');
-    document.title = 'عروض خاصة لك — مكتب الهيف';
+    document.title = 'عروض خاصة لك';
   }
 
   function readCodeFromUrl() {
@@ -537,6 +537,11 @@
   }
 
   const PDF_A4_WIDTH = 794;
+  const PDF_RENDER_HEIGHT = 1123;
+
+  function isMobilePdf() {
+    return (window.innerWidth || 1024) < 768;
+  }
 
   function showPdfToast(msg, isError = false) {
     const el = document.getElementById('pdf-toast');
@@ -566,7 +571,7 @@
       if (!res.ok) throw new Error('fetch');
       const blob = await res.blob();
       const bitmap = await createImageBitmap(blob);
-      const maxW = 1400;
+      const maxW = isMobilePdf() ? 1800 : 1600;
       let w = bitmap.width;
       let h = bitmap.height;
       if (w > maxW) {
@@ -578,14 +583,14 @@
       canvas.height = h;
       canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
       if (bitmap.close) bitmap.close();
-      return canvas.toDataURL('image/jpeg', 0.92);
+      return canvas.toDataURL('image/jpeg', 0.95);
     } catch {
       return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           try {
-            const maxW = 1400;
+            const maxW = isMobilePdf() ? 1800 : 1600;
             let w = img.naturalWidth;
             let h = img.naturalHeight;
             if (w > maxW) {
@@ -596,7 +601,7 @@
             canvas.width = w;
             canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.92));
+            resolve(canvas.toDataURL('image/jpeg', 0.95));
           } catch {
             resolve(url);
           }
@@ -666,19 +671,39 @@
     })));
   }
 
-  function pdfRenderScale() {
-    const w = window.innerWidth || 1024;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    if (w < 480) return Math.max(2, Math.min(dpr * 1.2, 2.5));
-    if (w < 768) return Math.max(2, Math.min(dpr * 1.1, 2.2));
-    return Math.min(Math.max(dpr, 2), 3);
+  function preparePdfRenderHost(host) {
+    if (!host) return () => {};
+    const prev = {
+      transform: host.style.transform,
+      top: host.style.top,
+      visibility: host.style.visibility,
+      opacity: host.style.opacity,
+      zIndex: host.style.zIndex,
+    };
+    host.style.transform = 'none';
+    host.style.top = '0';
+    host.style.visibility = 'visible';
+    host.style.opacity = '1';
+    host.style.zIndex = '-1';
+    return () => {
+      host.style.transform = prev.transform;
+      host.style.top = prev.top;
+      host.style.visibility = prev.visibility;
+      host.style.opacity = prev.opacity;
+      host.style.zIndex = prev.zIndex;
+    };
   }
 
-  function pdfOptions(offerNumber) {
+  function pdfRenderScale() {
+    return 2;
+  }
+
+  function pdfOptions(offerNumber, el) {
+    const height = Math.max(el?.scrollHeight || 0, PDF_RENDER_HEIGHT);
     return {
-      margin: [8, 8, 10, 8],
+      margin: [10, 10, 12, 10],
       filename: `${offerNumber}.pdf`,
-      image: { type: 'jpeg', quality: 0.93 },
+      image: { type: 'jpeg', quality: 0.96 },
       html2canvas: {
         scale: pdfRenderScale(),
         useCORS: true,
@@ -687,9 +712,27 @@
         backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
+        x: 0,
+        y: 0,
         windowWidth: PDF_A4_WIDTH,
+        windowHeight: height,
         width: PDF_A4_WIDTH,
+        height,
         letterRendering: true,
+        foreignObjectRendering: false,
+        onclone: (_doc, clone) => {
+          const root = clone.querySelector('.private-pdf');
+          const card = clone.querySelector('.po-card--pdf');
+          if (root) {
+            root.style.width = `${PDF_A4_WIDTH}px`;
+            root.style.maxWidth = `${PDF_A4_WIDTH}px`;
+            root.style.transform = 'none';
+          }
+          if (card) {
+            card.style.width = '100%';
+            card.style.maxWidth = '100%';
+          }
+        },
       },
       jsPDF: {
         unit: 'mm',
@@ -700,13 +743,7 @@
       },
       pagebreak: {
         mode: ['css', 'legacy'],
-        avoid: [
-          '.po-card',
-          '.po-card__media',
-          '.po-card__body',
-          '.po-card__location',
-          '.private-pdf__disclaimer',
-        ],
+        avoid: ['.po-card--pdf', '.private-pdf__disclaimer'],
       },
     };
   }
@@ -725,6 +762,7 @@
     const slot = document.createElement('div');
     slot.className = 'pdf-render-slot';
     if (host) host.appendChild(slot);
+    let restoreHost = () => {};
 
     try {
       if (!host) throw new Error('تعذر إعداد PDF');
@@ -734,13 +772,15 @@
       slot.appendChild(pdfEl);
       showPdfToast('جاري إنشاء PDF...');
       await waitForImagesIn(pdfEl);
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, isMobilePdf() ? 450 : 200));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await html2pdf().set(pdfOptions(offer.offerNumber)).from(pdfEl).save();
+      restoreHost = preparePdfRenderHost(host);
+      await html2pdf().set(pdfOptions(offer.offerNumber, pdfEl)).from(pdfEl).save();
       showPdfToast('تم تحميل PDF بنجاح');
     } catch (err) {
       showPdfToast(err.message || 'تعذر إنشاء ملف PDF', true);
     } finally {
+      restoreHost();
       slot.remove();
       btn.disabled = false;
       btn.classList.remove('is-loading');

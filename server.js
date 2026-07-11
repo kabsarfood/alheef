@@ -146,18 +146,21 @@ app.use((req, res, next) => {
   next();
 });
 
-function sendPrivateOffersPage(res) {
+function sendPrivateOffersPage(req, res) {
   const pagePath = path.join(publicDir, 'private-offers.html');
   if (!fs.existsSync(pagePath)) {
     return res.status(404).send('الصفحة غير موجودة');
   }
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-  return res.sendFile(pagePath);
+  let html = fs.readFileSync(pagePath, 'utf8');
+  const origin = `${req.protocol}://${req.get('host')}`;
+  html = html.replace(/content="\/assets\/app-icon\.png(\?v=\d+)?"/g, `content="${origin}/assets/app-icon.png?v=5"`);
+  return res.type('html').send(html);
 }
 
 /** العروض الخاصة — قبل static لضمان عدم إعادة التوجيه للصفحة الرئيسية */
-app.get(PRIVATE_PAGE_RE, (req, res) => sendPrivateOffersPage(res));
+app.get(PRIVATE_PAGE_RE, (req, res) => sendPrivateOffersPage(req, res));
 
 if (fs.existsSync(dashboardDir)) {
   app.use('/dashboard', express.static(dashboardDir));

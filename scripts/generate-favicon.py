@@ -10,17 +10,17 @@ OUT = ROOT / "public" / "assets"
 CURSOR_SRC = Path(
     r"C:\Users\USER\.cursor\projects\c-Users-USER-Desktop-ALHEEF\assets"
     r"\c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_903b2233186f19f262e6edb916dd1e14_images"
-    r"__________-_______________-58288bdf-ef0d-4edc-b32c-8da118f234ce.png"
+    r"__________-_______________-78a57262-f7dc-47e3-85b1-b4d4cbabf0e0.png"
 )
 
 NAVY = (30, 42, 56, 255)
 
 
 def find_source():
-    if SRC.exists():
-        return SRC
     if CURSOR_SRC.exists():
         return CURSOR_SRC
+    if SRC.exists():
+        return SRC
     raise FileNotFoundError("App icon source not found")
 
 
@@ -84,10 +84,9 @@ def save_sizes(icon: Image.Image):
 
 def main():
     source = find_source()
-    if not SRC.exists():
-        SRC.parent.mkdir(parents=True, exist_ok=True)
-        Image.open(source).save(SRC)
-        print(f"Copied source -> {SRC}")
+    SRC.parent.mkdir(parents=True, exist_ok=True)
+    Image.open(source).save(SRC)
+    print(f"Updated source -> {SRC}")
 
     img = Image.open(source)
     print(f"Source: {source} ({img.size[0]}x{img.size[1]})")
