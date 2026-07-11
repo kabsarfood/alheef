@@ -454,6 +454,25 @@
   white-space: nowrap;
 }
 
+.po-card__media--static {
+  cursor: default;
+}
+
+.po-card__location-url {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  color: #1a5fb4;
+  word-break: break-all;
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
+.po-card__footer--pdf {
+  justify-content: flex-start;
+}
+
 .po-card__footer .btn.is-loading {
   opacity: 0.6;
   pointer-events: none;
@@ -634,130 +653,57 @@ body.lightbox-open {
   background: #b91c1c;
 }
 
-.private-offer-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.private-offer-card__gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 4px;
-}
-
-.private-offer-card__gallery img {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-  display: block;
-}
-
-.private-offer-card__body {
-  padding: 1.25rem;
-}
-
-.private-offer-card__number {
-  display: inline-block;
-  background: #C5A46D;
-  color: #fff;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
-}
-
-.private-offer-card__price {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1E2A38;
-  margin: 0.5rem 0;
-}
-
-.private-offer-card__meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.5rem 1rem;
-  margin: 1rem 0;
-  font-size: 0.92rem;
-}
-
-.private-offer-card__meta dt {
-  color: #888;
-  font-weight: 600;
-}
-
-.private-offer-card__meta dd {
-  margin: 0 0 0.5rem;
-  color: #333;
-}
-
-.private-offer-card__desc {
-  color: #555;
-  line-height: 1.7;
-  margin: 1rem 0;
-}
-
-.private-offer-card__location a {
-  color: #C5A46D;
-  word-break: break-all;
-}
-
 .private-pdf {
   width: 794px;
   font-family: 'Cairo', sans-serif;
   direction: rtl;
   text-align: right;
   background: #fff;
-  padding: 20px;
+  padding: 24px;
   box-sizing: border-box;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
-.private-pdf .private-pdf__card {
-  box-shadow: none;
-  margin: 0;
-  border: 1px solid #eee;
+.private-pdf .po-card--pdf {
+  max-width: 420px;
+  margin: 0 auto;
+  box-shadow: 0 4px 18px rgba(30, 42, 56, 0.07);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
-.private-pdf .private-offer-card__gallery {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
+.private-pdf .po-card--pdf .po-card__media {
+  aspect-ratio: 4 / 3;
 }
 
-.private-pdf .private-offer-card__gallery img {
-  width: 100%;
-  height: auto;
-  min-height: 180px;
-  max-height: 300px;
-  object-fit: cover;
-  display: block;
-  break-inside: avoid;
-  page-break-inside: avoid;
+.private-pdf .po-card--pdf .po-card__body {
+  padding: 1rem;
 }
 
-.private-pdf .private-offer-card__location dd {
-  word-break: break-word;
-  line-height: 1.75;
+.private-pdf .po-card--pdf .po-chip {
+  font-size: 0.78rem;
+  white-space: normal;
 }
 
-.private-pdf .private-offer-card__body {
-  padding: 1.5rem;
+.private-pdf .po-card--pdf .po-card__price {
+  font-size: 1.15rem;
 }
 
-.private-pdf .private-offer-card__price {
-  font-size: 1.35rem;
+.private-pdf .po-card--pdf .po-card__location {
+  font-size: 0.82rem;
 }
 
-.private-pdf .private-offer-card__meta {
-  font-size: 1rem;
+.private-pdf .po-card--pdf .po-card__location a {
+  color: #C5A46D;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.private-pdf .private-offer-card__desc {
-  font-size: 1rem;
-  white-space: pre-wrap;
+.private-pdf .po-card--pdf .po-card__desc {
+  font-size: 0.82rem;
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 .private-pdf__disclaimer {

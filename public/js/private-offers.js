@@ -322,12 +322,13 @@
     preloadOfferImages(filtered);
   }
 
-  function renderOfferCard(o) {
+  function buildPoCardHtml(o, options = {}) {
+    const forPdf = options.forPdf === true;
     const imgs = offerImages(o);
-    const cover = imgs[0] || '';
+    const cover = options.coverSrc || imgs[0] || '';
     const district = offerDistrict(o);
     const extraDesc = offerExtraDesc(o);
-    const locationHtml = o.showLocation && o.location ? locationContent(o.location) : '';
+    const locationHtml = o.showLocation && o.location ? locationContent(o.location, forPdf) : '';
 
     const chips = [
       chip(o.propertyTypeLabel, 'type'),
@@ -337,26 +338,42 @@
       district ? chip(escapeHtml(district), 'district') : '',
     ].filter(Boolean).join('');
 
+    const mediaInner = cover
+      ? `<img src="${escapeAttr(cover)}" alt=""${forPdf ? '' : ' loading="lazy"'}>`
+      : '<div class="po-card__media-placeholder">بدون صورة</div>';
+    const badge = (!forPdf && imgs.length > 1)
+      ? `<span class="po-card__photos-badge">${imgs.length} صور</span>`
+      : '';
+
+    const mediaHtml = forPdf
+      ? `<div class="po-card__media po-card__media--static">${mediaInner}${badge}</div>`
+      : `<button type="button" class="po-card__media" data-gallery="${escapeAttr(o.id)}" aria-label="عرض صور العقار">${mediaInner}${badge}</button>`;
+
+    const footerHtml = forPdf
+      ? `<div class="po-card__footer po-card__footer--pdf"><span class="po-card__number">${escapeHtml(o.offerNumber)}</span></div>`
+      : `<div class="po-card__footer">
+          <span class="po-card__number">${escapeHtml(o.offerNumber)}</span>
+          <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">PDF</button>
+        </div>`;
+
+    const idAttr = forPdf ? '' : ` id="offer-${o.id}"`;
+
     return `
-      <article class="po-card" id="offer-${o.id}">
-        <button type="button" class="po-card__media" data-gallery="${escapeAttr(o.id)}" aria-label="عرض صور العقار">
-          ${cover
-            ? `<img src="${escapeAttr(cover)}" alt="" loading="lazy">`
-            : '<div class="po-card__media-placeholder">بدون صورة</div>'}
-          ${imgs.length > 1 ? `<span class="po-card__photos-badge">${imgs.length} صور</span>` : ''}
-        </button>
+      <article class="po-card${forPdf ? ' po-card--pdf' : ''}"${idAttr}>
+        ${mediaHtml}
         <div class="po-card__body">
           <div class="po-card__chips">${chips}</div>
           <div class="po-card__price">${escapeHtml(o.priceDisplay || '—')}</div>
           ${locationHtml ? `<div class="po-card__location">${locationHtml}</div>` : ''}
           ${extraDesc ? `<p class="po-card__desc">${formatMultiline(extraDesc)}</p>` : ''}
-          <div class="po-card__footer">
-            <span class="po-card__number">${escapeHtml(o.offerNumber)}</span>
-            <button type="button" class="btn btn-outline btn-sm" data-pdf="${o.id}">PDF</button>
-          </div>
+          ${footerHtml}
         </div>
       </article>
     `;
+  }
+
+  function renderOfferCard(o) {
+    return buildPoCardHtml(o);
   }
 
   function chip(text, mod = '') {
@@ -467,49 +484,31 @@
     renderOffersGrid();
   }
 
-  function buildOfferCardInner(o, imageSources, extraBodyHtml = '', options = {}) {
-    const forPdf = options.forPdf === true;
-    const imgs = imageSources || offerImages(o);
-    const galleryHtml = imgs.length
-      ? `<div class="private-offer-card__gallery">${imgs.map((u) => `<img src="${escapeAttr(u)}" alt=""${forPdf ? '' : ' loading="lazy"'}>`).join('')}</div>`
-      : '';
-    const locationHtml = o.showLocation && o.location
-      ? `<div class="private-offer-card__location"><dt>الموقع</dt><dd>${forPdf ? locationContentForPdf(o.location) : locationContent(o.location)}</dd></div>`
-      : '';
-    const district = offerDistrict(o);
-
-    return `
-      ${galleryHtml}
-      <div class="private-offer-card__body">
-        <span class="private-offer-card__number">${escapeHtml(o.offerNumber)}</span>
-        <div class="private-offer-card__price">${escapeHtml(o.priceDisplay || '—')}</div>
-        <dl class="private-offer-card__meta">
-          <div><dt>نوع العقار</dt><dd>${escapeHtml(o.propertyTypeLabel)}</dd></div>
-          <div><dt>المساحة</dt><dd>${o.area != null ? o.area + ' م²' : '—'}</dd></div>
-          ${district ? `<div><dt>الحي</dt><dd>${escapeHtml(district)}</dd></div>` : ''}
-          <div><dt>الشارع</dt><dd>${escapeHtml(o.street || '—')}</dd></div>
-          <div><dt>رقم القطعة</dt><dd>${escapeHtml(o.plotNumber || '—')}</dd></div>
-          <div><dt>رقم المخطط</dt><dd>${escapeHtml(o.planNumber || '—')}</dd></div>
-          ${locationHtml}
-        </dl>
-        ${o.shortDescription ? `<p class="private-offer-card__desc">${formatMultiline(o.shortDescription)}</p>` : ''}
-        ${extraBodyHtml}
-      </div>
-    `;
-  }
-
-  function locationContent(location) {
+  function locationContent(location, forPdf = false) {
     const loc = String(location || '').trim();
     if (!loc) return '';
     if (isUrl(loc)) {
-      return `<a href="${escapeAttr(loc)}" target="_blank" rel="noopener">📍 عرض على الخريطة</a>`;
+      const link = `<a href="${escapeAttr(loc)}"${forPdf ? '' : ' target="_blank" rel="noopener"'}">📍 عرض على الخريطة</a>`;
+      if (forPdf) {
+        return `${link}<br><span class="po-card__location-url">${escapeHtml(loc)}</span>`;
+      }
+      return link;
     }
-    return formatMultiline(loc);
-  }
-
-  function locationContentForPdf(location) {
-    const loc = String(location || '').trim();
-    if (!loc) return '—';
+    const lines = loc.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (forPdf && lines.some((line) => isUrl(line) || /https?:\/\//i.test(line))) {
+      return lines.map((line) => {
+        const urlMatch = line.match(/https?:\/\/\S+/i);
+        if (isUrl(line)) {
+          return `<a href="${escapeAttr(line)}">${escapeHtml(line)}</a>`;
+        }
+        if (urlMatch) {
+          const url = urlMatch[0];
+          const text = line.replace(url, '').trim();
+          return `${text ? `${escapeHtml(text)}<br>` : ''}<a href="${escapeAttr(url)}">${escapeHtml(url)}</a>`;
+        }
+        return escapeHtml(line);
+      }).join('<br>');
+    }
     return formatMultiline(loc);
   }
 
@@ -608,23 +607,18 @@
     }
   }
 
-  async function preparePdfImages(urls) {
-    return Promise.all((urls || []).filter(Boolean).map((url) => imageToDataUrl(url)));
-  }
 
   async function buildPdfElement(offer) {
-    const rawImgs = offerImages(offer);
-    const dataUrls = await preparePdfImages(rawImgs);
-    const pdfImgs = rawImgs.map((url, i) => dataUrls[i] || url);
+    const cover = offerImages(offer)[0] || '';
+    const coverData = cover ? await imageToDataUrl(cover) : null;
+    const coverSrc = coverData || cover;
 
     const wrap = document.createElement('div');
     wrap.className = 'private-pdf';
     wrap.setAttribute('dir', 'rtl');
     wrap.setAttribute('lang', 'ar');
     wrap.innerHTML = `
-      <article class="private-offer-card private-pdf__card">
-        ${buildOfferCardInner(offer, pdfImgs, '', { forPdf: true })}
-      </article>
+      ${buildPoCardHtml(offer, { forPdf: true, coverSrc })}
       <p class="private-pdf__disclaimer">${PDF_DISCLAIMER}</p>
     `;
     return wrap;
@@ -707,10 +701,10 @@
       pagebreak: {
         mode: ['css', 'legacy'],
         avoid: [
-          '.private-offer-card__gallery img',
-          '.private-offer-card__meta > div',
-          '.private-offer-card__desc',
-          '.private-offer-card__location',
+          '.po-card',
+          '.po-card__media',
+          '.po-card__body',
+          '.po-card__location',
           '.private-pdf__disclaimer',
         ],
       },
