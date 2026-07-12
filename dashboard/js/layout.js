@@ -31,6 +31,16 @@ async function initLayout(activePage, pageTitle) {
   const authed = await Auth.requireAuth();
   if (!authed) return;
 
+  document.body.classList.add('admin-app');
+
+  const adminPhone = Auth.getPhone();
+  const adminProfileHtml = adminPhone
+    ? `<div class="admin-profile-bar">
+        <span class="admin-profile-bar__label">مسجّل الدخول</span>
+        <span class="admin-profile-bar__phone" dir="ltr">${escapeLayoutHtml(adminPhone)}</span>
+      </div>`
+    : '';
+
   const app = document.getElementById('app');
   if (!app) return;
 
@@ -57,9 +67,12 @@ async function initLayout(activePage, pageTitle) {
     '</aside>',
     '<div class="sidebar-overlay" id="sidebar-overlay"></div>',
     '<main class="main">',
-    '  <header class="topbar">',
+    '  <header class="topbar admin-topbar">',
     '    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="القائمة">☰</button>',
-    `    <h1 class="topbar__title">${pageTitle}</h1>`,
+    '    <div class="topbar__main admin-topbar__main">',
+    `      <h1 class="topbar__title">${pageTitle}</h1>`,
+    `      ${adminProfileHtml}`,
+    '    </div>',
     '    <div class="topbar__actions" id="topbar-actions">',
     '      <div class="admin-notifications" id="admin-notifications"></div>',
     '      <button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>',
@@ -244,4 +257,12 @@ function setTopbarActions(html) {
 
 function getPageContent() {
   return document.getElementById('page-content');
+}
+
+function escapeLayoutHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

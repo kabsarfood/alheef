@@ -18,8 +18,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
-  <link rel="stylesheet" href="/css/main.css?v=11">
-  <link rel="stylesheet" href="/css/mobile.css?v=11">
+  <link rel="stylesheet" href="/css/main.css?v=12">
+  <link rel="stylesheet" href="/css/mobile.css?v=12">
   <link rel="stylesheet" href="/css/map.css?v=54">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -35,8 +35,13 @@
         <a href="/map.html" class="nav__link nav__link--active">الخريطة العقارية</a>
         <a href="/#offers" class="nav__link">العروض</a>
         <a href="/#contact" class="nav__link">تواصل معنا</a>
+        <span class="nav__portal-label">دخول</span>
+        <a href="/dashboard/login.html" class="nav__link nav__link--portal nav__link--admin">لوحة التحكم — أدمن</a>
+        <a href="/marketer/login.html" class="nav__link nav__link--portal nav__link--team">دخول فريق الهيف</a>
       </nav>
       <div class="header__actions">
+        <a href="/dashboard/login.html" class="btn btn-outline btn-sm header__admin-login" title="لوحة تحكم الأدمن">دخول الأدمن</a>
+        <a href="/marketer/login.html" class="btn btn-outline btn-sm header__team-login" title="دخول فريق الهيف">دخول الفريق</a>
         <a href="#" class="btn btn-whatsapp btn-sm" id="header-whatsapp" target="_blank" rel="noopener">واتساب</a>
         <button class="menu-toggle" id="menu-toggle" type="button" aria-label="القائمة" aria-expanded="false" aria-controls="nav">
           <span></span><span></span><span></span>

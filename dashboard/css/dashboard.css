@@ -1204,3 +1204,65 @@ button, input, select, textarea {
 
 .notif-item__meta span { color: var(--text-primary); font-weight: 600; }
 
+/* ─── Admin topbar profile ─── */
+.admin-topbar {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  height: auto;
+  min-height: var(--header-h);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.admin-topbar__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.admin-topbar__main .topbar__title {
+  margin: 0;
+}
+
+.admin-profile-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+.admin-profile-bar__label {
+  color: var(--text-secondary);
+}
+
+.admin-profile-bar__phone {
+  font-weight: var(--fw-subheading);
+  color: var(--gold);
+  direction: ltr;
+  unicode-bidi: isolate;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .admin-app .admin-topbar {
+    padding: 0.65rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .admin-app .admin-topbar__main .topbar__title {
+    font-size: 0.95rem;
+  }
+
+  .admin-app .admin-profile-bar {
+    font-size: 0.78rem;
+  }
+
+  .admin-app .admin-profile-bar__phone {
+    font-size: 0.85rem;
+  }
+}
+

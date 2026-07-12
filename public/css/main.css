@@ -1307,6 +1307,23 @@ body.modal-open {
   white-space: nowrap;
 }
 
+.header__admin-login {
+  white-space: nowrap;
+}
+
+/* روابط الدخول — قائمة الجوال */
+.nav__portal-label,
+.nav__link--portal {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .header__admin-login,
+  .header__team-login {
+    display: inline-flex;
+  }
+}
+
 /* ─── Animations ─── */
 @keyframes fadeUp {
   from {

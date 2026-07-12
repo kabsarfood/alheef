@@ -40,6 +40,7 @@ router.post('/login', (req, res) => {
     message: 'تم تسجيل الدخول بنجاح',
     token,
     role: 'admin',
+    phone: allowedAdminPhone(),
   });
 });
 
@@ -163,6 +164,7 @@ router.get('/verify', (req, res) => {
     authenticated: true,
     role: payload.role,
     marketerId: payload.marketerId || null,
+    adminPhone: payload.role === 'admin' ? (payload.userId || allowedAdminPhone()) : null,
   });
 });
 

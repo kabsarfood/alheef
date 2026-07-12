@@ -9,6 +9,7 @@
   const PUSH_PRIVATE_CONSENT_KEY = 'alheef_push_private_consent';
   const PUSH_PROMPTED_KEY = 'alheef_push_install_prompted';
   const INSTALL_KEY = 'alheef_pwa_installed';
+  const BUILD_KEY = 'alheef_app_build';
   const IOS_HINT = 'اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية» لتثبيت تطبيق الهيف';
 
   const LABELS = {
@@ -24,6 +25,20 @@
   let hasPendingUpdate = false;
   let buttonMode = 'download';
 
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    refreshAppButtonState().catch(() => {});
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    localStorage.setItem(INSTALL_KEY, '1');
+    closeInstallGuide();
+    refreshAppButtonState().catch(() => {});
+    setTimeout(() => promptPushAfterInstall(), 1200);
+  });
+
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
@@ -31,6 +46,123 @@
 
   function isIOS() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Instagram|Line\/|WhatsApp|Twitter|LinkedInApp|Snapchat/i.test(ua);
+  }
+
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent || '');
+  }
+
+  function canUseNativeInstall() {
+    return !!deferredInstallPrompt;
+  }
+
+  function canShowInstallOption() {
+    if (isStandalone()) return false;
+    if (canUseNativeInstall()) return true;
+    if (isIOS()) return true;
+    if (isInAppBrowser()) return true;
+    const ua = navigator.userAgent || '';
+    if (isAndroid()) {
+      return /Chrome|Edg|SamsungBrowser|CriOS|OPR/i.test(ua);
+    }
+    return /Chrome|Edg|OPR/i.test(ua);
+  }
+
+  function getInstallGuide() {
+    if (isInAppBrowser()) {
+      return {
+        title: 'افتح الموقع في المتصفح أولاً',
+        steps: [
+          'اضغط ⋯ أو «المزيد» في أعلى الشاشة',
+          'اختر «فتح في Chrome» أو «فتح في Safari»',
+          'بعد فتح الموقع في المتصفح، اضغط «تنزيل» مرة أخرى',
+        ],
+      };
+    }
+    if (isIOS()) {
+      return {
+        title: 'تثبيت تطبيق الهيف على iPhone',
+        steps: [
+          'اضغط زر المشاركة □↑ في أسفل Safari',
+          'مرّر واختر «إضافة إلى الشاشة الرئيسية»',
+          'اضغط «إضافة» — ستظهر أيقونة الهيف على شاشتك',
+        ],
+      };
+    }
+    const ua = navigator.userAgent || '';
+    if (/SamsungBrowser/i.test(ua)) {
+      return {
+        title: 'تثبيت من Samsung Internet',
+        steps: [
+          'اضغط ≡ (القائمة) أسفل الشاشة',
+          'اختر «إضافة الصفحة إلى»',
+          'اختر «الشاشة الرئيسية»',
+        ],
+      };
+    }
+    if (/Edg\//i.test(ua)) {
+      return {
+        title: 'تثبيت من Microsoft Edge',
+        steps: [
+          'اضغط ⋯ في أسفل أو أعلى المتصفح',
+          'اختر «التطبيقات» ثم «تثبيت هذا الموقع كتطبيق»',
+          'أو ابحث عن أيقونة ➕ في شريط العنوان',
+        ],
+      };
+    }
+    if (isAndroid()) {
+      return {
+        title: 'تثبيت من Chrome على الجوال',
+        steps: [
+          'اضغط ⋮ (القائمة) أعلى يمين Chrome',
+          'اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»',
+          'اضغط «تثبيت» — ستظهر أيقونة الهيف',
+        ],
+      };
+    }
+    return {
+      title: 'تثبيت على الكمبيوتر',
+      steps: [
+        'من Chrome: ابحث عن أيقونة ➕ أو ⬇ في شريط العنوان واضغط «تثبيت»',
+        'أو من القائمة ⋮ → «تثبيت الهيف» / «Install الهيف»',
+        'من Edge: القائمة ⋯ → «التطبيقات» → «تثبيت هذا الموقع»',
+      ],
+    };
+  }
+
+  function closeInstallGuide() {
+    document.getElementById('pwa-install-guide')?.remove();
+    document.body.classList.remove('pwa-install-open');
+  }
+
+  function showInstallGuide() {
+    closeInstallGuide();
+    const guide = getInstallGuide();
+    const wrap = document.createElement('div');
+    wrap.id = 'pwa-install-guide';
+    wrap.className = 'pwa-install-guide';
+    wrap.innerHTML = `
+      <div class="pwa-install-guide__backdrop" data-close></div>
+      <div class="pwa-install-guide__box" role="dialog" aria-labelledby="pwa-install-title">
+        <button type="button" class="pwa-install-guide__close" data-close aria-label="إغلاق">×</button>
+        <h3 id="pwa-install-title">${guide.title}</h3>
+        <ol class="pwa-install-guide__steps">
+          ${guide.steps.map((s) => `<li>${s}</li>`).join('')}
+        </ol>
+        <p class="pwa-install-guide__note">إذا لم يظهر خيار التثبيت، تأكد أنك تستخدم Chrome أو Edge وليس متصفح داخل واتساب أو تطبيق آخر.</p>
+        <button type="button" class="btn btn-gold btn-sm" data-close>فهمت</button>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    document.body.classList.add('pwa-install-open');
+    wrap.querySelectorAll('[data-close]').forEach((el) => {
+      el.addEventListener('click', closeInstallGuide);
+    });
   }
 
   function isPWASupported() {
@@ -164,6 +296,102 @@
     hasPendingUpdate = !!(pendingSwWorker || swRegistration?.waiting);
   }
 
+  async function fetchRemoteBuild() {
+    try {
+      const res = await fetch('/api/pwa-meta', { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.build || '').trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getStoredBuild() {
+    return (localStorage.getItem(BUILD_KEY) || '').trim() || null;
+  }
+
+  function storeBuild(build) {
+    if (build) localStorage.setItem(BUILD_KEY, build);
+  }
+
+  function markUpdateAvailable() {
+    hasPendingUpdate = true;
+    refreshAppButtonState().catch(() => {});
+    showUpdateBanner();
+  }
+
+  function dismissUpdateBanner() {
+    document.getElementById('pwa-update-banner')?.remove();
+    document.body.classList.remove('pwa-update-visible');
+  }
+
+  function showUpdateBanner() {
+    if (document.getElementById('pwa-update-banner')) return;
+    if (!isStandalone() && localStorage.getItem(INSTALL_KEY) !== '1') return;
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-update-banner';
+    banner.className = 'pwa-update-banner';
+    banner.innerHTML = `
+      <div class="pwa-update-banner__inner">
+        <p class="pwa-update-banner__text">يتوفر تحديث جديد لتطبيق الهيف — اضغط «تحديث الآن» لعرض آخر التعديلات.</p>
+        <div class="pwa-update-banner__actions">
+          <button type="button" class="btn btn-gold btn-sm" data-update-apply>تحديث الآن</button>
+          <button type="button" class="btn btn-outline btn-sm" data-update-later>لاحقاً</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(banner);
+    document.body.classList.add('pwa-update-visible');
+    banner.querySelector('[data-update-apply]')?.addEventListener('click', () => {
+      dismissUpdateBanner();
+      applyPendingUpdate();
+    });
+    banner.querySelector('[data-update-later]')?.addEventListener('click', () => {
+      dismissUpdateBanner();
+    });
+  }
+
+  async function checkBuildUpdate() {
+    const remote = await fetchRemoteBuild();
+    if (!remote) return;
+
+    const stored = getStoredBuild();
+    if (!stored) {
+      storeBuild(remote);
+      return;
+    }
+
+    if (remote !== stored && navigator.serviceWorker?.controller) {
+      markUpdateAvailable();
+      try {
+        await swRegistration?.update();
+      } catch { /* ignore */ }
+    }
+  }
+
+  async function confirmBuildSynced() {
+    if (pendingSwWorker || swRegistration?.waiting) return;
+    const remote = await fetchRemoteBuild();
+    if (!remote) return;
+
+    const stored = getStoredBuild();
+    if (stored === remote) {
+      hasPendingUpdate = false;
+      dismissUpdateBanner();
+      refreshAppButtonState().catch(() => {});
+      return;
+    }
+
+    if (!stored) {
+      storeBuild(remote);
+      hasPendingUpdate = false;
+      dismissUpdateBanner();
+      refreshAppButtonState().catch(() => {});
+    }
+  }
+
   async function refreshAppButtonState() {
     if (!isPWASupported()) {
       document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
@@ -176,7 +404,7 @@
     const installed = await isAppInstalled();
     buttonMode = installed ? 'update' : 'download';
 
-    const showDownload = !installed && (deferredInstallPrompt || isIOS() || !installed);
+    const showDownload = !installed && canShowInstallOption();
     const visible = installed || showDownload;
 
     document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
@@ -203,20 +431,20 @@
   async function onAppButtonClick() {
     if (buttonMode === 'download') {
       if (deferredInstallPrompt) {
-        deferredInstallPrompt.prompt();
-        const { outcome } = await deferredInstallPrompt.userChoice;
-        deferredInstallPrompt = null;
-        if (outcome === 'accepted') {
-          localStorage.setItem(INSTALL_KEY, '1');
+        try {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          deferredInstallPrompt = null;
+          if (outcome === 'accepted') {
+            localStorage.setItem(INSTALL_KEY, '1');
+          }
+        } catch {
+          showInstallGuide();
         }
         await refreshAppButtonState();
         return;
       }
-      if (isIOS()) {
-        alert(IOS_HINT);
-      } else {
-        alert('التثبيت غير متاح حالياً من هذا المتصفح. جرّب Chrome أو Edge على الجوال أو سطح المكتب.');
-      }
+      showInstallGuide();
       return;
     }
 
@@ -227,8 +455,10 @@
 
     try {
       await swRegistration?.update();
+      await checkBuildUpdate();
     } catch { /* ignore */ }
 
+    syncPendingUpdateState();
     if (!hasPendingUpdate) {
       alert('أنت تستخدم أحدث نسخة من التطبيق.');
     }
@@ -261,14 +491,21 @@
 
       if (reg.waiting) {
         pendingSwWorker = reg.waiting;
-        refreshAppButtonState();
+        markUpdateAvailable();
       }
 
       reg.update().catch(() => {});
-      setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
+      await checkBuildUpdate();
+
+      setInterval(() => {
+        reg.update().catch(() => {});
+        checkBuildUpdate().catch(() => {});
+      }, 5 * 60 * 1000);
+
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           reg.update().catch(() => {});
+          checkBuildUpdate().catch(() => {});
           refreshAppButtonState();
         }
       });
@@ -284,18 +521,23 @@
     worker.addEventListener('statechange', () => {
       if (worker.state === 'installed' && navigator.serviceWorker.controller) {
         pendingSwWorker = worker;
-        refreshAppButtonState();
+        markUpdateAvailable();
       }
     });
   }
 
   function applyPendingUpdate() {
     const worker = pendingSwWorker || swRegistration?.waiting;
+    isReloadingForUpdate = true;
+
+    fetchRemoteBuild().then((build) => {
+      if (build) storeBuild(build);
+    }).catch(() => {});
+
     if (!worker) {
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 300);
       return;
     }
-    isReloadingForUpdate = true;
     worker.postMessage({ type: 'SKIP_WAITING' });
     setTimeout(() => window.location.reload(), 1500);
   }
@@ -540,21 +782,8 @@
   }
 
   function initInstallPrompt() {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      refreshAppButtonState();
-    });
-
-    window.addEventListener('appinstalled', () => {
-      deferredInstallPrompt = null;
-      localStorage.setItem(INSTALL_KEY, '1');
-      refreshAppButtonState();
-      setTimeout(() => promptPushAfterInstall(), 1200);
-    });
-
     window.matchMedia('(display-mode: standalone)').addEventListener('change', () => {
-      refreshAppButtonState();
+      refreshAppButtonState().catch(() => {});
     });
   }
 
@@ -565,6 +794,12 @@
     bindSubscribeForm();
     await registerServiceWorker();
     await refreshAppButtonState();
+    await confirmBuildSynced();
+
+    setTimeout(() => {
+      refreshAppButtonState().catch(() => {});
+      checkBuildUpdate().catch(() => {});
+    }, 2500);
 
     const auth = getAuthContext();
     if (auth.role !== 'client' && Notification.permission === 'granted') {
@@ -588,11 +823,16 @@
     isStandalone,
     getClientKey,
     promptInstall: onAppButtonClick,
+    showInstallGuide,
+    closeInstallGuide,
     promptRolePush,
     promptOffersPush,
     promptPrivateOffersPush,
     promptPushAfterInstall,
-    checkForUpdates: () => swRegistration?.update(),
+    checkForUpdates: async () => {
+      await swRegistration?.update();
+      await checkBuildUpdate();
+    },
     applyUpdate: applyPendingUpdate,
     refreshAppButtonState,
   };

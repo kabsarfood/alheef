@@ -104,6 +104,34 @@
     height: 16px;
   }
 
+  .header__actions .header__admin-login,
+  .header__actions .header__team-login {
+    display: none !important;
+  }
+
+  .nav__portal-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: var(--fw-heading);
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    padding: 0.85rem 1.15rem 0.35rem;
+    margin: 0.15rem 0 0;
+    border-top: 1px solid rgba(30, 42, 56, 0.08);
+  }
+
+  .nav__link--portal {
+    display: block;
+    font-size: 1rem;
+    background: rgba(30, 42, 56, 0.03);
+    border: 1px solid rgba(30, 42, 56, 0.08);
+  }
+
+  .nav__link--admin {
+    color: var(--navy);
+    font-weight: var(--fw-heading);
+  }
+
   .menu-toggle {
     display: flex;
     flex-direction: column;
@@ -188,7 +216,7 @@
   }
 
   .nav.open {
-    max-height: min(420px, calc(100dvh - var(--header-h) - 1rem));
+    max-height: min(520px, calc(100dvh - var(--header-h) - 1rem));
     overflow-y: auto;
     opacity: 1;
     visibility: visible;

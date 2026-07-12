@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error(data.message || 'فشل تسجيل الدخول');
       }
 
-      Auth.setToken(data.token);
+      Auth.setSession(data.token, data.phone);
       window.location.href = loginRedirect();
     } catch (err) {
       errorEl.textContent = err.message || 'كلمة المرور غير صحيحة';

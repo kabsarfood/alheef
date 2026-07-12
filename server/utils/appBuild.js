@@ -1,22 +1,32 @@
 /**
- * معرّف بناء التطبيق — يتغيّر مع كل نشر على Railway لتحديث كاش PWA
+ * معرّف بناء التطبيق — يتغيّر مع كل نشر لتحديث كاش PWA
  */
+const BOOT_BUILD = `boot-${Date.now().toString(36)}`;
+let cachedBuild = null;
+
 function getAppBuild() {
+  if (cachedBuild) return cachedBuild;
+
   const sha = (process.env.RAILWAY_GIT_COMMIT_SHA || '').trim();
-  if (sha) return sha.slice(0, 12);
+  if (sha) {
+    cachedBuild = sha.slice(0, 12);
+    return cachedBuild;
+  }
 
   const deployId = (process.env.RAILWAY_DEPLOYMENT_ID || '').trim();
-  if (deployId) return `d-${deployId.slice(0, 10)}`;
+  if (deployId) {
+    cachedBuild = `d-${deployId.slice(0, 10)}`;
+    return cachedBuild;
+  }
 
   const custom = (process.env.APP_BUILD_VERSION || '').trim();
-  if (custom) return custom.slice(0, 24);
-
-  try {
-    const pkg = require('../../package.json');
-    return `v${pkg.version}`;
-  } catch {
-    return 'v1';
+  if (custom) {
+    cachedBuild = custom.slice(0, 24);
+    return cachedBuild;
   }
+
+  cachedBuild = BOOT_BUILD;
+  return cachedBuild;
 }
 
 module.exports = { getAppBuild };

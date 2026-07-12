@@ -83,7 +83,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE).catch(() => {}))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -123,6 +122,11 @@ self.addEventListener('fetch', (event) => {
       return;
     }
     event.respondWith(networkFirst(request, '/index.html'));
+    return;
+  }
+
+  if (url.pathname.startsWith('/js/') || url.pathname.startsWith('/css/')) {
+    event.respondWith(networkFirst(request));
     return;
   }
 
