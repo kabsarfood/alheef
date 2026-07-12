@@ -1,7 +1,21 @@
 (function () {
   const KEY = 'alheef_visit_key';
+  const SKIP_KEY = 'alheef_skip_analytics';
+  const ADMIN_TOKEN_KEY = 'alheef_admin_token';
+
+  function shouldSkipTracking() {
+    try {
+      if (localStorage.getItem(SKIP_KEY) === '1') return true;
+      if (localStorage.getItem(ADMIN_TOKEN_KEY)) return true;
+      if (window.location.pathname.startsWith('/dashboard')) return true;
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
 
   function sessionKey() {
+    if (shouldSkipTracking()) return '';
     try {
       let k = localStorage.getItem(KEY);
       if (!k) {
@@ -17,11 +31,14 @@
   }
 
   function track() {
+    if (shouldSkipTracking()) return;
     const path = (window.location.pathname || '/').slice(0, 200);
+    const key = sessionKey();
+    if (!key) return;
     fetch('/api/analytics/pageview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, sessionKey: sessionKey() }),
+      body: JSON.stringify({ path, sessionKey: key }),
       keepalive: true,
     }).catch(() => {});
   }

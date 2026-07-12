@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const BASE = `http://127.0.0.1:${process.env.TEST_PORT || 8091}`;
 const ADMIN_PASS = process.env.ADMIN_PASSWORD;
+const ADMIN_PHONE = process.env.ADMIN_PHONE || '0530792754';
 
 const IMG = [
   'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80',
@@ -17,7 +18,7 @@ async function login() {
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: ADMIN_PASS }),
+    body: JSON.stringify({ phone: ADMIN_PHONE, password: ADMIN_PASS }),
   });
   const data = await res.json();
   if (!res.ok || !data.token) throw new Error(data.message || 'فشل دخول الأدمن');

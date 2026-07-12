@@ -73,7 +73,10 @@ async function main() {
 
   // 2) موافقة أدمن
   assert(ADMIN_PASSWORD, 'ADMIN_PASSWORD مطلوب في .env للاختبار');
-  const adminLogin = await json('POST', '/api/auth/login', { password: ADMIN_PASSWORD });
+  const adminLogin = await json('POST', '/api/auth/login', {
+    phone: process.env.ADMIN_PHONE || '0530792754',
+    password: ADMIN_PASSWORD,
+  });
   assert(adminLogin.data.token, 'فشل دخول الأدمن');
   const approve = await json('PUT', `/api/admin/marketer-join-requests/${requestId}`, { action: 'approve' }, adminLogin.data.token);
   assert(approve.data.success && approve.data.marketer, `موافقة فشلت: ${approve.data.message || approve.status}`);

@@ -28,15 +28,15 @@
       return;
     }
     root.innerHTML = `
-      <div class="offers-grid">
+      <div class="marketer-properties-grid">
         ${items.map((p) => `
           <article class="offer-admin-card">
-            <h3>${p.title}</h3>
-            <p class="form-hint">${p.city || ''} ${p.district ? '— ' + p.district : ''}</p>
-            <p><span class="badge">${p.statusLabel}</span></p>
-            ${p.adminFeedback ? `<p class="form-hint" style="color:#b45309">ملاحظات الإدارة: ${p.adminFeedback}</p>` : ''}
-            <p><strong>${p.price || '—'} ر.س</strong></p>
-            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+            <h3>${escapeHtml(p.title)}</h3>
+            <p class="form-hint">${escapeHtml(p.city || '')}${p.district ? ' — ' + escapeHtml(p.district) : ''}</p>
+            <p><span class="badge">${escapeHtml(p.statusLabel)}</span></p>
+            ${p.adminFeedback ? `<p class="form-hint marketer-feedback">ملاحظات الإدارة: ${escapeHtml(p.adminFeedback)}</p>` : ''}
+            <p><strong>${escapeHtml(p.price || '—')} ر.س</strong></p>
+            <div class="marketer-card-actions">
               ${(p.status === 'draft' || p.status === 'pending_review' || p.status === 'needs_changes')
     ? `<a class="btn btn-outline btn-sm" href="/marketer/add-property.html?id=${p.id}">تعديل</a>` : ''}
               ${(p.status !== 'approved_published' && p.status !== 'published')

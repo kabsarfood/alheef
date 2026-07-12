@@ -11,10 +11,12 @@ const Auth = {
 
   setToken(token) {
     localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem('alheef_skip_analytics', '1');
   },
 
   clearToken() {
     localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem('alheef_skip_analytics');
   },
 
   isLoginPage() {
@@ -58,6 +60,7 @@ const Auth = {
       window.location.replace(this.LOGIN_PATH);
       return false;
     }
+    localStorage.setItem('alheef_skip_analytics', '1');
     return true;
   },
 

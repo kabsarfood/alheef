@@ -5,19 +5,36 @@ const passwordResetRepo = require('../repositories/passwordResetRepo');
 const { sendPasswordResetEmail, buildResetUrl } = require('../services/emailService');
 const { normalizeEmail, isValidEmail } = require('../utils/email');
 
+const { normalizePhone } = require('../utils/marketerZones');
+
 const router = express.Router();
 
 const FORGOT_MSG = 'إذا كان البريد مسجّلاً ومعتمداً، سيصلك رابط إعادة تعيين كلمة المرور خلال دقائق.';
 
+function allowedAdminPhone() {
+  return normalizePhone(process.env.ADMIN_PHONE || '0530792754');
+}
+
+function isAllowedAdminPhone(phone) {
+  return normalizePhone(phone) === allowedAdminPhone();
+}
+
 router.post('/login', (req, res) => {
+  const phone = req.body.phone || req.body.login;
   const { password } = req.body;
+  if (!phone) {
+    return res.status(400).json({ success: false, message: 'يرجى إدخال رقم الجوال' });
+  }
   if (!password) {
     return res.status(400).json({ success: false, message: 'يرجى إدخال كلمة المرور' });
+  }
+  if (!isAllowedAdminPhone(phone)) {
+    return res.status(401).json({ success: false, message: 'رقم الجوال غير مصرح له بالدخول إلى لوحة التحكم' });
   }
   if (!checkPassword(password)) {
     return res.status(401).json({ success: false, message: 'كلمة المرور غير صحيحة' });
   }
-  const token = createToken({ role: 'admin' });
+  const token = createToken({ role: 'admin', userId: allowedAdminPhone() });
   res.json({
     success: true,
     message: 'تم تسجيل الدخول بنجاح',
