@@ -26,6 +26,7 @@
   --radius-lg: 14px;
   --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   --header-h: 88px;
+  --logo-header-scale: 1.25;
   --font: 'Cairo', sans-serif;
   --text-primary: #000000;
   --text-secondary: #1a1a1a;
@@ -249,6 +250,7 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .logo--header .logo__img {
@@ -258,6 +260,8 @@ ul { list-style: none; }
   max-width: min(200px, 42vw);
   object-fit: contain;
   object-position: right center;
+  transform: scale(var(--logo-header-scale));
+  transform-origin: right center;
 }
 
 .logo__icon {

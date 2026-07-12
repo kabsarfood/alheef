@@ -23,8 +23,10 @@ const clientPlainCodes = new Map();
 document.addEventListener('DOMContentLoaded', async () => {
   await initLayout('private-offers', 'العروض الخاصة');
   setTopbarActions(`
-    <button class="btn btn-outline btn-sm" id="btn-add-client">＋ عميل جديد</button>
-    <button class="btn btn-gold btn-sm" id="btn-add">＋ عرض خاص جديد</button>
+    <div class="po-topbar-actions">
+      <button class="btn btn-outline btn-sm" id="btn-add-client">＋ عميل جديد</button>
+      <button class="btn btn-gold btn-sm" id="btn-add">＋ عرض خاص جديد</button>
+    </div>
   `);
   renderShell();
   await Promise.all([loadClientsPanel(), loadOffers()]);
@@ -69,7 +71,7 @@ async function loadClientsPanel() {
 
     el.innerHTML = `
       <h3>عملاء العروض الخاصة — رابط وكلمة سر لكل عميل</h3>
-      <p class="text-muted">كل عميل يطلب العروض يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> — لا علاقة بين العملاء.</p>
+      <p class="text-muted po-page-intro">كل عميل يطلب العروض يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> — لا علاقة بين العملاء.</p>
       ${!settingsInfo.active ? `
         <div class="access-warning">
           <strong>⚠ صفحة العروض الخاصة موقوفة</strong>
@@ -79,7 +81,7 @@ async function loadClientsPanel() {
       <div class="form-group" style="margin:.75rem 0">
         <label><input type="checkbox" id="global-active" ${settingsInfo.active ? 'checked' : ''}> تفعيل صفحة العروض الخاصة (عام)</label>
       </div>
-      <div class="stats-grid" style="margin-bottom:1rem">
+      <div class="stats-grid po-stats">
         <div class="stat-card"><p class="stat-card__label">عملاء</p><p class="stat-card__value">${summary.totalClients || 0}</p></div>
         <div class="stat-card"><p class="stat-card__label">نشطون</p><p class="stat-card__value">${summary.activeClients || 0}</p></div>
         <div class="stat-card"><p class="stat-card__label">مرات الدخول</p><p class="stat-card__value">${summary.totalLogins || 0}</p></div>
@@ -108,37 +110,35 @@ function renderClientsList() {
   }
 
   list.innerHTML = `
-    <div class="table-wrap">
-      <table class="table table--cards">
-        <thead>
-          <tr>
-            <th>العميل</th>
-            <th>الرابط</th>
-            <th>الدخول</th>
-            <th>الحالة</th>
-            <th>إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${clientsCache.map((c) => `
-            <tr data-client="${c.id}">
-              <td data-label="العميل">
-                <input class="client-label-input" data-id="${c.id}" value="${c.clientLabel || ''}" style="min-width:120px">
-              </td>
-              <td data-label="الرابط" dir="ltr">
-                <input readonly value="${c.shareUrl}" style="min-width:200px;font-size:.85rem" data-url="${c.id}">
-              </td>
-              <td data-label="الدخول">${c.loginCount || 0} — آخر: ${formatVisitDate(c.lastVisitAt)}</td>
-              <td data-label="الحالة">${c.active ? 'نشط' : 'موقوف'}</td>
-              <td data-label="إجراءات">
-                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ</button>
-                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
-                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+    <div class="po-clients-grid">
+      ${clientsCache.map((c) => `
+        <article class="po-client-card" data-client="${c.id}">
+          <div class="po-client-card__head">
+            <div class="po-client-card__name">
+              <label>اسم العميل</label>
+              <input class="client-label-input" data-id="${c.id}" value="${escapeHtml(c.clientLabel || '')}" placeholder="اسم العميل">
+            </div>
+            <span class="po-client-card__badge ${c.active ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
+              ${c.active ? 'نشط' : 'موقوف'}
+            </span>
+          </div>
+          <div class="po-client-card__url">
+            <label>رابط الدخول</label>
+            <div class="po-client-card__url-row">
+              <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
+            </div>
+          </div>
+          <p class="po-client-card__meta">
+            <strong>${c.loginCount || 0}</strong> مرة دخول
+            ${c.lastVisitAt ? ` — آخر زيارة: ${formatVisitDate(c.lastVisitAt)}` : ''}
+          </p>
+          <div class="po-client-card__actions">
+            <button type="button" class="btn btn-gold btn-sm" data-copy="${c.id}">نسخ الرابط والرمز</button>
+            <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
+            <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+          </div>
+        </article>
+      `).join('')}
     </div>
   `;
 
@@ -184,9 +184,9 @@ async function regenerateClient(id) {
   if (r.accessCode) {
     clientPlainCodes.set(id, r.accessCode);
     const client = clientsCache.find((c) => c.id === id);
-    const text = `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${r.accessCode}`;
-    await navigator.clipboard.writeText(text);
-    showToast(`تم إنشاء رابط ورمز جديدين — الرمز: ${r.accessCode}`);
+    showClientSuccessModal(client, r.accessCode);
+  } else {
+    showToast('تم إنشاء رابط ورمز جديدين');
   }
 }
 
@@ -200,46 +200,108 @@ async function toggleClient(id) {
   showToast(r.client.active ? 'تم تفعيل رابط العميل' : 'تم إيقاف رابط العميل');
 }
 
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function openAddClientModal() {
   const wrap = document.createElement('div');
   wrap.className = 'modal active';
   wrap.innerHTML = `
-    <div class="modal__backdrop"></div>
-    <div class="card" style="max-width:480px;margin:2rem auto;position:relative;z-index:2">
-      <form id="client-form">
-        <h3>عميل جديد — رابط ورمز مستقل</h3>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box modal__box--po" role="dialog" aria-labelledby="po-client-modal-title">
+      <div class="modal__header">
+        <h3 class="modal__title" id="po-client-modal-title">عميل جديد</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
+      <p class="po-modal-hint">
+        أدخل اسم العميل للتذكير فقط. سيتم إنشاء <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> لا يشاركه مع أي عميل آخر.
+      </p>
+      <form id="client-form" class="po-modal-form">
         <div class="form-group">
-          <label>اسم العميل (للتذكير فقط)</label>
-          <input name="clientLabel" placeholder="مثال: أحمد — عميل VIP" required>
+          <label for="client-label-input">اسم العميل</label>
+          <input id="client-label-input" name="clientLabel" placeholder="مثال: أحمد — عميل VIP" required autocomplete="off">
         </div>
         <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-close>إلغاء</button>
           <button type="submit" class="btn btn-gold">إنشاء الرابط والرمز</button>
         </div>
       </form>
     </div>
   `;
   document.body.appendChild(wrap);
-  wrap.querySelector('.modal__backdrop').onclick = () => wrap.remove();
+  const close = () => wrap.remove();
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  wrap.querySelector('#client-label-input')?.focus();
+
   wrap.querySelector('#client-form').onsubmit = async (e) => {
     e.preventDefault();
+    const submitBtn = wrap.querySelector('[type="submit"]');
     const label = new FormData(e.target).get('clientLabel');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'جاري الإنشاء…';
     try {
       const r = await DashboardAPI.createPrivateClient(String(label || '').trim());
       clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl });
-      wrap.remove();
+      if (r.accessCode) clientPlainCodes.set(r.client.id, r.accessCode);
       renderClientsList();
-      if (r.accessCode) {
-        clientPlainCodes.set(r.client.id, r.accessCode);
-        const text = `رابط العروض الخاصة:\n${r.client.shareUrl}\n\nرمز الدخول:\n${r.accessCode}`;
-        await navigator.clipboard.writeText(text);
-        showToast(`تم الإنشاء — الرمز: ${r.accessCode} (تم النسخ)`);
-      } else {
-        showToast('تم إنشاء العميل');
-      }
+      showClientSuccessModal(r.client, r.accessCode);
+      wrap.remove();
     } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'إنشاء الرابط والرمز';
       showToast(err.message, 'error');
     }
   };
+}
+
+function showClientSuccessModal(client, accessCode) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal active';
+  wrap.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box modal__box--po" role="dialog">
+      <div class="modal__header">
+        <h3 class="modal__title">تم إنشاء العميل</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
+      <div class="po-success-panel">
+        <div class="po-success-panel__icon" aria-hidden="true">✓</div>
+        <p class="po-modal-hint" style="margin:0;text-align:center">
+          انسخ الرابط والرمز وأرسلهما للعميل <strong>${escapeHtml(client.clientLabel || '')}</strong>
+        </p>
+        <div class="po-credential-box">
+          <label>رابط العروض الخاصة</label>
+          <input readonly dir="ltr" value="${escapeHtml(client.shareUrl)}" id="po-success-url">
+        </div>
+        <div class="po-credential-box">
+          <label>رمز الدخول</label>
+          <div class="po-credential-value po-credential-value--code" id="po-success-code">${escapeHtml(accessCode || '—')}</div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-gold" id="po-copy-both">نسخ الرابط والرمز</button>
+          <button type="button" class="btn btn-outline" data-close>تم</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  wrap.querySelector('#po-copy-both')?.addEventListener('click', async () => {
+    const text = `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${accessCode || ''}`;
+    await navigator.clipboard.writeText(text);
+    showToast('تم نسخ الرابط والرمز');
+  });
+  if (accessCode) {
+    navigator.clipboard.writeText(
+      `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${accessCode}`,
+    ).catch(() => {});
+  }
 }
 
 async function loadOffers() {
@@ -293,11 +355,14 @@ function openOfferModal(id) {
   const wrap = document.createElement('div');
   wrap.className = 'modal active';
   wrap.innerHTML = `
-    <div class="modal__backdrop"></div>
-    <div class="card" style="max-width:640px;margin:2rem auto;position:relative;z-index:2;max-height:90vh;overflow:auto">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box modal__box--po-offer" role="dialog">
+      <div class="modal__header">
+        <h3 class="modal__title">${id ? 'تعديل عرض خاص' : 'عرض خاص جديد'}</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
       <form id="offer-form">
-        <h3>${id ? 'تعديل عرض خاص' : 'عرض خاص جديد'}</h3>
-        ${existing ? `<p><strong>رقم العرض:</strong> ${existing.offerNumber}</p>` : ''}
+        ${existing ? `<p class="text-muted" style="margin-bottom:1rem"><strong>رقم العرض:</strong> ${existing.offerNumber}</p>` : ''}
         <div class="form-grid">
           <div class="form-group">
             <label>نوع العقار *</label>
@@ -368,7 +433,8 @@ function openOfferModal(id) {
     </div>
   `;
   document.body.appendChild(wrap);
-  wrap.querySelector('.modal__backdrop').onclick = () => wrap.remove();
+  const close = () => wrap.remove();
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
   wrap.querySelector('#offer-form').onsubmit = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

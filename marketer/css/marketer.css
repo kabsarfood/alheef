@@ -1,0 +1,88 @@
+/* لوحة مسوق الهيف */
+
+.topbar__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.marketer-profile {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.marketer-profile__name {
+  font-weight: var(--fw-subheading);
+  color: var(--text-primary);
+}
+
+.marketer-profile__phone {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-weight: var(--fw-subheading);
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+
+.marketer-profile__sep {
+  opacity: 0.35;
+}
+
+.marketer-welcome-card .marketer-welcome-name {
+  font-size: 1.15rem;
+  font-weight: var(--fw-heading);
+  margin-bottom: 0.35rem;
+}
+
+.marketer-welcome-card .marketer-welcome-phone {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.marketer-welcome-card .marketer-welcome-phone strong {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  color: var(--gold);
+  font-weight: var(--fw-heading);
+}
+
+@media (max-width: 768px) {
+  .topbar__main {
+    gap: 0.1rem;
+  }
+
+  .topbar__title {
+    font-size: 0.95rem;
+  }
+
+  .marketer-profile {
+    font-size: 0.75rem;
+    gap: 0.2rem 0.5rem;
+  }
+
+  .marketer-profile__sep {
+    display: none;
+  }
+
+  .marketer-profile__phone {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .marketer-profile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+  }
+}

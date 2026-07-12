@@ -15,6 +15,7 @@ const MarketerAPI = {
   },
 
   getStats() { return this.request('/stats'); },
+  getMe() { return this.request('/me'); },
   getProperties(status = '') {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     return this.request(`/properties${q}`);

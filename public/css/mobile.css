@@ -80,6 +80,8 @@
   .logo--header .logo__img {
     height: 40px;
     max-width: 140px;
+    transform: scale(var(--logo-header-scale, 1.25));
+    transform-origin: right center;
   }
 
   .header__inner {

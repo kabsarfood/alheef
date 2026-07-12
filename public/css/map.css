@@ -58,6 +58,8 @@
   max-width: min(150px, 38vw);
   object-fit: contain;
   object-position: right center;
+  transform: scale(var(--logo-header-scale, 1.25));
+  transform-origin: right center;
 }
 
 .map-page main {
@@ -76,6 +78,8 @@
     height: 36px;
     max-height: 36px;
     max-width: min(120px, 42vw);
+    transform: scale(var(--logo-header-scale, 1.25));
+    transform-origin: right center;
   }
 }
 

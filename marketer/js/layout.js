@@ -12,6 +12,27 @@ async function initMarketerLayout(activePage, pageTitle) {
   const authed = await MarketerAuth.requireAuth();
   if (!authed) return;
 
+  let profile = null;
+  try {
+    const data = await MarketerAPI.getMe();
+    profile = data.marketer || null;
+  } catch {
+    profile = null;
+  }
+  MarketerAuth.profile = profile;
+
+  const profileName = profile?.fullName || 'مسوق الهيف';
+  const profilePhone = profile?.phone || '';
+  const profileHtml = profilePhone
+    ? `<div class="marketer-profile" id="marketer-profile">
+        <span class="marketer-profile__name">${escapeHtml(profileName)}</span>
+        <span class="marketer-profile__sep" aria-hidden="true">·</span>
+        <span class="marketer-profile__phone">${escapeHtml(profilePhone)}</span>
+      </div>`
+    : `<div class="marketer-profile" id="marketer-profile">
+        <span class="marketer-profile__name">${escapeHtml(profileName)}</span>
+      </div>`;
+
   const app = document.getElementById('app');
   if (!app) return;
 
@@ -34,7 +55,10 @@ async function initMarketerLayout(activePage, pageTitle) {
     <main class="main">
       <header class="topbar">
         <button class="sidebar-toggle" id="sidebar-toggle" aria-label="القائمة">☰</button>
-        <h1 class="topbar__title">${pageTitle}</h1>
+        <div class="topbar__main">
+          <h1 class="topbar__title">${pageTitle}</h1>
+          ${profileHtml}
+        </div>
         <div class="topbar__actions" id="topbar-actions">
           <div class="marketer-notifications" id="marketer-notifications"></div>
           <button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>
@@ -81,4 +105,12 @@ function initMarketerPushPrompt() {
 
 function getMarketerContent() {
   return document.getElementById('page-content');
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

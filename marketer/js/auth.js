@@ -1,6 +1,7 @@
 const MarketerAuth = {
   TOKEN_KEY: 'alheef_marketer_token',
   LOGIN_PATH: '/marketer/login.html',
+  profile: null,
 
   getToken() {
     return localStorage.getItem(this.TOKEN_KEY);
@@ -56,6 +57,7 @@ const MarketerAuth = {
 
   logout() {
     this.clearToken();
+    this.profile = null;
     window.location.href = this.LOGIN_PATH;
   },
 };
