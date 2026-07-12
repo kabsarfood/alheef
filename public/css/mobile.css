@@ -99,13 +99,16 @@
     font-size: var(--fs-ui);
   }
 
+  .header__actions .btn-whatsapp--icon .btn-whatsapp__label {
+    display: inline;
+  }
+
   .header__actions .btn-whatsapp svg {
     width: 16px;
     height: 16px;
   }
 
-  .header__actions .header__admin-login,
-  .header__actions .header__team-login {
+  .header__actions .header__login {
     display: none !important;
   }
 

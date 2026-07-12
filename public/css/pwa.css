@@ -164,8 +164,12 @@ body.pwa-update-visible {
   margin-left: 0.35rem;
 }
 
-.header__actions .pwa-app-btn--header {
-  flex-shrink: 0;
+@media (min-width: 769px) {
+  .header__actions .pwa-app-btn--header {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    min-height: auto;
+  }
 }
 
 .header__actions .pwa-ios-hint {

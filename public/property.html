@@ -17,7 +17,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=12">
+  <link rel="stylesheet" href="/css/main.css?v=13">
+  <link rel="stylesheet" href="/css/mobile.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=12">
   <link rel="stylesheet" href="/css/map.css?v=54">
   <link rel="stylesheet" href="/css/pwa.css">
@@ -47,15 +48,20 @@
       </a>
       <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
-        <a href="/map.html" class="nav__link">الخريطة العقارية</a>
+        <a href="/map.html" class="nav__link" title="الخريطة العقارية">الخريطة</a>
         <a href="/#offers" class="nav__link">العروض</a>
         <span class="nav__portal-label">دخول</span>
         <a href="/dashboard/login.html" class="nav__link nav__link--portal nav__link--admin">لوحة التحكم — أدمن</a>
         <a href="/marketer/login.html" class="nav__link nav__link--portal nav__link--team">دخول فريق الهيف</a>
       </nav>
       <div class="header__actions">
-        <a href="/dashboard/login.html" class="btn btn-outline btn-sm header__admin-login" title="لوحة تحكم الأدمن">دخول الأدمن</a>
-        <a href="/marketer/login.html" class="btn btn-outline btn-sm header__team-login" title="دخول فريق الهيف">دخول الفريق</a>
+        <details class="header__login">
+          <summary class="btn btn-outline btn-sm header__login-toggle">دخول</summary>
+          <div class="header__login-menu" role="menu">
+            <a href="/dashboard/login.html" class="header__login-item" role="menuitem" title="لوحة تحكم الأدمن">أدمن</a>
+            <a href="/marketer/login.html" class="header__login-item" role="menuitem" title="دخول فريق الهيف">الفريق</a>
+          </div>
+        </details>
         <button class="menu-toggle" id="menu-toggle" type="button" aria-label="فتح القائمة" aria-expanded="false" aria-controls="nav">
           <span></span><span></span><span></span>
         </button>
