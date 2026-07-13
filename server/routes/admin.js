@@ -712,6 +712,10 @@ router.post('/private-offers/clients', async (req, res) => {
   try {
     const client = await privateClientsRepo.createClient({
       clientLabel: req.body.clientLabel,
+      phone: req.body.phone,
+      requestType: req.body.requestType,
+      propertyKind: req.body.propertyKind,
+      requiredArea: req.body.requiredArea,
     });
     res.json({
       success: true,
@@ -769,6 +773,24 @@ router.put('/private-offers/clients/:id/active', async (req, res) => {
 router.put('/private-offers/clients/:id/label', async (req, res) => {
   try {
     const client = await privateClientsRepo.updateClientLabel(req.params.id, req.body.clientLabel);
+    res.json({
+      success: true,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/private-offers/clients/:id', async (req, res) => {
+  try {
+    const client = await privateClientsRepo.updateClientDetails(req.params.id, {
+      clientLabel: req.body.clientLabel,
+      phone: req.body.phone,
+      requestType: req.body.requestType,
+      propertyKind: req.body.propertyKind,
+      requiredArea: req.body.requiredArea,
+    });
     res.json({
       success: true,
       client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },

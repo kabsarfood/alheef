@@ -10,6 +10,7 @@ const EMAIL_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations
 const PRIVATE_OFFERS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '008_private_offers.sql');
 const CLIENTS_ANALYTICS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '009_private_clients_analytics.sql');
 const PRIVATE_LISTING_TYPE_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '010_private_offers_listing_type.sql');
+const PRIVATE_CLIENT_FIELDS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '011_private_client_request_fields.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -102,8 +103,15 @@ async function isPrivateOffersListingTypeReady() {
   return !error;
 }
 
+async function isPrivateClientRequestFieldsReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('private_client_access').select('phone, request_type, property_kind, required_area').limit(1);
+  return !error;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
@@ -112,6 +120,7 @@ async function getSchemaStatus() {
     isPrivateClientsSchemaReady(),
     isSiteAnalyticsSchemaReady(),
     isPrivateOffersListingTypeReady(),
+    isPrivateClientRequestFieldsReady(),
   ]);
   return {
     marketer,
@@ -122,7 +131,8 @@ async function getSchemaStatus() {
     privateClients,
     siteAnalytics,
     privateListingType,
-    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType,
+    privateClientFields,
+    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields,
   };
 }
 
@@ -200,6 +210,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, PRIVATE_LISTING_TYPE_MIGRATION, '010_private_offers_listing_type');
       applied.push('010_private_offers_listing_type');
     }
+    if (!status.privateClientFields) {
+      await runSqlFile(client, PRIVATE_CLIENT_FIELDS_MIGRATION, '011_private_client_request_fields');
+      applied.push('011_private_client_request_fields');
+    }
 
     await client.end();
 
@@ -224,6 +238,7 @@ module.exports = {
   isPrivateClientsSchemaReady,
   isSiteAnalyticsSchemaReady,
   isPrivateOffersListingTypeReady,
+  isPrivateClientRequestFieldsReady,
   getSchemaStatus,
   getConnectionConfig,
 };

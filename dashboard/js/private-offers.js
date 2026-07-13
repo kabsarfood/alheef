@@ -13,6 +13,17 @@ const LISTING_TYPES = [
   { value: 'rent', label: 'إيجار' },
 ];
 
+const CLIENT_REQUEST_TYPES = [
+  { value: 'buy', label: 'شراء' },
+  { value: 'rent', label: 'إيجار' },
+];
+
+const CLIENT_PROPERTY_KINDS = [
+  { value: 'land', label: 'أرض' },
+  { value: 'villa', label: 'فيلا' },
+  { value: 'building', label: 'عمارة' },
+];
+
 const STATUS_OPTIONS = [
   { value: 'available', label: 'متاح' },
   { value: 'reserved', label: 'محجوز' },
@@ -121,6 +132,23 @@ async function loadClientsPanel() {
   }
 }
 
+function clientRequestLabel(v) {
+  return CLIENT_REQUEST_TYPES.find((t) => t.value === v)?.label || 'شراء';
+}
+
+function clientPropertyKindLabel(v) {
+  return CLIENT_PROPERTY_KINDS.find((t) => t.value === v)?.label || 'أرض';
+}
+
+function formatClientArea(area) {
+  if (area == null || area === '') return '—';
+  return `${Number(area).toLocaleString('ar-SA')} م²`;
+}
+
+function optionHtml(list, selected) {
+  return list.map((t) => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
+}
+
 function renderClientsList() {
   const list = document.getElementById('clients-list');
   if (!list) return;
@@ -130,42 +158,106 @@ function renderClientsList() {
   }
 
   list.innerHTML = `
-    <div class="po-clients-grid">
+    <div class="po-clients-list">
       ${clientsCache.map((c) => `
-        <article class="po-client-card" data-client="${c.id}">
-          <div class="po-client-card__head">
-            <div class="po-client-card__name">
-              <label>اسم العميل</label>
-              <input class="client-label-input" data-id="${c.id}" value="${escapeHtml(c.clientLabel || '')}" placeholder="اسم العميل">
+        <details class="po-client-accordion" data-client="${c.id}">
+          <summary class="po-client-accordion__summary">
+            <div class="po-client-accordion__summary-main">
+              <strong class="po-client-accordion__name">${escapeHtml(c.clientLabel || 'عميل')}</strong>
+              <span class="po-client-accordion__phone" dir="ltr">${escapeHtml(c.phone || 'بدون رقم')}</span>
             </div>
-            <span class="po-client-card__badge ${c.active ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
-              ${c.active ? 'نشط' : 'موقوف'}
-            </span>
-          </div>
-          <div class="po-client-card__url">
-            <label>رابط الدخول</label>
-            <div class="po-client-card__url-row">
-              <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
+            <div class="po-client-accordion__summary-meta">
+              <span class="po-client-pill po-client-pill--${c.requestType === 'rent' ? 'rent' : 'buy'}">${escapeHtml(clientRequestLabel(c.requestType))}</span>
+              <span class="po-client-pill">${escapeHtml(clientPropertyKindLabel(c.propertyKind))}</span>
+              <span class="po-client-pill po-client-pill--area">${escapeHtml(formatClientArea(c.requiredArea))}</span>
+              <span class="po-client-card__badge ${c.active ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
+                ${c.active ? 'نشط' : 'موقوف'}
+              </span>
+              <span class="po-client-accordion__chevron" aria-hidden="true">▾</span>
             </div>
+          </summary>
+          <div class="po-client-accordion__body">
+            <form class="po-client-details-form" data-id="${c.id}">
+              <div class="po-client-details-grid">
+                <div class="form-group">
+                  <label>اسم العميل</label>
+                  <input name="clientLabel" value="${escapeHtml(c.clientLabel || '')}" placeholder="اسم العميل" required>
+                </div>
+                <div class="form-group">
+                  <label>رقم الجوال</label>
+                  <input name="phone" value="${escapeHtml(c.phone || '')}" placeholder="05xxxxxxxx" dir="ltr">
+                </div>
+                <div class="form-group">
+                  <label>نوع الطلب</label>
+                  <select name="requestType">
+                    ${optionHtml(CLIENT_REQUEST_TYPES, c.requestType || 'buy')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>نوع العقار المطلوب</label>
+                  <select name="propertyKind">
+                    ${optionHtml(CLIENT_PROPERTY_KINDS, c.propertyKind || 'land')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>المساحة المطلوبة (م²)</label>
+                  <input name="requiredArea" type="number" min="1" step="0.01" value="${c.requiredArea != null ? escapeHtml(String(c.requiredArea)) : ''}" placeholder="مثال: 500">
+                </div>
+                <div class="form-group po-client-details-grid__full">
+                  <label>رابط الدخول</label>
+                  <div class="po-client-card__url-row">
+                    <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
+                  </div>
+                </div>
+              </div>
+              <p class="po-client-card__meta">
+                <strong>${c.loginCount || 0}</strong> مرة دخول
+                ${c.lastVisitAt ? ` — آخر زيارة: ${formatVisitDate(c.lastVisitAt)}` : ''}
+              </p>
+              <div class="po-client-card__actions">
+                <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
+                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط والرمز</button>
+                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
+                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+              </div>
+            </form>
           </div>
-          <p class="po-client-card__meta">
-            <strong>${c.loginCount || 0}</strong> مرة دخول
-            ${c.lastVisitAt ? ` — آخر زيارة: ${formatVisitDate(c.lastVisitAt)}` : ''}
-          </p>
-          <div class="po-client-card__actions">
-            <button type="button" class="btn btn-gold btn-sm" data-copy="${c.id}">نسخ الرابط والرمز</button>
-            <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
-            <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
-          </div>
-        </article>
+        </details>
       `).join('')}
     </div>
   `;
 
-  list.querySelectorAll('.client-label-input').forEach((input) => {
-    input.addEventListener('change', async () => {
-      await DashboardAPI.updatePrivateClientLabel(input.dataset.id, input.value.trim());
-      showToast('تم تحديث اسم العميل');
+  list.querySelectorAll('.po-client-details-form').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = form.dataset.id;
+      const fd = new FormData(form);
+      const btn = form.querySelector('[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'جاري الحفظ…';
+      }
+      try {
+        const r = await DashboardAPI.updatePrivateClient(id, {
+          clientLabel: String(fd.get('clientLabel') || '').trim(),
+          phone: String(fd.get('phone') || '').trim(),
+          requestType: fd.get('requestType'),
+          propertyKind: fd.get('propertyKind'),
+          requiredArea: fd.get('requiredArea'),
+        });
+        const idx = clientsCache.findIndex((c) => c.id === id);
+        if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
+        showToast('تم حفظ بيانات العميل');
+        renderClientsList();
+        const open = document.querySelector(`.po-client-accordion[data-client="${id}"]`);
+        if (open) open.open = true;
+      } catch (err) {
+        showToast(err.message || 'تعذر الحفظ', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'حفظ البيانات';
+        }
+      }
     });
   });
 
@@ -239,12 +331,32 @@ function openAddClientModal() {
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <p class="po-modal-hint">
-        أدخل اسم العميل للتذكير فقط. سيتم إنشاء <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> لا يشاركه مع أي عميل آخر.
+        أدخل بيانات الطلب. سيتم إنشاء <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> لهذا العميل.
       </p>
       <form id="client-form" class="po-modal-form">
         <div class="form-group">
-          <label for="client-label-input">اسم العميل</label>
-          <input id="client-label-input" name="clientLabel" placeholder="مثال: أحمد — عميل VIP" required autocomplete="off">
+          <label for="client-label-input">اسم العميل *</label>
+          <input id="client-label-input" name="clientLabel" placeholder="مثال: أحمد" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="client-phone-input">رقم الجوال *</label>
+          <input id="client-phone-input" name="phone" placeholder="05xxxxxxxx" required dir="ltr" autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label for="client-request-type">نوع الطلب *</label>
+          <select id="client-request-type" name="requestType" required>
+            ${optionHtml(CLIENT_REQUEST_TYPES, 'buy')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="client-property-kind">نوع العقار المطلوب *</label>
+          <select id="client-property-kind" name="propertyKind" required>
+            ${optionHtml(CLIENT_PROPERTY_KINDS, 'land')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="client-required-area">المساحة المطلوبة (م²) *</label>
+          <input id="client-required-area" name="requiredArea" type="number" min="1" step="0.01" placeholder="مثال: 500" required>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-outline" data-close>إلغاء</button>
@@ -261,11 +373,17 @@ function openAddClientModal() {
   wrap.querySelector('#client-form').onsubmit = async (e) => {
     e.preventDefault();
     const submitBtn = wrap.querySelector('[type="submit"]');
-    const label = new FormData(e.target).get('clientLabel');
+    const fd = new FormData(e.target);
     submitBtn.disabled = true;
     submitBtn.textContent = 'جاري الإنشاء…';
     try {
-      const r = await DashboardAPI.createPrivateClient(String(label || '').trim());
+      const r = await DashboardAPI.createPrivateClient({
+        clientLabel: String(fd.get('clientLabel') || '').trim(),
+        phone: String(fd.get('phone') || '').trim(),
+        requestType: fd.get('requestType'),
+        propertyKind: fd.get('propertyKind'),
+        requiredArea: fd.get('requiredArea'),
+      });
       clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl });
       if (r.accessCode) clientPlainCodes.set(r.client.id, r.accessCode);
       renderClientsList();

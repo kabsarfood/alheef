@@ -101,12 +101,31 @@ async function getClientCodeHash(slug) {
   return data?.access_code_hash || null;
 }
 
-async function createClient({ clientLabel } = {}) {
+function normalizeClientFields({
+  clientLabel,
+  phone,
+  requestType,
+  propertyKind,
+  requiredArea,
+} = {}) {
+  const kind = ['land', 'villa', 'building'].includes(propertyKind) ? propertyKind : 'land';
+  const areaRaw = requiredArea;
+  const area = areaRaw != null && areaRaw !== '' ? Number(areaRaw) : null;
+  return {
+    client_label: String(clientLabel || '').trim() || 'عميل',
+    phone: String(phone || '').trim(),
+    request_type: requestType === 'rent' ? 'rent' : 'buy',
+    property_kind: kind,
+    required_area: Number.isFinite(area) && area > 0 ? area : null,
+  };
+}
+
+async function createClient(fields = {}) {
   if (!isEnabled()) throw new Error('قاعدة البيانات غير متصلة');
   await ensureSettings();
   const plainCode = generateAccessCode();
   const row = {
-    client_label: String(clientLabel || '').trim() || 'عميل',
+    ...normalizeClientFields(fields),
     page_slug: generatePrivateSlug(),
     access_code_hash: hashPassword(plainCode),
     active: true,
@@ -168,10 +187,23 @@ async function setClientActive(id, active) {
 }
 
 async function updateClientLabel(id, clientLabel) {
+  return updateClientDetails(id, { clientLabel });
+}
+
+async function updateClientDetails(id, fields = {}) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
+  const patch = normalizeClientFields({
+    clientLabel: fields.clientLabel != null ? fields.clientLabel : existing.clientLabel,
+    phone: fields.phone != null ? fields.phone : existing.phone,
+    requestType: fields.requestType != null ? fields.requestType : existing.requestType,
+    propertyKind: fields.propertyKind != null ? fields.propertyKind : existing.propertyKind,
+    requiredArea: fields.requiredArea !== undefined ? fields.requiredArea : existing.requiredArea,
+  });
   const { data, error } = await getAdmin()
     .from(CLIENTS_TABLE)
     .update({
-      client_label: String(clientLabel || '').trim() || 'عميل',
+      ...patch,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -222,6 +254,7 @@ module.exports = {
   regenerateClientAccess,
   setClientActive,
   updateClientLabel,
+  updateClientDetails,
   recordClientLogin,
   getClientsVisitSummary,
 };

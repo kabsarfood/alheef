@@ -598,9 +598,17 @@ function rowToPrivateAccess(row) {
 
 function rowToPrivateClient(row) {
   if (!row) return null;
+  const requestType = row.request_type === 'rent' ? 'rent' : 'buy';
+  const propertyKind = ['land', 'villa', 'building'].includes(row.property_kind)
+    ? row.property_kind
+    : 'land';
   return {
     id: row.id,
     clientLabel: row.client_label || '',
+    phone: row.phone || '',
+    requestType,
+    propertyKind,
+    requiredArea: row.required_area != null ? Number(row.required_area) : null,
     pageSlug: row.page_slug,
     hasCode: !!row.access_code_hash,
     active: row.active !== false,

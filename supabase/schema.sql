@@ -560,6 +560,10 @@ CREATE TABLE IF NOT EXISTS private_offers_settings (
 CREATE TABLE IF NOT EXISTS private_client_access (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_label TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  request_type TEXT NOT NULL DEFAULT 'buy',
+  property_kind TEXT NOT NULL DEFAULT 'land',
+  required_area NUMERIC(12, 2),
   page_slug TEXT NOT NULL UNIQUE,
   access_code_hash TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
@@ -567,7 +571,9 @@ CREATE TABLE IF NOT EXISTS private_client_access (
   login_count INT NOT NULL DEFAULT 0,
   last_visit_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT private_client_access_request_type_check CHECK (request_type IN ('buy', 'rent')),
+  CONSTRAINT private_client_access_property_kind_check CHECK (property_kind IN ('land', 'villa', 'building'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_private_client_access_slug ON private_client_access (page_slug);

@@ -223,11 +223,14 @@ const DashboardAPI = {
     return this.request('/private-offers/clients').then((d) => d.clients || []);
   },
 
-  createPrivateClient(clientLabel) {
+  createPrivateClient(payload) {
+    const body = typeof payload === 'string'
+      ? { clientLabel: payload }
+      : (payload || {});
     return this.request('/private-offers/clients', {
       method: 'POST',
       headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ clientLabel }),
+      body: JSON.stringify(body),
     });
   },
 
@@ -256,6 +259,14 @@ const DashboardAPI = {
       method: 'PUT',
       headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ clientLabel }),
+    });
+  },
+
+  updatePrivateClient(id, payload) {
+    return this.request(`/private-offers/clients/${id}`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload || {}),
     });
   },
 
