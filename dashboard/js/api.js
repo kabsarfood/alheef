@@ -281,13 +281,18 @@ const DashboardAPI = {
       headers: Auth.authHeaders(),
       body: formData,
     }).then(async (res) => {
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (res.status === 401) {
         Auth.clearToken();
         window.location.replace(Auth.LOGIN_PATH);
         throw new Error('انتهت الجلسة');
       }
-      if (!res.ok) throw new Error(data.message || 'حدث خطأ');
+      if (!res.ok) throw new Error(data.message || `تعذر الحفظ (${res.status})`);
       return data;
     });
   },

@@ -47,8 +47,17 @@ async function create(body) {
   const offerNumber = await nextOfferNumber();
   const row = privateOfferToRow({ ...body, offerNumber });
   row.offer_number = offerNumber;
+  Object.keys(row).forEach((k) => row[k] === undefined && delete row[k]);
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (/listing_type/i.test(error.message)) {
+      delete row.listing_type;
+      const retry = await getAdmin().from(TABLE).insert(row).select().single();
+      if (retry.error) throw new Error(retry.error.message);
+      return rowToPrivateOffer(retry.data);
+    }
+    throw new Error(error.message);
+  }
   return rowToPrivateOffer(data);
 }
 
@@ -58,7 +67,15 @@ async function update(id, body) {
   row.updated_at = new Date().toISOString();
   Object.keys(row).forEach((k) => row[k] === undefined && delete row[k]);
   const { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (/listing_type/i.test(error.message)) {
+      delete row.listing_type;
+      const retry = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
+      if (retry.error) throw new Error(retry.error.message);
+      return rowToPrivateOffer(retry.data);
+    }
+    throw new Error(error.message);
+  }
   return rowToPrivateOffer(data);
 }
 

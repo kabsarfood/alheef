@@ -506,6 +506,7 @@ function renderOfferCard(o) {
 
 function openOfferModal(id) {
   const existing = id ? offersCache.find((o) => o.id === id) : null;
+  const galleryJson = encodeURIComponent(JSON.stringify(existing?.gallery || []));
   const wrap = document.createElement('div');
   wrap.className = 'modal active';
   wrap.innerHTML = `
@@ -515,8 +516,8 @@ function openOfferModal(id) {
         <h3 class="modal__title">${id ? 'تعديل عرض خاص' : 'عرض خاص جديد'}</h3>
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
-      <form id="offer-form">
-        ${existing ? `<p class="text-muted" style="margin-bottom:1rem"><strong>رقم العرض:</strong> ${existing.offerNumber}</p>` : ''}
+      <form id="offer-form" class="po-offer-form" novalidate>
+        ${existing ? `<p class="text-muted" style="margin-bottom:1rem"><strong>رقم العرض:</strong> ${escapeHtml(existing.offerNumber)}</p>` : ''}
         <div class="form-grid">
           <div class="form-group">
             <label>نوع العرض *</label>
@@ -532,38 +533,39 @@ function openOfferModal(id) {
           </div>
           <div class="form-group">
             <label>المساحة (م²)</label>
-            <input name="area" type="number" step="0.01" value="${existing?.area ?? ''}">
+            <input name="area" type="number" step="0.01" value="${existing?.area != null ? escapeHtml(String(existing.area)) : ''}">
           </div>
           <div class="form-group">
             <label>الشارع</label>
-            <input name="street" value="${existing?.street || ''}">
+            <input name="street" value="${escapeHtml(existing?.street || '')}">
           </div>
           <div class="form-group">
             <label>رقم القطعة</label>
-            <input name="plotNumber" value="${existing?.plotNumber || ''}">
+            <input name="plotNumber" value="${escapeHtml(existing?.plotNumber || '')}">
           </div>
           <div class="form-group">
             <label>رقم المخطط</label>
-            <input name="planNumber" value="${existing?.planNumber || ''}">
+            <input name="planNumber" value="${escapeHtml(existing?.planNumber || '')}">
           </div>
           <div class="form-group">
             <label id="price-label">${(existing?.listingType || 'sale') === 'rent' ? 'سعر الإيجار (ر.س)' : 'السعر (ر.س)'}</label>
-            <input name="price" type="number" step="0.01" value="${existing?.price ?? ''}">
+            <input name="price" type="number" step="0.01" value="${existing?.price != null ? escapeHtml(String(existing.price)) : ''}">
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>الموقع / اللوكيشن</label>
-            <input name="location" value="${existing?.location || ''}" placeholder="مثال: التقاطع السادس — أو سطر ثانٍ برابط الخريطة">
+            <input name="location" value="${escapeHtml(existing?.location || '')}" placeholder="مثال: التقاطع السادس — أو سطر ثانٍ برابط الخريطة">
           </div>
           <div class="form-group">
             <label><input type="checkbox" name="showLocation" value="true" ${existing?.showLocation !== false ? 'checked' : ''}> إظهار الموقع للعميل</label>
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>وصف مختصر</label>
-            <textarea name="shortDescription" rows="3" placeholder="السطر الأول: اسم الحي (مثل المهدية) — باقي الأسطر: وصف إضافي">${existing?.shortDescription || ''}</textarea>
+            <textarea name="shortDescription" rows="3" placeholder="السطر الأول: اسم الحي (مثل المهدية) — باقي الأسطر: وصف إضافي">${escapeHtml(existing?.shortDescription || '')}</textarea>
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>صور العقار ${id ? '(اختياري — تُضاف للمعرض)' : '*'}</label>
-            <input type="file" name="images" accept="image/*" multiple ${id ? '' : 'required'}>
+            <input type="file" name="images" id="offer-images" accept="image/*" multiple ${id ? '' : 'required'}>
+            <span class="form-hint" id="offer-images-hint">${id ? 'اختياري عند التعديل' : 'مطلوب صورة واحدة على الأقل عند الإنشاء'}</span>
           </div>
           <div class="form-group">
             <label>حالة العرض</label>
@@ -573,11 +575,11 @@ function openOfferModal(id) {
           </div>
           <div class="form-group">
             <label>الترتيب</label>
-            <input name="sortOrder" type="number" value="${existing?.sortOrder ?? 0}">
+            <input name="sortOrder" type="number" value="${escapeHtml(String(existing?.sortOrder ?? 0))}">
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>ملاحظات داخلية (لا تظهر للعميل)</label>
-            <textarea name="internalNotes" rows="2">${existing?.internalNotes || ''}</textarea>
+            <textarea name="internalNotes" rows="2">${escapeHtml(existing?.internalNotes || '')}</textarea>
           </div>
           <div class="form-group">
             <label><input type="checkbox" name="visible" value="true" ${existing?.visible !== false ? 'checked' : ''}> ظاهر في صفحة العميل</label>
@@ -587,13 +589,19 @@ function openOfferModal(id) {
           </div>
         </div>
         ${existing?.gallery?.length ? `<p class="text-muted">الصور الحالية: ${existing.gallery.length}</p>` : ''}
-        <input type="hidden" name="gallery" value='${existing?.gallery ? JSON.stringify(existing.gallery) : '[]'}'>
-        <div class="form-actions"><button type="submit" class="btn btn-gold">حفظ</button></div>
+        <input type="hidden" name="gallery" value="${galleryJson}">
+        <div class="form-actions po-offer-form__actions">
+          <button type="submit" class="btn btn-gold" id="offer-save-btn">حفظ</button>
+          <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+        </div>
       </form>
     </div>
   `;
   document.body.appendChild(wrap);
-  const close = () => wrap.remove();
+  const close = () => {
+    if (wrap.dataset.saving === '1') return;
+    wrap.remove();
+  };
   wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
   const listingSelect = wrap.querySelector('[name="listingType"]');
   const priceLabel = wrap.querySelector('#price-label');
@@ -602,21 +610,50 @@ function openOfferModal(id) {
       priceLabel.textContent = listingSelect.value === 'rent' ? 'سعر الإيجار (ر.س)' : 'السعر (ر.س)';
     }
   });
-  wrap.querySelector('#offer-form').onsubmit = async (e) => {
+
+  const form = wrap.querySelector('#offer-form');
+  const saveBtn = wrap.querySelector('#offer-save-btn');
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    if (!fd.get('showLocation')) fd.append('showLocation', 'false');
-    if (!fd.get('visible')) fd.append('visible', 'false');
-    if (!fd.get('active')) fd.append('active', 'false');
+    if (wrap.dataset.saving === '1' || saveBtn.disabled) return;
+
+    const imagesInput = form.querySelector('#offer-images');
+    if (!id && (!imagesInput?.files || imagesInput.files.length === 0)) {
+      showToast('يرجى إرفاق صورة واحدة على الأقل', 'error');
+      imagesInput?.focus();
+      return;
+    }
+
+    const fd = new FormData(form);
+    if (!fd.get('showLocation')) fd.set('showLocation', 'false');
+    if (!fd.get('visible')) fd.set('visible', 'false');
+    if (!fd.get('active')) fd.set('active', 'false');
+
+    wrap.dataset.saving = '1';
+    saveBtn.disabled = true;
+    saveBtn.classList.add('is-loading');
+    saveBtn.textContent = 'جاري الحفظ…';
+    form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+      if (el !== saveBtn) el.disabled = true;
+    });
+
     try {
       await DashboardAPI.savePrivateOffer(fd, id);
-      showToast('تم الحفظ');
+      showToast('تم حفظ العرض بنجاح');
+      wrap.dataset.saving = '0';
       wrap.remove();
-      loadOffers();
+      await loadOffers();
     } catch (err) {
-      showToast(err.message, 'error');
+      wrap.dataset.saving = '0';
+      form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+        el.disabled = false;
+      });
+      saveBtn.disabled = false;
+      saveBtn.classList.remove('is-loading');
+      saveBtn.textContent = 'حفظ';
+      showToast(err.message || 'تعذر حفظ العرض', 'error');
     }
-  };
+  });
 }
 
 async function removeOffer(id) {

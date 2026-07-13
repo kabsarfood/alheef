@@ -817,6 +817,20 @@ async function notifyPrivateOfferIfNeeded(offer, existing = null) {
   await pushNotifications.notifyClientsPrivateOffer(offer);
 }
 
+function parsePrivateOfferGallery(raw) {
+  if (raw == null || raw === '') return undefined;
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  try {
+    const decoded = typeof raw === 'string' && raw.includes('%')
+      ? decodeURIComponent(raw)
+      : raw;
+    const parsed = typeof decoded === 'string' ? JSON.parse(decoded) : decoded;
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function parsePrivateOfferBody(body) {
   return {
     listingType: body.listingType === 'rent' ? 'rent' : 'sale',
@@ -830,7 +844,7 @@ function parsePrivateOfferBody(body) {
     showLocation: body.showLocation !== 'false' && body.showLocation !== false,
     shortDescription: body.shortDescription,
     coverImage: body.coverImage,
-    gallery: body.gallery ? JSON.parse(body.gallery) : undefined,
+    gallery: parsePrivateOfferGallery(body.gallery),
     status: body.status || 'available',
     internalNotes: body.internalNotes,
     visible: body.visible !== 'false' && body.visible !== false,

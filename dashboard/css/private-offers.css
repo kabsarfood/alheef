@@ -422,6 +422,23 @@
   gap: 1rem 1.25rem;
 }
 
+.po-offer-form__actions {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, #fff 70%, rgba(255,255,255,0.92));
+  padding-top: 1rem;
+  padding-bottom: 0.25rem;
+  margin-top: 1rem;
+  z-index: 2;
+}
+
+#offer-save-btn.is-loading,
+#offer-save-btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+  pointer-events: none;
+}
+
 .po-topbar-actions {
   display: flex;
   flex-wrap: wrap;
