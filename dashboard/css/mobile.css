@@ -306,7 +306,7 @@
 }
 
 @media (min-width: 431px) and (max-width: 768px) {
-  .offers-grid {
+  .offers-grid:not(.offers-grid--admin) {
     grid-template-columns: repeat(2, 1fr);
   }
 
