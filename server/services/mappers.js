@@ -1,5 +1,5 @@
 const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
-const { parseCoord } = require('../utils/coords');
+const { parseCoord, parseCoordsFromMapsUrl } = require('../utils/coords');
 const {
   readMeta, resolveWorkflowStatus, injectIntoFeatures, metaFromBody, workflowToDbPatch, isWorkflowStatus,
 } = require('../utils/marketerFeatures');
@@ -259,8 +259,15 @@ function resolveDbStatus(body) {
 }
 
 function propertyToRow(body) {
-  const lat = parseCoord(body.latitude ?? body.lat);
-  const lng = parseCoord(body.longitude ?? body.lng);
+  let lat = parseCoord(body.latitude ?? body.lat);
+  let lng = parseCoord(body.longitude ?? body.lng);
+  if (lat == null || lng == null) {
+    const fromUrl = parseCoordsFromMapsUrl(body.mapsUrl || body.maps_url);
+    if (fromUrl) {
+      lat = parseCoord(fromUrl.lat);
+      lng = parseCoord(fromUrl.lng);
+    }
+  }
   const listing = body.listingType || body.listing_type || 'sale';
   const isBuy = listing === 'buy_request';
   const contactPhone = isBuy

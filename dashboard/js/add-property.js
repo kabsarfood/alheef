@@ -190,19 +190,10 @@ function renderForm() {
               <input type="text" name="location" id="location" placeholder="مثال: الرياض — حي النرجس" required>
             </div>
             <div class="form-group full">
-              <label>رابط Google Maps</label>
+              <label>رابط اللوكيشن (Google Maps)</label>
               <input type="url" name="mapsUrl" id="mapsUrl" placeholder="https://maps.google.com/..." dir="ltr">
-              <span class="form-hint">الصق الرابط لاستخراج الإحداثيات تلقائياً، أو أدخلها يدوياً أدناه</span>
+              <span class="form-hint" id="maps-url-hint">الصق رابط Google Maps ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a></span>
             </div>
-            <div class="form-group">
-              <label>خط العرض (Latitude)</label>
-              <input type="text" name="latitude" id="latitude" placeholder="24.7136" dir="ltr">
-            </div>
-            <div class="form-group">
-              <label>خط الطول (Longitude)</label>
-              <input type="text" name="longitude" id="longitude" placeholder="46.6753" dir="ltr">
-            </div>
-            <p class="form-hint full" style="margin-top:-0.5rem">عند إدخال الإحداثيات يظهر على <a href="/map.html" target="_blank">الخريطة العقارية</a></p>
             <div class="form-group">
               <label>حالة الإعلان</label>
               <select name="status" id="status">
@@ -236,7 +227,8 @@ function renderForm() {
   syncListingMode();
 
   document.getElementById('property-form').addEventListener('submit', handleSubmit);
-  document.getElementById('mapsUrl')?.addEventListener('change', applyCoordsFromMapsUrl);
+  document.getElementById('mapsUrl')?.addEventListener('input', updateMapsUrlHint);
+  document.getElementById('mapsUrl')?.addEventListener('change', updateMapsUrlHint);
   document.getElementById('image-input').addEventListener('change', (e) => {
     addFiles(e.target.files);
     e.target.value = '';
@@ -275,14 +267,21 @@ function parseCoordsFromMapsUrl(url) {
   return null;
 }
 
-function applyCoordsFromMapsUrl() {
+function getCoordsFromMapsUrlField() {
   const url = document.getElementById('mapsUrl')?.value?.trim();
-  const coords = parseCoordsFromMapsUrl(url);
-  if (!coords) return;
-  const latEl = document.getElementById('latitude');
-  const lngEl = document.getElementById('longitude');
-  if (latEl && !latEl.value) latEl.value = coords.lat;
-  if (lngEl && !lngEl.value) lngEl.value = coords.lng;
+  return parseCoordsFromMapsUrl(url);
+}
+
+function updateMapsUrlHint() {
+  const hint = document.getElementById('maps-url-hint');
+  if (!hint) return;
+  const coords = getCoordsFromMapsUrlField();
+  const base = 'الصق رابط Google Maps ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a>';
+  if (coords) {
+    hint.innerHTML = `${base} — <strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع من الرابط</strong>`;
+  } else {
+    hint.innerHTML = base;
+  }
 }
 
 function parseFeatures(offer) {
@@ -323,10 +322,7 @@ async function loadOffer(id) {
 
     document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
     document.getElementById('mapsUrl').value = offer.mapsUrl || '';
-    const latEl = document.getElementById('latitude');
-    const lngEl = document.getElementById('longitude');
-    if (latEl) latEl.value = offer.latitude != null ? offer.latitude : '';
-    if (lngEl) lngEl.value = offer.longitude != null ? offer.longitude : '';
+    updateMapsUrlHint();
     document.getElementById('status').value = offer.status || 'published';
     const urls = offer.gallery?.length ? offer.gallery : (offer.images || []).map((i) => (typeof i === 'string' ? i : i.url));
     imageQueue = urls.filter(Boolean).map((url) => ({ url, isExisting: true }));
@@ -436,17 +432,20 @@ async function handleSubmit(e) {
   }
 
   fd.set('mapsUrl', fd.get('mapsUrl') || '');
-  if (!fd.get('latitude') || !fd.get('longitude')) applyCoordsFromMapsUrl();
-  const latEl = document.getElementById('latitude');
-  const lngEl = document.getElementById('longitude');
-  if (latEl?.value) fd.set('latitude', String(latEl.value).trim());
-  if (lngEl?.value) fd.set('longitude', String(lngEl.value).trim());
+  const coords = getCoordsFromMapsUrlField();
+  if (coords) {
+    fd.set('latitude', coords.lat);
+    fd.set('longitude', coords.lng);
+  } else {
+    fd.delete('latitude');
+    fd.delete('longitude');
+  }
 
-  const lat = fd.get('latitude');
-  const lng = fd.get('longitude');
+  const lat = coords?.lat;
+  const lng = coords?.lng;
   const status = fd.get('status') || 'published';
   if (status === 'published' && (!lat || !lng)) {
-    showToast('لن يظهر على الخريطة بدون خط العرض والطول — أضف الإحداثيات أو رابط خرائط Google', 'error');
+    showToast('لن يظهر على الخريطة بدون رابط Google Maps صالح للموقع', 'error');
     btn.disabled = false;
     btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
     return;

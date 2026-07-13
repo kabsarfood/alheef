@@ -21,11 +21,18 @@ let offersCache = [];
 const clientPlainCodes = new Map();
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.body.classList.add('po-admin-page');
   await initLayout('private-offers', 'العروض الخاصة');
   setTopbarActions(`
     <div class="po-topbar-actions">
-      <button class="btn btn-outline btn-sm" id="btn-add-client">＋ عميل جديد</button>
-      <button class="btn btn-gold btn-sm" id="btn-add">＋ عرض خاص جديد</button>
+      <button type="button" class="btn btn-outline btn-sm" id="btn-add-client">
+        <span class="po-btn-label po-btn-label--desktop">＋ عميل جديد</span>
+        <span class="po-btn-label po-btn-label--mobile">عميل جديد</span>
+      </button>
+      <button type="button" class="btn btn-gold btn-sm" id="btn-add">
+        <span class="po-btn-label po-btn-label--desktop">＋ عرض خاص جديد</span>
+        <span class="po-btn-label po-btn-label--mobile">عرض جديد</span>
+      </button>
     </div>
   `);
   renderShell();
@@ -36,15 +43,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderShell() {
   getPageContent().innerHTML = `
-    <section class="card" id="clients-panel">
+    <section class="card po-panel" id="clients-panel">
       <div class="card__body">
-        <h3>عملاء العروض الخاصة — رابط وكلمة سر لكل عميل</h3>
+        <div class="po-section-head">
+          <h3>عملاء العروض الخاصة</h3>
+          <p class="text-muted po-page-intro">رابط مستقل وكلمة سر لكل عميل</p>
+        </div>
         <div class="loading"><div class="spinner"></div></div>
       </div>
     </section>
-    <section class="card" style="margin-top:1rem">
+    <section class="card po-panel" id="offers-panel">
       <div class="card__body">
-        <h3>قائمة العروض الخاصة</h3>
+        <div class="po-section-head">
+          <h3>قائمة العروض الخاصة</h3>
+        </div>
         <div id="offers-list"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </section>
@@ -70,8 +82,10 @@ async function loadClientsPanel() {
     const summary = data.summary || {};
 
     el.innerHTML = `
-      <h3>عملاء العروض الخاصة — رابط وكلمة سر لكل عميل</h3>
-      <p class="text-muted po-page-intro">كل عميل يطلب العروض يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> — لا علاقة بين العملاء.</p>
+      <div class="po-section-head">
+        <h3>عملاء العروض الخاصة</h3>
+        <p class="text-muted po-page-intro">كل عميل يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong>.</p>
+      </div>
       ${!settingsInfo.active ? `
         <div class="access-warning">
           <strong>⚠ صفحة العروض الخاصة موقوفة</strong>
@@ -336,15 +350,21 @@ function statusLabel(v) {
 function renderOfferCard(o) {
   const img = o.coverImage || (o.gallery && o.gallery[0]) || '';
   return `
-    <article class="offer-card">
-      ${img ? `<img src="${img}" alt="" style="width:100%;height:140px;object-fit:cover">` : '<div style="height:140px;background:#eee"></div>'}
+    <article class="offer-card po-offer-card">
+      ${img
+        ? `<div class="offer-card__img"><img src="${escapeHtml(img)}" alt=""></div>`
+        : '<div class="offer-card__img offer-card__img--empty" aria-hidden="true"></div>'}
       <div class="offer-card__body">
-        <h3>${o.offerNumber}</h3>
-        <p>${typeLabel(o.propertyType)} — ${statusLabel(o.status)}</p>
-        <p>${o.price != null ? Number(o.price).toLocaleString('ar-SA') + ' ر.س' : '—'}</p>
-        <p>${o.active && o.visible ? 'ظاهر للعميل' : 'مخفي / معطّل'}</p>
-        <button class="btn btn-outline btn-sm" data-edit="${o.id}">تعديل</button>
-        <button class="btn btn-outline btn-sm" data-del="${o.id}">حذف</button>
+        <p class="offer-card__type">${escapeHtml(typeLabel(o.propertyType))}</p>
+        <h3 class="offer-card__title">${escapeHtml(o.offerNumber)}</h3>
+        <p class="offer-card__meta">${escapeHtml(statusLabel(o.status))} · ${o.active && o.visible ? 'ظاهر للعميل' : 'مخفي'}</p>
+        <p class="offer-card__price">${o.price != null ? Number(o.price).toLocaleString('ar-SA') + ' ر.س' : '—'}</p>
+        <div class="offer-card__footer">
+          <div class="offer-card__actions">
+            <button type="button" class="btn btn-outline btn-sm" data-edit="${o.id}">تعديل</button>
+            <button type="button" class="btn btn-outline btn-sm" data-del="${o.id}">حذف</button>
+          </div>
+        </div>
       </div>
     </article>
   `;
