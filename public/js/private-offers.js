@@ -6,6 +6,8 @@
 
   const TYPE_TABS = [
     { value: '', label: 'الكل' },
+    { value: 'sale', label: 'بيع', kind: 'listing' },
+    { value: 'rent', label: 'إيجار', kind: 'listing' },
     { value: 'land', label: 'أرض' },
     { value: 'villa', label: 'فلل' },
     { value: 'apartment', label: 'شقق' },
@@ -112,7 +114,7 @@
   const lightboxThumbs = document.getElementById('lightbox-thumbs');
 
   let allOffers = [];
-  let filterState = { type: '', q: '', area: '', price: '' };
+  let filterState = { type: '', listing: '', q: '', area: '', price: '' };
   let lightboxState = { images: [], index: 0 };
   let pdfBusy = false;
 
@@ -279,6 +281,7 @@
     return [
       o.offerNumber,
       o.propertyTypeLabel,
+      o.listingTypeLabel,
       o.street,
       o.plotNumber,
       o.planNumber,
@@ -291,6 +294,9 @@
 
   function filterOffers(offers) {
     let list = offers.slice();
+    if (filterState.listing) {
+      list = list.filter((o) => (o.listingType || 'sale') === filterState.listing);
+    }
     if (filterState.type) {
       list = list.filter((o) => o.propertyType === filterState.type);
     }
@@ -307,10 +313,17 @@
     return list;
   }
 
+  function activeTabValue() {
+    if (filterState.listing) return filterState.listing;
+    return filterState.type;
+  }
+
   function renderTypeTabs() {
+    const active = activeTabValue();
     typeTabsEl.innerHTML = TYPE_TABS.map((t) => `
-      <button type="button" class="private-type-tab${filterState.type === t.value ? ' is-active' : ''}"
-        data-type="${escapeAttr(t.value)}" role="tab" aria-selected="${filterState.type === t.value}">
+      <button type="button" class="private-type-tab${active === t.value ? ' is-active' : ''}"
+        data-type="${escapeAttr(t.value)}" data-kind="${escapeAttr(t.kind || 'property')}"
+        role="tab" aria-selected="${active === t.value}">
         ${escapeHtml(t.label)}
       </button>
     `).join('');
@@ -379,6 +392,7 @@
     const locationHtml = o.showLocation && o.location ? locationContent(o.location, forPdf) : '';
 
     const chips = [
+      chip(o.listingTypeLabel || (o.listingType === 'rent' ? 'إيجار' : 'بيع'), o.listingType === 'rent' ? 'rent' : 'sale'),
       chip(o.propertyTypeLabel, 'type'),
       o.area != null ? chip(`${o.area} م²`) : '',
       o.planNumber ? chip(`مخطط ${escapeHtml(o.planNumber)}`) : '',
@@ -448,7 +462,18 @@
     typeTabsEl.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-type]');
       if (!btn) return;
-      filterState.type = btn.dataset.type;
+      const value = btn.dataset.type || '';
+      const kind = btn.dataset.kind || 'property';
+      if (!value) {
+        filterState.type = '';
+        filterState.listing = '';
+      } else if (kind === 'listing') {
+        filterState.listing = value;
+        filterState.type = '';
+      } else {
+        filterState.type = value;
+        filterState.listing = '';
+      }
       filterState.area = '';
       filterState.price = '';
       renderTypeTabs();

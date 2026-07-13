@@ -451,6 +451,16 @@
   color: #8a6d3b;
 }
 
+.po-chip--sale {
+  background: rgba(30, 42, 56, 0.08);
+  color: #1E2A38;
+}
+
+.po-chip--rent {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
 .po-chip--district {
   background: rgba(30, 42, 56, 0.08);
   color: #1E2A38;

@@ -9,6 +9,7 @@ const PUSH_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations'
 const EMAIL_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '007_marketer_email_password.sql');
 const PRIVATE_OFFERS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '008_private_offers.sql');
 const CLIENTS_ANALYTICS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '009_private_clients_analytics.sql');
+const PRIVATE_LISTING_TYPE_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '010_private_offers_listing_type.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -94,8 +95,15 @@ async function isSiteAnalyticsSchemaReady() {
   return !error;
 }
 
+async function isPrivateOffersListingTypeReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('private_offers').select('listing_type').limit(1);
+  return !error;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
@@ -103,6 +111,7 @@ async function getSchemaStatus() {
     isPrivateOffersSchemaReady(),
     isPrivateClientsSchemaReady(),
     isSiteAnalyticsSchemaReady(),
+    isPrivateOffersListingTypeReady(),
   ]);
   return {
     marketer,
@@ -112,7 +121,8 @@ async function getSchemaStatus() {
     privateOffers,
     privateClients,
     siteAnalytics,
-    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics,
+    privateListingType,
+    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType,
   };
 }
 
@@ -186,6 +196,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, CLIENTS_ANALYTICS_MIGRATION, '009_private_clients_analytics');
       applied.push('009_private_clients_analytics');
     }
+    if (!status.privateListingType) {
+      await runSqlFile(client, PRIVATE_LISTING_TYPE_MIGRATION, '010_private_offers_listing_type');
+      applied.push('010_private_offers_listing_type');
+    }
 
     await client.end();
 
@@ -209,6 +223,7 @@ module.exports = {
   isPrivateOffersSchemaReady,
   isPrivateClientsSchemaReady,
   isSiteAnalyticsSchemaReady,
+  isPrivateOffersListingTypeReady,
   getSchemaStatus,
   getConnectionConfig,
 };

@@ -520,6 +520,7 @@ CREATE TABLE IF NOT EXISTS private_offers_access (
 CREATE TABLE IF NOT EXISTS private_offers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   offer_number TEXT NOT NULL UNIQUE,
+  listing_type TEXT NOT NULL DEFAULT 'sale',
   property_type TEXT NOT NULL DEFAULT 'other',
   area NUMERIC(12, 2),
   street TEXT,
@@ -537,7 +538,8 @@ CREATE TABLE IF NOT EXISTS private_offers (
   active BOOLEAN NOT NULL DEFAULT true,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT private_offers_listing_type_check CHECK (listing_type IN ('sale', 'rent'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_private_offers_active ON private_offers (active, visible, sort_order);

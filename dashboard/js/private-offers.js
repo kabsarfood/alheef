@@ -8,10 +8,16 @@ const PROPERTY_TYPES = [
   { value: 'other', label: 'غير ذلك' },
 ];
 
+const LISTING_TYPES = [
+  { value: 'sale', label: 'بيع' },
+  { value: 'rent', label: 'إيجار' },
+];
+
 const STATUS_OPTIONS = [
   { value: 'available', label: 'متاح' },
   { value: 'reserved', label: 'محجوز' },
   { value: 'sold', label: 'مباع' },
+  { value: 'rented', label: 'مؤجر' },
   { value: 'hidden', label: 'مخفي' },
 ];
 
@@ -343,8 +349,18 @@ function typeLabel(v) {
   return PROPERTY_TYPES.find((t) => t.value === v)?.label || v;
 }
 
+function listingLabel(v) {
+  return LISTING_TYPES.find((t) => t.value === v)?.label || 'بيع';
+}
+
 function statusLabel(v) {
   return STATUS_OPTIONS.find((s) => s.value === v)?.label || v;
+}
+
+function formatOfferPrice(o) {
+  if (o.price == null) return '—';
+  const amount = `${Number(o.price).toLocaleString('ar-SA')} ر.س`;
+  return o.listingType === 'rent' ? `${amount} / إيجار` : amount;
 }
 
 function renderOfferCard(o) {
@@ -355,10 +371,10 @@ function renderOfferCard(o) {
         ? `<div class="offer-card__img"><img src="${escapeHtml(img)}" alt=""></div>`
         : '<div class="offer-card__img offer-card__img--empty" aria-hidden="true"></div>'}
       <div class="offer-card__body">
-        <p class="offer-card__type">${escapeHtml(typeLabel(o.propertyType))}</p>
+        <p class="offer-card__type">${escapeHtml(typeLabel(o.propertyType))} · ${escapeHtml(listingLabel(o.listingType))}</p>
         <h3 class="offer-card__title">${escapeHtml(o.offerNumber)}</h3>
         <p class="offer-card__meta">${escapeHtml(statusLabel(o.status))} · ${o.active && o.visible ? 'ظاهر للعميل' : 'مخفي'}</p>
-        <p class="offer-card__price">${o.price != null ? Number(o.price).toLocaleString('ar-SA') + ' ر.س' : '—'}</p>
+        <p class="offer-card__price">${escapeHtml(formatOfferPrice(o))}</p>
         <div class="offer-card__footer">
           <div class="offer-card__actions">
             <button type="button" class="btn btn-outline btn-sm" data-edit="${o.id}">تعديل</button>
@@ -385,6 +401,12 @@ function openOfferModal(id) {
         ${existing ? `<p class="text-muted" style="margin-bottom:1rem"><strong>رقم العرض:</strong> ${existing.offerNumber}</p>` : ''}
         <div class="form-grid">
           <div class="form-group">
+            <label>نوع العرض *</label>
+            <select name="listingType" required>
+              ${LISTING_TYPES.map((t) => `<option value="${t.value}" ${(existing?.listingType || 'sale') === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
             <label>نوع العقار *</label>
             <select name="propertyType" required>
               ${PROPERTY_TYPES.map((t) => `<option value="${t.value}" ${existing?.propertyType === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
@@ -407,7 +429,7 @@ function openOfferModal(id) {
             <input name="planNumber" value="${existing?.planNumber || ''}">
           </div>
           <div class="form-group">
-            <label>السعر (ر.س)</label>
+            <label id="price-label">${(existing?.listingType || 'sale') === 'rent' ? 'سعر الإيجار (ر.س)' : 'السعر (ر.س)'}</label>
             <input name="price" type="number" step="0.01" value="${existing?.price ?? ''}">
           </div>
           <div class="form-group" style="grid-column:1/-1">
@@ -455,6 +477,13 @@ function openOfferModal(id) {
   document.body.appendChild(wrap);
   const close = () => wrap.remove();
   wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  const listingSelect = wrap.querySelector('[name="listingType"]');
+  const priceLabel = wrap.querySelector('#price-label');
+  listingSelect?.addEventListener('change', () => {
+    if (priceLabel) {
+      priceLabel.textContent = listingSelect.value === 'rent' ? 'سعر الإيجار (ر.س)' : 'السعر (ر.س)';
+    }
+  });
   wrap.querySelector('#offer-form').onsubmit = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

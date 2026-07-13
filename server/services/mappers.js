@@ -479,9 +479,11 @@ function rowToBanner(row) {
 function rowToPrivateOffer(row) {
   if (!row) return null;
   const gallery = Array.isArray(row.gallery) ? row.gallery : [];
+  const listingType = row.listing_type === 'rent' ? 'rent' : 'sale';
   return {
     id: row.id,
     offerNumber: row.offer_number,
+    listingType,
     propertyType: row.property_type,
     area: row.area != null ? Number(row.area) : null,
     street: row.street || '',
@@ -505,7 +507,9 @@ function rowToPrivateOffer(row) {
 
 function privateOfferToRow(body) {
   const gallery = Array.isArray(body.gallery) ? body.gallery : undefined;
+  const listingType = body.listingType === 'rent' || body.listing_type === 'rent' ? 'rent' : 'sale';
   return {
+    listing_type: listingType,
     property_type: body.propertyType,
     area: body.area != null && body.area !== '' ? Number(body.area) : null,
     street: body.street,
@@ -535,23 +539,33 @@ const PRIVATE_PROPERTY_TYPES = {
   other: 'غير ذلك',
 };
 
+const PRIVATE_LISTING_TYPES = {
+  sale: 'بيع',
+  rent: 'إيجار',
+};
+
 const PRIVATE_OFFER_STATUS = {
   available: 'متاح',
   reserved: 'محجوز',
   sold: 'مباع',
+  rented: 'مؤجر',
   hidden: 'مخفي',
 };
 
-function formatPrivatePrice(price) {
+function formatPrivatePrice(price, listingType = 'sale') {
   if (price == null || price === '') return '—';
-  return `${Number(price).toLocaleString('ar-SA')} ر.س`;
+  const amount = `${Number(price).toLocaleString('ar-SA')} ر.س`;
+  return listingType === 'rent' ? `${amount} / إيجار` : amount;
 }
 
 function toPublicPrivateOffer(offer) {
   if (!offer) return null;
+  const listingType = offer.listingType === 'rent' ? 'rent' : 'sale';
   return {
     id: offer.id,
     offerNumber: offer.offerNumber,
+    listingType,
+    listingTypeLabel: PRIVATE_LISTING_TYPES[listingType] || listingType,
     propertyType: offer.propertyType,
     propertyTypeLabel: PRIVATE_PROPERTY_TYPES[offer.propertyType] || offer.propertyType,
     area: offer.area,
@@ -559,7 +573,7 @@ function toPublicPrivateOffer(offer) {
     plotNumber: offer.plotNumber,
     planNumber: offer.planNumber,
     price: offer.price,
-    priceDisplay: formatPrivatePrice(offer.price),
+    priceDisplay: formatPrivatePrice(offer.price, listingType),
     location: offer.showLocation ? offer.location : '',
     showLocation: offer.showLocation,
     shortDescription: offer.shortDescription,
@@ -708,6 +722,7 @@ module.exports = {
   rowToPrivateAccess,
   rowToPrivateClient,
   PRIVATE_PROPERTY_TYPES,
+  PRIVATE_LISTING_TYPES,
   PRIVATE_OFFER_STATUS,
   formatPrivatePrice,
 };

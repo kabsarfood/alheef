@@ -797,6 +797,7 @@ async function notifyPrivateOfferIfNeeded(offer, existing = null) {
 
 function parsePrivateOfferBody(body) {
   return {
+    listingType: body.listingType === 'rent' ? 'rent' : 'sale',
     propertyType: body.propertyType || 'other',
     area: body.area,
     street: body.street,
