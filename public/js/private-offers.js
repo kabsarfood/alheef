@@ -768,9 +768,11 @@
         height,
         letterRendering: true,
         foreignObjectRendering: false,
-        onclone: (_doc, clone) => {
-          const root = clone.querySelector('.private-pdf');
-          const card = clone.querySelector('.po-card--pdf');
+        onclone: (clonedDoc) => {
+          // html2canvas يمرّر المستند المُستنسَخ كوسيط أول فقط
+          if (!clonedDoc || typeof clonedDoc.querySelector !== 'function') return;
+          const root = clonedDoc.querySelector('.private-pdf');
+          const card = clonedDoc.querySelector('.po-card--pdf');
           if (root) {
             root.style.width = `${PDF_A4_WIDTH}px`;
             root.style.maxWidth = `${PDF_A4_WIDTH}px`;
