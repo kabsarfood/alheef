@@ -24,3 +24,5 @@ ALTER TABLE private_client_access
 ALTER TABLE private_client_access
   ADD CONSTRAINT private_client_access_property_kind_check
   CHECK (property_kind IN ('land', 'villa', 'building'));
+
+NOTIFY pgrst, 'reload schema';

@@ -16,6 +16,7 @@ async function main() {
   console.log(`  005 إشعارات:       ${before.notifications ? '✓' : '—'}`);
   console.log(`  006 push:          ${before.push ? '✓' : '—'}`);
   console.log(`  007 بريد/كلمة مرور: ${before.emailPassword ? '✓' : '—'}`);
+  console.log(`  011 حقول العميل:    ${before.privateClientFields ? '✓' : '—'}`);
   console.log('');
 
   if (before.allReady) {

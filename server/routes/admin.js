@@ -37,18 +37,20 @@ router.get('/system-status', async (_req, res) => {
 
 router.post('/apply-schema', async (_req, res) => {
   try {
-    const { applyMigrationsIfNeeded, isMarketerSchemaReady } = require('../lib/sqlMigrations');
-    const before = await isMarketerSchemaReady();
+    const { applyMigrationsIfNeeded, getSchemaStatus } = require('../lib/sqlMigrations');
+    const before = await getSchemaStatus();
     const result = await applyMigrationsIfNeeded({ silent: true });
-    const after = await isMarketerSchemaReady();
+    const after = await getSchemaStatus();
     res.json({
-      success: result.ok !== false,
+      success: result.ok !== false && after.allReady,
       before,
       after,
       ...result,
-      message: after
-        ? 'تم تفعيل جداول فريق المسوقين وطلبات الانضمام'
-        : (result.message || 'تعذر التفعيل — تحقق من SUPABASE_DB_PASSWORD'),
+      message: after.allReady
+        ? 'جميع تحديثات قاعدة البيانات مفعّلة'
+        : after.privateClientFields
+          ? 'بعض الهجرات ما زالت معلّقة — راجع after.privateClientFields'
+          : (result.message || 'تعذر التفعيل — تحقق من SUPABASE_DB_PASSWORD'),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

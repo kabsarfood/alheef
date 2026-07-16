@@ -157,6 +157,14 @@ async function runSqlFile(client, filePath, label) {
   }
 }
 
+async function reloadPostgrestSchema(client) {
+  try {
+    await client.query("NOTIFY pgrst, 'reload schema'");
+  } catch {
+    /* optional */
+  }
+}
+
 async function applyMigrationsIfNeeded({ silent = false } = {}) {
   const status = await getSchemaStatus();
   if (status.allReady) {
@@ -215,9 +223,11 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       applied.push('011_private_client_request_fields');
     }
 
+    if (applied.length) await reloadPostgrestSchema(client);
+
     await client.end();
 
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 2000));
     const after = await getSchemaStatus();
     return after.allReady
       ? { ok: true, applied: true, appliedLabels: applied, status: after }
@@ -228,8 +238,47 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
   }
 }
 
+const SCHEMA_CACHE_HINT =
+  'انتظر دقيقة ثم أعد المحاولة — أو نفّذ supabase/migrations/011_private_client_request_fields.sql في Supabase SQL Editor';
+
+async function ensurePrivateClientRequestFields() {
+  if (await isPrivateClientRequestFieldsReady()) {
+    return { ready: true };
+  }
+
+  const result = await applyMigrationsIfNeeded({ silent: true });
+  if (result.skipped === 'no_password') {
+    return {
+      ready: false,
+      message:
+        'قاعدة البيانات تحتاج تحديثاً (أعمدة بيانات العميل). أضف SUPABASE_DB_PASSWORD في Railway Variables ثم أعد النشر، أو نفّذ ملف 011_private_client_request_fields.sql من Supabase → SQL Editor.',
+      hint: SCHEMA_CACHE_HINT,
+    };
+  }
+
+  if (result.warning === 'schema_cache' || result.applied) {
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+
+  if (await isPrivateClientRequestFieldsReady()) {
+    return { ready: true, applied: !!result.applied };
+  }
+
+  return {
+    ready: false,
+    message: 'تم تطبيق التحديث لكن Supabase ما زال يحدّث الذاكرة المؤقتة.',
+    hint: SCHEMA_CACHE_HINT,
+  };
+}
+
+function isSchemaCacheColumnError(message) {
+  return /schema cache|Could not find the .* column/i.test(String(message || ''));
+}
+
 module.exports = {
   applyMigrationsIfNeeded,
+  ensurePrivateClientRequestFields,
+  isSchemaCacheColumnError,
   isMarketerSchemaReady,
   isPushSchemaReady,
   isEmailPasswordSchemaReady,

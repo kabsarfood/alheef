@@ -120,9 +120,34 @@ function normalizeClientFields({
   };
 }
 
+function formatClientDbError(error) {
+  const msg = String(error?.message || error || '');
+  const { isSchemaCacheColumnError } = require('../lib/sqlMigrations');
+  if (isSchemaCacheColumnError(msg)) {
+    return 'قاعدة البيانات تحتاج تحديثاً لحقول العميل (الجوال، نوع الطلب…). أضف SUPABASE_DB_PASSWORD في Railway وأعد النشر، أو نفّذ migration 011 في Supabase SQL Editor.';
+  }
+  return msg;
+}
+
+async function ensureClientFieldsSchema() {
+  const { ensurePrivateClientRequestFields } = require('../lib/sqlMigrations');
+  const result = await ensurePrivateClientRequestFields();
+  if (!result.ready) {
+    const err = new Error(result.message);
+    err.hint = result.hint;
+    err.statusCode = 503;
+    throw err;
+  }
+  return result;
+}
+
+async function insertClientRow(row) {
+  return getAdmin().from(CLIENTS_TABLE).insert(row).select().single();
+}
 async function createClient(fields = {}) {
   if (!isEnabled()) throw new Error('قاعدة البيانات غير متصلة');
   await ensureSettings();
+  await ensureClientFieldsSchema();
   const plainCode = generateAccessCode();
   const row = {
     ...normalizeClientFields(fields),
@@ -130,8 +155,12 @@ async function createClient(fields = {}) {
     access_code_hash: hashPassword(plainCode),
     active: true,
   };
-  const { data, error } = await getAdmin().from(CLIENTS_TABLE).insert(row).select().single();
-  if (error) throw new Error(error.message);
+  let { data, error } = await insertClientRow(row);
+  if (error && require('../lib/sqlMigrations').isSchemaCacheColumnError(error.message)) {
+    await ensureClientFieldsSchema();
+    ({ data, error } = await insertClientRow(row));
+  }
+  if (error) throw new Error(formatClientDbError(error));
   const client = rowToPrivateClient(data);
   client.plainCode = plainCode;
   return client;
@@ -193,6 +222,7 @@ async function updateClientLabel(id, clientLabel) {
 async function updateClientDetails(id, fields = {}) {
   const existing = await getClientById(id);
   if (!existing) throw new Error('العميل غير موجود');
+  await ensureClientFieldsSchema();
   const patch = normalizeClientFields({
     clientLabel: fields.clientLabel != null ? fields.clientLabel : existing.clientLabel,
     phone: fields.phone != null ? fields.phone : existing.phone,
@@ -200,7 +230,7 @@ async function updateClientDetails(id, fields = {}) {
     propertyKind: fields.propertyKind != null ? fields.propertyKind : existing.propertyKind,
     requiredArea: fields.requiredArea !== undefined ? fields.requiredArea : existing.requiredArea,
   });
-  const { data, error } = await getAdmin()
+  let { data, error } = await getAdmin()
     .from(CLIENTS_TABLE)
     .update({
       ...patch,
@@ -209,7 +239,19 @@ async function updateClientDetails(id, fields = {}) {
     .eq('id', id)
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error && require('../lib/sqlMigrations').isSchemaCacheColumnError(error.message)) {
+    await ensureClientFieldsSchema();
+    ({ data, error } = await getAdmin()
+      .from(CLIENTS_TABLE)
+      .update({
+        ...patch,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single());
+  }
+  if (error) throw new Error(formatClientDbError(error));
   return rowToPrivateClient(data);
 }
 
