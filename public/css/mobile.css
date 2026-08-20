@@ -492,36 +492,145 @@
 
   /* ─── Footer ─── */
   .footer {
-    padding: 3rem 0 2rem;
+    padding: 2.75rem 0 calc(1.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   .footer__grid {
-    grid-template-columns: 1fr;
-    gap: 2.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "brand brand"
+      "links contact";
+    gap: 1.75rem 1.25rem;
+    margin-bottom: 2rem;
     justify-items: stretch;
     text-align: right;
   }
 
+  .footer__brand {
+    grid-area: brand;
+    text-align: center;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid rgba(26, 26, 26, 0.08);
+  }
+
   .footer__brand .footer__logo {
-    justify-content: flex-start;
+    justify-content: center;
     width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  /* إخفاء النص المكرر بجانب الشعار — alt يكفي */
+  .footer__logo:has(.footer__logo-img) .footer__logo-text {
+    display: none;
   }
 
   .footer__logo-img {
-    height: 48px;
-    max-width: 160px;
+    height: 44px;
+    max-width: 150px;
+    margin: 0 auto;
+  }
+
+  .footer__about {
+    max-width: 34rem;
+    margin: 0 auto;
+    font-size: clamp(0.875rem, 3.5vw, 0.9375rem);
+    line-height: 1.75;
+    color: var(--text-secondary);
+    font-weight: var(--fw-body);
+  }
+
+  .footer__social {
+    justify-content: center;
+    margin-top: 1.15rem;
+    gap: 0.65rem;
+  }
+
+  .footer__social a {
+    width: 44px;
+    height: 44px;
+  }
+
+  .footer__col:nth-child(2) {
+    grid-area: links;
+  }
+
+  .footer__col:nth-child(3) {
+    grid-area: contact;
   }
 
   .footer__col {
-    padding-top: 0.25rem;
+    padding-top: 0;
+  }
+
+  .footer__heading {
+    font-size: 0.8125rem;
+    margin-bottom: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--text-primary);
+  }
+
+  .footer__links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .footer__links li {
+    margin-bottom: 0;
+  }
+
+  .footer__links a {
+    display: block;
+    padding: 0.45rem 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    min-height: 36px;
+  }
+
+  .footer__contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 0.55rem;
+    background: var(--white);
+    border: 1px solid rgba(26, 26, 26, 0.08);
+    border-radius: var(--radius);
+    min-height: 48px;
+    font-size: 0.875rem;
+  }
+
+  .footer__contact-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .footer__contact-item span {
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  .footer__contact-item a {
+    color: var(--text-primary);
+    font-weight: var(--fw-subheading);
+    word-break: break-word;
   }
 
   .footer__bottom {
     flex-direction: column;
     text-align: center;
     justify-content: center;
-    gap: 0.75rem;
-    padding-top: 1.75rem;
+    gap: 0.5rem;
+    padding-top: 1.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .footer__copy {
+    font-size: 0.75rem;
+    line-height: 1.6;
+    max-width: 22rem;
+    margin: 0 auto;
   }
 
   /* ─── Modal ─── */
@@ -597,6 +706,26 @@
   .hero {
     min-height: 65vh;
     min-height: 65dvh;
+  }
+
+  .footer__grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "links"
+      "contact";
+    gap: 1.5rem;
+  }
+
+  .footer__links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 0.85rem;
+  }
+
+  .footer__links a {
+    padding: 0.4rem 0;
+    min-height: 40px;
   }
 }
 
