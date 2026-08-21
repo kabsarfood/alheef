@@ -10,6 +10,41 @@
   --ejar-section-y: clamp(2.25rem, 5vw, 4rem);
   --ejar-sticky-h: 60px;
   --ejar-card-shadow: 0 8px 32px rgba(30, 42, 56, 0.06);
+
+  /* Typography — Cairo scale */
+  --ejar-fw-normal: 400;
+  --ejar-fw-medium: 500;
+  --ejar-fw-semibold: 600;
+  --ejar-fw-bold: 700;
+  --ejar-fw-heavy: 800;
+  --ejar-lh-tight: 1.05;
+  --ejar-lh-heading: 1.3;
+  --ejar-lh-section: 1.35;
+  --ejar-lh-body: 1.8;
+  --ejar-lh-relaxed: 1.85;
+  --ejar-lh-small: 1.7;
+  --ejar-fs-xs: clamp(0.78125rem, 0.2vw + 0.72rem, 0.84375rem);
+  --ejar-fs-sm: clamp(0.8125rem, 0.25vw + 0.74rem, 0.875rem);
+  --ejar-fs-body: clamp(0.9375rem, 0.2vw + 0.88rem, 1rem);
+  --ejar-fs-label: clamp(0.875rem, 0.15vw + 0.82rem, 0.9375rem);
+  --ejar-fs-input: 1rem;
+  --ejar-fs-h3: clamp(1rem, 0.25vw + 0.94rem, 1.125rem);
+  --ejar-fs-card-title: clamp(1rem, 0.35vw + 0.92rem, 1.1875rem);
+  --ejar-fs-btn: clamp(0.9375rem, 0.12vw + 0.9rem, 1rem);
+  --ejar-fs-section: clamp(1.45rem, 0.55rem + 2.2vw, 1.95rem);
+  --ejar-fs-hero: clamp(1.8rem, 0.6rem + 3.2vw, 2.85rem);
+  --ejar-fs-price: clamp(2.2rem, 1rem + 4vw, 3rem);
+  --ejar-fs-cred-title: clamp(0.875rem, 0.3vw + 0.8rem, 1rem);
+  --ejar-fs-cred-num: clamp(1.1875rem, 0.65vw + 0.95rem, 1.5rem);
+  --ejar-fs-step-num: clamp(1.0625rem, 0.35vw + 0.95rem, 1.375rem);
+  --ejar-fs-faq-q: clamp(0.96875rem, 0.25vw + 0.9rem, 1.0625rem);
+  --ejar-fs-faq-a: clamp(0.90625rem, 0.15vw + 0.86rem, 1rem);
+  --ejar-fs-footer-heading: clamp(0.875rem, 0.2vw + 0.82rem, 1rem);
+  --ejar-fs-footer-link: clamp(0.84375rem, 0.15vw + 0.8rem, 0.90625rem);
+  --ejar-fs-footer-legal: clamp(0.78125rem, 0.12vw + 0.74rem, 0.84375rem);
+
+  font-weight: var(--ejar-fw-normal);
+  line-height: var(--ejar-lh-body);
   padding-top: var(--header-h);
 }
 
@@ -24,7 +59,24 @@
   padding-inline: clamp(1rem, 4vw, 2.5rem);
 }
 
+/* Page-level CTA typography (Sticky Bar unchanged) */
+.ejar-page .btn {
+  font-size: var(--ejar-fs-btn);
+  font-weight: var(--ejar-fw-semibold);
+  letter-spacing: normal;
+}
+
 /* ─── Header (landing) ─── */
+.ejar-page .header--ejar .nav__link {
+  font-size: clamp(0.875rem, 0.2vw + 0.82rem, 0.9375rem);
+  font-weight: var(--ejar-fw-semibold);
+  letter-spacing: normal;
+}
+
+.ejar-page .header--ejar .nav__link:hover {
+  font-weight: var(--ejar-fw-bold);
+}
+
 .ejar-page .header--ejar .header__inner {
   gap: 0.75rem;
 }
@@ -36,6 +88,9 @@
 .ejar-page .header--ejar__call {
   min-height: 44px;
   white-space: nowrap;
+  font-size: clamp(0.875rem, 0.2vw + 0.82rem, 0.9375rem);
+  font-weight: var(--ejar-fw-bold);
+  letter-spacing: normal;
 }
 
 @media (max-width: 767px) {
@@ -61,43 +116,46 @@
 }
 
 .ejar-hero__office {
-  font-size: clamp(0.8125rem, 1.8vw, 1rem);
-  font-weight: var(--fw-subheading);
+  font-size: var(--ejar-fs-sm);
+  font-weight: var(--ejar-fw-medium);
   color: var(--ejar-olive);
   margin-bottom: 0.35rem;
+  line-height: var(--ejar-lh-small);
 }
 
 .ejar-hero__badge {
   display: inline-block;
-  font-size: 0.6875rem;
-  font-weight: var(--fw-subheading);
-  letter-spacing: 0.12em;
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-semibold);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold);
   background: var(--gold-subtle);
   border: 1px solid var(--gold-border);
   padding: 0.25rem 0.7rem;
   border-radius: 999px;
+  line-height: 1.4;
 }
 
 .ejar-hero__title {
-  font-size: clamp(1.375rem, 4.2vw, 2.5rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-hero);
+  font-weight: var(--ejar-fw-bold);
   text-align: center;
   color: var(--navy);
   margin: 0.65rem auto 0.5rem;
-  max-width: 20ch;
-  line-height: 1.28;
+  max-width: 22ch;
+  line-height: var(--ejar-lh-heading);
+  letter-spacing: normal;
 }
 
 .ejar-hero__desc {
   text-align: center;
-  font-size: clamp(0.875rem, 1.6vw, 1.0625rem);
-  font-weight: var(--fw-subheading);
+  font-size: var(--ejar-fs-body);
+  font-weight: var(--ejar-fw-normal);
   color: var(--text-secondary);
   max-width: 560px;
   margin: 0 auto clamp(1rem, 2.5vw, 1.5rem);
-  line-height: 1.65;
+  line-height: var(--ejar-lh-body);
 }
 
 @media (max-width: 374px) {
@@ -137,29 +195,32 @@
 }
 
 .ejar-price-card__type {
-  font-size: clamp(0.875rem, 2vw, 1.0625rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-card-title);
+  font-weight: var(--ejar-fw-bold);
   color: var(--ejar-olive);
   margin-bottom: 0.35rem;
+  line-height: var(--ejar-lh-section);
 }
 
 .ejar-price-card__amount {
-  font-size: clamp(1.5rem, 4.5vw, 2.25rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-price);
+  font-weight: var(--ejar-fw-heavy);
   color: var(--navy);
-  line-height: 1.05;
+  line-height: var(--ejar-lh-tight);
   margin-bottom: 0.25rem;
+  letter-spacing: normal;
 }
 
 .ejar-price-card__amount small {
-  font-size: 0.45em;
-  font-weight: var(--fw-subheading);
+  font-size: 0.5em;
+  font-weight: var(--ejar-fw-medium);
 }
 
 .ejar-price-card__note {
-  font-size: clamp(0.6875rem, 1.6vw, 0.8125rem);
+  font-size: var(--ejar-fs-sm);
+  font-weight: var(--ejar-fw-normal);
   color: var(--text-muted);
-  line-height: 1.45;
+  line-height: 1.7;
   margin-bottom: 0.75rem;
   min-height: 0;
 }
@@ -168,14 +229,10 @@
   width: 100%;
   min-height: 44px;
   justify-content: center;
-  font-size: clamp(0.75rem, 1.8vw, 0.9375rem);
+  font-size: var(--ejar-fs-btn);
+  font-weight: var(--ejar-fw-semibold);
   padding-inline: 0.5rem;
-}
-
-@media (max-width: 374px) {
-  .ejar-price-card .btn {
-    font-size: 0.6875rem;
-  }
+  letter-spacing: normal;
 }
 
 .ejar-hero__actions {
@@ -203,7 +260,9 @@
   min-height: 48px;
   justify-content: center;
   gap: 0.4rem;
-  font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
+  font-size: var(--ejar-fs-btn);
+  font-weight: var(--ejar-fw-semibold);
+  letter-spacing: normal;
 }
 
 .ejar-hero__actions .btn-call {
@@ -225,11 +284,12 @@
 
 .ejar-hero__footnote {
   text-align: center;
-  font-size: clamp(0.6875rem, 1.5vw, 0.8125rem);
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone);
   max-width: 480px;
   margin: clamp(0.75rem, 2vw, 1rem) auto 0;
-  line-height: 1.55;
+  line-height: var(--ejar-lh-small);
 }
 
 /* ─── Credentials / trust badges ─── */
@@ -241,12 +301,13 @@
 
 .ejar-creds__label {
   text-align: center;
-  font-size: var(--fs-caption);
-  font-weight: var(--fw-subheading);
-  letter-spacing: 0.14em;
+  font-size: var(--ejar-fs-section);
+  font-weight: var(--ejar-fw-bold);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold);
   margin-bottom: clamp(0.85rem, 2vw, 1.15rem);
+  line-height: var(--ejar-lh-section);
 }
 
 .ejar-creds__grid {
@@ -303,18 +364,19 @@
 }
 
 .ejar-cred-card__title {
-  font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-cred-title);
+  font-weight: var(--ejar-fw-semibold);
   color: var(--navy);
-  line-height: 1.35;
+  line-height: var(--ejar-lh-section);
 }
 
 .ejar-cred-card__number {
-  font-size: clamp(1.0625rem, 2.8vw, 1.3125rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-cred-num);
+  font-weight: var(--ejar-fw-bold);
   color: var(--ejar-olive);
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .ejar-cred-card__verify {
@@ -347,9 +409,10 @@
 
 .ejar-creds__footnote {
   text-align: center;
-  font-size: clamp(0.6875rem, 1.5vw, 0.8125rem);
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone);
-  line-height: 1.55;
+  line-height: var(--ejar-lh-small);
   max-width: 520px;
   margin: clamp(0.85rem, 2vw, 1.1rem) auto 0;
 }
@@ -446,9 +509,11 @@
 }
 
 .ejar-section__title {
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-section);
+  font-weight: var(--ejar-fw-bold);
   color: var(--navy);
+  line-height: var(--ejar-lh-section);
+  letter-spacing: normal;
 }
 
 /* ─── Steps ─── */
@@ -492,27 +557,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.125rem;
+  height: 2.125rem;
   border-radius: 50%;
   background: var(--ejar-olive-soft);
   color: var(--ejar-olive);
-  font-weight: var(--fw-heading);
-  font-size: 0.875rem;
+  font-weight: var(--ejar-fw-heavy);
+  font-size: var(--ejar-fs-step-num);
   margin-bottom: 0.65rem;
+  line-height: 1;
 }
 
 .ejar-step__title {
-  font-size: clamp(0.9375rem, 1.8vw, 1.0625rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-h3);
+  font-weight: var(--ejar-fw-bold);
   color: var(--navy);
   margin-bottom: 0.35rem;
+  line-height: var(--ejar-lh-section);
 }
 
 .ejar-step__desc {
-  font-size: clamp(0.8125rem, 1.6vw, 0.9375rem);
+  font-size: clamp(0.875rem, 0.15vw + 0.84rem, 0.9375rem);
+  font-weight: var(--ejar-fw-normal);
   color: var(--text-muted);
-  line-height: 1.55;
+  line-height: var(--ejar-lh-relaxed);
 }
 
 /* ─── Purpose cards ─── */
@@ -548,16 +616,18 @@
 }
 
 .ejar-purpose__title {
-  font-size: clamp(0.9375rem, 1.8vw, 1.03125rem);
-  font-weight: var(--fw-heading);
+  font-size: var(--ejar-fs-h3);
+  font-weight: var(--ejar-fw-semibold);
   color: var(--ejar-olive);
   margin-bottom: 0.4rem;
+  line-height: var(--ejar-lh-section);
 }
 
 .ejar-purpose__desc {
-  font-size: clamp(0.8125rem, 1.5vw, 0.875rem);
+  font-size: clamp(0.875rem, 0.15vw + 0.84rem, 0.9375rem);
+  font-weight: var(--ejar-fw-normal);
   color: var(--text-muted);
-  line-height: 1.55;
+  line-height: var(--ejar-lh-relaxed);
 }
 
 .ejar-disclaimer {
@@ -566,9 +636,10 @@
   background: rgba(197, 164, 109, 0.06);
   border: 1px solid rgba(197, 164, 109, 0.2);
   border-radius: var(--radius);
-  font-size: clamp(0.75rem, 1.5vw, 0.8125rem);
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone);
-  line-height: 1.6;
+  line-height: var(--ejar-lh-small);
   text-align: center;
 }
 
@@ -681,8 +752,29 @@
 .ejar-form-wrap .btn[type="submit"] {
   width: 100%;
   min-height: 52px;
-  font-size: 1rem;
+  font-size: var(--ejar-fs-btn);
+  font-weight: var(--ejar-fw-semibold);
   margin-top: 0.25rem;
+  letter-spacing: normal;
+}
+
+.ejar-page .ejar-form-wrap .form-group label {
+  font-size: var(--ejar-fs-label);
+  font-weight: var(--ejar-fw-semibold);
+  line-height: var(--ejar-lh-section);
+}
+
+.ejar-page .ejar-form-wrap .form-group input,
+.ejar-page .ejar-form-wrap .form-group select {
+  font-size: var(--ejar-fs-input);
+  font-weight: var(--ejar-fw-normal);
+  line-height: 1.5;
+}
+
+.ejar-page .ejar-form-wrap .form-group input::placeholder {
+  font-size: clamp(0.9375rem, 0.1vw + 0.92rem, 1rem);
+  font-weight: var(--ejar-fw-normal);
+  color: var(--text-muted);
 }
 
 /* ─── FAQ ─── */
@@ -705,8 +797,8 @@
 
 .ejar-faq__question {
   padding: 0.85rem 1rem;
-  font-weight: var(--fw-heading);
-  font-size: clamp(0.875rem, 1.8vw, 0.96875rem);
+  font-weight: var(--ejar-fw-semibold);
+  font-size: var(--ejar-fs-faq-q);
   color: var(--navy);
   cursor: pointer;
   list-style: none;
@@ -715,6 +807,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   min-height: 48px;
+  line-height: var(--ejar-lh-body);
+  letter-spacing: normal;
 }
 
 .ejar-faq__question::-webkit-details-marker {
@@ -734,9 +828,10 @@
 
 .ejar-faq__answer {
   padding: 0 1rem 0.85rem;
-  font-size: clamp(0.8125rem, 1.6vw, 0.9375rem);
+  font-size: var(--ejar-fs-faq-a);
+  font-weight: var(--ejar-fw-normal);
   color: var(--text-muted);
-  line-height: 1.65;
+  line-height: var(--ejar-lh-body);
 }
 
 /* ─── Footer card ─── */
@@ -784,17 +879,18 @@
 }
 
 .ejar-footer__name {
-  font-size: clamp(0.9375rem, 2vw, 1.0625rem);
-  font-weight: var(--fw-heading);
+  font-size: clamp(0.9375rem, 0.25vw + 0.88rem, 1.0625rem);
+  font-weight: var(--ejar-fw-bold);
   color: var(--navy);
-  line-height: 1.45;
+  line-height: var(--ejar-lh-section);
   margin: 0 0 0.35rem;
 }
 
 .ejar-footer__about {
-  font-size: clamp(0.75rem, 1.6vw, 0.875rem);
+  font-size: var(--ejar-fs-sm);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone);
-  line-height: 1.6;
+  line-height: var(--ejar-lh-small);
   max-width: 36ch;
   margin: 0 auto;
 }
@@ -827,13 +923,14 @@
 }
 
 .ejar-footer__panel-title {
-  font-size: 0.6875rem;
-  font-weight: var(--fw-heading);
-  letter-spacing: 0.12em;
+  font-size: var(--ejar-fs-footer-heading);
+  font-weight: var(--ejar-fw-bold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--gold);
   margin: 0 0 0.75rem;
   text-align: center;
+  line-height: var(--ejar-lh-section);
 }
 
 @media (min-width: 480px) {
@@ -861,12 +958,14 @@
 .ejar-footer__links a {
   display: block;
   padding: 0.45rem 0.65rem;
-  font-size: clamp(0.8125rem, 1.6vw, 0.9375rem);
-  font-weight: var(--fw-subheading);
+  font-size: var(--ejar-fs-footer-link);
+  font-weight: var(--ejar-fw-medium);
   color: var(--navy);
   text-align: center;
   border-radius: calc(var(--radius) - 2px);
   transition: background var(--transition), color var(--transition);
+  line-height: var(--ejar-lh-small);
+  letter-spacing: normal;
 }
 
 @media (min-width: 480px) {
@@ -950,18 +1049,18 @@
 }
 
 .ejar-footer__contact-label {
-  font-size: 0.6875rem;
-  font-weight: var(--fw-subheading);
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-medium);
   color: var(--stone);
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .ejar-footer__contact-value {
-  font-size: clamp(0.875rem, 1.8vw, 1rem);
-  font-weight: var(--fw-heading);
+  font-size: clamp(0.875rem, 0.2vw + 0.82rem, 1rem);
+  font-weight: var(--ejar-fw-bold);
   color: var(--navy);
-  line-height: 1.25;
-  letter-spacing: 0.02em;
+  line-height: 1.3;
+  letter-spacing: normal;
 }
 
 .ejar-footer__contact-btn--wa .ejar-footer__contact-value {
@@ -1026,16 +1125,18 @@
 
 .ejar-footer__copy,
 .ejar-footer__legal {
-  font-size: clamp(0.75rem, 1.5vw, 0.8125rem);
+  font-size: var(--ejar-fs-footer-legal);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone);
-  line-height: 1.55;
+  line-height: var(--ejar-lh-small);
   margin: 0 0 0.35rem;
 }
 
 .ejar-footer__note {
-  font-size: clamp(0.6875rem, 1.4vw, 0.75rem);
+  font-size: var(--ejar-fs-footer-legal);
+  font-weight: var(--ejar-fw-normal);
   color: var(--stone-light);
-  line-height: 1.65;
+  line-height: var(--ejar-lh-small);
   max-width: 52ch;
   margin: 0.75rem auto 0;
   padding-top: 0.75rem;
