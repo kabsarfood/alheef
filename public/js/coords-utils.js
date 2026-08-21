@@ -26,9 +26,15 @@ const AlheefCoords = (() => {
     return { lat, lng };
   }
 
+  function stripInvisibleChars(text) {
+    return String(text || '')
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+      .trim();
+  }
+
   function normalizeMapsUrl(url) {
     if (!url || typeof url !== 'string') return '';
-    let text = url.trim();
+    let text = stripInvisibleChars(url);
     if (!text) return '';
     if (/^https?:\/\//i.test(text)) return text;
     if (/^maps\.app\.goo\.gl\//i.test(text)) return `https://${text}`;
@@ -40,7 +46,8 @@ const AlheefCoords = (() => {
 
   function looksLikeMapsUrl(url) {
     const text = normalizeMapsUrl(url);
-    return /^https?:\/\//i.test(text) && /google\.[a-z.]+\/maps|maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(text);
+    return /^https?:\/\//i.test(text)
+      && /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google/i.test(text);
   }
 
   function parseFromMapsUrl(url) {

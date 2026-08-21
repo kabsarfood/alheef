@@ -267,8 +267,16 @@ function bindDropZone() {
 }
 
 function getMapsUrlValue() {
-  const raw = document.getElementById('mapsUrl')?.value?.trim() || '';
-  return window.AlheefCoords ? AlheefCoords.normalizeMapsUrl(raw) : raw;
+  const raw = document.getElementById('mapsUrl')?.value || '';
+  if (window.AlheefCoords?.normalizeMapsUrl) return AlheefCoords.normalizeMapsUrl(raw);
+  return String(raw).trim();
+}
+
+function looksLikeMapsUrl(url) {
+  if (window.AlheefCoords?.looksLikeMapsUrl) return AlheefCoords.looksLikeMapsUrl(url);
+  const text = getMapsUrlValue() || String(url || '').trim();
+  return /^https?:\/\//i.test(text)
+    && /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google/i.test(text);
 }
 
 function setMapsCoords(coords, url) {
@@ -322,7 +330,7 @@ async function resolveMapsUrlCoords() {
     return local;
   }
 
-  if (!window.AlheefCoords?.looksLikeMapsUrl(normalized)) {
+  if (!looksLikeMapsUrl(normalized)) {
     setMapsCoords(null);
     updateMapsUrlHint('not-url');
     return null;
@@ -373,7 +381,7 @@ function updateMapsUrlHint(state) {
     return;
   }
 
-  if (state === 'not-url' || !window.AlheefCoords?.looksLikeMapsUrl(url)) {
+  if (state === 'not-url' || !looksLikeMapsUrl(url)) {
     hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق <strong>رابط Google Maps</strong> من «مشاركة» — وليس نص العنوان فقط</span>`;
     return;
   }
@@ -558,7 +566,7 @@ async function handleSubmit(e) {
   }
 
   const status = fd.get('status') || 'published';
-  const mapsLinkOk = !mapsUrl || window.AlheefCoords?.looksLikeMapsUrl(mapsUrl);
+  const mapsLinkOk = !mapsUrl || looksLikeMapsUrl(mapsUrl);
   if (status === 'published' && !buy) {
     if (!mapsUrl) {
       showToast('رابط Google Maps مطلوب لنشر الإعلان على الخريطة', 'error');
