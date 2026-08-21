@@ -3,24 +3,56 @@
   const jumpBtn = document.getElementById('ejar-reviews-jump');
   if (!section) return;
 
-  fetch('/api/ejar/reviews/public')
-    .then((r) => r.json())
-    .then((data) => {
-      if (!data.success || !data.visible || !data.reviews?.length) return;
-      section.hidden = false;
-      document.getElementById('ejar-reviews-count').textContent = data.count;
-      document.getElementById('ejar-reviews-average').textContent = data.average;
-      const list = document.getElementById('ejar-reviews-list');
-      list.innerHTML = data.reviews.map(renderReview).join('');
+  function hideReviews() {
+    section.hidden = true;
+    section.setAttribute('aria-hidden', 'true');
+    if (jumpBtn) jumpBtn.hidden = true;
+  }
 
-      if (jumpBtn && (data.count || 0) >= 10) {
-        jumpBtn.hidden = false;
+  function showReviews(data) {
+    const countEl = document.getElementById('ejar-reviews-count');
+    const avgEl = document.getElementById('ejar-reviews-average');
+    const list = document.getElementById('ejar-reviews-list');
+
+    if (countEl) countEl.textContent = data.count;
+    if (avgEl) avgEl.textContent = data.average;
+    if (list) list.innerHTML = (data.reviews || []).map(renderReview).join('');
+
+    section.hidden = false;
+    section.setAttribute('aria-hidden', 'false');
+
+    if (jumpBtn) {
+      jumpBtn.hidden = false;
+      if (!jumpBtn.dataset.bound) {
+        jumpBtn.dataset.bound = '1';
         jumpBtn.addEventListener('click', () => {
           section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
+    }
+  }
+
+  hideReviews();
+
+  fetch('/api/ejar/reviews/public')
+    .then((r) => r.json())
+    .then((data) => {
+      const minRequired = Number(data.minRequired) || 10;
+      const count = Number(data.count) || 0;
+      const canShow = data.success
+        && data.visible === true
+        && count >= minRequired
+        && Array.isArray(data.reviews)
+        && data.reviews.length > 0;
+
+      if (!canShow) {
+        hideReviews();
+        return;
+      }
+
+      showReviews(data);
     })
-    .catch(() => {});
+    .catch(hideReviews);
 
   function renderReview(r) {
     const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);

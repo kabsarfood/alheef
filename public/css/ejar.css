@@ -568,7 +568,8 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  counter-reset: none;
+  padding-inline-start: 0;
+  counter-reset: ejar-step;
 }
 
 @media (min-width: 640px) {
@@ -596,7 +597,9 @@
   content: none;
 }
 
-.ejar-step__num {
+.ejar-step::before {
+  content: counter(ejar-step);
+  counter-increment: ejar-step;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -864,6 +867,15 @@
   text-align: right;
   height: 100%;
   box-shadow: var(--shadow-sm);
+}
+
+.ejar-form-section__lead {
+  font-size: var(--ejar-fs-body);
+  color: var(--text-secondary);
+  line-height: var(--ejar-lh-body);
+  margin: 0.35rem auto 0;
+  max-width: 560px;
+  text-align: center;
 }
 
 .ejar-form-intro__title {
@@ -1496,6 +1508,11 @@
 
 .ejar-reviews-jump {
   display: none;
+}
+
+#ejar-reviews[hidden],
+#ejar-reviews-jump[hidden] {
+  display: none !important;
 }
 
 @media (max-width: 767px) {

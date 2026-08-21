@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=15">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=16">
+  <link rel="stylesheet" href="/css/ejar.css?v=17">
 </head>
 <body class="ejar-page">
 
@@ -152,22 +152,18 @@
         </header>
         <ol class="ejar-steps">
           <li class="ejar-step">
-            <span class="ejar-step__num" aria-hidden="true">1</span>
             <h3 class="ejar-step__title">تواصل معنا</h3>
             <p class="ejar-step__desc">اتصال، واتساب، أو طلب إلكتروني.</p>
           </li>
           <li class="ejar-step">
-            <span class="ejar-step__num" aria-hidden="true">2</span>
             <h3 class="ejar-step__title">أرسل البيانات</h3>
             <p class="ejar-step__desc">نستلم البيانات المطلوبة لإعداد العقد.</p>
           </li>
           <li class="ejar-step">
-            <span class="ejar-step__num" aria-hidden="true">3</span>
             <h3 class="ejar-step__title">نُعد العقد ونراجعه</h3>
             <p class="ejar-step__desc">إعداد بيانات العقد ومراجعتها قبل الإرسال.</p>
           </li>
           <li class="ejar-step">
-            <span class="ejar-step__num" aria-hidden="true">4</span>
             <h3 class="ejar-step__title">التوثيق عبر إيجار</h3>
             <p class="ejar-step__desc">يتم إرسال العقد للأطراف لإكمال إجراءات الموافقة والتوثيق عبر شبكة إيجار.</p>
           </li>
@@ -232,13 +228,12 @@
 
     <section class="ejar-section" id="ejar-form">
       <div class="ejar-container">
-        <header class="ejar-section__header ejar-mobile-only">
+        <header class="ejar-section__header">
           <h2 class="ejar-section__title">ابدأ طلبك الآن</h2>
+          <p class="ejar-form-section__lead">أرسل البيانات الأساسية وسنتواصل معك لاستكمال إجراءات العقد.</p>
         </header>
         <div class="ejar-form-layout">
           <div class="ejar-form-intro ejar-desktop-only form-card">
-            <h2 class="ejar-form-intro__title">ابدأ طلبك الآن</h2>
-            <p class="ejar-form-intro__lead">أرسل البيانات الأساسية وسنتواصل معك لاستكمال إجراءات العقد.</p>
             <div class="ejar-form-intro__contact">
               <a href="#" class="ejar-contact-btn ejar-contact-btn--call" data-ejar-tel aria-label="اتصال — 0530792754">
                 <span class="ejar-contact-btn__icon" aria-hidden="true">
@@ -306,11 +301,11 @@
       </div>
     </section>
 
-    <section class="ejar-section" id="ejar-reviews" hidden>
+    <section class="ejar-section" id="ejar-reviews" hidden aria-hidden="true">
       <div class="ejar-container">
         <header class="ejar-section__header">
           <h2 class="ejar-section__title">تجارب عملائنا</h2>
-          <p class="ejar-section__subtitle"><span id="ejar-reviews-count">0</span> تقييم — متوسط <span id="ejar-reviews-average">0</span> نجوم</p>
+          <p class="ejar-section__subtitle"><span id="ejar-reviews-count"></span> تقييم — متوسط <span id="ejar-reviews-average"></span> نجوم</p>
         </header>
         <div class="ejar-reviews-grid" id="ejar-reviews-list"></div>
       </div>
@@ -430,6 +425,6 @@
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=5" defer></script>
   <script src="/js/ejar.js?v=4" defer></script>
-  <script src="/js/ejar-reviews-public.js?v=2" defer></script>
+  <script src="/js/ejar-reviews-public.js?v=3" defer></script>
 </body>
 </html>

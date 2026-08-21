@@ -16,6 +16,7 @@ const privateClientsRepo = require('../repositories/privateClientsRepo');
 const siteAnalyticsRepo = require('../repositories/siteAnalyticsRepo');
 const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 const { propertyToMapProperty } = require('../services/mappers');
+const { enrichBodyCoords, parseCoordsFromMapsUrlResolved, normalizeCoordsPair, parseCoordsFromMapsUrl } = require('../utils/coords');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -62,6 +63,35 @@ router.get('/map/coords-warnings', async (_req, res) => {
   try {
     const diag = await propertiesRepo.getMapDiagnostics();
     res.json({ success: true, ...diag });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/map/parse-coords', async (req, res) => {
+  try {
+    const url = String(req.body?.url || req.body?.mapsUrl || '').trim();
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'الرابط مطلوب' });
+    }
+    const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(url));
+    if (direct) {
+      return res.json({ success: true, ...direct, source: 'direct' });
+    }
+    const resolved = await parseCoordsFromMapsUrlResolved(url);
+    if (!resolved) {
+      return res.json({
+        success: false,
+        message: 'تعذر استخراج الإحداثيات — جرّب «مشاركة» من Google Maps ثم «نسخ الرابط»، أو أدخل خط العرض/الطول يدوياً',
+      });
+    }
+    res.json({
+      success: true,
+      lat: resolved.lat,
+      lng: resolved.lng,
+      resolvedUrl: resolved.resolvedUrl || null,
+      source: resolved.resolvedUrl ? 'resolved' : 'direct',
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -187,7 +217,7 @@ router.get('/offers/:id', async (req, res) => {
 
 router.post('/properties', uploadMemory.array('images', 20), async (req, res) => {
   try {
-    const body = req.body;
+    const body = await enrichBodyCoords({ ...req.body });
     let features = [];
     try {
       if (body.features) features = JSON.parse(body.features);
@@ -209,7 +239,7 @@ router.post('/properties', uploadMemory.array('images', 20), async (req, res) =>
 
 router.post('/offers', uploadMemory.array('images', 20), async (req, res) => {
   try {
-    const body = req.body;
+    const body = await enrichBodyCoords({ ...req.body });
     let features = [];
     try {
       if (body.features) features = JSON.parse(body.features);
@@ -231,7 +261,7 @@ router.post('/offers', uploadMemory.array('images', 20), async (req, res) => {
 
 router.put('/properties/:id', uploadMemory.array('images', 20), async (req, res) => {
   try {
-    const body = req.body;
+    const body = await enrichBodyCoords({ ...req.body });
     if (body.features && typeof body.features === 'string') {
       body.features = JSON.parse(body.features);
     }
@@ -247,7 +277,7 @@ router.put('/properties/:id', uploadMemory.array('images', 20), async (req, res)
 
 router.put('/offers/:id', uploadMemory.array('images', 20), async (req, res) => {
   try {
-    const body = req.body;
+    const body = await enrichBodyCoords({ ...req.body });
     if (body.features && typeof body.features === 'string') {
       body.features = JSON.parse(body.features);
     }
