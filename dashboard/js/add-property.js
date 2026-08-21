@@ -12,6 +12,7 @@ let imageQueue = [];
 let editId = null;
 let dropBound = false;
 let _mapsCoords = null;
+let _mapsCoordsForUrl = '';
 let _mapsResolveTimer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderForm();
   bindDropZone();
 
-  if (editId) loadOffer(editId);
+  if (editId) await loadOffer(editId);
   else showCoordsMapHint();
 });
 
@@ -233,7 +234,7 @@ function renderForm() {
   document.getElementById('property-form').addEventListener('submit', handleSubmit);
   const mapsInput = document.getElementById('mapsUrl');
   mapsInput?.addEventListener('input', () => {
-    _mapsCoords = null;
+    setMapsCoords(null);
     scheduleMapsUrlResolve();
   });
   mapsInput?.addEventListener('paste', () => setTimeout(scheduleMapsUrlResolve, 0));
@@ -270,10 +271,23 @@ function getMapsUrlValue() {
   return window.AlheefCoords ? AlheefCoords.normalizeMapsUrl(raw) : raw;
 }
 
+function setMapsCoords(coords, url) {
+  if (coords && window.AlheefCoords?.isValidCoord(coords.lat, coords.lng)) {
+    _mapsCoords = { lat: Number(coords.lat), lng: Number(coords.lng) };
+    _mapsCoordsForUrl = url || getMapsUrlValue();
+    return _mapsCoords;
+  }
+  _mapsCoords = null;
+  _mapsCoordsForUrl = '';
+  return null;
+}
+
 function getFormCoords() {
-  if (_mapsCoords) return _mapsCoords;
   const mapsUrl = getMapsUrlValue();
-  if (window.AlheefCoords) {
+  if (_mapsCoords && _mapsCoordsForUrl && _mapsCoordsForUrl === mapsUrl) {
+    return _mapsCoords;
+  }
+  if (window.AlheefCoords && mapsUrl) {
     return AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(mapsUrl));
   }
   return null;
@@ -294,7 +308,7 @@ async function resolveMapsUrlCoords() {
   }
 
   if (!normalized) {
-    _mapsCoords = null;
+    setMapsCoords(null);
     updateMapsUrlHint();
     return null;
   }
@@ -303,13 +317,13 @@ async function resolveMapsUrlCoords() {
     ? AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(normalized))
     : null;
   if (local) {
-    _mapsCoords = local;
+    setMapsCoords(local, normalized);
     updateMapsUrlHint('ok');
     return local;
   }
 
   if (!window.AlheefCoords?.looksLikeMapsUrl(normalized)) {
-    _mapsCoords = null;
+    setMapsCoords(null);
     updateMapsUrlHint('not-url');
     return null;
   }
@@ -323,16 +337,16 @@ async function resolveMapsUrlCoords() {
       body: JSON.stringify({ url: normalized }),
     });
     if (data.success && data.lat != null && data.lng != null) {
-      _mapsCoords = { lat: data.lat, lng: data.lng };
       if (data.resolvedUrl) input.value = data.resolvedUrl;
+      const resolved = setMapsCoords({ lat: data.lat, lng: data.lng }, getMapsUrlValue());
       updateMapsUrlHint('ok');
-      return _mapsCoords;
+      return resolved;
     }
   } catch {
     /* fall through */
   }
 
-  _mapsCoords = null;
+  setMapsCoords(null);
   updateMapsUrlHint('fail');
   return null;
 }
@@ -405,13 +419,19 @@ async function loadOffer(id) {
 
     document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
     document.getElementById('mapsUrl').value = offer.mapsUrl || '';
-    if (offer.latitude != null && offer.longitude != null && window.AlheefCoords?.isValidCoord(offer.latitude, offer.longitude)) {
-      _mapsCoords = { lat: Number(offer.latitude), lng: Number(offer.longitude) };
+    setMapsCoords(null);
+    if (offer.mapsUrl) {
+      await resolveMapsUrlCoords();
+    } else if (
+      offer.latitude != null
+      && offer.longitude != null
+      && window.AlheefCoords?.isValidCoord(offer.latitude, offer.longitude)
+    ) {
+      setMapsCoords({ lat: offer.latitude, lng: offer.longitude }, '');
+      updateMapsUrlHint('ok');
     } else {
-      _mapsCoords = null;
+      updateMapsUrlHint();
     }
-    updateMapsUrlHint(_mapsCoords ? 'ok' : undefined);
-    if (offer.mapsUrl && !_mapsCoords) resolveMapsUrlCoords();
     document.getElementById('status').value = offer.status || 'published';
     const urls = offer.gallery?.length ? offer.gallery : (offer.images || []).map((i) => (typeof i === 'string' ? i : i.url));
     imageQueue = urls.filter(Boolean).map((url) => ({ url, isExisting: true }));
@@ -520,14 +540,15 @@ async function handleSubmit(e) {
     }
   }
 
-  fd.set('mapsUrl', getMapsUrlValue() || '');
-
   const mapsUrl = getMapsUrlValue();
-  if (mapsUrl && !getFormCoords()) {
+  fd.set('mapsUrl', mapsUrl || '');
+
+  if (mapsUrl) {
+    btn.textContent = 'جاري التحقق من الرابط...';
     await resolveMapsUrlCoords();
   }
 
-  const coords = getFormCoords();
+  let coords = getFormCoords();
   if (coords) {
     fd.set('latitude', coords.lat);
     fd.set('longitude', coords.lng);
@@ -537,6 +558,7 @@ async function handleSubmit(e) {
   }
 
   const status = fd.get('status') || 'published';
+  const mapsLinkOk = !mapsUrl || window.AlheefCoords?.looksLikeMapsUrl(mapsUrl);
   if (status === 'published' && !buy) {
     if (!mapsUrl) {
       showToast('رابط Google Maps مطلوب لنشر الإعلان على الخريطة', 'error');
@@ -544,13 +566,15 @@ async function handleSubmit(e) {
       btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
       return;
     }
-    if (!coords) {
-      showToast('الصق رابط «مشاركة» من Google Maps — من التطبيق: مشاركة ← نسخ الرابط', 'error');
+    if (!mapsLinkOk) {
+      showToast('الصق رابط «مشاركة» من Google Maps — وليس نص العنوان فقط', 'error');
       btn.disabled = false;
       btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
       return;
     }
   }
+
+  btn.textContent = 'جاري الحفظ...';
 
   const lat = coords?.lat;
   const lng = coords?.lng;

@@ -154,27 +154,32 @@ async function parseCoordsFromMapsUrlResolved(url) {
 async function enrichBodyCoords(body) {
   if (!body || typeof body !== 'object') return body;
 
-  let lat = parseCoord(body.latitude ?? body.lat);
-  let lng = parseCoord(body.longitude ?? body.lng);
-  if (isValidCoord(lat, lng)) {
-    body.latitude = lat;
-    body.longitude = lng;
+  const mapsUrl = normalizeMapsUrl(body.mapsUrl || body.maps_url);
+  if (mapsUrl) {
+    body.mapsUrl = mapsUrl;
+    body.maps_url = mapsUrl;
+
+    const coords = await parseCoordsFromMapsUrlResolved(mapsUrl);
+    if (coords) {
+      body.latitude = coords.lat;
+      body.longitude = coords.lng;
+      if (coords.resolvedUrl && !parseCoordsFromMapsUrl(mapsUrl)) {
+        body.mapsUrl = coords.resolvedUrl;
+        body.maps_url = coords.resolvedUrl;
+      }
+      return body;
+    }
+
+    body.latitude = null;
+    body.longitude = null;
     return body;
   }
 
-  const mapsUrl = normalizeMapsUrl(body.mapsUrl || body.maps_url);
-  if (!mapsUrl) return body;
-  body.mapsUrl = mapsUrl;
-  body.maps_url = mapsUrl;
-
-  const coords = await parseCoordsFromMapsUrlResolved(mapsUrl);
-  if (coords) {
-    body.latitude = coords.lat;
-    body.longitude = coords.lng;
-    if (coords.resolvedUrl && !parseCoordsFromMapsUrl(mapsUrl)) {
-      body.mapsUrl = coords.resolvedUrl;
-      body.maps_url = coords.resolvedUrl;
-    }
+  const lat = parseCoord(body.latitude ?? body.lat);
+  const lng = parseCoord(body.longitude ?? body.lng);
+  if (isValidCoord(lat, lng)) {
+    body.latitude = lat;
+    body.longitude = lng;
   }
 
   return body;
