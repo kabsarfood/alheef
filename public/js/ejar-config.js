@@ -3,14 +3,13 @@
  * Change the number here only; all tel/WhatsApp links read from this file.
  */
 (function (global) {
-  // TODO: Replace with dedicated Alheef Ejar service number before production launch
-  var EJAR_SERVICE_PHONE = '05X XXX XXXX';
+  var EJAR_SERVICE_PHONE = '0530792754';
 
-  /** Digits-only for tel: / wa.me (update when real number is assigned) */
-  var EJAR_SERVICE_PHONE_TEL = '0500000000';
+  /** Digits-only for tel: / wa.me */
+  var EJAR_SERVICE_PHONE_TEL = '0530792754';
 
   /** International WhatsApp format without + (966XXXXXXXXX) */
-  var EJAR_SERVICE_WHATSAPP = '966500000000';
+  var EJAR_SERVICE_WHATSAPP = '966530792754';
 
   global.EJAR_SERVICE_PHONE = EJAR_SERVICE_PHONE;
   global.EJAR_SERVICE_PHONE_TEL = EJAR_SERVICE_PHONE_TEL;
