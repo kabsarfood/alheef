@@ -377,6 +377,16 @@
   letter-spacing: normal;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  -webkit-text-decoration: none;
+}
+
+/* iOS Safari may auto-link long digit strings as phone numbers */
+.ejar-cred-card__number a {
+  color: inherit;
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  pointer-events: none;
 }
 
 .ejar-cred-card__verify {

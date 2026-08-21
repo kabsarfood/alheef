@@ -14,8 +14,12 @@
 
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.classList.remove('active'));
+      tabs.forEach((t) => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       const tabName = tab.dataset.tab;
       loginForm.hidden = tabName !== 'login';
       setupForm.hidden = tabName !== 'setup';

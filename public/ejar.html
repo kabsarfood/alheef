@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
   <meta name="theme-color" content="#1E2A38">
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=15">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=7">
+  <link rel="stylesheet" href="/css/ejar.css?v=8">
 </head>
 <body class="ejar-page">
 
@@ -102,7 +103,7 @@
               </span>
             </div>
             <h3 class="ejar-cred-card__title">عضوية شبكة إيجار</h3>
-            <p class="ejar-cred-card__number" dir="ltr">40365788</p>
+            <p class="ejar-cred-card__number" dir="ltr" x-apple-data-detectors="false">40365788</p>
           </article>
           <article class="ejar-cred-card">
             <div class="ejar-cred-card__mark">
@@ -111,7 +112,7 @@
               </span>
             </div>
             <h3 class="ejar-cred-card__title">رخصة فال العقارية</h3>
-            <p class="ejar-cred-card__number" dir="ltr">1200021454</p>
+            <p class="ejar-cred-card__number" dir="ltr" x-apple-data-detectors="false">1200021454</p>
           </article>
         </div>
         <p class="ejar-creds__footnote">مكتب الهيف للخدمات العقارية — وسيط عقاري مرخص ومسجل في شبكة إيجار.</p>
@@ -205,8 +206,8 @@
                 <input type="text" id="ejar-city" name="city" required autocomplete="address-level2">
               </div>
               <div class="form-group">
-                <label for="ejar-role">صفتك</label>
-                <select id="ejar-role" name="role" required>
+                <label for="ejar-role" id="ejar-role-label">صفتك</label>
+                <select id="ejar-role" name="role" required aria-labelledby="ejar-role-label">
                   <option value="">اختر صفتك</option>
                   <option value="مؤجر">مؤجر</option>
                   <option value="مستأجر">مستأجر</option>

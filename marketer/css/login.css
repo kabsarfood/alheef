@@ -1,0 +1,181 @@
+/* ═══════════════════════════════════════
+   دخول فريق المسوقين — بطاقة موحّدة
+   ═══════════════════════════════════════ */
+
+.login-page--marketer {
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.login-card--marketer {
+  max-width: 420px;
+  padding: clamp(1.75rem, 4vw, 2.25rem) clamp(1.25rem, 4vw, 2rem);
+}
+
+.login-card--marketer .login-card__brand {
+  margin-bottom: clamp(1.25rem, 3vw, 1.75rem);
+  padding-bottom: clamp(1rem, 2.5vw, 1.25rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.login-card--marketer .login-card__logo {
+  width: auto;
+  height: clamp(2.5rem, 8vw, 3rem);
+  max-width: 168px;
+  margin: 0 auto clamp(0.85rem, 2vw, 1rem);
+  object-fit: contain;
+  border-radius: 0;
+}
+
+.login-card--marketer .login-card__title {
+  font-size: clamp(1.0625rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 0.35rem;
+  line-height: 1.35;
+}
+
+.login-card--marketer .login-card__subtitle {
+  font-size: clamp(0.8125rem, 1.8vw, 0.9rem);
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 28ch;
+  margin: 0 auto;
+}
+
+/* Tabs */
+.login-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 1.15rem;
+  padding: 0.25rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.login-tab {
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: clamp(0.6875rem, 2vw, 0.8125rem);
+  line-height: 1.35;
+  color: var(--text-secondary);
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.login-tab:hover:not(.active) {
+  color: var(--navy);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.login-tab.active {
+  background: var(--white);
+  color: var(--navy);
+  box-shadow: var(--shadow);
+}
+
+.login-tab:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* Forms */
+.login-page--marketer .login-form .form-group {
+  margin-bottom: 0.85rem;
+}
+
+.login-page--marketer .login-form .form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.login-page--marketer .login-form .form-group input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.login-page--marketer .login-form .form-group input:focus {
+  outline: none;
+  border-color: var(--gold-border);
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--gold-bg);
+}
+
+.login-page--marketer .login-form .btn {
+  width: 100%;
+  margin-top: 0.35rem;
+  min-height: 48px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.login-message {
+  min-height: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.65rem;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.login-message.success {
+  color: var(--success);
+}
+
+.login-hint {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--gold-bg);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius);
+}
+
+.login-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.login-footer .login-card__back {
+  margin-top: 0;
+  display: inline-block;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 374px) {
+  .login-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .login-tab {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-page--marketer {
+    align-items: center;
+  }
+}

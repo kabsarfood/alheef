@@ -3,68 +3,75 @@
 <head>
   <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1E2A38">
   <title>دخول فريق الهيف</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/dashboard/css/dashboard.css">
   <link rel="stylesheet" href="/dashboard/css/login.css">
-  <style>
-    .login-tabs { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
-    .login-tab { flex:1; min-width:90px; padding:0.55rem; border:1px solid var(--border); background:var(--bg); border-radius:var(--radius); cursor:pointer; font-family:inherit; font-weight:600; font-size:0.85rem; }
-    .login-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
-    .login-form label { display:block; margin:0.65rem 0 0.35rem; font-weight:600; font-size:0.9rem; }
-    .login-form input { width:100%; padding:0.65rem 0.75rem; border:1px solid var(--border); border-radius:var(--radius); font-family:inherit; }
-    .login-message { min-height:1.25rem; font-size:0.9rem; margin-bottom:0.5rem; color:var(--danger); }
-    .login-message.success { color:#1a7a3a; }
-    .login-hint { font-size:0.85rem; color:var(--text-secondary); margin:0.75rem 0; }
-    .login-footer { text-align:center; margin-top:1.25rem; font-size:0.9rem; }
-    .login-card__logo { width:80px; height:80px; margin:0 auto 0.75rem; display:block; object-fit:contain; border-radius:22%; }
-  </style>
+  <link rel="stylesheet" href="/dashboard/css/mobile.css">
+  <link rel="stylesheet" href="/marketer/css/login.css?v=1">
 </head>
-<body class="login-page">
+<body class="login-page login-page--marketer">
   <div class="login-page__bg"></div>
-  <div class="login-card">
+  <div class="login-card login-card--marketer">
     <div class="login-card__brand">
-      <img src="/assets/app-icon.png?v=5" alt="الهيف العقارية" class="login-card__logo" width="80" height="80">
-      <h1>الهيف العقارية</h1>
-      <p>لوحة مسوقي مكتب الهيف للخدمات العقارية</p>
+      <img src="/images/logo-alheef.png" alt="الهيف العقارية" class="login-card__logo" width="160" height="48" loading="eager">
+      <h1 class="login-card__title">لوحة المسوقين</h1>
+      <p class="login-card__subtitle">مكتب الهيف للخدمات العقارية</p>
     </div>
 
-    <div class="login-tabs">
-      <button type="button" class="login-tab active" data-tab="login">تسجيل الدخول</button>
-      <button type="button" class="login-tab" data-tab="setup">إنشاء كلمة مرور</button>
-      <button type="button" class="login-tab" data-tab="forgot">نسيت كلمة المرور</button>
+    <div class="login-tabs" role="tablist" aria-label="خيارات الدخول">
+      <button type="button" class="login-tab active" data-tab="login" role="tab" aria-selected="true">تسجيل الدخول</button>
+      <button type="button" class="login-tab" data-tab="setup" role="tab" aria-selected="false">إنشاء كلمة مرور</button>
+      <button type="button" class="login-tab" data-tab="forgot" role="tab" aria-selected="false">نسيت كلمة المرور</button>
     </div>
 
     <form id="login-form" class="login-form">
-      <div id="login-message" class="login-message"></div>
-      <label>رقم الجوال أو البريد الإلكتروني</label>
-      <input type="text" name="login" id="login-identifier" placeholder="05xxxxxxxx أو email@example.com" dir="ltr" required autocomplete="username">
-      <label>كلمة المرور</label>
-      <input type="password" name="password" id="login-password" required autocomplete="current-password">
-      <button type="submit" class="btn btn-primary">دخول</button>
+      <div id="login-message" class="login-message" role="status" aria-live="polite"></div>
+      <div class="form-group">
+        <label for="login-identifier">رقم الجوال أو البريد الإلكتروني</label>
+        <input type="text" name="login" id="login-identifier" placeholder="05xxxxxxxx أو email@example.com" dir="ltr" required autocomplete="username" inputmode="email">
+      </div>
+      <div class="form-group">
+        <label for="login-password">كلمة المرور</label>
+        <input type="password" name="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary login-form__submit">دخول</button>
     </form>
 
     <form id="setup-form" class="login-form" hidden>
-      <div id="setup-message" class="login-message"></div>
+      <div id="setup-message" class="login-message" role="status" aria-live="polite"></div>
       <p class="login-hint">للمسوقين المعتمدين الذين لم يُفعّل حسابهم بعد</p>
-      <label>رقم الجوال</label>
-      <input type="tel" name="phone" placeholder="05xxxxxxxx" dir="ltr" required>
-      <label>رقم الهوية / البطاقة</label>
-      <input type="text" name="nationalId" required>
-      <label>كلمة المرور الجديدة</label>
-      <input type="password" name="password" minlength="6" required autocomplete="new-password">
-      <label>تأكيد كلمة المرور</label>
-      <input type="password" name="confirmPassword" minlength="6" required autocomplete="new-password">
-      <button type="submit" class="btn btn-primary">حفظ والدخول</button>
+      <div class="form-group">
+        <label for="setup-phone">رقم الجوال</label>
+        <input type="tel" name="phone" id="setup-phone" placeholder="05xxxxxxxx" dir="ltr" required inputmode="tel" autocomplete="tel">
+      </div>
+      <div class="form-group">
+        <label for="setup-national-id">رقم الهوية / البطاقة</label>
+        <input type="text" name="nationalId" id="setup-national-id" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="setup-password">كلمة المرور الجديدة</label>
+        <input type="password" name="password" id="setup-password" minlength="6" required autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="setup-confirm">تأكيد كلمة المرور</label>
+        <input type="password" name="confirmPassword" id="setup-confirm" minlength="6" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary login-form__submit">حفظ والدخول</button>
     </form>
 
     <form id="forgot-form" class="login-form" hidden>
-      <div id="forgot-message" class="login-message"></div>
+      <div id="forgot-message" class="login-message" role="status" aria-live="polite"></div>
       <p class="login-hint">أدخل بريدك الإلكتروني المسجّل — سيصلك رابط إعادة التعيين إذا كان حسابك معتمداً</p>
-      <label>البريد الإلكتروني</label>
-      <input type="email" name="email" placeholder="example@email.com" dir="ltr" required autocomplete="email">
-      <button type="submit" class="btn btn-primary">إرسال رابط الاستعادة</button>
+      <div class="form-group">
+        <label for="forgot-email">البريد الإلكتروني</label>
+        <input type="email" name="email" id="forgot-email" placeholder="example@email.com" dir="ltr" required autocomplete="email" inputmode="email">
+      </div>
+      <button type="submit" class="btn btn-primary login-form__submit">إرسال رابط الاستعادة</button>
     </form>
 
     <p class="login-footer"><a href="/" class="login-card__back">← العودة للموقع</a></p>
