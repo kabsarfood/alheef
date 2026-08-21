@@ -103,7 +103,11 @@
 
   async function init() {
     const yearEl = document.getElementById('year');
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
+    const year = new Date().getFullYear();
+    if (yearEl) yearEl.textContent = year;
+    document.querySelectorAll('.footer__year').forEach((el) => {
+      el.textContent = year;
+    });
 
     setupHeader();
     ensureMapNavLink();
@@ -280,16 +284,20 @@
     const waUrl = `https://wa.me/${config.whatsapp}`;
     const waMsg = encodeURIComponent('مرحباً، أتواصل معكم من موقع الهيف للخدمات العقارية');
 
-    ['header-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link'].forEach((id) => {
+    ['header-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link', 'footer-whatsapp-btn'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.href = `${waUrl}?text=${waMsg}`;
     });
 
+    const phoneHref = `tel:+${config.whatsapp}`;
     const phoneEl = document.getElementById('footer-phone');
     if (phoneEl) {
       phoneEl.textContent = config.phone;
-      phoneEl.href = `tel:+${config.whatsapp}`;
+      phoneEl.href = phoneHref;
     }
+
+    const phoneBtn = document.getElementById('footer-phone-btn');
+    if (phoneBtn) phoneBtn.href = phoneHref;
 
     const ig = document.getElementById('footer-instagram');
     if (ig) ig.href = config.instagram;
@@ -344,11 +352,12 @@
     const footerLinks = document.querySelector('.footer__links');
     if (footerLinks && !footerLinks.querySelector('a[href="/map.html"]')) {
       const li = document.createElement('li');
+      li.className = 'footer__link-item footer__link-item--map';
       const a = document.createElement('a');
       a.href = '/map.html';
-      a.textContent = 'الخريطة العقارية';
+      a.innerHTML = '<span class="footer__link-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="footer__link-label">الخريطة العقارية</span>';
       li.appendChild(a);
-      footerLinks.prepend(li);
+      footerLinks.appendChild(li);
     }
   }
 

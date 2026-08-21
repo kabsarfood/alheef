@@ -1061,6 +1061,10 @@ ul { list-style: none; }
   margin-bottom: 0.65rem;
 }
 
+.footer__link-icon {
+  display: none;
+}
+
 .footer__links a {
   font-size: var(--fs-detail);
   color: var(--text-secondary);
@@ -1119,6 +1123,10 @@ ul { list-style: none; }
   font-size: var(--fs-caption);
   color: var(--text-muted);
   font-weight: var(--fw-body);
+}
+
+.footer__mobile-only {
+  display: none;
 }
 
 /* ─── Modal ─── */

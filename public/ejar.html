@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1E2A38">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="الهيف">
+  <meta name="description" content="خدمة إنشاء وتسجيل عقود إيجار سكنية وتجارية إلكترونيًا عبر شبكة إيجار. أسعار واضحة وخدمة لجميع مناطق المملكة من مكتب الهيف للخدمات العقارية.">
+  <link rel="canonical" href="https://www.alheef.website/ejar">
+  <meta property="og:title" content="إنشاء عقد إيجار سكني وتجاري إلكتروني | مكتب الهيف">
+  <meta property="og:description" content="خدمة إنشاء وتسجيل عقود إيجار سكنية وتجارية إلكترونيًا عبر شبكة إيجار. أسعار واضحة وخدمة لجميع مناطق المملكة.">
+  <meta property="og:url" content="https://www.alheef.website/ejar">
+  <meta property="og:type" content="website">
+  <title>إنشاء عقد إيجار سكني وتجاري إلكتروني | مكتب الهيف</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png?v=5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=13">
+  <link rel="stylesheet" href="/css/mobile.css?v=15">
+  <link rel="stylesheet" href="/css/pwa.css">
+  <link rel="stylesheet" href="/css/ejar.css?v=1">
+</head>
+<body class="ejar-page">
+
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="/" class="logo logo--header" aria-label="الهيف — الرئيسية">
+        <img class="logo__img" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
+      </a>
+      <nav class="nav" id="nav" aria-label="التنقل">
+        <a href="/" class="nav__link">الرئيسية</a>
+        <a href="/map.html" class="nav__link" title="الخريطة العقارية">الخريطة</a>
+        <a href="/ejar" class="nav__link nav__link--active">عقود إيجار</a>
+        <a href="/#offers" class="nav__link">العروض</a>
+        <a href="/#contact" class="nav__link">تواصل معنا</a>
+        <span class="nav__portal-label">دخول</span>
+        <a href="/dashboard/login.html" class="nav__link nav__link--portal nav__link--admin">لوحة التحكم — أدمن</a>
+        <a href="/marketer/login.html" class="nav__link nav__link--portal nav__link--team">دخول فريق الهيف</a>
+      </nav>
+      <div class="header__actions">
+        <details class="header__login">
+          <summary class="btn btn-outline btn-sm header__login-toggle">دخول</summary>
+          <div class="header__login-menu" role="menu">
+            <a href="/dashboard/login.html" class="header__login-item" role="menuitem" title="لوحة تحكم الأدمن">أدمن</a>
+            <a href="/marketer/login.html" class="header__login-item" role="menuitem" title="دخول فريق الهيف">الفريق</a>
+          </div>
+        </details>
+        <a href="#" class="btn btn-whatsapp btn-sm btn-whatsapp--icon" id="header-whatsapp" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب — عقود إيجار" title="واتساب">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <span class="btn-whatsapp__label">واتساب</span>
+        </a>
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="القائمة" aria-expanded="false" aria-controls="nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="nav-overlay" id="nav-overlay" aria-hidden="true"></div>
+
+  <main>
+    <!-- Hero -->
+    <section class="ejar-hero" id="ejar-hero">
+      <div class="container">
+        <div class="ejar-hero__brand">
+          <p class="ejar-hero__office">مكتب الهيف للخدمات العقارية</p>
+          <span class="ejar-hero__badge">عقود إيجار</span>
+        </div>
+        <h1 class="ejar-hero__title">أنشئ عقد إيجارك إلكترونيًا بسهولة</h1>
+        <p class="ejar-hero__desc">خدمة إنشاء وتسجيل عقود الإيجار السكنية والتجارية عبر شبكة إيجار، مقدمة من مكتب الهيف للخدمات العقارية.</p>
+
+        <div class="ejar-pricing">
+          <article class="ejar-price-card ejar-price-card--featured">
+            <h3 class="ejar-price-card__type">عقد سكني</h3>
+            <p class="ejar-price-card__amount">199 <small>ريال</small></p>
+            <p class="ejar-price-card__note">شامل رسوم شبكة إيجار وأتعاب الخدمة لمدة سنة</p>
+            <button type="button" class="btn btn-primary" data-ejar-contract="residential">ابدأ العقد السكني</button>
+          </article>
+          <article class="ejar-price-card">
+            <h3 class="ejar-price-card__type">عقد تجاري</h3>
+            <p class="ejar-price-card__amount">299 <small>ريال</small></p>
+            <p class="ejar-price-card__note">شامل رسوم شبكة إيجار وأتعاب الخدمة للسنة الأولى</p>
+            <button type="button" class="btn btn-gold" data-ejar-contract="commercial">ابدأ العقد التجاري</button>
+          </article>
+        </div>
+
+        <p class="ejar-hero__footnote">للمدد الإضافية تطبق رسوم شبكة إيجار الرسمية حسب مدة العقد.</p>
+
+        <div class="ejar-hero__actions">
+          <a href="#" class="btn btn-call" data-ejar-tel aria-label="اتصل الآن — خدمة عقود الإيجار">
+            <svg class="ejar-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.25 1.01l-2.2 2.22z"/></svg>
+            اتصل الآن
+          </a>
+          <a href="#" class="btn btn-whatsapp" data-ejar-wa target="_blank" rel="noopener" aria-label="تواصل عبر واتساب — عقود الإيجار">
+            <svg class="ejar-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            واتساب
+          </a>
+          <a href="#ejar-form" class="btn btn-outline" data-ejar-start aria-label="ابدأ إنشاء العقد">
+            <svg class="ejar-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            ابدأ إنشاء العقد
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust bar -->
+    <section class="ejar-trust" aria-label="مميزات الخدمة">
+      <div class="container">
+        <ul class="ejar-trust__list">
+          <li class="ejar-trust__item">
+            <svg class="ejar-trust__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            مكتب عقاري مرخص
+          </li>
+          <li class="ejar-trust__item">
+            <svg class="ejar-trust__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            خدمة لجميع مناطق المملكة
+          </li>
+          <li class="ejar-trust__item">
+            <svg class="ejar-trust__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            سعر واضح
+          </li>
+          <li class="ejar-trust__item">
+            <svg class="ejar-trust__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            إجراءات إلكترونية
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="ejar-section" id="ejar-steps">
+      <div class="container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">كيف تتم الخدمة؟</h2>
+        </header>
+        <ol class="ejar-steps">
+          <li class="ejar-step">
+            <span class="ejar-step__num" aria-hidden="true">1</span>
+            <h3 class="ejar-step__title">تواصل معنا</h3>
+            <p class="ejar-step__desc">اتصال، واتساب، أو طلب إلكتروني.</p>
+          </li>
+          <li class="ejar-step">
+            <span class="ejar-step__num" aria-hidden="true">2</span>
+            <h3 class="ejar-step__title">أرسل البيانات</h3>
+            <p class="ejar-step__desc">نستلم البيانات المطلوبة لإعداد العقد.</p>
+          </li>
+          <li class="ejar-step">
+            <span class="ejar-step__num" aria-hidden="true">3</span>
+            <h3 class="ejar-step__title">نُعد العقد ونراجعه</h3>
+            <p class="ejar-step__desc">إعداد بيانات العقد ومراجعتها قبل الإرسال.</p>
+          </li>
+          <li class="ejar-step">
+            <span class="ejar-step__num" aria-hidden="true">4</span>
+            <h3 class="ejar-step__title">التوثيق عبر إيجار</h3>
+            <p class="ejar-step__desc">يتم إرسال العقد للأطراف لإكمال إجراءات الموافقة والتوثيق عبر شبكة إيجار.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Direct contact -->
+    <section class="ejar-section ejar-section--alt" id="ejar-contact">
+      <div class="container">
+        <div class="ejar-contact-block">
+          <h2 class="ejar-section__title">تفضل تتحدث معنا قبل إنشاء العقد؟</h2>
+          <p class="ejar-contact-block__desc">تواصل مباشرة مع خدمة عقود الإيجار في مكتب الهيف واستفسر عن المتطلبات قبل البدء.</p>
+          <p class="ejar-contact-block__phone-label">رقم خدمة عقود الإيجار</p>
+          <p class="ejar-contact-block__phone" data-ejar-phone dir="ltr">05X XXX XXXX</p>
+          <div class="ejar-contact-block__actions">
+            <a href="#" class="btn btn-primary" data-ejar-tel aria-label="اتصال — خدمة عقود الإيجار">اتصال</a>
+            <a href="#" class="btn btn-whatsapp" data-ejar-wa target="_blank" rel="noopener" aria-label="واتساب — خدمة عقود الإيجار">واتساب</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Purpose cards -->
+    <section class="ejar-section" id="ejar-purposes">
+      <div class="container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">تحتاج عقد إيجار لغرض محدد؟</h2>
+        </header>
+        <div class="ejar-purposes">
+          <article class="ejar-purpose">
+            <h3 class="ejar-purpose__title">الضمان المطور</h3>
+            <p class="ejar-purpose__desc">عقد إيجار إلكتروني موثق لإثبات السكن بحسب متطلبات الجهة.</p>
+          </article>
+          <article class="ejar-purpose">
+            <h3 class="ejar-purpose__title">حساب المواطن</h3>
+            <p class="ejar-purpose__desc">عقد إيجار إلكتروني موثق للاستخدام بحسب متطلبات البرنامج.</p>
+          </article>
+          <article class="ejar-purpose">
+            <h3 class="ejar-purpose__title">حافز</h3>
+            <p class="ejar-purpose__desc">عقد إيجار إلكتروني يمكن استخدامه بحسب الاشتراطات المطلوبة من الجهة.</p>
+          </article>
+          <article class="ejar-purpose">
+            <h3 class="ejar-purpose__title">بلدي</h3>
+            <p class="ejar-purpose__desc">عقد إيجار موثق للاستخدام في الإجراءات التي تتطلب عقد إيجار.</p>
+          </article>
+        </div>
+        <p class="ejar-disclaimer">اعتماد العقد أو قبوله لدى أي برنامج أو جهة يخضع لشروط ومتطلبات تلك الجهة، ولا يضمن مكتب الهيف أهلية المستفيد للبرنامج.</p>
+      </div>
+    </section>
+
+    <!-- Form -->
+    <section class="ejar-section ejar-section--alt" id="ejar-form">
+      <div class="container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">ابدأ طلبك الآن</h2>
+        </header>
+        <div class="ejar-form-wrap">
+          <form id="ejar-request-form" class="form-card" novalidate>
+            <div id="ejar-form-message" class="form-message" role="status" aria-live="polite"></div>
+            <div class="form-group">
+              <label for="ejar-contract-type">نوع العقد</label>
+              <select id="ejar-contract-type" name="contractType" required>
+                <option value="">اختر نوع العقد</option>
+                <option value="سكني">سكني</option>
+                <option value="تجاري">تجاري</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ejar-name">الاسم</label>
+              <input type="text" id="ejar-name" name="name" required autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label for="ejar-phone">رقم الجوال</label>
+              <input type="tel" id="ejar-phone" name="phone" placeholder="05xxxxxxxx" required dir="ltr" inputmode="tel" autocomplete="tel">
+            </div>
+            <div class="form-group">
+              <label for="ejar-city">المدينة</label>
+              <input type="text" id="ejar-city" name="city" required autocomplete="address-level2">
+            </div>
+            <div class="form-group">
+              <label for="ejar-role">صفّتك</label>
+              <select id="ejar-role" name="role" required>
+                <option value="">اختر صفتك</option>
+                <option value="مؤجر">مؤجر</option>
+                <option value="مستأجر">مستأجر</option>
+                <option value="وكيل">وكيل</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">إرسال الطلب</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing table -->
+    <section class="ejar-section" id="ejar-pricing">
+      <div class="container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">أسعار واضحة بدون مفاجآت</h2>
+        </header>
+        <div class="ejar-table-wrap">
+          <table class="ejar-table">
+            <thead>
+              <tr>
+                <th scope="col">الخدمة</th>
+                <th scope="col">السعر</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>عقد سكني لمدة سنة</td>
+                <td>199 ريال شامل</td>
+              </tr>
+              <tr>
+                <td>عقد تجاري للسنة الأولى</td>
+                <td>299 ريال شامل</td>
+              </tr>
+              <tr>
+                <td>مدة إضافية</td>
+                <td>تطبق رسوم شبكة إيجار الرسمية حسب المدة</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="ejar-table-note">الأسعار الموضحة تشمل رسوم شبكة إيجار للفترة المحددة وأتعاب مكتب الهيف لإعداد وتسجيل العقد.</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="ejar-section ejar-section--alt" id="ejar-faq">
+      <div class="container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">الأسئلة الشائعة</h2>
+        </header>
+        <div class="ejar-faq">
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">هل الخدمة متاحة خارج الرياض؟</summary>
+            <p class="ejar-faq__answer">نعم، الخدمة إلكترونية ومتاحة للعملاء في جميع مناطق المملكة.</p>
+          </details>
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">هل العقد يتم عبر شبكة إيجار؟</summary>
+            <p class="ejar-faq__answer">نعم، يتم إعداد وتسجيل العقد وإرساله للأطراف لاستكمال إجراءات التوثيق عبر شبكة إيجار.</p>
+          </details>
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">هل السعر 199 ريال شامل؟</summary>
+            <p class="ejar-faq__answer">نعم، للعقد السكني لمدة سنة حسب العرض الموضح.</p>
+          </details>
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">هل 299 ريال شامل للعقد التجاري؟</summary>
+            <p class="ejar-faq__answer">نعم، للسنة الأولى حسب العرض الموضح.</p>
+          </details>
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">هل أستطيع الاتصال قبل بدء الطلب؟</summary>
+            <p class="ejar-faq__answer">نعم، يوجد رقم مستقل لخدمة عقود الإيجار ويمكن التواصل قبل بدء الإجراءات.</p>
+          </details>
+          <details class="ejar-faq__item">
+            <summary class="ejar-faq__question">ماذا عن السنوات الإضافية؟</summary>
+            <p class="ejar-faq__answer">تطبق رسوم شبكة إيجار الرسمية المتعلقة بالمدة الإضافية.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer footer--compact" id="ejar-footer">
+    <div class="container">
+      <div class="footer__grid" style="margin-bottom:1.5rem">
+        <div class="footer__brand">
+          <a href="/" class="logo footer__logo">
+            <img src="/images/logo-alheef.png" alt="الهيف العقارية" class="logo__img footer__logo-img" width="140" height="40" loading="lazy" decoding="async">
+            <div class="logo__text footer__logo-text">
+              <span class="logo__name">مكتب الهيف للخدمات العقارية</span>
+            </div>
+          </a>
+          <p class="footer__about" style="margin-top:0.75rem;font-size:0.875rem;color:var(--stone)">مكتب عقاري مرخص — خدمات الوساطة العقارية وتسجيل العقود</p>
+        </div>
+        <div class="footer__col footer__col--links">
+          <h4 class="footer__heading">روابط</h4>
+          <ul class="footer__links">
+            <li><a href="/">الرئيسية</a></li>
+            <li><a href="/ejar">عقود إيجار</a></li>
+            <li><a href="/map.html">الخريطة العقارية</a></li>
+            <li><a href="/#contact">تواصل معنا</a></li>
+          </ul>
+        </div>
+        <div class="footer__col footer__col--contact">
+          <h4 class="footer__heading">خدمة عقود الإيجار</h4>
+          <p class="footer__contact-item">
+            <span aria-hidden="true">📞</span>
+            <a href="#" data-ejar-tel data-ejar-phone dir="ltr">05X XXX XXXX</a>
+          </p>
+          <p class="footer__contact-item">
+            <span aria-hidden="true">💬</span>
+            <a href="#" data-ejar-wa target="_blank" rel="noopener">واتساب</a>
+          </p>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p class="footer__copy">© <span class="ejar-year"></span> مكتب الهيف للخدمات العقارية — جميع الحقوق محفوظة</p>
+        <p class="footer__legal">سياسة الخصوصية • الشروط والأحكام</p>
+        <p class="ejar-footer-note">مكتب الهيف للخدمات العقارية مقدم لخدمة الوساطة العقارية وتسجيل العقود، وليس الموقع الرسمي لشبكة إيجار.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sticky mobile bar -->
+  <nav class="ejar-sticky-bar" aria-label="إجراءات سريعة — جوال">
+    <a href="#" class="ejar-sticky-bar__btn ejar-sticky-bar__btn--call" data-ejar-tel aria-label="اتصال">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.25 1.01l-2.2 2.22z"/></svg>
+      اتصال
+    </a>
+    <a href="#" class="ejar-sticky-bar__btn ejar-sticky-bar__btn--wa" data-ejar-wa target="_blank" rel="noopener" aria-label="واتساب">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      واتساب
+    </a>
+    <button type="button" class="ejar-sticky-bar__btn ejar-sticky-bar__btn--start" data-ejar-start aria-label="ابدأ العقد">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+      ابدأ العقد
+    </button>
+  </nav>
+
+  <script src="/js/ejar-config.js" defer></script>
+  <script src="/js/analytics.js" defer></script>
+  <script src="/js/pwa.js" defer></script>
+  <script src="/js/nav-mobile.js?v=5" defer></script>
+  <script src="/js/ejar.js?v=1" defer></script>
+</body>
+</html>

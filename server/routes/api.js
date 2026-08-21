@@ -13,6 +13,7 @@ const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const pushNotifications = require('../services/pushNotifications');
 const { isPublicStatus } = require('../utils/propertyStatus');
+const { isEnabled } = require('../lib/supabase');
 
 const router = express.Router();
 

@@ -270,6 +270,8 @@ app.get('*', (req, res, next) => {
       '/map.html': 'map.html',
       '/property': 'property.html',
       '/property.html': 'property.html',
+      '/ejar': 'ejar.html',
+      '/ejar.html': 'ejar.html',
     };
     const pageFile = pageMap[req.path];
     if (pageFile) {
