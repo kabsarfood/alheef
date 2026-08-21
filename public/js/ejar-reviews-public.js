@@ -1,5 +1,6 @@
 (function () {
-  const section = document.getElementById('ejar-reviews-section');
+  const section = document.getElementById('ejar-reviews');
+  const jumpBtn = document.getElementById('ejar-reviews-jump');
   if (!section) return;
 
   fetch('/api/ejar/reviews/public')
@@ -11,6 +12,13 @@
       document.getElementById('ejar-reviews-average').textContent = data.average;
       const list = document.getElementById('ejar-reviews-list');
       list.innerHTML = data.reviews.map(renderReview).join('');
+
+      if (jumpBtn && (data.count || 0) >= 10) {
+        jumpBtn.hidden = false;
+        jumpBtn.addEventListener('click', () => {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     })
     .catch(() => {});
 

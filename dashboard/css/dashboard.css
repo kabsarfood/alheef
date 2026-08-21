@@ -910,6 +910,131 @@ button, input, select, textarea {
 
 .toast--error { background: var(--danger); }
 
+/* ─── Admin notification toast (in-app alerts) ─── */
+.admin-notif-toast {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 12px;
+  right: 12px;
+  width: auto;
+  max-width: none;
+  z-index: 500;
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.admin-notif-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.admin-notif-toast__inner {
+  position: relative;
+  background: var(--white);
+  color: var(--text-primary);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 0.85rem 0.85rem 0.75rem;
+  max-height: min(42vh, 280px);
+  overflow: hidden;
+}
+
+.admin-notif-toast__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.admin-notif-toast__icon {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.admin-notif-toast__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-notif-toast__title {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+}
+
+.admin-notif-toast__body {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.admin-notif-toast__more {
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-notif-toast__close {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.admin-notif-toast__open {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.notif-sound-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .admin-notif-toast {
+    top: auto;
+    bottom: 1.5rem;
+    left: auto;
+    right: 1.25rem;
+    width: min(380px, calc(100vw - 2rem));
+    transform: translateY(12px);
+  }
+
+  .notif-sound-hint {
+    flex: 0 1 auto;
+    text-align: inherit;
+  }
+}
+
 /* ─── Empty & Loading ─── */
 .empty-state {
   text-align: center;
@@ -1303,6 +1428,37 @@ tr.table-row--highlight {
 
   .admin-app .admin-profile-bar__phone {
     font-size: 0.85rem;
+  }
+
+  .admin-notifications {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    gap: 0.35rem;
+  }
+
+  .notif-sound-toggle {
+    min-height: 44px;
+    font-size: 0.78rem;
+  }
+
+  .notif-bell-wrap {
+    margin-inline-start: auto;
+  }
+
+  .notif-panel {
+    position: fixed;
+    top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 8px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    max-height: min(60vh, 420px);
+    z-index: 450;
+  }
+
+  .notif-bell {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

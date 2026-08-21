@@ -4,7 +4,7 @@
 const AdminNotificationSound = (() => {
   const SEEN_KEY = 'alheef_admin_notif_seen_v1';
   const MUTE_KEY = 'alheef_admin_notif_sound_muted';
-  const SOUND_URLS = ['/sounds/admin-notification.mp3', '/sounds/admin-notification.wav'];
+  const SOUND_URL = '/sounds/admin-notification.wav';
   const VOLUME = 0.8;
   const MAX_SEEN = 200;
 
@@ -13,6 +13,11 @@ const AdminNotificationSound = (() => {
   let _firstPollDone = false;
   let _playing = false;
   let _lastPlayedAt = 0;
+  let _pendingPlay = false;
+
+  function isMobileViewport() {
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+  }
 
   function getSeenIds() {
     try {
@@ -51,22 +56,32 @@ const AdminNotificationSound = (() => {
 
   function ensureAudio() {
     if (_audio) return _audio;
-    _audio = new Audio(SOUND_URLS[SOUND_URLS.length - 1]);
+    _audio = new Audio(SOUND_URL);
     _audio.preload = 'auto';
     _audio.volume = VOLUME;
     return _audio;
   }
 
-  function unlock() {
-    if (_unlocked) return;
-    _unlocked = true;
+  async function unlock() {
+    if (_unlocked) return true;
     const audio = ensureAudio();
-    audio.play().then(() => {
+    const prevVolume = audio.volume;
+    try {
+      audio.volume = 0.001;
+      await audio.play();
       audio.pause();
       audio.currentTime = 0;
-    }).catch(() => {
-      /* autoplay blocked until real interaction — ok */
-    });
+      audio.volume = VOLUME;
+      _unlocked = true;
+      if (_pendingPlay && shouldPlayPageSound()) {
+        _pendingPlay = false;
+        await playOnce();
+      }
+      return true;
+    } catch {
+      audio.volume = prevVolume;
+      return false;
+    }
   }
 
   function bindUnlock() {
@@ -75,22 +90,25 @@ const AdminNotificationSound = (() => {
       document.removeEventListener('click', once, true);
       document.removeEventListener('keydown', once, true);
       document.removeEventListener('touchstart', once, true);
+      document.removeEventListener('touchend', once, true);
     };
     document.addEventListener('click', once, true);
     document.addEventListener('keydown', once, true);
-    document.addEventListener('touchstart', once, true);
+    document.addEventListener('touchstart', once, { capture: true, passive: true });
+    document.addEventListener('touchend', once, { capture: true, passive: true });
   }
 
   function vibrateShort() {
     try {
-      if (navigator.vibrate) navigator.vibrate(120);
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
     } catch {
       /* ignore */
     }
   }
 
   function shouldPlayPageSound() {
-    if (typeof document !== 'undefined' && document.hidden) return false;
+    if (typeof document === 'undefined') return false;
+    if (document.hidden || document.visibilityState !== 'visible') return false;
     return true;
   }
 
@@ -102,24 +120,19 @@ const AdminNotificationSound = (() => {
     _playing = true;
     _lastPlayedAt = now;
 
-    for (const url of SOUND_URLS) {
-      const audio = ensureAudio();
-      try {
-        if (audio.src && !audio.src.endsWith(url)) audio.src = url;
-        if (!audio.src) audio.src = url;
-        audio.currentTime = 0;
-        audio.volume = VOLUME;
-        await audio.play();
-        vibrateShort();
-        setTimeout(() => { _playing = false; }, 1100);
-        return true;
-      } catch {
-        /* try next source */
-      }
+    const audio = ensureAudio();
+    try {
+      if (!audio.src || !audio.src.includes(SOUND_URL)) audio.src = SOUND_URL;
+      audio.currentTime = 0;
+      audio.volume = VOLUME;
+      await audio.play();
+      vibrateShort();
+      setTimeout(() => { _playing = false; }, 1100);
+      return true;
+    } catch {
+      _playing = false;
+      return false;
     }
-
-    _playing = false;
-    return false;
   }
 
   /**
@@ -147,16 +160,43 @@ const AdminNotificationSound = (() => {
   async function handlePoll(items) {
     const fresh = ingest(items);
     if (!fresh.length) return fresh;
-    if (_unlocked) await playOnce();
+
+    if (!_unlocked) {
+      _pendingPlay = true;
+      return fresh;
+    }
+
+    if (shouldPlayPageSound()) await playOnce();
     return fresh;
   }
 
+  function isUnlocked() {
+    return _unlocked;
+  }
+
+  function needsUnlock() {
+    return !_unlocked && !isMuted();
+  }
+
   function getMuteLabel() {
-    return isMuted() ? '🔕 كتم الصوت' : '🔔 تشغيل الصوت';
+    if (isMuted()) return isMobileViewport() ? '🔕 الصوت مكتوم' : '🔕 كتم الصوت';
+    if (!_unlocked) return isMobileViewport() ? '🔔 فعّل الصوت' : '🔔 تشغيل الصوت';
+    return isMobileViewport() ? '🔔 الصوت مفعّل' : '🔔 تشغيل الصوت';
   }
 
   function getMuteAria() {
-    return isMuted() ? 'كتم صوت إشعارات الإدارة — مفعّل' : 'تشغيل صوت إشعارات الإدارة — مفعّل';
+    if (isMuted()) return 'كتم صوت إشعارات الإدارة — مفعّل';
+    if (!_unlocked) return 'اضغط لتفعيل صوت التنبيهات';
+    return 'تشغيل صوت إشعارات الإدارة — مفعّل';
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && _pendingPlay && _unlocked && !isMuted()) {
+        _pendingPlay = false;
+        playOnce();
+      }
+    });
   }
 
   bindUnlock();
@@ -168,6 +208,8 @@ const AdminNotificationSound = (() => {
     setMuted,
     getMuteLabel,
     getMuteAria,
+    isUnlocked,
+    needsUnlock,
     unlock,
   };
 })();

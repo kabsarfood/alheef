@@ -53,7 +53,7 @@
       </header>
       <form id="review-form" class="ejar-review-form" novalidate>
         <input type="text" name="website" class="ejar-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <div class="form-group">
+        <div class="form-group" id="ejar-rating-section">
           <label>التقييم</label>
           <div class="ejar-stars" id="stars" role="radiogroup" aria-label="اختر عدد النجوم">
             ${[5, 4, 3, 2, 1].map((n) => `<button type="button" class="ejar-star" data-value="${n}" aria-label="${n} نجوم">★</button>`).join('')}
@@ -104,6 +104,43 @@
     });
 
     document.getElementById('review-form').addEventListener('submit', submitForm);
+    setupMobileReviewBar();
+  }
+
+  function setupMobileReviewBar() {
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+
+    const bar = document.createElement('button');
+    bar.type = 'button';
+    bar.className = 'ejar-review-mobile-bar';
+    bar.id = 'ejar-review-mobile-bar';
+    bar.setAttribute('aria-label', 'اذهب إلى نموذج التقييم');
+    bar.innerHTML = '<span class="ejar-review-mobile-bar__icon" aria-hidden="true">⭐</span><span class="ejar-review-mobile-bar__text">قيّم تجربتك</span>';
+    document.body.appendChild(bar);
+
+    const ratingSection = document.getElementById('ejar-rating-section');
+    const starsRoot = document.getElementById('stars');
+
+    bar.addEventListener('click', () => {
+      const target = ratingSection || starsRoot;
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const firstStar = starsRoot?.querySelector('.ejar-star');
+      if (firstStar) {
+        setTimeout(() => firstStar.focus({ preventScroll: true }), 350);
+      }
+    });
+
+    if (ratingSection && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0.35);
+          bar.classList.toggle('is-hidden', visible);
+          bar.classList.toggle('is-dimmed', !visible && window.scrollY > 120);
+        },
+        { threshold: [0, 0.35, 0.6] }
+      );
+      observer.observe(ratingSection);
+    }
   }
 
   async function submitForm(e) {

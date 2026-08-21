@@ -166,12 +166,25 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    Promise.all([
-      self.registration.showNotification(title, options),
-      typeof data.badgeCount === 'number' && 'setAppBadge' in navigator
-        ? (data.badgeCount > 0 ? navigator.setAppBadge(data.badgeCount) : navigator.clearAppBadge()).catch(() => {})
-        : Promise.resolve(),
-    ])
+    (async () => {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const dashboardVisible = clients.some(
+        (client) => client.visibilityState === 'visible' && /\/dashboard/i.test(client.url || '')
+      );
+
+      if (typeof data.badgeCount === 'number' && 'setAppBadge' in navigator) {
+        try {
+          if (data.badgeCount > 0) await navigator.setAppBadge(data.badgeCount);
+          else await navigator.clearAppBadge();
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (dashboardVisible) return;
+
+      await self.registration.showNotification(title, options);
+    })()
   );
 });
 

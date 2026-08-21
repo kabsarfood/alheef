@@ -135,7 +135,13 @@ async function initAdminNotifications() {
         ? await AdminNotificationSound.handlePoll(items)
         : [];
 
-      fresh.forEach((n) => showToast(n.title));
+      if (fresh.length) {
+        if (window.matchMedia('(max-width: 767px)').matches) {
+          showAdminNotificationToast(fresh);
+        } else {
+          fresh.forEach((n) => showToast(n.title));
+        }
+      }
 
       const unread = items.filter((n) => !n.isRead);
       const display = unread.length ? unread : items.slice(0, 5);
@@ -144,6 +150,7 @@ async function initAdminNotifications() {
 
       host.innerHTML = `
         ${renderSoundToggleButton()}
+        <p class="notif-sound-hint" id="notif-sound-hint" hidden role="status">اضغط لتفعيل صوت التنبيهات</p>
         ${showPushEnable ? '<button type="button" class="btn btn-outline btn-sm" id="enable-push-btn">تفعيل إشعارات الجوال</button>' : ''}
         <div class="notif-bell-wrap">
           <button type="button" class="notif-bell" id="notif-toggle" aria-label="الإشعارات">
@@ -166,20 +173,19 @@ async function initAdminNotifications() {
         e.stopPropagation();
         const panel = document.getElementById('notif-panel');
         panel.hidden = !panel.hidden;
+        if (!panel.hidden) maybeShowSoundUnlockHint(true);
       });
 
-      document.getElementById('notif-sound-toggle')?.addEventListener('click', () => {
+      document.getElementById('notif-sound-toggle')?.addEventListener('click', async () => {
         if (!window.AdminNotificationSound) return;
-        AdminNotificationSound.unlock();
+        await AdminNotificationSound.unlock();
         const nextMuted = !AdminNotificationSound.isMuted();
         AdminNotificationSound.setMuted(nextMuted);
-        const btn = document.getElementById('notif-sound-toggle');
-        if (btn) {
-          btn.textContent = AdminNotificationSound.getMuteLabel();
-          btn.setAttribute('aria-label', AdminNotificationSound.getMuteAria());
-          btn.setAttribute('aria-pressed', nextMuted ? 'true' : 'false');
-        }
+        updateSoundToggleUi();
+        document.getElementById('notif-sound-hint')?.setAttribute('hidden', '');
       });
+
+      maybeShowSoundUnlockHint();
 
       document.getElementById('enable-push-btn')?.addEventListener('click', async () => {
         try {
@@ -355,4 +361,100 @@ function escapeLayoutHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+let _adminNotifToastEl = null;
+let _adminNotifToastTimer = null;
+
+function getNotificationBody(n) {
+  const p = n.payload || {};
+  if (n.type === 'ejar_review_received') {
+    return p.body || `وصل تقييم جديد ${'⭐'.repeat(p.rating || 0)} ويحتاج إلى مراجعتك قبل النشر.`;
+  }
+  if (n.type === 'customer_request_received') {
+    return p.body || 'وصل طلب عميل جديد ويحتاج إلى المتابعة.';
+  }
+  return n.title || 'إشعار جديد';
+}
+
+function getNotificationAction(n) {
+  const p = n.payload || {};
+  if (n.type === 'ejar_review_received') {
+    return { url: `/dashboard/ejar-reviews.html?review=${p.reviewId || ''}`, label: 'فتح التقييم' };
+  }
+  if (n.type === 'customer_request_received') {
+    return { url: `/dashboard/requests.html?request=${p.requestId || ''}`, label: 'فتح الطلب' };
+  }
+  return { url: `/dashboard/property-reviews.html?property=${n.propertyId || ''}`, label: 'فتح' };
+}
+
+function dismissAdminNotificationToast() {
+  if (!_adminNotifToastEl) return;
+  _adminNotifToastEl.classList.remove('show');
+  clearTimeout(_adminNotifToastTimer);
+}
+
+async function openAdminNotificationToast(n) {
+  if (n?.id) await DashboardAPI.markNotificationRead(n.id).catch(() => {});
+  dismissAdminNotificationToast();
+  window.location.href = getNotificationAction(n).url;
+}
+
+function showAdminNotificationToast(freshNotifications) {
+  if (!freshNotifications?.length) return;
+
+  const latest = freshNotifications[0];
+  const extraCount = freshNotifications.length - 1;
+  const body = getNotificationBody(latest);
+  const action = getNotificationAction(latest);
+  const title = latest.title || 'إشعار جديد';
+
+  if (!_adminNotifToastEl) {
+    _adminNotifToastEl = document.createElement('div');
+    _adminNotifToastEl.id = 'admin-notif-toast';
+    _adminNotifToastEl.className = 'admin-notif-toast';
+    _adminNotifToastEl.setAttribute('role', 'alert');
+    _adminNotifToastEl.setAttribute('aria-live', 'assertive');
+    document.body.appendChild(_adminNotifToastEl);
+  }
+
+  _adminNotifToastEl.innerHTML = `
+    <div class="admin-notif-toast__inner">
+      <button type="button" class="admin-notif-toast__close" data-toast-close aria-label="إغلاق الإشعار">×</button>
+      <div class="admin-notif-toast__head">
+        <span class="admin-notif-toast__icon" aria-hidden="true">🔔</span>
+        <div class="admin-notif-toast__copy">
+          <strong class="admin-notif-toast__title">${escapeLayoutHtml(title)}</strong>
+          <p class="admin-notif-toast__body">${escapeLayoutHtml(body)}</p>
+        </div>
+        ${extraCount > 0 ? `<span class="admin-notif-toast__more">+${extraCount}</span>` : ''}
+      </div>
+      <button type="button" class="btn btn-primary btn-sm admin-notif-toast__open" data-toast-open>${escapeLayoutHtml(action.label)}</button>
+    </div>
+  `;
+
+  _adminNotifToastEl.querySelector('[data-toast-close]')?.addEventListener('click', dismissAdminNotificationToast);
+  _adminNotifToastEl.querySelector('[data-toast-open]')?.addEventListener('click', () => openAdminNotificationToast(latest));
+
+  requestAnimationFrame(() => _adminNotifToastEl.classList.add('show'));
+  clearTimeout(_adminNotifToastTimer);
+  _adminNotifToastTimer = setTimeout(dismissAdminNotificationToast, 7000);
+}
+
+function updateSoundToggleUi() {
+  if (!window.AdminNotificationSound) return;
+  const btn = document.getElementById('notif-sound-toggle');
+  if (!btn) return;
+  btn.textContent = AdminNotificationSound.getMuteLabel();
+  btn.setAttribute('aria-label', AdminNotificationSound.getMuteAria());
+  btn.setAttribute('aria-pressed', AdminNotificationSound.isMuted() ? 'true' : 'false');
+}
+
+function maybeShowSoundUnlockHint(fromBell) {
+  if (!window.AdminNotificationSound?.needsUnlock?.()) return;
+  if (!window.matchMedia('(max-width: 767px)').matches) return;
+  if (sessionStorage.getItem('alheef_admin_sound_hint_v1') && !fromBell) return;
+  if (fromBell) sessionStorage.setItem('alheef_admin_sound_hint_v1', '1');
+  const hint = document.getElementById('notif-sound-hint');
+  if (hint) hint.hidden = false;
 }
