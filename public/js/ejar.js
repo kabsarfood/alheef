@@ -100,6 +100,38 @@
     });
   }
 
+  function applyCredentials() {
+    var membership = window.EJAR_NETWORK_MEMBERSHIP;
+    var falLicense = window.FAL_BROKERAGE_LICENSE;
+    var verifyUrl = window.REGA_LICENSE_VERIFY_URL;
+    var ejarLogo = window.EJAR_LOGO_URL;
+    var regaLogo = window.REGA_LOGO_URL;
+
+    document.querySelectorAll('[data-ejar-membership]').forEach(function (el) {
+      if (membership) el.textContent = membership;
+    });
+    document.querySelectorAll('[data-fal-license]').forEach(function (el) {
+      if (falLicense) el.textContent = falLicense;
+    });
+    document.querySelectorAll('[data-rega-verify]').forEach(function (el) {
+      if (verifyUrl) el.href = verifyUrl;
+    });
+
+    var ejarImg = document.querySelector('[data-ejar-logo="ejar"]');
+    if (ejarImg && ejarLogo) {
+      ejarImg.src = ejarLogo;
+      ejarImg.hidden = false;
+      ejarImg.onerror = function () { ejarImg.hidden = true; };
+    }
+
+    var regaImg = document.querySelector('[data-ejar-logo="rega"]');
+    if (regaImg && regaLogo) {
+      regaImg.src = regaLogo;
+      regaImg.hidden = false;
+      regaImg.onerror = function () { regaImg.hidden = true; };
+    }
+  }
+
   function bindClickTracking(selector, eventName, extra) {
     document.querySelectorAll(selector).forEach(function (el) {
       el.addEventListener('click', function () {
@@ -270,6 +302,7 @@
   function init() {
     captureAttribution();
     applyPhoneDisplays();
+    applyCredentials();
     setupContractButtons();
     setupStartButtons();
     setupContractTypeSelect();
