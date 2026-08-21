@@ -280,18 +280,6 @@
   margin-bottom: 0.15rem;
 }
 
-.ejar-cred-card__mark:has(.ejar-cred-card__logo:not([hidden])) .ejar-cred-card__icon {
-  display: none;
-}
-
-.ejar-cred-card__logo {
-  max-width: 128px;
-  max-height: 44px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-}
-
 .ejar-cred-card__icon {
   display: inline-flex;
   align-items: center;
