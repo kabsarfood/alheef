@@ -32,6 +32,8 @@ async function initLayout(activePage, pageTitle) {
   const authed = await Auth.requireAuth();
   if (!authed) return;
 
+  await loadAdminNotificationSound();
+
   document.body.classList.add('admin-app');
 
   const adminPhone = Auth.getPhone();
@@ -90,8 +92,35 @@ async function initLayout(activePage, pageTitle) {
   initAdminNotifications();
 }
 
-let _knownNotificationIds = new Set();
 let _notificationsPollTimer = null;
+let _adminSoundLoadPromise = null;
+
+function loadAdminNotificationSound() {
+  if (window.AdminNotificationSound) return Promise.resolve();
+  if (_adminSoundLoadPromise) return _adminSoundLoadPromise;
+  _adminSoundLoadPromise = new Promise((resolve) => {
+    const existing = document.querySelector('script[data-admin-notif-sound]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => resolve(), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/dashboard/js/adminNotificationSound.js';
+    script.dataset.adminNotifSound = '1';
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+  return _adminSoundLoadPromise;
+}
+
+function renderSoundToggleButton() {
+  if (!window.AdminNotificationSound) return '';
+  const label = AdminNotificationSound.getMuteLabel();
+  const aria = AdminNotificationSound.getMuteAria();
+  return `<button type="button" class="notif-sound-toggle btn btn-outline btn-sm" id="notif-sound-toggle" aria-label="${escapeLayoutHtml(aria)}" aria-pressed="${AdminNotificationSound.isMuted() ? 'true' : 'false'}">${escapeLayoutHtml(label)}</button>`;
+}
 
 async function initAdminNotifications() {
   const host = document.getElementById('admin-notifications');
@@ -101,21 +130,20 @@ async function initAdminNotifications() {
     try {
       const { items = [], unreadCount = 0 } = await DashboardAPI.getNotifications();
       if (window.AlheefPWA) window.AlheefPWA.setBadge(unreadCount);
+
+      const fresh = window.AdminNotificationSound
+        ? await AdminNotificationSound.handlePoll(items)
+        : [];
+
+      fresh.forEach((n) => showToast(n.title));
+
       const unread = items.filter((n) => !n.isRead);
       const display = unread.length ? unread : items.slice(0, 5);
       const pushPermission = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
       const showPushEnable = pushPermission === 'default' && window.AlheefPWA;
 
-      unread.forEach((n) => {
-        if (!_knownNotificationIds.has(n.id)) {
-          _knownNotificationIds.add(n.id);
-          if (_knownNotificationIds.size > 1) {
-            showToast(n.title);
-          }
-        }
-      });
-
       host.innerHTML = `
+        ${renderSoundToggleButton()}
         ${showPushEnable ? '<button type="button" class="btn btn-outline btn-sm" id="enable-push-btn">تفعيل إشعارات الجوال</button>' : ''}
         <div class="notif-bell-wrap">
           <button type="button" class="notif-bell" id="notif-toggle" aria-label="الإشعارات">
@@ -138,6 +166,19 @@ async function initAdminNotifications() {
         e.stopPropagation();
         const panel = document.getElementById('notif-panel');
         panel.hidden = !panel.hidden;
+      });
+
+      document.getElementById('notif-sound-toggle')?.addEventListener('click', () => {
+        if (!window.AdminNotificationSound) return;
+        AdminNotificationSound.unlock();
+        const nextMuted = !AdminNotificationSound.isMuted();
+        AdminNotificationSound.setMuted(nextMuted);
+        const btn = document.getElementById('notif-sound-toggle');
+        if (btn) {
+          btn.textContent = AdminNotificationSound.getMuteLabel();
+          btn.setAttribute('aria-label', AdminNotificationSound.getMuteAria());
+          btn.setAttribute('aria-pressed', nextMuted ? 'true' : 'false');
+        }
       });
 
       document.getElementById('enable-push-btn')?.addEventListener('click', async () => {

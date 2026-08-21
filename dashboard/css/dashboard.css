@@ -1121,6 +1121,20 @@ button, input, select, textarea {
 
 .pending-ad-row:last-child { border-bottom: none; }
 
+.admin-notifications {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.notif-sound-toggle {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  padding-inline: 0.55rem;
+}
+
 .notif-bell-wrap { position: relative; }
 
 .notif-bell {
