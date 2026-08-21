@@ -357,6 +357,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: stretch;
 }
 
 @media (min-width: 768px) {
@@ -368,17 +369,55 @@
 
 .ejar-trust__item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.45rem;
   font-size: clamp(0.75rem, 1.6vw, 0.875rem);
   font-weight: var(--fw-subheading);
   line-height: 1.35;
 }
 
+@media (max-width: 767px) {
+  .ejar-trust {
+    padding-block: 0.75rem;
+  }
+
+  .ejar-trust__list {
+    gap: 0.45rem 0.35rem;
+  }
+
+  .ejar-trust__item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.3rem;
+    min-height: 3.5rem;
+    padding: 0.4rem 0.25rem;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 374px) {
+  .ejar-trust__item {
+    min-height: 3.75rem;
+    font-size: 0.625rem;
+  }
+}
+
 .ejar-trust__icon {
   flex-shrink: 0;
-  margin-top: 0.1rem;
+  width: 1.125rem;
+  height: 1.125rem;
   opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .ejar-trust__icon {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0;
+  }
 }
 
 /* ─── Sections ─── */
