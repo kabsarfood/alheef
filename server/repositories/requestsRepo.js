@@ -3,6 +3,13 @@ const { rowToRequest } = require('../services/mappers');
 
 const TABLE = 'requests';
 
+async function getById(id) {
+  if (!isEnabled() || !id) return null;
+  const { data, error } = await getAdmin().from(TABLE).select('*').eq('id', id).maybeSingle();
+  if (error) return null;
+  return rowToRequest(data);
+}
+
 async function listAll({ offset = 0, limit = 100 } = {}) {
   if (!isEnabled()) return { items: [], total: 0 };
   const { data, error, count } = await getAdmin()
@@ -54,4 +61,4 @@ async function countByStatus(status) {
   return count || 0;
 }
 
-module.exports = { listAll, create, updateStatus, remove, countAll, countByStatus };
+module.exports = { listAll, getById, create, updateStatus, remove, countAll, countByStatus };

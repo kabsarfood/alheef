@@ -198,6 +198,30 @@ const DashboardAPI = {
     return this.request('/notifications/read-all', { method: 'PUT' });
   },
 
+  getEjarReviews(status = 'pending') {
+    return this.request(`/ejar-reviews?status=${encodeURIComponent(status)}`);
+  },
+
+  createEjarReviewLink(requestId) {
+    return this.request('/ejar-reviews/tokens', {
+      method: 'POST',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ requestId }),
+    });
+  },
+
+  approveEjarReview(id) {
+    return this.request(`/ejar-reviews/${id}/approve`, { method: 'PUT' });
+  },
+
+  hideEjarReview(id) {
+    return this.request(`/ejar-reviews/${id}/hide`, { method: 'PUT' });
+  },
+
+  markEjarReviewNotificationRead(reviewId) {
+    return this.request(`/ejar-reviews/${reviewId}/read-notification`, { method: 'PUT' });
+  },
+
   testPushNotification() {
     const headers = Auth.authHeaders({ 'Content-Type': 'application/json' });
     return fetch('/api/push/test-admin', { method: 'POST', headers })

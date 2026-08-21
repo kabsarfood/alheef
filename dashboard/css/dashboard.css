@@ -725,6 +725,20 @@ button, input, select, textarea {
   color: var(--text-secondary);
 }
 
+.badge--gold {
+  background: rgba(197, 164, 109, 0.15);
+  color: #8a6d3b;
+}
+
+.ejar-reviews-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
 /* ─── Table ─── */
 .table-wrap {
   overflow-x: auto;
@@ -1190,6 +1204,13 @@ button, input, select, textarea {
   font-size: 0.95rem;
   margin-bottom: 0.5rem;
   color: var(--text-primary);
+}
+
+.notif-item__body {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 .notif-item__meta {

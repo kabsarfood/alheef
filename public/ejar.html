@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=15">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=8">
+  <link rel="stylesheet" href="/css/ejar.css?v=9">
 </head>
 <body class="ejar-page">
 
@@ -221,6 +221,16 @@
       </div>
     </section>
 
+    <section class="ejar-section" id="ejar-reviews-section" hidden>
+      <div class="ejar-container">
+        <header class="ejar-section__header">
+          <h2 class="ejar-section__title">تجارب عملائنا</h2>
+          <p class="ejar-section__subtitle"><span id="ejar-reviews-count">0</span> تقييم — متوسط <span id="ejar-reviews-average">0</span> نجوم</p>
+        </header>
+        <div class="ejar-reviews-grid" id="ejar-reviews-list"></div>
+      </div>
+    </section>
+
     <section class="ejar-section ejar-section--alt" id="ejar-faq">
       <div class="ejar-container">
         <header class="ejar-section__header">
@@ -335,5 +345,6 @@
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=5" defer></script>
   <script src="/js/ejar.js?v=4" defer></script>
+  <script src="/js/ejar-reviews-public.js?v=1" defer></script>
 </body>
 </html>

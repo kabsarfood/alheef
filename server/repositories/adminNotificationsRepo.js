@@ -22,6 +22,60 @@ function mapRow(row) {
   };
 }
 
+const EJAR_REVIEW_TYPE = 'ejar_review_received';
+
+function starsBody(rating) {
+  const n = Math.min(5, Math.max(1, parseInt(rating, 10) || 0));
+  return `وصل تقييم جديد ${'⭐'.repeat(n)} ويحتاج إلى مراجعتك قبل النشر.`;
+}
+
+async function findEjarReviewNotification(reviewId) {
+  if (!isEnabled() || !reviewId) return null;
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('type', EJAR_REVIEW_TYPE)
+    .filter('payload->>reviewId', 'eq', String(reviewId))
+    .maybeSingle();
+  if (error) return null;
+  return mapRow(data);
+}
+
+async function createEjarReviewReceived({ reviewId, requestId, rating }) {
+  if (!isEnabled() || !reviewId) return null;
+
+  const existing = await findEjarReviewNotification(reviewId);
+  if (existing) return existing;
+
+  const body = starsBody(rating);
+  const row = {
+    type: EJAR_REVIEW_TYPE,
+    title: 'تقييم جديد لعقد إيجار',
+    property_id: null,
+    marketer_id: null,
+    payload: {
+      reviewId: String(reviewId),
+      requestId: requestId ? String(requestId) : '',
+      rating: parseInt(rating, 10) || 0,
+      body,
+    },
+    is_read: false,
+  };
+  const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
+  if (error) throw new Error(error.message);
+  return mapRow(data);
+}
+
+async function markReadByReviewId(reviewId) {
+  if (!isEnabled() || !reviewId) return;
+  await getAdmin()
+    .from(TABLE)
+    .update({ is_read: true })
+    .eq('type', EJAR_REVIEW_TYPE)
+    .filter('payload->>reviewId', 'eq', String(reviewId))
+    .eq('is_read', false);
+}
+
 async function createPropertyPendingReview({ propertyId, marketerId, marketerName, propertyType, district, price, createdAt }) {
   if (!isEnabled()) return null;
   const row = {
@@ -90,6 +144,9 @@ async function markAllRead() {
 
 module.exports = {
   createPropertyPendingReview,
+  createEjarReviewReceived,
+  findEjarReviewNotification,
+  markReadByReviewId,
   list,
   countUnread,
   markRead,

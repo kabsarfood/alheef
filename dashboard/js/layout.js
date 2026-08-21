@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   ]},
   { section: 'العملاء', items: [
     { href: '/dashboard/requests.html', icon: '◎', label: 'طلبات العملاء', page: 'requests' },
+    { href: '/dashboard/ejar-reviews.html', icon: '★', label: 'تقييمات عقود الإيجار', page: 'ejar-reviews' },
     { href: '/dashboard/subscriptions.html', icon: '◐', label: 'الاشتراكات والتنبيهات', page: 'subscriptions' },
   ]},
   { section: 'النظام', items: [
@@ -123,7 +124,7 @@ async function initAdminNotifications() {
           </button>
           <div class="notif-panel" id="notif-panel" hidden>
             <div class="notif-panel__head">
-              <strong>إشعارات المراجعة</strong>
+              <strong>الإشعارات</strong>
               ${unreadCount > 0 ? '<button type="button" class="notif-panel__read-all" id="notif-read-all">تعليم الكل كمقروء</button>' : ''}
             </div>
             <div class="notif-panel__list">
@@ -166,6 +167,18 @@ async function initAdminNotifications() {
           window.location.href = `/dashboard/property-reviews.html?property=${btn.dataset.propertyId || ''}`;
         });
       });
+
+      host.querySelectorAll('[data-notif-ejar-review]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.notifId;
+          if (id) await DashboardAPI.markNotificationRead(id).catch(() => {});
+          if (window.AlheefPWA) {
+            const remaining = Math.max(0, unreadCount - 1);
+            window.AlheefPWA.setBadge(remaining);
+          }
+          window.location.href = `/dashboard/ejar-reviews.html?review=${btn.dataset.reviewId || ''}`;
+        });
+      });
     } catch {
       host.innerHTML = '';
     }
@@ -183,6 +196,18 @@ async function initAdminNotifications() {
 }
 
 function renderNotificationItem(n) {
+  if (n.type === 'ejar_review_received') {
+    const p = n.payload || {};
+    const body = p.body || `وصل تقييم جديد ${'⭐'.repeat(p.rating || 0)} ويحتاج إلى مراجعتك قبل النشر.`;
+    return `
+      <article class="notif-item${n.isRead ? ' notif-item--read' : ''}">
+        <h4 class="notif-item__title">${escapeLayoutHtml(n.title || 'تقييم جديد لعقد إيجار')}</h4>
+        <p class="notif-item__body">${escapeLayoutHtml(body)}</p>
+        <button type="button" class="btn btn-primary btn-sm" data-notif-ejar-review data-notif-id="${n.id}" data-review-id="${p.reviewId || ''}">مراجعة التقييم</button>
+      </article>
+    `;
+  }
+
   const p = n.payload || {};
   const marketerName = n.marketerName || p.marketerName || '—';
   const propertyType = n.propertyType || p.propertyType || '—';

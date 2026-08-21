@@ -913,4 +913,71 @@ router.delete('/private-offers/:id', async (req, res) => {
   }
 });
 
+// ─── تقييمات عقود الإيجار ───
+const ejarReviewsRoutes = require('./ejarReviews');
+const ejarReviewsRepo = require('../repositories/ejarReviewsRepo');
+
+router.get('/ejar-reviews/stats', async (_req, res) => {
+  try {
+    const pendingCount = await ejarReviewsRepo.countPending();
+    res.json({ success: true, pendingCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/ejar-reviews', async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const items = await ejarReviewsRepo.listAdmin({ status });
+    const pendingCount = await ejarReviewsRepo.countPending();
+    res.json({ success: true, items, pendingCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/ejar-reviews/tokens', async (req, res) => {
+  try {
+    const requestId = req.body.requestId;
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'معرّف الطلب مطلوب' });
+    }
+    const link = await ejarReviewsRoutes.createReviewLinkForRequest(requestId);
+    res.json({ success: true, ...link });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/ejar-reviews/:id/approve', async (req, res) => {
+  try {
+    const review = await ejarReviewsRepo.setStatus(req.params.id, 'approved');
+    if (!review) return res.status(404).json({ success: false, message: 'التقييم غير موجود' });
+    const publicStats = await ejarReviewsRepo.getPublicStats();
+    res.json({ success: true, review, publicStats });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/ejar-reviews/:id/hide', async (req, res) => {
+  try {
+    const review = await ejarReviewsRepo.setStatus(req.params.id, 'hidden');
+    if (!review) return res.status(404).json({ success: false, message: 'التقييم غير موجود' });
+    res.json({ success: true, review });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/ejar-reviews/:id/read-notification', async (req, res) => {
+  try {
+    await adminNotificationsRepo.markReadByReviewId(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

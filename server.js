@@ -37,6 +37,7 @@ let marketerRoutes;
 let pushRoutes;
 let privateOffersRoutes;
 let analyticsRoutes;
+let ejarReviewsRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -50,6 +51,7 @@ try {
   pushRoutes = require('./server/routes/push');
   privateOffersRoutes = require('./server/routes/privateOffers');
   analyticsRoutes = require('./server/routes/analytics');
+  ejarReviewsRoutes = require('./server/routes/ejarReviews');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -201,6 +203,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/private-offers', privateOffersRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/marketer', marketerRoutes);
+app.use('/api/ejar', ejarReviewsRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -263,6 +266,11 @@ app.get('*', (req, res, next) => {
 
     if (PRIVATE_PAGE_RE.test(req.path)) {
       return sendPrivateOffersPage(res);
+    }
+
+    if (/^\/ejar\/review\/[A-Za-z0-9_-]{20,128}$/.test(req.path)) {
+      const reviewPage = path.join(publicDir, 'ejar-review.html');
+      if (fs.existsSync(reviewPage)) return res.sendFile(reviewPage);
     }
 
     const pageMap = {

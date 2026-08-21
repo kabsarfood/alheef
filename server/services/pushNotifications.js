@@ -86,6 +86,19 @@ async function notifyAdminsPropertyPendingReview({ propertyId, marketerName, pro
   });
 }
 
+async function notifyAdminsEjarReview({ reviewId, rating }) {
+  const unreadCount = await adminNotificationsRepo.countUnread();
+  const stars = '⭐'.repeat(Math.min(5, Math.max(1, parseInt(rating, 10) || 0)));
+  await sendToAdmins({
+    title: 'تقييم جديد لعقد إيجار',
+    body: `وصل تقييم جديد ${stars} ويحتاج إلى مراجعتك قبل النشر.`,
+    url: `/dashboard/ejar-reviews.html?review=${reviewId || ''}`,
+    type: 'ejar_review_received',
+    badgeCount: unreadCount,
+    tag: `ejar-review-${reviewId}`,
+  });
+}
+
 async function notifyAdminsClientRequest({ requestType, customerName, message }) {
   const unreadCount = await adminNotificationsRepo.countUnread();
   await sendToAdmins({
@@ -190,6 +203,7 @@ module.exports = {
   sendToAdmins,
   sendToMarketer,
   notifyAdminsPropertyPendingReview,
+  notifyAdminsEjarReview,
   notifyAdminsClientRequest,
   notifyMarketerPropertyReview,
   notifyClientsNewOffer,
