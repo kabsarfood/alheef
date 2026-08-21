@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const highlightId = new URLSearchParams(location.search).get('request');
   await initLayout('requests', 'طلبات العملاء');
   const content = getPageContent();
   content.innerHTML = '<div class="card"><div class="card__body" id="table-wrap"><div class="loading"><div class="spinner"></div></div></div></div>';
@@ -15,6 +16,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     content.querySelectorAll('[data-ejar-review-link]').forEach((btn) => {
       btn.addEventListener('click', () => openReviewLink(btn.dataset.id, btn));
     });
+
+    if (highlightId) {
+      await DashboardAPI.markCustomerRequestNotificationRead(highlightId).catch(() => {});
+      setTimeout(() => {
+        const el = document.querySelector(`[data-request-id="${highlightId}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.classList.add('table-row--highlight');
+      }, 400);
+    }
   } catch {
     content.querySelector('#table-wrap').innerHTML = '<p class="empty-state">تعذر تحميل البيانات</p>';
   }
@@ -49,7 +59,7 @@ function renderTable(rows) {
   if (!rows.length) return '<p class="empty-state">لا توجد طلبات</p>';
   return `<div class="table-wrap"><table class="table table--cards">
     <thead><tr><th>النوع</th><th>الاسم</th><th>الجوال</th><th>البريد</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-    <tbody>${rows.map((r) => `<tr>
+    <tbody>${rows.map((r) => `<tr data-request-id="${r.id}">
       <td data-label="النوع">${escapeCell(r.requestType)}</td>
       <td data-label="الاسم">${escapeCell(r.customerName || '—')}</td>
       <td data-label="الجوال" dir="ltr">${escapeCell(r.customerPhone || '—')}</td>

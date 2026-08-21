@@ -1110,6 +1110,11 @@ button, input, select, textarea {
   box-shadow: 0 0 0 4px rgba(197, 164, 109, 0.2);
 }
 
+tr.table-row--highlight {
+  outline: 2px solid var(--gold);
+  box-shadow: inset 0 0 0 9999px rgba(197, 164, 109, 0.08);
+}
+
 .pending-ad-row {
   display: flex;
   align-items: center;

@@ -99,15 +99,19 @@ async function notifyAdminsEjarReview({ reviewId, rating }) {
   });
 }
 
-async function notifyAdminsClientRequest({ requestType, customerName, message }) {
+async function notifyAdminsClientRequest({ requestId, requestType, message }) {
   const unreadCount = await adminNotificationsRepo.countUnread();
+  const { title, body } = adminNotificationsRepo.buildCustomerRequestNotificationContent({
+    requestType,
+    message,
+  });
   await sendToAdmins({
-    title: 'طلب عميل جديد',
-    body: [customerName, requestType, message].filter(Boolean).join(' — ').slice(0, 180),
-    url: '/dashboard/requests.html',
-    type: 'client_request',
+    title,
+    body: body.slice(0, 180),
+    url: requestId ? `/dashboard/requests.html?request=${requestId}` : '/dashboard/requests.html',
+    type: adminNotificationsRepo.CUSTOMER_REQUEST_TYPE,
     badgeCount: unreadCount,
-    tag: 'client-request',
+    tag: requestId ? `customer-request-${requestId}` : 'customer-request',
   });
 }
 

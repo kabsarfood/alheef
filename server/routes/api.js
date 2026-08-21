@@ -11,7 +11,7 @@ const bannersRepo = require('../repositories/bannersRepo');
 const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
-const pushNotifications = require('../services/pushNotifications');
+const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestNotifications');
 const { isPublicStatus } = require('../utils/propertyStatus');
 const { isEnabled } = require('../lib/supabase');
 
@@ -182,7 +182,7 @@ router.post('/requests', requireDb, async (req, res) => {
     if (!requestType) {
       return res.status(400).json({ success: false, message: 'نوع الطلب مطلوب' });
     }
-    await requestsRepo.create({
+    const request = await requestsRepo.create({
       customerName,
       customerPhone,
       customerEmail,
@@ -190,12 +190,8 @@ router.post('/requests', requireDb, async (req, res) => {
       propertyId,
       message,
     });
-    pushNotifications.notifyAdminsClientRequest({
-      requestType,
-      customerName,
-      message,
-    }).catch((err) => console.error('[push] request:', err.message));
-    res.json({ success: true, message: 'تم استلام طلبك بنجاح' });
+    await notifyAdminsNewCustomerRequest(request);
+    res.json({ success: true, message: 'تم استلام طلبك بنجاح', requestId: request.id });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -207,18 +203,14 @@ router.post('/request-property', requireDb, async (req, res) => {
     if (!propertyType || !city || !phone) {
       return res.status(400).json({ success: false, message: 'يرجى تعبئة الحقول المطلوبة' });
     }
-    await requestsRepo.create({
+    const request = await requestsRepo.create({
       customerName: name,
       customerPhone: phone,
       requestType: 'property_search',
       message: JSON.stringify({ propertyType, city, district, budget, description }),
     });
-    pushNotifications.notifyAdminsClientRequest({
-      requestType: 'property_search',
-      customerName: name,
-      message: [propertyType, city, district].filter(Boolean).join(' — '),
-    }).catch((err) => console.error('[push] property search:', err.message));
-    res.json({ success: true, message: 'تم استلام طلبك بنجاح، سنتواصل معك قريباً' });
+    await notifyAdminsNewCustomerRequest(request);
+    res.json({ success: true, message: 'تم استلام طلبك بنجاح، سنتواصل معك قريباً', requestId: request.id });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -235,18 +227,14 @@ router.post(
         return res.status(400).json({ success: false, message: 'يرجى تعبئة الحقول المطلوبة' });
       }
       const images = await uploadFiles(req.files, 'properties');
-      await requestsRepo.create({
+      const request = await requestsRepo.create({
         customerName: ownerName,
         customerPhone: phone,
         requestType: 'owner_listing',
         message: JSON.stringify({ propertyType, city, description, images }),
       });
-      pushNotifications.notifyAdminsClientRequest({
-        requestType: 'owner_listing',
-        customerName: ownerName,
-        message: [propertyType, city].filter(Boolean).join(' — '),
-      }).catch((err) => console.error('[push] owner listing:', err.message));
-      res.json({ success: true, message: 'تم استلام عرضك بنجاح' });
+      await notifyAdminsNewCustomerRequest(request);
+      res.json({ success: true, message: 'تم استلام عرضك بنجاح', requestId: request.id });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }

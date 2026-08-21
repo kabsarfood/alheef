@@ -222,6 +222,10 @@ const DashboardAPI = {
     return this.request(`/ejar-reviews/${reviewId}/read-notification`, { method: 'PUT' });
   },
 
+  markCustomerRequestNotificationRead(requestId) {
+    return this.request(`/requests/${requestId}/read-notification`, { method: 'PUT' });
+  },
+
   testPushNotification() {
     const headers = Auth.authHeaders({ 'Content-Type': 'application/json' });
     return fetch('/api/push/test-admin', { method: 'POST', headers })

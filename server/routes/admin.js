@@ -10,6 +10,7 @@ const bannersRepo = require('../repositories/bannersRepo');
 const testimonialsRepo = require('../repositories/testimonialsRepo');
 const requestsRepo = require('../repositories/requestsRepo');
 const subscriptionsRepo = require('../repositories/subscriptionsRepo');
+const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
 const privateOffersRepo = require('../repositories/privateOffersRepo');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const siteAnalyticsRepo = require('../repositories/siteAnalyticsRepo');
@@ -432,6 +433,15 @@ router.delete('/requests/:id', async (req, res) => {
   res.json({ success: await requestsRepo.remove(req.params.id) });
 });
 
+router.put('/requests/:id/read-notification', async (req, res) => {
+  try {
+    await adminNotificationsRepo.markReadByRequestId(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Subscriptions ───
 router.get('/subscriptions', async (req, res) => {
   const { page, limit, offset } = parsePagination(req.query, { limit: 100 });
@@ -446,7 +456,6 @@ router.delete('/subscriptions/:id', async (req, res) => {
 // ─── طلبات انضمام المسوقين ───
 const marketerJoinRepo = require('../repositories/marketerJoinRepo');
 const marketersRepo = require('../repositories/marketersRepo');
-const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
 const pushNotifications = require('../services/pushNotifications');
 const { PUBLIC_STATUSES, JOIN_STATUS_LABELS, PROPERTY_STATUS_LABELS, zoneLabel } = require('../utils/marketerZones');
 

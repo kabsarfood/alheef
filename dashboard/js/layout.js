@@ -220,6 +220,18 @@ async function initAdminNotifications() {
           window.location.href = `/dashboard/ejar-reviews.html?review=${btn.dataset.reviewId || ''}`;
         });
       });
+
+      host.querySelectorAll('[data-notif-client-request]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.notifId;
+          if (id) await DashboardAPI.markNotificationRead(id).catch(() => {});
+          if (window.AlheefPWA) {
+            const remaining = Math.max(0, unreadCount - 1);
+            window.AlheefPWA.setBadge(remaining);
+          }
+          window.location.href = `/dashboard/requests.html?request=${btn.dataset.requestId || ''}`;
+        });
+      });
     } catch {
       host.innerHTML = '';
     }
@@ -245,6 +257,18 @@ function renderNotificationItem(n) {
         <h4 class="notif-item__title">${escapeLayoutHtml(n.title || 'تقييم جديد لعقد إيجار')}</h4>
         <p class="notif-item__body">${escapeLayoutHtml(body)}</p>
         <button type="button" class="btn btn-primary btn-sm" data-notif-ejar-review data-notif-id="${n.id}" data-review-id="${p.reviewId || ''}">مراجعة التقييم</button>
+      </article>
+    `;
+  }
+
+  if (n.type === 'customer_request_received') {
+    const p = n.payload || {};
+    const body = p.body || 'وصل طلب عميل جديد ويحتاج إلى المتابعة.';
+    return `
+      <article class="notif-item${n.isRead ? ' notif-item--read' : ''}">
+        <h4 class="notif-item__title">${escapeLayoutHtml(n.title || 'طلب عميل جديد')}</h4>
+        <p class="notif-item__body">${escapeLayoutHtml(body)}</p>
+        <button type="button" class="btn btn-primary btn-sm" data-notif-client-request data-notif-id="${n.id}" data-request-id="${p.requestId || ''}">عرض الطلب</button>
       </article>
     `;
   }

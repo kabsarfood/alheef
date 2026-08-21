@@ -23,6 +23,48 @@ function mapRow(row) {
 }
 
 const EJAR_REVIEW_TYPE = 'ejar_review_received';
+const CUSTOMER_REQUEST_TYPE = 'customer_request_received';
+
+function parseEjarContractKind(message) {
+  if (!message) return '';
+  try {
+    const parsed = typeof message === 'string' ? JSON.parse(message) : message;
+    const ct = String(parsed?.contractType || '').trim();
+    if (ct === 'سكني' || ct === 'residential') return 'سكني';
+    if (ct === 'تجاري' || ct === 'commercial') return 'تجاري';
+  } catch {
+    /* ignore invalid JSON */
+  }
+  return '';
+}
+
+function buildCustomerRequestNotificationContent({ requestType, message }) {
+  if (requestType === 'ejar_contract') {
+    const kind = parseEjarContractKind(message);
+    return {
+      title: 'طلب جديد لعقد إيجار',
+      body: kind
+        ? `وصل طلب جديد لإنشاء عقد إيجار ${kind} ويحتاج إلى المتابعة.`
+        : 'وصل طلب جديد لإنشاء عقد إيجار ويحتاج إلى المتابعة.',
+    };
+  }
+  if (requestType === 'property_search') {
+    return {
+      title: 'طلب جديد للبحث عن عقار',
+      body: 'وصل طلب جديد للبحث عن عقار ويحتاج إلى المتابعة.',
+    };
+  }
+  if (requestType === 'owner_listing') {
+    return {
+      title: 'طلب جديد لعرض عقار',
+      body: 'وصل طلب جديد لعرض عقار ويحتاج إلى المتابعة.',
+    };
+  }
+  return {
+    title: 'طلب عميل جديد',
+    body: 'وصل طلب عميل جديد ويحتاج إلى المتابعة.',
+  };
+}
 
 function starsBody(rating) {
   const n = Math.min(5, Math.max(1, parseInt(rating, 10) || 0));
@@ -73,6 +115,52 @@ async function markReadByReviewId(reviewId) {
     .update({ is_read: true })
     .eq('type', EJAR_REVIEW_TYPE)
     .filter('payload->>reviewId', 'eq', String(reviewId))
+    .eq('is_read', false);
+}
+
+async function findRequestNotification(requestId) {
+  if (!isEnabled() || !requestId) return null;
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('type', CUSTOMER_REQUEST_TYPE)
+    .filter('payload->>requestId', 'eq', String(requestId))
+    .maybeSingle();
+  if (error) return null;
+  return mapRow(data);
+}
+
+async function createCustomerRequestReceived({ requestId, requestType, message }) {
+  if (!isEnabled() || !requestId) return null;
+
+  const existing = await findRequestNotification(requestId);
+  if (existing) return existing;
+
+  const { title, body } = buildCustomerRequestNotificationContent({ requestType, message });
+  const row = {
+    type: CUSTOMER_REQUEST_TYPE,
+    title,
+    property_id: null,
+    marketer_id: null,
+    payload: {
+      requestId: String(requestId),
+      requestType: requestType || '',
+      body,
+    },
+    is_read: false,
+  };
+  const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
+  if (error) throw new Error(error.message);
+  return mapRow(data);
+}
+
+async function markReadByRequestId(requestId) {
+  if (!isEnabled() || !requestId) return;
+  await getAdmin()
+    .from(TABLE)
+    .update({ is_read: true })
+    .eq('type', CUSTOMER_REQUEST_TYPE)
+    .filter('payload->>requestId', 'eq', String(requestId))
     .eq('is_read', false);
 }
 
@@ -143,10 +231,15 @@ async function markAllRead() {
 }
 
 module.exports = {
+  CUSTOMER_REQUEST_TYPE,
+  buildCustomerRequestNotificationContent,
   createPropertyPendingReview,
   createEjarReviewReceived,
+  createCustomerRequestReceived,
   findEjarReviewNotification,
+  findRequestNotification,
   markReadByReviewId,
+  markReadByRequestId,
   list,
   countUnread,
   markRead,

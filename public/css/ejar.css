@@ -1650,8 +1650,33 @@
   }
 
   .ejar-pricing {
-    max-width: 720px;
-    margin: 0 auto;
+    max-width: 864px;
+    gap: clamp(1rem, 2.2vw, 1.35rem);
+    margin-bottom: clamp(1rem, 2.5vw, 1.4rem);
+  }
+
+  .ejar-price-card {
+    padding: clamp(1.02rem, 3vw, 1.62rem) clamp(0.78rem, 2.4vw, 1.2rem);
+  }
+
+  .ejar-price-card__type {
+    font-size: calc(var(--ejar-fs-card-title) * 1.2);
+    margin-bottom: 0.42rem;
+  }
+
+  .ejar-price-card__amount {
+    font-size: calc(var(--ejar-fs-price) * 1.2);
+  }
+
+  .ejar-price-card__note {
+    font-size: calc(var(--ejar-fs-sm) * 1.2);
+    margin-bottom: 0.9rem;
+  }
+
+  .ejar-price-card .btn {
+    min-height: 53px;
+    font-size: calc(var(--ejar-fs-btn) * 1.2);
+    padding-inline: 0.6rem;
   }
 
   .ejar-hero__footnote {
@@ -1659,7 +1684,19 @@
   }
 
   .ejar-hero__actions {
-    max-width: 680px;
+    max-width: 816px;
+    gap: 0.66rem;
+  }
+
+  .ejar-hero__actions .btn {
+    min-height: 58px;
+    font-size: calc(var(--ejar-fs-btn) * 1.2);
+    gap: 0.48rem;
+  }
+
+  .ejar-hero__actions .ejar-btn-icon {
+    width: 22px;
+    height: 22px;
   }
 
   .ejar-creds__grid {
