@@ -39,8 +39,14 @@ function parseCoordsFromMapsUrl(url) {
   const place = text.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i);
   if (place) return { lat: place[1], lng: place[2] };
 
+  const placeRev = text.match(/!4d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/i);
+  if (placeRev) return { lat: placeRev[2], lng: placeRev[1] };
+
   const at = text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
   if (at) return { lat: at[1], lng: at[2] };
+
+  const pathPair = text.match(/\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:\?|\/|$|[,/])/);
+  if (pathPair) return { lat: pathPair[1], lng: pathPair[2] };
 
   const patterns = [
     /[?&]q=(-?\d+(?:\.\d+)?)[,%2C\s+]+(-?\d+(?:\.\d+)?)/i,
@@ -60,37 +66,87 @@ function parseCoordsFromMapsUrl(url) {
   return null;
 }
 
+function isGoogleMapsUrl(url) {
+  return /google\.[a-z.]+\/maps|maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(String(url || ''));
+}
+
 function isShortMapsUrl(url) {
   return /(?:^|\/)maps\.app\.goo\.gl\/|(?:^|\/)goo\.gl\/maps\/|share\.google\.com/i.test(String(url || ''));
 }
 
+function normalizeMapsUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  let text = url.trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  if (/^maps\.app\.goo\.gl\//i.test(text)) return `https://${text}`;
+  if (/^goo\.gl\/maps\//i.test(text)) return `https://${text}`;
+  if (/^google\.[a-z.]+\/maps/i.test(text)) return `https://${text}`;
+  if (/^www\.google\.[a-z.]+\/maps/i.test(text)) return `https://${text}`;
+  return text;
+}
+
 async function resolveMapsUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (!isShortMapsUrl(trimmed) && parseCoordsFromMapsUrl(trimmed)) return trimmed;
+  const normalized = normalizeMapsUrl(url);
+  if (!normalized) return normalized;
+  if (parseCoordsFromMapsUrl(normalized)) return normalized;
+  if (!isGoogleMapsUrl(normalized) && !isShortMapsUrl(normalized)) return normalized;
 
   try {
-    const res = await fetch(trimmed, {
+    const res = await fetch(normalized, {
       method: 'GET',
       redirect: 'follow',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AlheefBot/1.0)' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
     });
-    return res.url || trimmed;
+    return res.url || normalized;
   } catch {
-    return trimmed;
+    return normalized;
   }
 }
 
+async function fetchCoordsFromMapsPage(url) {
+  const normalized = normalizeMapsUrl(url);
+  if (!normalized || (!isGoogleMapsUrl(normalized) && !isShortMapsUrl(normalized))) return null;
+
+  try {
+    const res = await fetch(normalized, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+    const finalUrl = res.url || normalized;
+    const fromUrl = normalizeCoordsPair(parseCoordsFromMapsUrl(finalUrl));
+    if (fromUrl) return { ...fromUrl, resolvedUrl: finalUrl };
+
+    const html = await res.text();
+    const fromHtml = normalizeCoordsPair(parseCoordsFromMapsUrl(html));
+    if (fromHtml) return { ...fromHtml, resolvedUrl: finalUrl };
+  } catch {
+    /* ignore */
+  }
+
+  return null;
+}
+
 async function parseCoordsFromMapsUrlResolved(url) {
-  const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(url));
+  const normalized = normalizeMapsUrl(url);
+  const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(normalized));
   if (direct) return direct;
 
-  const resolved = await resolveMapsUrl(url);
-  if (resolved && resolved !== url) {
+  const resolved = await resolveMapsUrl(normalized);
+  if (resolved && resolved !== normalized) {
     const fromResolved = normalizeCoordsPair(parseCoordsFromMapsUrl(resolved));
     if (fromResolved) return { ...fromResolved, resolvedUrl: resolved };
   }
+
+  const fromPage = await fetchCoordsFromMapsPage(normalized);
+  if (fromPage) return fromPage;
 
   return null;
 }
@@ -106,8 +162,10 @@ async function enrichBodyCoords(body) {
     return body;
   }
 
-  const mapsUrl = body.mapsUrl || body.maps_url;
+  const mapsUrl = normalizeMapsUrl(body.mapsUrl || body.maps_url);
   if (!mapsUrl) return body;
+  body.mapsUrl = mapsUrl;
+  body.maps_url = mapsUrl;
 
   const coords = await parseCoordsFromMapsUrlResolved(mapsUrl);
   if (coords) {
@@ -127,8 +185,11 @@ module.exports = {
   isValidCoord,
   normalizeCoordsPair,
   parseCoordsFromMapsUrl,
+  normalizeMapsUrl,
+  isGoogleMapsUrl,
   isShortMapsUrl,
   resolveMapsUrl,
+  fetchCoordsFromMapsPage,
   parseCoordsFromMapsUrlResolved,
   enrichBodyCoords,
 };

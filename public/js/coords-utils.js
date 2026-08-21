@@ -26,23 +26,47 @@ const AlheefCoords = (() => {
     return { lat, lng };
   }
 
-  function parseFromMapsUrl(url) {
-    if (!url || typeof url !== 'string') return null;
+  function normalizeMapsUrl(url) {
+    if (!url || typeof url !== 'string') return '';
     let text = url.trim();
+    if (!text) return '';
+    if (/^https?:\/\//i.test(text)) return text;
+    if (/^maps\.app\.goo\.gl\//i.test(text)) return `https://${text}`;
+    if (/^goo\.gl\/maps\//i.test(text)) return `https://${text}`;
+    if (/^google\.[a-z.]+\/maps/i.test(text)) return `https://${text}`;
+    if (/^www\.google\.[a-z.]+\/maps/i.test(text)) return `https://${text}`;
+    return text;
+  }
+
+  function looksLikeMapsUrl(url) {
+    const text = normalizeMapsUrl(url);
+    return /^https?:\/\//i.test(text) && /google\.[a-z.]+\/maps|maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(text);
+  }
+
+  function parseFromMapsUrl(url) {
+    const text = normalizeMapsUrl(url);
+    if (!text) return null;
+    let decoded = text;
     try {
-      text = decodeURIComponent(text);
+      decoded = decodeURIComponent(text);
     } catch {
       /* keep */
     }
 
-    const plain = text.match(/^(-?\d{1,3}(?:\.\d+)?)\s*[,،]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    const plain = decoded.match(/^(-?\d{1,3}(?:\.\d+)?)\s*[,،]\s*(-?\d{1,3}(?:\.\d+)?)$/);
     if (plain) return { lat: plain[1], lng: plain[2] };
 
-    const place = text.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i);
+    const place = decoded.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i);
     if (place) return { lat: place[1], lng: place[2] };
 
-    const at = text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+    const placeRev = decoded.match(/!4d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/i);
+    if (placeRev) return { lat: placeRev[2], lng: placeRev[1] };
+
+    const at = decoded.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
     if (at) return { lat: at[1], lng: at[2] };
+
+    const pathPair = decoded.match(/\/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:\?|\/|$|[,/])/);
+    if (pathPair) return { lat: pathPair[1], lng: pathPair[2] };
 
     const patterns = [
       /[?&]q=(-?\d+(?:\.\d+)?)[,%2C\s+]+(-?\d+(?:\.\d+)?)/i,
@@ -55,18 +79,10 @@ const AlheefCoords = (() => {
     ];
 
     for (const re of patterns) {
-      const m = text.match(re);
+      const m = decoded.match(re);
       if (m) return { lat: m[1], lng: m[2] };
     }
 
-    return null;
-  }
-
-  function resolveFormCoords(mapsUrl, latValue, lngValue) {
-    const fromUrl = normalize(parseFromMapsUrl(mapsUrl));
-    if (fromUrl) return fromUrl;
-    const fromManual = normalize({ lat: latValue, lng: lngValue });
-    if (fromManual) return fromManual;
     return null;
   }
 
@@ -74,7 +90,8 @@ const AlheefCoords = (() => {
     parseCoord,
     isValidCoord,
     normalize,
+    normalizeMapsUrl,
+    looksLikeMapsUrl,
     parseFromMapsUrl,
-    resolveFormCoords,
   };
 })();

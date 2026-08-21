@@ -11,6 +11,8 @@ const REQUEST_USAGE = [
 let imageQueue = [];
 let editId = null;
 let dropBound = false;
+let _mapsCoords = null;
+let _mapsResolveTimer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(location.search);
@@ -85,6 +87,8 @@ function syncListingMode() {
   if (priceEl) priceEl.disabled = buy;
   const descEl = document.getElementById('property-description');
   if (descEl) descEl.disabled = buy;
+  const mapsUrlEl = document.getElementById('mapsUrl');
+  if (mapsUrlEl) mapsUrlEl.required = !buy;
 }
 
 function renderForm() {
@@ -190,23 +194,9 @@ function renderForm() {
               <input type="text" name="location" id="location" placeholder="مثال: الرياض — حي النرجس" required>
             </div>
             <div class="form-group full">
-              <label>رابط اللوكيشن (Google Maps)</label>
-              <input type="text" name="mapsUrl" id="mapsUrl" placeholder="https://maps.google.com/... أو 24.7136, 46.6753" dir="ltr" inputmode="url" autocomplete="off">
-              <span class="form-hint" id="maps-url-hint">الصق رابط Google Maps أو الإحداثيات (خط العرض, خط الطول) ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a></span>
-            </div>
-            <div class="form-group full" id="coords-manual-wrap">
-              <label>إحداثيات الموقع (اختياري — إذا لم يُقبل الرابط)</label>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="latitude">خط العرض</label>
-                  <input type="text" name="latitude" id="latitude" placeholder="24.713600" dir="ltr" inputmode="decimal">
-                </div>
-                <div class="form-group">
-                  <label for="longitude">خط الطول</label>
-                  <input type="text" name="longitude" id="longitude" placeholder="46.675300" dir="ltr" inputmode="decimal">
-                </div>
-              </div>
-              <span class="form-hint">يمكنك نسخ الإحداثيات من Google Maps → «مشاركة» → «نسخ الرابط» أو من تفاصيل المكان</span>
+              <label for="mapsUrl">رابط اللوكيشن (Google Maps) <span class="required">*</span></label>
+              <input type="text" name="mapsUrl" id="mapsUrl" placeholder="https://maps.app.goo.gl/... أو https://maps.google.com/..." dir="ltr" inputmode="url" autocomplete="off" required>
+              <span class="form-hint" id="maps-url-hint">من Google Maps: <strong>مشاركة</strong> ← <strong>نسخ الرابط</strong> ← الصق هنا ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a></span>
             </div>
             <div class="form-group">
               <label>حالة الإعلان</label>
@@ -241,10 +231,13 @@ function renderForm() {
   syncListingMode();
 
   document.getElementById('property-form').addEventListener('submit', handleSubmit);
-  document.getElementById('mapsUrl')?.addEventListener('input', updateMapsUrlHint);
-  document.getElementById('mapsUrl')?.addEventListener('change', resolveMapsUrlCoords);
-  document.getElementById('latitude')?.addEventListener('input', updateMapsUrlHint);
-  document.getElementById('longitude')?.addEventListener('input', updateMapsUrlHint);
+  const mapsInput = document.getElementById('mapsUrl');
+  mapsInput?.addEventListener('input', () => {
+    _mapsCoords = null;
+    scheduleMapsUrlResolve();
+  });
+  mapsInput?.addEventListener('paste', () => setTimeout(scheduleMapsUrlResolve, 0));
+  mapsInput?.addEventListener('change', () => resolveMapsUrlCoords());
   document.getElementById('image-input').addEventListener('change', (e) => {
     addFiles(e.target.files);
     e.target.value = '';
@@ -272,63 +265,106 @@ function bindDropZone() {
   });
 }
 
+function getMapsUrlValue() {
+  const raw = document.getElementById('mapsUrl')?.value?.trim() || '';
+  return window.AlheefCoords ? AlheefCoords.normalizeMapsUrl(raw) : raw;
+}
+
 function getFormCoords() {
-  const mapsUrl = document.getElementById('mapsUrl')?.value?.trim() || '';
-  const lat = document.getElementById('latitude')?.value?.trim() || '';
-  const lng = document.getElementById('longitude')?.value?.trim() || '';
+  if (_mapsCoords) return _mapsCoords;
+  const mapsUrl = getMapsUrlValue();
   if (window.AlheefCoords) {
-    return AlheefCoords.resolveFormCoords(mapsUrl, lat, lng);
+    return AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(mapsUrl));
   }
   return null;
 }
 
+function scheduleMapsUrlResolve() {
+  clearTimeout(_mapsResolveTimer);
+  _mapsResolveTimer = setTimeout(() => resolveMapsUrlCoords(), 450);
+}
+
 async function resolveMapsUrlCoords() {
   const input = document.getElementById('mapsUrl');
-  if (!input) return;
-  const url = input.value.trim();
-  if (!url || getFormCoords()) {
-    updateMapsUrlHint();
-    return;
+  if (!input) return null;
+
+  const normalized = getMapsUrlValue();
+  if (normalized && normalized !== input.value.trim()) {
+    input.value = normalized;
   }
 
-  const hint = document.getElementById('maps-url-hint');
-  if (hint) hint.innerHTML = 'جاري التحقق من الرابط…';
+  if (!normalized) {
+    _mapsCoords = null;
+    updateMapsUrlHint();
+    return null;
+  }
+
+  const local = window.AlheefCoords
+    ? AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(normalized))
+    : null;
+  if (local) {
+    _mapsCoords = local;
+    updateMapsUrlHint('ok');
+    return local;
+  }
+
+  if (!window.AlheefCoords?.looksLikeMapsUrl(normalized)) {
+    _mapsCoords = null;
+    updateMapsUrlHint('not-url');
+    return null;
+  }
+
+  updateMapsUrlHint('loading');
 
   try {
     const data = await DashboardAPI.request('/map/parse-coords', {
       method: 'POST',
       headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url: normalized }),
     });
     if (data.success && data.lat != null && data.lng != null) {
-      document.getElementById('latitude').value = String(data.lat);
-      document.getElementById('longitude').value = String(data.lng);
-      if (data.resolvedUrl && !AlheefCoords.parseFromMapsUrl(url)) {
-        input.value = data.resolvedUrl;
-      }
+      _mapsCoords = { lat: data.lat, lng: data.lng };
+      if (data.resolvedUrl) input.value = data.resolvedUrl;
+      updateMapsUrlHint('ok');
+      return _mapsCoords;
     }
   } catch {
-    /* local/manual fallback only */
+    /* fall through */
   }
 
-  updateMapsUrlHint();
+  _mapsCoords = null;
+  updateMapsUrlHint('fail');
+  return null;
 }
 
-function updateMapsUrlHint() {
+function updateMapsUrlHint(state) {
   const hint = document.getElementById('maps-url-hint');
   if (!hint) return;
-  const base = 'الصق رابط Google Maps أو الإحداثيات (خط العرض, خط الطول) ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a>';
+  const base = 'من Google Maps: <strong>مشاركة</strong> ← <strong>نسخ الرابط</strong> ← الصق هنا ليظهر الإعلان على <a href="/map.html" target="_blank">الخريطة العقارية</a>';
+
+  if (state === 'loading') {
+    hint.innerHTML = `${base}<br><span style="color:var(--text-secondary)">جاري التحقق من الرابط…</span>`;
+    return;
+  }
+
   const coords = getFormCoords();
   if (coords) {
-    hint.innerHTML = `${base} — <strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})</strong>`;
-  } else {
-    const url = document.getElementById('mapsUrl')?.value?.trim();
-    if (url) {
-      hint.innerHTML = `${base} — <span style="color:var(--danger,#c0392b)">لم يُتعرف على الإحداثيات بعد — أدخل خط العرض/الطول أو رابط «مشاركة» من Google Maps</span>`;
-    } else {
-      hint.innerHTML = base;
-    }
+    hint.innerHTML = `${base} — <strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع ✓</strong>`;
+    return;
   }
+
+  const url = getMapsUrlValue();
+  if (!url) {
+    hint.innerHTML = base;
+    return;
+  }
+
+  if (state === 'not-url' || !window.AlheefCoords?.looksLikeMapsUrl(url)) {
+    hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق <strong>رابط Google Maps</strong> من «مشاركة» — وليس نص العنوان فقط</span>`;
+    return;
+  }
+
+  hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">لم يُتعرف على الرابط — تأكد أنه رابط «مشاركة» من Google Maps</span>`;
 }
 
 function parseFeatures(offer) {
@@ -369,9 +405,13 @@ async function loadOffer(id) {
 
     document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
     document.getElementById('mapsUrl').value = offer.mapsUrl || '';
-    if (offer.latitude != null) document.getElementById('latitude').value = offer.latitude;
-    if (offer.longitude != null) document.getElementById('longitude').value = offer.longitude;
-    updateMapsUrlHint();
+    if (offer.latitude != null && offer.longitude != null && window.AlheefCoords?.isValidCoord(offer.latitude, offer.longitude)) {
+      _mapsCoords = { lat: Number(offer.latitude), lng: Number(offer.longitude) };
+    } else {
+      _mapsCoords = null;
+    }
+    updateMapsUrlHint(_mapsCoords ? 'ok' : undefined);
+    if (offer.mapsUrl && !_mapsCoords) resolveMapsUrlCoords();
     document.getElementById('status').value = offer.status || 'published';
     const urls = offer.gallery?.length ? offer.gallery : (offer.images || []).map((i) => (typeof i === 'string' ? i : i.url));
     imageQueue = urls.filter(Boolean).map((url) => ({ url, isExisting: true }));
@@ -480,7 +520,13 @@ async function handleSubmit(e) {
     }
   }
 
-  fd.set('mapsUrl', fd.get('mapsUrl') || '');
+  fd.set('mapsUrl', getMapsUrlValue() || '');
+
+  const mapsUrl = getMapsUrlValue();
+  if (mapsUrl && !getFormCoords()) {
+    await resolveMapsUrlCoords();
+  }
+
   const coords = getFormCoords();
   if (coords) {
     fd.set('latitude', coords.lat);
@@ -490,15 +536,24 @@ async function handleSubmit(e) {
     fd.delete('longitude');
   }
 
+  const status = fd.get('status') || 'published';
+  if (status === 'published' && !buy) {
+    if (!mapsUrl) {
+      showToast('رابط Google Maps مطلوب لنشر الإعلان على الخريطة', 'error');
+      btn.disabled = false;
+      btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
+      return;
+    }
+    if (!coords) {
+      showToast('الصق رابط «مشاركة» من Google Maps — من التطبيق: مشاركة ← نسخ الرابط', 'error');
+      btn.disabled = false;
+      btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
+      return;
+    }
+  }
+
   const lat = coords?.lat;
   const lng = coords?.lng;
-  const status = fd.get('status') || 'published';
-  if (status === 'published' && (lat == null || lng == null)) {
-    showToast('لن يظهر على الخريطة بدون موقع صالح — الصق رابط Google Maps أو أدخل خط العرض/الطول', 'error');
-    btn.disabled = false;
-    btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
-    return;
-  }
 
   if (fd.get('bedrooms') === '') fd.delete('bedrooms');
   fd.append('existingImages', JSON.stringify(

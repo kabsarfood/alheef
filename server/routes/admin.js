@@ -74,15 +74,17 @@ router.post('/map/parse-coords', async (req, res) => {
     if (!url) {
       return res.status(400).json({ success: false, message: 'الرابط مطلوب' });
     }
-    const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(url));
+    const { normalizeMapsUrl } = require('../utils/coords');
+    const normalized = normalizeMapsUrl(url);
+    const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(normalized));
     if (direct) {
       return res.json({ success: true, ...direct, source: 'direct' });
     }
-    const resolved = await parseCoordsFromMapsUrlResolved(url);
+    const resolved = await parseCoordsFromMapsUrlResolved(normalized);
     if (!resolved) {
       return res.json({
         success: false,
-        message: 'تعذر استخراج الإحداثيات — جرّب «مشاركة» من Google Maps ثم «نسخ الرابط»، أو أدخل خط العرض/الطول يدوياً',
+        message: 'تعذر استخراج الإحداثيات — انسخ رابط «مشاركة» من Google Maps (مشاركة ← نسخ الرابط) وليس نص العنوان',
       });
     }
     res.json({
