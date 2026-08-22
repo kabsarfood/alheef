@@ -452,6 +452,9 @@ async function loadOffers() {
       return;
     }
     el.innerHTML = `<div class="offers-grid">${offersCache.map(renderOfferCard).join('')}</div>`;
+    el.querySelectorAll('[data-view]').forEach((btn) => {
+      btn.addEventListener('click', () => openOfferPreview(btn.dataset.view));
+    });
     el.querySelectorAll('[data-edit]').forEach((btn) => {
       btn.addEventListener('click', () => openOfferModal(btn.dataset.edit));
     });
@@ -481,6 +484,133 @@ function formatOfferPrice(o) {
   return o.listingType === 'rent' ? `${amount} / إيجار` : amount;
 }
 
+function offerImages(o) {
+  return (o.gallery && o.gallery.length) ? o.gallery : (o.coverImage ? [o.coverImage] : []);
+}
+
+function offerDistrict(o) {
+  const desc = String(o.shortDescription || '').trim();
+  if (desc) {
+    const first = desc.split('\n').map((s) => s.trim()).find(Boolean);
+    if (first) return first;
+  }
+  return String(o.street || '').trim();
+}
+
+function offerExtraDesc(o) {
+  const desc = String(o.shortDescription || '').trim();
+  if (!desc) return '';
+  const lines = desc.split('\n').map((s) => s.trim()).filter(Boolean);
+  if (lines.length <= 1) return desc;
+  return lines.slice(1).join('\n');
+}
+
+function isUrlText(s) {
+  return /^https?:\/\//i.test(String(s).trim());
+}
+
+function formatMultiline(text) {
+  return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
+function locationPreviewContent(location) {
+  const loc = String(location || '').trim();
+  if (!loc) return '';
+  if (isUrlText(loc)) {
+    return `<a href="${escapeHtml(loc)}" target="_blank" rel="noopener">📍 عرض على الخريطة</a>`;
+  }
+  return formatMultiline(loc);
+}
+
+function previewChip(text, mod = '') {
+  const cls = mod ? ` po-chip--${mod}` : '';
+  return `<span class="po-chip${cls}">${escapeHtml(text)}</span>`;
+}
+
+function buildClientPreviewCard(o) {
+  const imgs = offerImages(o);
+  const cover = imgs[0] || '';
+  const district = offerDistrict(o);
+  const extraDesc = offerExtraDesc(o);
+  const location = o.showLocation !== false ? (o.location || '') : '';
+  const locationHtml = location ? locationPreviewContent(location) : '';
+  const priceDisplay = formatOfferPrice(o);
+
+  const chips = [
+    previewChip(typeLabel(o.propertyType)),
+    previewChip(listingLabel(o.listingType), 'listing'),
+    o.area != null && o.area !== '' ? previewChip(`${Number(o.area).toLocaleString('ar-SA')} م²`, 'area') : '',
+    district ? previewChip(district, 'district') : '',
+  ].filter(Boolean).join('');
+
+  const mediaInner = cover
+    ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy">`
+    : '<div class="po-card__media-placeholder">بدون صورة</div>';
+  const badge = imgs.length > 1 ? `<span class="po-card__photos-badge">${imgs.length} صور</span>` : '';
+
+  return `
+    <article class="po-card" id="offer-${escapeHtml(o.id)}">
+      <div class="po-card__media po-card__media--static">${mediaInner}${badge}</div>
+      <div class="po-card__body">
+        <div class="po-card__chips">${chips}</div>
+        <div class="po-card__price">${escapeHtml(priceDisplay)}</div>
+        ${locationHtml ? `<div class="po-card__location">${locationHtml}</div>` : ''}
+        ${extraDesc ? `<p class="po-card__desc">${formatMultiline(extraDesc)}</p>` : ''}
+        <div class="po-card__footer">
+          <span class="po-card__number">${escapeHtml(o.offerNumber)}</span>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function getActiveClientShareUrl() {
+  const client = clientsCache.find((c) => c.active && c.shareUrl);
+  return client?.shareUrl || '';
+}
+
+function openOfferPreview(id) {
+  const offer = offersCache.find((o) => o.id === id);
+  if (!offer) {
+    showToast('تعذر العثور على العرض', 'error');
+    return;
+  }
+
+  const visibleToClient = offer.active && offer.visible && offer.status !== 'hidden';
+  const shareUrl = getActiveClientShareUrl();
+  const clientPageUrl = shareUrl ? `${shareUrl}#offer-${encodeURIComponent(id)}` : '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'modal active po-preview-modal';
+  wrap.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog" aria-labelledby="po-preview-title">
+      <div class="modal__header">
+        <h3 class="modal__title" id="po-preview-title">معاينة العرض — ${escapeHtml(offer.offerNumber)}</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
+      <div class="modal__body">
+        ${visibleToClient
+          ? '<p class="po-preview-note">هكذا يظهر العرض للعميل داخل صفحة العروض الخاصة.</p>'
+          : '<p class="po-preview-note po-preview-note--hidden">هذا العرض <strong>مخفي</strong> عن العملاء حالياً — المعاينة لمراجعة الشكل فقط.</p>'}
+        <div class="po-preview-wrap">
+          ${buildClientPreviewCard(offer)}
+        </div>
+        <div class="po-preview-actions">
+          ${clientPageUrl
+            ? `<a href="${escapeHtml(clientPageUrl)}" target="_blank" rel="noopener" class="btn btn-gold btn-sm">فتح في صفحة العروض الخاصة</a>`
+            : '<span class="form-hint">لا يوجد عميل نشط — أنشئ عميلاً للحصول على رابط العروض الخاصة</span>'}
+          <button type="button" class="btn btn-outline btn-sm" data-close>إغلاق</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+}
+
 function renderOfferCard(o) {
   const img = o.coverImage || (o.gallery && o.gallery[0]) || '';
   return `
@@ -494,7 +624,8 @@ function renderOfferCard(o) {
         <p class="offer-card__meta">${escapeHtml(statusLabel(o.status))} · ${o.active && o.visible ? 'ظاهر للعميل' : 'مخفي'}</p>
         <p class="offer-card__price">${escapeHtml(formatOfferPrice(o))}</p>
         <div class="offer-card__footer">
-          <div class="offer-card__actions">
+          <div class="offer-card__actions po-offer-card__actions">
+            <button type="button" class="btn btn-outline btn-sm" data-view="${o.id}">عرض</button>
             <button type="button" class="btn btn-outline btn-sm" data-edit="${o.id}">تعديل</button>
             <button type="button" class="btn btn-outline btn-sm" data-del="${o.id}">حذف</button>
           </div>

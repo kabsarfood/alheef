@@ -719,3 +719,46 @@
     font-size: 1.35rem;
   }
 }
+
+.po-offer-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.po-preview-modal .modal__box {
+  max-width: 460px;
+}
+
+.po-preview-note {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff8e6;
+  border: 1px solid var(--gold-border, #d4af37);
+  border-radius: var(--radius, 8px);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.po-preview-note--hidden {
+  background: #fdecea;
+  border-color: #f5c2c0;
+}
+
+.po-preview-wrap {
+  background: #eef1f4;
+  padding: 1rem;
+  border-radius: var(--radius-lg, 12px);
+}
+
+.po-preview-wrap .po-card {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.po-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

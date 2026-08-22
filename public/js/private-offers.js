@@ -381,6 +381,16 @@
     resultsCountEl.textContent = `${filtered.length} عرض`;
     bindCardEvents(filtered);
     preloadOfferImages(filtered);
+    scrollToOfferHash();
+  }
+
+  function scrollToOfferHash() {
+    const hash = window.location.hash;
+    if (!hash || !hash.startsWith('#offer-')) return;
+    requestAnimationFrame(() => {
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   function buildPoCardHtml(o, options = {}) {
