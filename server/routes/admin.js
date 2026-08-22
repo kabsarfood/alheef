@@ -16,7 +16,8 @@ const privateClientsRepo = require('../repositories/privateClientsRepo');
 const siteAnalyticsRepo = require('../repositories/siteAnalyticsRepo');
 const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 const { propertyToMapProperty } = require('../services/mappers');
-const { enrichBodyCoords, parseCoordsFromMapsUrlResolved, normalizeCoordsPair, parseCoordsFromMapsUrl } = require('../utils/coords');
+const { enrichBodyCoords } = require('../utils/coords');
+const { handleParseMapCoords } = require('../handlers/mapCoords');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -68,36 +69,7 @@ router.get('/map/coords-warnings', async (_req, res) => {
   }
 });
 
-router.post('/map/parse-coords', async (req, res) => {
-  try {
-    const url = String(req.body?.url || req.body?.mapsUrl || '').trim();
-    if (!url) {
-      return res.status(400).json({ success: false, message: 'الرابط مطلوب' });
-    }
-    const { normalizeMapsUrl } = require('../utils/coords');
-    const normalized = normalizeMapsUrl(url);
-    const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(normalized));
-    if (direct) {
-      return res.json({ success: true, ...direct, source: 'direct' });
-    }
-    const resolved = await parseCoordsFromMapsUrlResolved(normalized);
-    if (!resolved) {
-      return res.json({
-        success: false,
-        message: 'تعذر استخراج الإحداثيات — انسخ رابط «مشاركة» من Google Maps (مشاركة ← نسخ الرابط) وليس نص العنوان',
-      });
-    }
-    res.json({
-      success: true,
-      lat: resolved.lat,
-      lng: resolved.lng,
-      resolvedUrl: resolved.resolvedUrl || null,
-      source: resolved.resolvedUrl ? 'resolved' : 'direct',
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+router.post('/map/parse-coords', handleParseMapCoords);
 
 // ─── Stats ───
 router.get('/stats', async (_req, res) => {

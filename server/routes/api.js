@@ -14,6 +14,8 @@ const subscriptionsRepo = require('../repositories/subscriptionsRepo');
 const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestNotifications');
 const { isPublicStatus } = require('../utils/propertyStatus');
 const { isEnabled } = require('../lib/supabase');
+const { requireAdminOrMarketer } = require('../middleware/auth');
+const { handleParseMapCoords } = require('../handlers/mapCoords');
 
 const router = express.Router();
 
@@ -23,6 +25,8 @@ function requireDb(_req, res, next) {
   }
   next();
 }
+
+router.post('/map/parse-coords', requireAdminOrMarketer, handleParseMapCoords);
 
 // ─── Settings ───
 router.get('/settings', async (_req, res) => {

@@ -4,6 +4,13 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
   'use strict';
   const params = new URLSearchParams(location.search);
   const editId = params.get('id');
+
+  MapsUrlField.configure({
+    parseEndpoint: '/api/map/parse-coords',
+    authHeaders: () => MarketerAuth.authHeaders(),
+    mapPageUrl: '/map.html',
+  });
+
   await initMarketerLayout('add-property', editId ? 'تعديل إعلان' : 'إضافة إعلان جديد');
   const root = getMarketerContent();
   if (!root) return;
@@ -55,6 +62,7 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
             <label>وصف العقار *</label>
             <textarea name="description" rows="8" required placeholder="اكتب تفاصيل العقار كاملة…"></textarea>
           </div>
+          ${MapsUrlField.fieldHtml({ required: true })}
           <div class="form-group">
             <label>رقم ترخيص الإعلان العقاري *</label>
             <input type="text" name="licenseNumber" required>
@@ -66,14 +74,6 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
           <div class="form-group">
             <label>رقم عقد الوساطة</label>
             <input type="text" name="brokerageContractNo">
-          </div>
-          <div class="form-group">
-            <label>خط العرض</label>
-            <input type="text" name="latitude" dir="ltr">
-          </div>
-          <div class="form-group">
-            <label>خط الطول</label>
-            <input type="text" name="longitude" dir="ltr">
           </div>
           <div class="form-group full">
             <label>ملاحظات داخلية (للإدارة فقط)</label>
@@ -92,6 +92,8 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
     </form>
   `;
 
+  MapsUrlField.bind();
+
   if (editId) {
     try {
       const { property: p } = await MarketerAPI.getProperty(editId);
@@ -109,9 +111,8 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
       f.licenseNumber.value = p.contractNumber || '';
       f.licenseExpiresAt.value = p.licenseExpiresAt ? String(p.licenseExpiresAt).slice(0, 10) : '';
       f.brokerageContractNo.value = p.brokerageContractNo || '';
-      f.latitude.value = p.latitude != null ? p.latitude : '';
-      f.longitude.value = p.longitude != null ? p.longitude : '';
       f.internalNotes.value = p.internalNotes || '';
+      await MapsUrlField.loadFromOffer(p);
     } catch {
       showToast('تعذر تحميل الإعلان', 'error');
     }
@@ -121,8 +122,20 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
+    btn.textContent = 'جاري التحقق من الرابط...';
+
     const fd = new FormData(e.target);
     fd.set('location', `${fd.get('city')} — ${fd.get('district')}`);
+
+    const mapsResult = await MapsUrlField.applyToFormData(fd, { validate: true });
+    if (!mapsResult.ok) {
+      showToast(mapsResult.message, 'error');
+      btn.disabled = false;
+      btn.textContent = editId ? 'حفظ وإرسال للمراجعة' : 'إرسال للمراجعة';
+      return;
+    }
+
+    btn.textContent = editId ? 'جاري الحفظ...' : 'جاري الإرسال...';
     try {
       await MarketerAPI.saveProperty(fd, editId);
       showToast('تم إرسال الإعلان لمراجعة إدارة المكتب');
@@ -130,6 +143,7 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
+      btn.textContent = editId ? 'حفظ وإرسال للمراجعة' : 'إرسال للمراجعة';
     }
   });
 })();

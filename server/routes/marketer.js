@@ -5,6 +5,7 @@ const marketersRepo = require('../repositories/marketersRepo');
 const propertiesRepo = require('../repositories/propertiesRepo');
 const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
 const pushNotifications = require('../services/pushNotifications');
+const { enrichBodyCoords } = require('../utils/coords');
 const { createToken, requireMarketer, parseToken } = require('../middleware/auth');
 const { uploadFiles } = require('../services/storage');
 const { canMarketerEdit, canMarketerDelete } = require('../utils/propertyStatus');
@@ -128,7 +129,7 @@ router.get('/properties/:id', requireMarketer, async (req, res) => {
 router.post('/properties', requireMarketer, upload.array('images', 20), async (req, res) => {
   try {
     const now = new Date().toISOString();
-    const body = {
+    const body = await enrichBodyCoords({
       ...req.body,
       marketerId: req.auth.marketerId,
       status: 'approved_published',
@@ -136,7 +137,7 @@ router.post('/properties', requireMarketer, upload.array('images', 20), async (r
       approved_at: now,
       approved_by: req.auth.marketerId,
       listingType: req.body.listingType || 'sale',
-    };
+    });
     const p = await propertiesRepo.create(body);
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
@@ -170,14 +171,14 @@ router.put('/properties/:id', requireMarketer, upload.array('images', 20), async
     if (!canMarketerEdit(existing.status)) {
       return res.status(403).json({ success: false, message: 'لا يمكن تعديل هذا الإعلان في حالته الحالية' });
     }
-    const body = {
+    const body = await enrichBodyCoords({
       ...req.body,
       marketerId: req.auth.marketerId,
       status: existing.status === 'needs_changes' ? 'approved_published' : existing.status,
       homepage_published: existing.status === 'needs_changes' ? true : undefined,
       approved_at: existing.status === 'needs_changes' ? new Date().toISOString() : undefined,
       approved_by: existing.status === 'needs_changes' ? req.auth.marketerId : undefined,
-    };
+    });
     const p = await propertiesRepo.update(req.params.id, body);
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
