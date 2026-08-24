@@ -2,9 +2,20 @@ const { getAdmin, isEnabled } = require('../lib/supabase');
 
 const STATS_TABLE = 'site_visit_stats';
 const SESSIONS_TABLE = 'site_visit_sessions';
+const PAGE_SESSIONS_TABLE = 'site_visit_page_sessions';
+const EJAR_PATH = '/ejar';
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function todayDateRiyadh() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+}
+
+function isEjarPath(path) {
+  const p = normalizePath(path);
+  return p === EJAR_PATH || p === '/ejar.html';
 }
 
 function normalizePath(path) {
@@ -60,6 +71,32 @@ async function recordPageView(path, sessionKey) {
       page_count: 1,
     });
   }
+
+  if (isEjarPath(pagePath)) {
+    try {
+      await recordPageSession(todayDateRiyadh(), EJAR_PATH, key);
+    } catch {
+      /* table may not exist yet */
+    }
+  }
+}
+
+async function recordPageSession(visitDate, pagePath, sessionKey) {
+  const { data: existing } = await getAdmin()
+    .from(PAGE_SESSIONS_TABLE)
+    .select('session_key')
+    .eq('visit_date', visitDate)
+    .eq('page_path', pagePath)
+    .eq('session_key', sessionKey)
+    .maybeSingle();
+
+  if (existing) return;
+
+  await getAdmin().from(PAGE_SESSIONS_TABLE).insert({
+    visit_date: visitDate,
+    page_path: pagePath,
+    session_key: sessionKey,
+  });
 }
 
 async function countViewsSince(days) {
@@ -94,18 +131,31 @@ async function countUniqueSessionsSince(days) {
   return count || 0;
 }
 
+async function countEjarVisitorsToday() {
+  if (!isEnabled()) return 0;
+  const { count, error } = await getAdmin()
+    .from(PAGE_SESSIONS_TABLE)
+    .select('*', { count: 'exact', head: true })
+    .eq('visit_date', todayDateRiyadh())
+    .eq('page_path', EJAR_PATH);
+  if (error) return 0;
+  return count || 0;
+}
+
 async function getSummary() {
-  const [todayViews, weekViews, monthViews, uniqueWeek] = await Promise.all([
+  const [todayViews, weekViews, monthViews, uniqueWeek, ejarVisitorsToday] = await Promise.all([
     countViewsToday(),
     countViewsSince(7),
     countViewsSince(30),
     countUniqueSessionsSince(7),
+    countEjarVisitorsToday(),
   ]);
   return {
     todayViews,
     weekViews,
     monthViews,
     uniqueVisitorsWeek: uniqueWeek,
+    ejarVisitorsToday,
   };
 }
 

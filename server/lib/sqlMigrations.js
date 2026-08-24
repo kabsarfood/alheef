@@ -12,6 +12,7 @@ const CLIENTS_ANALYTICS_MIGRATION = path.join(__dirname, '..', '..', 'supabase',
 const PRIVATE_LISTING_TYPE_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '010_private_offers_listing_type.sql');
 const PRIVATE_CLIENT_FIELDS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '011_private_client_request_fields.sql');
 const EJAR_REVIEWS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '012_ejar_reviews.sql');
+const PAGE_SESSIONS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '013_site_visit_page_sessions.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -118,8 +119,15 @@ async function isEjarReviewsSchemaReady() {
   return !error;
 }
 
+async function isSiteVisitPageSessionsReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('site_visit_page_sessions').select('visit_date').limit(1);
+  return !error;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews, siteVisitPageSessions] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
@@ -130,6 +138,7 @@ async function getSchemaStatus() {
     isPrivateOffersListingTypeReady(),
     isPrivateClientRequestFieldsReady(),
     isEjarReviewsSchemaReady(),
+    isSiteVisitPageSessionsReady(),
   ]);
   return {
     marketer,
@@ -142,7 +151,8 @@ async function getSchemaStatus() {
     privateListingType,
     privateClientFields,
     ejarReviews,
-    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews,
+    siteVisitPageSessions,
+    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews && siteVisitPageSessions,
   };
 }
 
@@ -235,6 +245,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
     if (!status.ejarReviews) {
       await runSqlFile(client, EJAR_REVIEWS_MIGRATION, '012_ejar_reviews');
       applied.push('012_ejar_reviews');
+    }
+    if (!status.siteVisitPageSessions) {
+      await runSqlFile(client, PAGE_SESSIONS_MIGRATION, '013_site_visit_page_sessions');
+      applied.push('013_site_visit_page_sessions');
     }
 
     if (applied.length) await reloadPostgrestSchema(client);

@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const stats = await DashboardAPI.getStats();
     document.getElementById('stats-grid').innerHTML = [
       `<div class="stat-card"><p class="stat-card__label">زوار اليوم</p><p class="stat-card__value">${stats.siteAnalytics?.todayViews || 0}</p></div>`,
+      `<div class="stat-card"><p class="stat-card__label">زوار إيجار اليوم</p><p class="stat-card__value">${stats.siteAnalytics?.ejarVisitorsToday || 0}</p></div>`,
       `<div class="stat-card"><p class="stat-card__label">مشاهدات الأسبوع</p><p class="stat-card__value">${stats.siteAnalytics?.weekViews || 0}</p></div>`,
       `<div class="stat-card"><p class="stat-card__label">متصفحون (7 أيام)</p><p class="stat-card__value">${stats.siteAnalytics?.uniqueVisitorsWeek || 0}</p></div>`,
       `<div class="stat-card"><p class="stat-card__label">دخول العروض الخاصة</p><p class="stat-card__value">${stats.privateClients?.totalLogins || 0}</p></div>`,

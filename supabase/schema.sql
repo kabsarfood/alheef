@@ -592,10 +592,21 @@ CREATE TABLE IF NOT EXISTS site_visit_sessions (
   page_count INT NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS site_visit_page_sessions (
+  visit_date DATE NOT NULL,
+  page_path TEXT NOT NULL,
+  session_key TEXT NOT NULL,
+  PRIMARY KEY (visit_date, page_path, session_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_site_visit_page_sessions_date_path
+  ON site_visit_page_sessions (visit_date, page_path);
+
 ALTER TABLE private_offers_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private_client_access ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_visit_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_visit_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_visit_page_sessions ENABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- إعادة تحميل مخطط PostgREST
