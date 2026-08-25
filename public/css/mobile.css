@@ -299,7 +299,7 @@
   }
 
   .hero__bg img {
-    object-position: center 30%;
+    object-position: 50% 32%;
   }
 
   .hero__content {
@@ -796,6 +796,10 @@
     min-height: 65dvh;
   }
 
+  .hero__bg img {
+    object-position: 50% 28%;
+  }
+
   .footer__links a {
     min-height: 68px;
     font-size: 0.75rem;
@@ -808,10 +812,18 @@
     min-height: 68vh;
     min-height: 68dvh;
   }
+
+  .hero__bg img {
+    object-position: 50% 30%;
+  }
 }
 
 /* ─── Tablet portrait ─── */
 @media (min-width: 431px) and (max-width: 768px) {
+  .hero__bg img {
+    object-position: 50% 34%;
+  }
+
   .offers__grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
