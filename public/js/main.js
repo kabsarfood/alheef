@@ -7,7 +7,7 @@
 
   let config = {
     whatsapp: '966500000000',
-    phone: '050 000 0000',
+    phone: '053 079 2754',
     instagram: '#',
     x: '#',
   };
@@ -268,6 +268,27 @@
     }
   }
 
+  function formatPhoneDisplay(phone) {
+    var digits = String(phone || '').replace(/\D/g, '');
+    if (/^9665\d{8}$/.test(digits)) {
+      digits = '0' + digits.slice(3);
+    } else if (/^5\d{8}$/.test(digits)) {
+      digits = '0' + digits;
+    }
+    if (/^05\d{8}$/.test(digits)) {
+      return digits.slice(0, 3) + ' ' + digits.slice(3, 6) + ' ' + digits.slice(6);
+    }
+    return String(phone || '').trim();
+  }
+
+  function phoneTelHref(phone) {
+    var digits = String(phone || '').replace(/\D/g, '');
+    if (/^9665\d{8}$/.test(digits)) return 'tel:0' + digits.slice(3);
+    if (/^05\d{8}$/.test(digits)) return 'tel:' + digits;
+    if (/^5\d{8}$/.test(digits)) return 'tel:0' + digits;
+    return digits ? 'tel:' + digits : 'tel:';
+  }
+
   // ─── Config ───
   async function loadConfig() {
     try {
@@ -289,10 +310,11 @@
       if (el) el.href = `${waUrl}?text=${waMsg}`;
     });
 
-    const phoneHref = `tel:+${config.whatsapp}`;
+    const phoneDisplay = formatPhoneDisplay(config.phone || config.whatsapp);
+    const phoneHref = phoneTelHref(config.phone || config.whatsapp);
     const phoneEl = document.getElementById('footer-phone');
     if (phoneEl) {
-      phoneEl.textContent = config.phone;
+      phoneEl.textContent = phoneDisplay;
       phoneEl.href = phoneHref;
     }
 
