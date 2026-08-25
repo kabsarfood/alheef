@@ -7,8 +7,21 @@
   var selectedContract = null;
 
   var WA_MSG_DEFAULT = 'السلام عليكم، أرغب في إنشاء عقد إيجار عن طريق مكتب الهيف للخدمات العقارية.';
-  var WA_MSG_RESIDENTIAL = 'السلام عليكم، أرغب في إنشاء عقد إيجار سكني بسعر 199 ريال شامل الرسوم.';
-  var WA_MSG_COMMERCIAL = 'السلام عليكم، أرغب في إنشاء عقد إيجار تجاري بسعر 299 ريال شامل الرسوم للسنة الأولى.';
+
+  function getPrices() {
+    return {
+      residential: window.EJAR_PRICE_RESIDENTIAL || 229,
+      commercial: window.EJAR_PRICE_COMMERCIAL || 329,
+    };
+  }
+
+  function getWhatsAppMessages() {
+    var prices = getPrices();
+    return {
+      residential: 'السلام عليكم، أرغب في إنشاء عقد إيجار سكني بسعر ' + prices.residential + ' ريال شامل الرسوم.',
+      commercial: 'السلام عليكم، أرغب في إنشاء عقد إيجار تجاري بسعر ' + prices.commercial + ' ريال شامل الرسوم للسنة الأولى.',
+    };
+  }
 
   function getConfig() {
     return {
@@ -82,9 +95,24 @@
   }
 
   function getWhatsAppMessage() {
-    if (selectedContract === 'residential') return WA_MSG_RESIDENTIAL;
-    if (selectedContract === 'commercial') return WA_MSG_COMMERCIAL;
+    var msgs = getWhatsAppMessages();
+    if (selectedContract === 'residential') return msgs.residential;
+    if (selectedContract === 'commercial') return msgs.commercial;
     return WA_MSG_DEFAULT;
+  }
+
+  function applyPriceDisplays() {
+    var prices = getPrices();
+    document.querySelectorAll('[data-ejar-price="residential"]').forEach(function (el) {
+      var suffix = el.querySelector('small');
+      el.textContent = String(prices.residential) + ' ';
+      if (suffix) el.appendChild(suffix);
+    });
+    document.querySelectorAll('[data-ejar-price="commercial"]').forEach(function (el) {
+      var suffix = el.querySelector('small');
+      el.textContent = String(prices.commercial) + ' ';
+      if (suffix) el.appendChild(suffix);
+    });
   }
 
   function applyPhoneDisplays() {
@@ -269,6 +297,7 @@
 
   function init() {
     captureAttribution();
+    applyPriceDisplays();
     applyPhoneDisplays();
     setupContractButtons();
     setupStartButtons();
