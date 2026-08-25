@@ -3,13 +3,13 @@
  * Change the number here only; all tel/WhatsApp links read from this file.
  */
 (function (global) {
-  var EJAR_SERVICE_PHONE = '0530792754';
+  var EJAR_SERVICE_PHONE = '055 839 1249';
 
   /** Digits-only for tel: / wa.me */
-  var EJAR_SERVICE_PHONE_TEL = '0530792754';
+  var EJAR_SERVICE_PHONE_TEL = '0558391249';
 
   /** International WhatsApp format without + (966XXXXXXXXX) */
-  var EJAR_SERVICE_WHATSAPP = '966530792754';
+  var EJAR_SERVICE_WHATSAPP = '966558391249';
 
   /** Service prices (SAR) — single source for /ejar page */
   var EJAR_PRICE_RESIDENTIAL = 229;

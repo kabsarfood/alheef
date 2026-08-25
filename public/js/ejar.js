@@ -25,9 +25,9 @@
 
   function getConfig() {
     return {
-      phone: window.EJAR_SERVICE_PHONE || '05X XXX XXXX',
-      phoneTel: window.EJAR_SERVICE_PHONE_TEL || '0500000000',
-      whatsapp: window.EJAR_SERVICE_WHATSAPP || '966500000000',
+      phone: window.EJAR_SERVICE_PHONE || '055 839 1249',
+      phoneTel: window.EJAR_SERVICE_PHONE_TEL || '0558391249',
+      whatsapp: window.EJAR_SERVICE_WHATSAPP || '966558391249',
     };
   }
 
