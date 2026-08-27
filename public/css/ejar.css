@@ -9,6 +9,7 @@
   --ejar-container: 1320px;
   --ejar-section-y: clamp(2.25rem, 5vw, 4rem);
   --ejar-sticky-h: 60px;
+  --ejar-ticker-h: 2.45rem;
   --ejar-card-shadow: 0 8px 32px rgba(30, 42, 56, 0.06);
   --ejar-card-hover-border: var(--gold-border);
   --ejar-card-hover-shadow: 0 14px 32px rgba(30, 42, 56, 0.1);
@@ -49,11 +50,11 @@
 
   font-weight: var(--ejar-fw-normal);
   line-height: var(--ejar-lh-body);
-  padding-top: var(--header-h);
+  padding-top: calc(var(--header-h) + var(--ejar-ticker-h));
 }
 
 .ejar-page [id] {
-  scroll-margin-top: calc(var(--header-h) + 0.75rem);
+  scroll-margin-top: calc(var(--header-h) + var(--ejar-ticker-h) + 0.75rem);
 }
 
 .ejar-container {
@@ -177,8 +178,13 @@
 
 /* ─── Welcome ticker ─── */
 .ejar-ticker {
-  --ejar-ticker-h: 2.45rem;
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  z-index: 999;
   width: 100%;
+  height: var(--ejar-ticker-h);
   background: var(--ejar-olive);
   color: var(--ivory);
   border-bottom: 1px solid rgba(197, 164, 109, 0.35);
@@ -236,7 +242,7 @@
 }
 
 @media (max-width: 767px) {
-  .ejar-ticker {
+  .ejar-page {
     --ejar-ticker-h: 2.65rem;
   }
 
@@ -278,7 +284,7 @@
 
   .ejar-ticker,
   .ejar-ticker__viewport {
-    height: auto;
+    height: var(--ejar-ticker-h);
     min-height: var(--ejar-ticker-h);
   }
 
