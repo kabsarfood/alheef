@@ -124,8 +124,13 @@
   font-weight: var(--ejar-fw-bold);
 }
 
+.ejar-page .header--ejar {
+  overflow: visible;
+}
+
 .ejar-page .header--ejar .header__inner {
   gap: 0.75rem;
+  overflow: visible;
 }
 
 .ejar-page .header--ejar .nav__link--active {
@@ -147,6 +152,11 @@
 
   .ejar-page .header--ejar__call {
     display: none;
+  }
+
+  .ejar-footer__logo {
+    height: 46px;
+    max-width: 168px;
   }
 }
 
@@ -1089,8 +1099,10 @@
 
 .ejar-footer__logo {
   width: auto;
-  height: clamp(2rem, 5vw, 2.5rem);
+  height: 64px;
+  max-width: 220px;
   object-fit: contain;
+  object-position: right center;
 }
 
 .ejar-footer__name {

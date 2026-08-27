@@ -20,17 +20,25 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=13">
-  <link rel="stylesheet" href="/css/mobile.css?v=15">
+  <link rel="stylesheet" href="/css/main.css?v=14">
+  <link rel="stylesheet" href="/css/mobile.css?v=16">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=17">
+  <link rel="stylesheet" href="/css/ejar.css?v=18">
 </head>
 <body class="ejar-page">
 
   <header class="header header--ejar" id="header">
     <div class="ejar-container header__inner">
-      <a href="/" class="logo logo--header" aria-label="الهيف — الرئيسية">
-        <img class="logo__img" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
+      <a href="/" class="logo logo--header" aria-label="الهيف العقارية — الرئيسية">
+        <img
+          id="site-logo"
+          src="/images/logo-alheef.png"
+          alt="الهيف العقارية"
+          class="logo__img"
+          width="200"
+          height="56"
+          fetchpriority="high"
+        >
       </a>
       <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
@@ -354,8 +362,17 @@
     <div class="ejar-container">
       <div class="ejar-footer__card">
         <div class="ejar-footer__brand">
-          <a href="/" class="ejar-footer__logo-link" aria-label="الهيف — الرئيسية">
-            <img src="/images/logo-alheef.png" alt="الهيف العقارية" class="ejar-footer__logo" width="140" height="40" loading="lazy" decoding="async">
+          <a href="/" class="ejar-footer__logo-link" aria-label="الهيف العقارية — الرئيسية">
+            <img
+              id="footer-logo"
+              src="/images/logo-alheef.png"
+              alt="الهيف العقارية"
+              class="logo__img ejar-footer__logo"
+              width="180"
+              height="50"
+              loading="lazy"
+              decoding="async"
+            >
           </a>
           <p class="ejar-footer__name">مكتب الهيف للخدمات العقارية</p>
           <p class="ejar-footer__about">مكتب عقاري مرخص — خدمات الوساطة العقارية وتسجيل العقود</p>
@@ -424,7 +441,7 @@
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=5" defer></script>
-  <script src="/js/ejar.js?v=6" defer></script>
+  <script src="/js/ejar.js?v=7" defer></script>
   <script src="/js/ejar-reviews-public.js?v=3" defer></script>
 </body>
 </html>

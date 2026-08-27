@@ -353,8 +353,27 @@
     }
   }
 
+  function applySiteLogo() {
+    fetch('/api/settings')
+      .then(function (res) { return res.json(); })
+      .then(function (s) {
+        if (!s || !s.logo) return;
+        var src = s.logo;
+        var v = s.updatedAt || Date.now();
+        src += (src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(v);
+        ['site-logo', 'footer-logo'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.src = src;
+          if (s.siteName) el.alt = s.siteName;
+        });
+      })
+      .catch(function () { /* keep default logo */ });
+  }
+
   function init() {
     captureAttribution();
+    applySiteLogo();
     applyPriceDisplays();
     applyPhoneDisplays();
     setupContractButtons();
