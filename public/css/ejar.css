@@ -207,7 +207,7 @@
     margin: 0;
     padding: 0 0.15rem;
     text-align: center;
-    font-size: clamp(0.68rem, 2.7vw, 0.8rem);
+    font-size: clamp(0.85rem, 3.375vw, 1rem);
     font-weight: var(--ejar-fw-bold);
     color: var(--ejar-olive);
     line-height: 1.25;
