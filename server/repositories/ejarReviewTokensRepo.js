@@ -86,6 +86,28 @@ async function markExpired(id) {
   return mapRow(data);
 }
 
+async function countDistinctCompletedRequests() {
+  if (!isEnabled()) return 0;
+  const ids = new Set();
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await getAdmin()
+      .from(TABLE)
+      .select('request_id')
+      .range(from, from + pageSize - 1);
+    if (error) return ids.size;
+    const rows = data || [];
+    rows.forEach((row) => {
+      if (row.request_id) ids.add(row.request_id);
+    });
+    if (rows.length < pageSize) break;
+    from += pageSize;
+    if (from > 50000) break;
+  }
+  return ids.size;
+}
+
 module.exports = {
   create,
   findByRawToken,
@@ -93,4 +115,5 @@ module.exports = {
   markUsed,
   markExpired,
   revokeActiveForRequest,
+  countDistinctCompletedRequests,
 };

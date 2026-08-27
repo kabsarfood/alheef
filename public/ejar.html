@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=14">
   <link rel="stylesheet" href="/css/mobile.css?v=16">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=18">
+  <link rel="stylesheet" href="/css/ejar.css?v=19">
 </head>
 <body class="ejar-page">
 
@@ -356,6 +356,40 @@
         </div>
       </div>
     </section>
+
+    <section class="ejar-section ejar-proof" id="ejar-proof" aria-label="أرقام الثقة">
+      <div class="ejar-container">
+        <div class="ejar-proof__grid">
+          <article class="ejar-proof-card">
+            <span class="ejar-proof-card__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </span>
+            <p class="ejar-proof-card__value" data-proof-value="visitors" data-proof-suffix="+" dir="ltr">—</p>
+            <h3 class="ejar-proof-card__title">زوار صفحة إيجار</h3>
+            <p class="ejar-proof-card__desc">زائر لخدمة عقود إيجار</p>
+          </article>
+
+          <article class="ejar-proof-card">
+            <span class="ejar-proof-card__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            </span>
+            <p class="ejar-proof-card__value" data-proof-value="contracts" data-proof-suffix="+" dir="ltr">—</p>
+            <h3 class="ejar-proof-card__title">عقود تم إنشاؤها</h3>
+            <p class="ejar-proof-card__desc">عقد سكني وتجاري</p>
+          </article>
+
+          <a class="ejar-proof-card ejar-proof-card--link" href="#ejar-reviews" id="ejar-proof-reviews">
+            <span class="ejar-proof-card__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </span>
+            <p class="ejar-proof-card__value" data-proof-value="reviewsAverage" data-proof-decimals="1" data-proof-suffix=" ⭐" dir="ltr">—</p>
+            <h3 class="ejar-proof-card__title">تقييمات عملائنا</h3>
+            <p class="ejar-proof-card__desc" data-proof-reviews-label>من تقييمات معتمدة</p>
+          </a>
+        </div>
+        <p class="ejar-proof__footnote">نخدم عملاءنا في جميع مناطق المملكة 🇸🇦</p>
+      </div>
+    </section>
   </main>
 
   <footer class="ejar-footer" id="ejar-footer">
@@ -443,5 +477,6 @@
   <script src="/js/nav-mobile.js?v=5" defer></script>
   <script src="/js/ejar.js?v=7" defer></script>
   <script src="/js/ejar-reviews-public.js?v=3" defer></script>
+  <script src="/js/ejar-proof.js?v=1" defer></script>
 </body>
 </html>

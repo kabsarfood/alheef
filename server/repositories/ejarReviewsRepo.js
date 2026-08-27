@@ -91,6 +91,21 @@ async function countPublicApproved() {
   return count || 0;
 }
 
+async function getApprovedRatingStats() {
+  if (!isEnabled()) return { count: 0, average: 0 };
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('rating')
+    .eq('status', 'approved');
+  if (error) return { count: 0, average: 0 };
+  const rows = data || [];
+  const count = rows.length;
+  const average = count
+    ? Math.round((rows.reduce((s, r) => s + (r.rating || 0), 0) / count) * 10) / 10
+    : 0;
+  return { count, average };
+}
+
 async function getPublicStats() {
   if (!isEnabled()) {
     return { count: 0, average: 0, visible: false, minRequired: getMinReviewsToDisplay() };
@@ -141,6 +156,7 @@ module.exports = {
   listAdmin,
   countPending,
   countPublicApproved,
+  getApprovedRatingStats,
   getPublicStats,
   listPublic,
   setStatus,

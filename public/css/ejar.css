@@ -1627,6 +1627,122 @@
   color: var(--text-muted);
 }
 
+/* ─── Trust numbers ─── */
+.ejar-proof {
+  background: var(--ivory);
+  border-top: 1px solid var(--navy-border);
+}
+
+.ejar-proof__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ejar-proof__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(0.65rem, 1.6vw, 1rem);
+  }
+}
+
+.ejar-proof-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.28rem;
+  background: var(--white);
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius);
+  padding: clamp(1rem, 2.4vw, 1.45rem) clamp(0.75rem, 2vw, 1.15rem);
+  box-shadow: var(--shadow-sm);
+  min-height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ejar-proof-card--link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.ejar-proof-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  background: var(--ejar-olive-soft);
+  color: var(--ejar-olive);
+  margin-bottom: 0.2rem;
+}
+
+.ejar-proof-card__value {
+  font-size: clamp(1.85rem, 0.7rem + 3.2vw, 2.65rem);
+  font-weight: var(--ejar-fw-heavy);
+  color: var(--ejar-olive);
+  letter-spacing: normal;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  margin: 0.15rem 0 0.1rem;
+}
+
+.ejar-proof-card__title {
+  font-size: var(--ejar-fs-label);
+  font-weight: var(--ejar-fw-semibold);
+  color: var(--navy);
+  line-height: var(--ejar-lh-section);
+  margin: 0;
+}
+
+.ejar-proof-card__desc {
+  font-size: var(--ejar-fs-xs);
+  font-weight: var(--ejar-fw-normal);
+  color: var(--stone);
+  line-height: var(--ejar-lh-small);
+  margin: 0;
+}
+
+.ejar-proof__footnote {
+  text-align: center;
+  font-size: var(--ejar-fs-sm);
+  font-weight: var(--ejar-fw-medium);
+  color: var(--navy);
+  line-height: var(--ejar-lh-small);
+  margin: clamp(1rem, 2.4vw, 1.35rem) 0 0;
+}
+
+@media (max-width: 639px) {
+  .ejar-proof-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 0.65rem;
+    row-gap: 0.15rem;
+    padding: 0.85rem 0.9rem;
+    text-align: start;
+  }
+
+  .ejar-proof-card__icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    margin-bottom: 0;
+  }
+
+  .ejar-proof-card__value {
+    font-size: clamp(1.45rem, 5vw, 1.85rem);
+    margin: 0;
+  }
+
+  .ejar-proof-card__title,
+  .ejar-proof-card__desc {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* ─── Interactive cards — hover + touch lift ─── */
 .ejar-price-card,
 .ejar-cred-card,
@@ -1635,6 +1751,7 @@
 .ejar-page .form-card,
 .ejar-faq__item,
 .ejar-review-item,
+.ejar-proof-card,
 .ejar-contact-btn,
 .ejar-footer__card {
   transition:
@@ -1652,6 +1769,7 @@
   .ejar-page .form-card:hover,
   .ejar-faq__item:hover,
   .ejar-review-item:hover,
+  .ejar-proof-card:hover,
   .ejar-contact-btn:hover,
   .ejar-footer__card:hover {
     transform: translateY(var(--ejar-card-lift));
@@ -1679,6 +1797,7 @@
 .ejar-page .form-card:active,
 .ejar-faq__item:active,
 .ejar-review-item:active,
+.ejar-proof-card:active,
 .ejar-contact-btn:active,
 .ejar-footer__card:active {
   transform: translateY(var(--ejar-card-active-lift));
@@ -1694,6 +1813,7 @@
   .ejar-page .form-card,
   .ejar-faq__item,
   .ejar-review-item,
+  .ejar-proof-card,
   .ejar-contact-btn,
   .ejar-footer__card {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -1706,6 +1826,7 @@
   .ejar-page .form-card:hover,
   .ejar-faq__item:hover,
   .ejar-review-item:hover,
+  .ejar-proof-card:hover,
   .ejar-contact-btn:hover,
   .ejar-footer__card:hover,
   .ejar-price-card:active,
@@ -1715,6 +1836,7 @@
   .ejar-page .form-card:active,
   .ejar-faq__item:active,
   .ejar-review-item:active,
+  .ejar-proof-card:active,
   .ejar-contact-btn:active,
   .ejar-footer__card:active {
     transform: none;

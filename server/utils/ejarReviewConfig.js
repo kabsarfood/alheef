@@ -16,4 +16,7 @@ module.exports = {
   getSiteUrl() {
     return (process.env.SITE_URL || 'https://www.alheef.website').replace(/\/$/, '');
   },
+  getCompletedContractsBase() {
+    return intEnv('EJAR_COMPLETED_CONTRACTS_BASE', 200);
+  },
 };

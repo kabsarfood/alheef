@@ -13,7 +13,7 @@ const {
   resolveDisplayName,
   parseEjarRequestMessage,
 } = require('../services/ejarReviewService');
-const { getReviewLinkExpiryDays } = require('../utils/ejarReviewConfig');
+const { getEjarTrustStats } = require('../services/ejarTrustStats');
 
 const router = express.Router();
 
@@ -71,6 +71,16 @@ router.get('/reviews/public', requireDb, async (_req, res) => {
     const stats = await ejarReviewsRepo.getPublicStats();
     const reviews = stats.visible ? await ejarReviewsRepo.listPublic(6) : [];
     res.json({ success: true, ...stats, reviews });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/trust-stats', requireDb, async (_req, res) => {
+  try {
+    const stats = await getEjarTrustStats();
+    res.set('Cache-Control', 'public, max-age=30');
+    res.json({ success: true, ...stats });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

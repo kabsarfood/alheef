@@ -142,6 +142,29 @@ async function countEjarVisitorsToday() {
   return count || 0;
 }
 
+async function countEjarUniqueVisitorsAllTime() {
+  if (!isEnabled()) return 0;
+  const keys = new Set();
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await getAdmin()
+      .from(PAGE_SESSIONS_TABLE)
+      .select('session_key')
+      .eq('page_path', EJAR_PATH)
+      .range(from, from + pageSize - 1);
+    if (error) return keys.size;
+    const rows = data || [];
+    rows.forEach((row) => {
+      if (row.session_key) keys.add(row.session_key);
+    });
+    if (rows.length < pageSize) break;
+    from += pageSize;
+    if (from > 200000) break;
+  }
+  return keys.size;
+}
+
 async function getSummary() {
   const [todayViews, weekViews, monthViews, uniqueWeek, ejarVisitorsToday] = await Promise.all([
     countViewsToday(),
@@ -163,4 +186,5 @@ module.exports = {
   recordPageView,
   getSummary,
   countViewsToday,
+  countEjarUniqueVisitorsAllTime,
 };
