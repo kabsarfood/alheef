@@ -199,7 +199,7 @@
   height: 100%;
   direction: rtl;
   will-change: transform;
-  animation: ejar-ticker-move 42s linear infinite;
+  animation: ejar-ticker-move 35.7s linear infinite;
 }
 
 .ejar-ticker__seq {
@@ -241,7 +241,7 @@
   }
 
   .ejar-ticker__track {
-    animation-duration: 58s;
+    animation-duration: 49.3s;
   }
 
   .ejar-ticker__seq {
