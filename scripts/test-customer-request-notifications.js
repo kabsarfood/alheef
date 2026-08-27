@@ -31,33 +31,17 @@ async function run() {
   if (!ejarRequest?.id) fail('إنشاء طلب ejar_contract');
   else ok('إنشاء طلب ejar_contract');
 
-  const notif1 = await notifyAdminsNewCustomerRequest(ejarRequest);
-  if (!notif1 || notif1.type !== 'customer_request_received') fail('نوع الإشعار customer_request_received');
-  else ok('Notification من نوع customer_request_received');
+  const skipped = await notifyAdminsNewCustomerRequest(ejarRequest);
+  if (skipped != null) fail('إيقاف إشعار إدارة نموذج ejar_contract');
+  else ok('لا يُرسل إشعار إدارة عند حفظ طلب ejar_contract');
 
-  if (notif1?.title !== 'طلب جديد لعقد إيجار') fail('عنوان إشعار ejar_contract');
-  else ok('عنوان إشعار ejar_contract صحيح');
+  const skippedRow = await adminNotificationsRepo.findRequestNotification(ejarRequest.id);
+  if (skippedRow) fail('عدم إنشاء صف إشعار لنموذج ejar_contract');
+  else ok('لا يُنشأ صف إشعار لنموذج ejar_contract');
 
-  if (!String(notif1?.payload?.body || '').includes('سكني')) fail('نص نوع العقد السكني');
-  else ok('نص نوع العقد السكني في body');
-
-  if (notif1?.payload?.requestId !== ejarRequest.id) fail('ربط requestId في payload');
-  else ok('ربط requestId في payload');
-
-  if (notif1?.payload?.requestType !== 'ejar_contract') fail('ربط requestType في payload');
-  else ok('ربط requestType في payload');
-
-  const notifDup = await adminNotificationsRepo.createCustomerRequestReceived({
-    requestId: ejarRequest.id,
-    requestType: ejarRequest.requestType,
-    message: ejarRequest.message,
-  });
-  if (notifDup?.id !== notif1?.id) fail('تكرار إشعار لنفس الطلب');
-  else ok('منع تكرار الإشعار لنفس request_id');
-
-  const afterUnread = await adminNotificationsRepo.countUnread();
-  if (afterUnread <= beforeUnread) fail('زيادة unread counter');
-  else ok(`unread counter ارتفع (${beforeUnread} → ${afterUnread})`);
+  const afterEjarUnread = await adminNotificationsRepo.countUnread();
+  if (afterEjarUnread !== beforeUnread) fail('عداد الإشعارات غير المقروءة لم يرتفع بعد ejar_contract');
+  else ok('عداد الإشعارات غير المقروءة لم يتغير بعد حفظ نموذج عقد الإيجار');
 
   const searchRequest = await requestsRepo.create({
     requestType: 'property_search',
@@ -69,8 +53,23 @@ async function run() {
   if (searchNotif?.title !== 'طلب جديد للبحث عن عقار') fail('عنوان إشعار property_search');
   else ok('عنوان إشعار property_search صحيح');
 
-  await adminNotificationsRepo.markReadByRequestId(ejarRequest.id);
-  const found = await adminNotificationsRepo.findRequestNotification(ejarRequest.id);
+  const afterSearchUnread = await adminNotificationsRepo.countUnread();
+  if (afterSearchUnread <= afterEjarUnread) fail('بقاء إشعارات البحث عن عقار');
+  else ok('إشعارات طلب البحث عن عقار ما زالت تعمل');
+
+  const listingRequest = await requestsRepo.create({
+    requestType: 'owner_listing',
+    customerName: 'اختبار عرض',
+    customerPhone: '0500000003',
+    message: JSON.stringify({ propertyType: 'فيلا', city: 'الدمام' }),
+  });
+  const listingNotif = await notifyAdminsNewCustomerRequest(listingRequest);
+  if (listingNotif?.title !== 'طلب جديد لعرض عقار') fail('عنوان إشعار owner_listing');
+  else ok('إشعارات طلب عرض عقار ما زالت تعمل');
+
+  await adminNotificationsRepo.markReadByRequestId(searchRequest.id);
+  await adminNotificationsRepo.markReadByRequestId(listingRequest.id);
+  const found = await adminNotificationsRepo.findRequestNotification(searchRequest.id);
   if (found?.isRead !== true) fail('markReadByRequestId');
   else ok('markReadByRequestId يعمل');
 

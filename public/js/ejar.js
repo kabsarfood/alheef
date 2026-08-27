@@ -90,6 +90,49 @@
     return 'https://wa.me/' + String(cfg.whatsapp).replace(/\D/g, '') + '?text=' + text;
   }
 
+  function isMobileDevice() {
+    var ua = navigator.userAgent || '';
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function openWhatsApp(url, pendingWin) {
+    if (!url) return;
+    if (pendingWin && !pendingWin.closed) {
+      try {
+        pendingWin.location.replace(url);
+        pendingWin.opener = null;
+        return;
+      } catch (_) { /* fall through */ }
+    }
+    if (isMobileDevice()) {
+      window.location.assign(url);
+      return;
+    }
+    var win = window.open(url, '_blank');
+    if (win) {
+      try { win.opener = null; } catch (_) { /* noop */ }
+      return;
+    }
+    window.location.assign(url);
+  }
+
+  function buildContractWhatsAppMessage(data) {
+    var lines = [
+      'السلام عليكم، أرغب في إنشاء عقد إيجار عن طريق مكتب الهيف للخدمات العقارية.',
+      '',
+      'الاسم: ' + (data.name || ''),
+      'رقم الجوال: ' + (data.phone || ''),
+      'نوع العقد: ' + (data.contractType || ''),
+      'المدينة: ' + (data.city || ''),
+    ];
+    if (data.role) {
+      lines.push('الصفة: ' + data.role);
+    }
+    lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد.');
+    return lines.join('\n');
+  }
+
   function telUrl() {
     return 'tel:' + String(getConfig().phoneTel).replace(/\D/g, '');
   }
@@ -239,6 +282,19 @@
         }),
       };
 
+      var waMessage = buildContractWhatsAppMessage({
+        name: name,
+        phone: phone,
+        contractType: contractType,
+        city: city,
+        role: role,
+      });
+      var waUrl = whatsappUrl(waMessage);
+      var pendingWa = null;
+      if (!isMobileDevice()) {
+        try { pendingWa = window.open('about:blank', '_blank'); } catch (_) { pendingWa = null; }
+      }
+
       btn.disabled = true;
       var originalText = btn.textContent;
       btn.textContent = 'جاري الإرسال...';
@@ -253,10 +309,11 @@
         .then(function (result) {
           if (result.data && result.data.success) {
             trackEvent('ejar_form_submit', { contractType: contractType, role: role });
-            showMessage(msgEl, result.data.message || 'تم استلام طلبك بنجاح، سنتواصل معك قريباً', 'success');
+            showMessage(msgEl, 'تم حفظ طلبك، جاري فتح واتساب لاستكمال الإجراءات', 'success');
             form.reset();
             selectedContract = null;
             applyPhoneDisplays();
+            openWhatsApp(waUrl, pendingWa);
             return;
           }
           throw new Error((result.data && result.data.message) || 'تعذر إرسال الطلب');
@@ -264,8 +321,9 @@
         .catch(function () {
           saveLocalLead(payload);
           trackEvent('ejar_form_submit', { contractType: contractType, role: role, offline: true });
-          showMessage(msgEl, 'تم حفظ طلبك وسنتواصل معك في أقرب وقت', 'success');
+          showMessage(msgEl, 'تم حفظ طلبك، جاري فتح واتساب لاستكمال الإجراءات', 'success');
           form.reset();
+          openWhatsApp(waUrl, pendingWa);
         })
         .finally(function () {
           btn.disabled = false;

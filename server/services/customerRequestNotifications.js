@@ -3,6 +3,8 @@ const pushNotifications = require('./pushNotifications');
 
 async function notifyAdminsNewCustomerRequest(request) {
   if (!request?.id) return null;
+  // نموذج عقود الإيجار يُحفظ للإحصائيات فقط — التواصل الفعلي عبر واتساب
+  if (request.requestType === 'ejar_contract') return null;
 
   const notification = await adminNotificationsRepo.createCustomerRequestReceived({
     requestId: request.id,
