@@ -178,6 +178,10 @@
     transition: opacity var(--transition), visibility var(--transition);
   }
 
+  body:has(.ejar-ticker) .nav-overlay {
+    top: calc(var(--header-h) + var(--ejar-ticker-h));
+  }
+
   .nav-overlay.active {
     opacity: 1;
     visibility: visible;
@@ -218,6 +222,10 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  body:has(.ejar-ticker) .nav {
+    top: calc(var(--header-h) + var(--ejar-ticker-h));
+  }
+
   .nav.open {
     max-height: min(520px, calc(100dvh - var(--header-h) - 1rem));
     overflow-y: auto;
@@ -225,6 +233,10 @@
     visibility: visible;
     pointer-events: auto;
     padding: 0.65rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body:has(.ejar-ticker) .nav.open {
+    max-height: min(520px, calc(100dvh - var(--header-h) - var(--ejar-ticker-h) - 1rem));
   }
 
   .nav__link {
