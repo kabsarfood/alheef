@@ -231,14 +231,8 @@
 }
 
 @keyframes ejar-ticker-move {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .ejar-ticker:hover .ejar-ticker__track {
-    animation-play-state: paused;
-  }
+  from { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 
 @media (max-width: 767px) {
