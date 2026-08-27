@@ -126,6 +126,45 @@
 
 .ejar-page .header--ejar {
   overflow: visible;
+  border-bottom-color: rgba(197, 164, 109, 0.45);
+}
+
+.ejar-page .header--ejar.scrolled {
+  border-bottom-color: var(--gold);
+}
+
+.ejar-page .header--ejar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold) 0%, #e8d5a3 50%, var(--gold) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.ejar-page .header--ejar::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff6dc, var(--gold-light), transparent);
+  pointer-events: none;
+  z-index: 5;
+  animation: ejar-header-gold 2.8s linear infinite;
+}
+
+@keyframes ejar-header-gold {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(280%); }
+}
+
+.header--ejar__office {
+  display: none;
 }
 
 .ejar-page .header--ejar .header__inner {
@@ -151,6 +190,36 @@
   }
 
   .ejar-page .header--ejar__call {
+    display: none;
+  }
+
+  .ejar-page .header--ejar .header__inner {
+    gap: 0.35rem;
+  }
+
+  .header--ejar__office {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0 0.15rem;
+    text-align: center;
+    font-size: clamp(0.68rem, 2.7vw, 0.8rem);
+    font-weight: var(--ejar-fw-bold);
+    color: var(--ejar-olive);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+
+  .header--ejar__office span {
+    display: block;
+    max-width: 100%;
+  }
+
+  .ejar-hero__office {
     display: none;
   }
 
@@ -1864,6 +1933,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ejar-page .header--ejar::before {
+    animation: none;
+  }
+
   .ejar-price-card,
   .ejar-cred-card,
   .ejar-step,
