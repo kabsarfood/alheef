@@ -131,6 +131,15 @@ async function countUniqueSessionsSince(days) {
   return count || 0;
 }
 
+async function countPlatformUniqueVisitorsAllTime() {
+  if (!isEnabled()) return 0;
+  const { count, error } = await getAdmin()
+    .from(SESSIONS_TABLE)
+    .select('*', { count: 'exact', head: true });
+  if (error) return 0;
+  return count || 0;
+}
+
 async function countEjarVisitorsToday() {
   if (!isEnabled()) return 0;
   const { count, error } = await getAdmin()
@@ -187,4 +196,5 @@ module.exports = {
   getSummary,
   countViewsToday,
   countEjarUniqueVisitorsAllTime,
+  countPlatformUniqueVisitorsAllTime,
 };

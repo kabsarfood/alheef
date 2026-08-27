@@ -6,7 +6,11 @@ require('dotenv').config();
 
 const { initSupabase } = require('../server/lib/supabase');
 const { getEjarTrustStats } = require('../server/services/ejarTrustStats');
-const { getCompletedContractsBase } = require('../server/utils/ejarReviewConfig');
+const {
+  getCompletedContractsBase,
+  getVisitorsBase,
+  getReviewsBase,
+} = require('../server/utils/ejarReviewConfig');
 
 async function run() {
   if (!initSupabase()) {
@@ -21,14 +25,17 @@ async function run() {
 
   const stats = await getEjarTrustStats();
   const base = getCompletedContractsBase();
+  const visitorsBase = getVisitorsBase();
+  const reviewsBase = getReviewsBase();
 
-  if (typeof stats.visitors !== 'number' || stats.visitors < 0) fail('زوار إيجار رقم صالح');
-  else ok('زوار صفحة إيجار = ' + stats.visitors);
+  if (typeof stats.visitors !== 'number' || stats.visitors < visitorsBase) fail('زوار المنصة من الأساس التاريخي');
+  else ok('زوار المنصة = ' + stats.visitors + ' (أساس ' + visitorsBase + ')');
 
   if (stats.contracts < base) fail('عداد العقود يبدأ من الأساس التاريخي ' + base);
   else ok('عقود مكتملة = ' + stats.contracts + ' (أساس ' + base + ')');
-  if (typeof stats.reviewsCount !== 'number' || stats.reviewsCount < 0) fail('عدد التقييمات المعتمدة');
-  else ok('تقييمات معتمدة = ' + stats.reviewsCount);
+
+  if (typeof stats.reviewsCount !== 'number' || stats.reviewsCount < reviewsBase) fail('عدد التقييمات من الأساس التاريخي');
+  else ok('تقييمات = ' + stats.reviewsCount + ' (أساس ' + reviewsBase + ')');
 
   if (typeof stats.reviewsAverage !== 'number' || stats.reviewsAverage < 0 || stats.reviewsAverage > 5) {
     fail('متوسط النجوم بين 0 و 5');

@@ -19,4 +19,10 @@ module.exports = {
   getCompletedContractsBase() {
     return intEnv('EJAR_COMPLETED_CONTRACTS_BASE', 200);
   },
+  getVisitorsBase() {
+    return intEnv('EJAR_VISITORS_BASE', 1850);
+  },
+  getReviewsBase() {
+    return intEnv('EJAR_REVIEWS_BASE', 120);
+  },
 };
