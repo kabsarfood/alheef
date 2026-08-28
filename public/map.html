@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=13">
-  <link rel="stylesheet" href="/css/map.css?v=56">
+  <link rel="stylesheet" href="/css/map.css?v=58">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="map-page">
@@ -68,6 +68,9 @@
     </section>
 
     <section class="map-filters container" aria-label="تصفية العقارات">
+      <button type="button" class="map-filters-toggle" id="map-filters-toggle" aria-expanded="false" aria-controls="map-filters-form">
+        تفاصيل البحث
+      </button>
       <form class="map-filters__inner" id="map-filters-form">
         <label>الغرض
           <select name="listing_type" id="filter-listing">
@@ -169,7 +172,8 @@
 
   <footer class="footer footer--compact">
     <div class="container">
-      <p class="footer__copy">© <span id="year"></span> الهيف للخدمات العقارية</p>
+      <p class="map-footer__office">مكتب الهيف للخدمات العقارية</p>
+      <p class="footer__copy">© <span id="year"></span> جميع الحقوق محفوظة</p>
     </div>
   </footer>
 
@@ -179,7 +183,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
-  <script src="/js/map.js?v=15"></script>
+  <script src="/js/map.js?v=16"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     fetch('/api/config').then((r) => r.json()).then((c) => {

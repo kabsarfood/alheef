@@ -40,6 +40,7 @@
     legend: document.getElementById('map-legend'),
     legendToggle: document.getElementById('map-legend-toggle'),
     form: document.getElementById('map-filters-form'),
+    filtersToggle: document.getElementById('map-filters-toggle'),
     sheet: document.getElementById('map-sheet'),
     sheetContent: document.getElementById('sheet-content'),
     sheetBackdrop: document.getElementById('sheet-backdrop'),
@@ -404,6 +405,18 @@
   function toggleLegend() {
     if (isLegendOpen()) closeLegend();
     else openLegend();
+  }
+
+  function openFilters() {
+    if (!els.form) return;
+    els.form.classList.add('is-open');
+    els.filtersToggle?.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeFilters() {
+    if (!els.form) return;
+    els.form.classList.remove('is-open');
+    els.filtersToggle?.setAttribute('aria-expanded', 'false');
   }
 
   function createIcon(color) {
@@ -908,6 +921,7 @@
         flyToFilterLocation(filters);
       }
       loadProperties(filters);
+      closeFilters();
     });
 
     document.getElementById('filter-reset')?.addEventListener('click', () => {
@@ -915,6 +929,11 @@
       fillDistrictsForCity('', true);
       flyToDefaultMap();
       loadProperties({});
+    });
+
+    els.filtersToggle?.addEventListener('click', () => {
+      if (els.form?.classList.contains('is-open')) closeFilters();
+      else openFilters();
     });
 
     els.sheetBackdrop?.addEventListener('click', closeSheet);
@@ -931,6 +950,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (isSheetOpen()) closeSheet();
+      else if (els.form?.classList.contains('is-open')) closeFilters();
       else closeLegend();
     });
 
