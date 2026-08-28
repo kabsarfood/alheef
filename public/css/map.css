@@ -220,12 +220,12 @@
   min-height: 0 !important;
   border-radius: 0;
   border: none;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .map-wrap:fullscreen,
 .map-wrap:-webkit-full-screen {
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .map-wrap--fullscreen .map-sheet,
@@ -345,18 +345,54 @@ body.map-fs-active .map-stage {
   color: var(--map-navy);
 }
 
-.map-legend {
+.map-legend-dock {
   position: absolute;
   inset-inline-start: 1rem;
   top: 1rem;
   z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  max-width: min(220px, calc(100% - 5.5rem));
+}
+
+.map-legend-btn {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--map-navy);
   background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--map-border);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--map-shadow);
+  white-space: nowrap;
+}
+
+.map-legend-btn[aria-expanded="true"] {
+  background: var(--map-navy);
+  color: #fff;
+  border-color: var(--map-navy);
+}
+
+.map-legend {
+  display: none;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(8px);
   border: 1px solid var(--map-border);
   border-radius: 12px;
   padding: 0.85rem 1rem;
-  min-width: 140px;
+  min-width: 148px;
+  width: max-content;
+  max-width: 100%;
   box-shadow: var(--map-shadow);
+}
+
+.map-legend.is-open {
+  display: block;
 }
 
 .map-legend__title {
@@ -637,13 +673,18 @@ body.map-fs-active .map-stage {
   border: 1px solid var(--map-gold);
 }
 
-/* Bottom Sheet — جوال (داخل map-wrap ليعمل في ملء الشاشة) */
+/* بطاقة العقار — وسط الخريطة على كل الشاشات */
 .map-sheet {
   position: absolute;
   inset: 0;
   z-index: 1500;
   pointer-events: none;
   visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.65rem, 2vw, 1.25rem);
+  box-sizing: border-box;
 }
 
 .map-sheet.open {
@@ -664,29 +705,52 @@ body.map-fs-active .map-stage {
 }
 
 .map-sheet__panel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 88vh;
+  position: relative;
+  z-index: 1;
+  width: min(360px, 100%);
+  max-height: min(88%, 620px);
   background: #fff;
-  border-radius: 20px 20px 0 0;
-  transform: translateY(100%);
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  border-radius: 16px;
+  transform: translateY(16px) scale(0.98);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s ease;
   overflow: auto;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  -webkit-overflow-scrolling: touch;
 }
 
 .map-sheet.open .map-sheet__panel {
-  transform: translateY(0);
+  transform: none;
+  opacity: 1;
+}
+
+.map-sheet .map-card {
+  overflow: hidden;
+}
+
+.map-sheet .map-card__gallery {
+  height: min(160px, 28vh);
+}
+
+.map-sheet__close {
+  position: absolute;
+  top: 0.5rem;
+  inset-inline-end: 0.5rem;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--map-navy);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .map-sheet__handle {
-  width: 40px;
-  height: 4px;
-  background: rgba(30, 42, 56, 0.15);
-  border-radius: 2px;
-  margin: 0.65rem auto;
+  display: none;
 }
 
 .map-share-menu {
@@ -733,15 +797,15 @@ body.map-fs-active .map-stage {
     display: block;
   }
 
-  /* لوحة التفاصيل ثابتة على الشاشة — لا تختفي مع التمرير */
+  /* لوحة التفاصيل داخل إطار الخريطة — لا تخرج عن الحافة */
   .map-sheet {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 1500;
   }
 
   .map-sheet__panel {
-    max-height: 58vh;
+    max-height: min(90%, 560px);
+    width: min(340px, 100%);
   }
 
   .map-layer-toggle,
@@ -773,10 +837,15 @@ body.map-fs-active .map-stage {
     font-size: 0.85rem;
   }
 
-  .map-legend {
+  .map-legend-dock {
     top: auto;
     bottom: 4.5rem;
     inset-inline-start: 0.75rem;
+    flex-direction: column-reverse;
+    max-width: min(200px, calc(100% - 5rem));
+  }
+
+  .map-legend {
     min-width: 120px;
     padding: 0.65rem 0.75rem;
   }
@@ -811,7 +880,7 @@ body.map-fs-active .map-stage {
     bottom: 1rem;
   }
 
-  body.map-fs-active .map-legend {
+  body.map-fs-active .map-legend-dock {
     bottom: 1rem;
     inset-inline-start: 0.5rem;
   }

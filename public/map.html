@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=13">
   <link rel="stylesheet" href="/css/mobile.css?v=13">
-  <link rel="stylesheet" href="/css/map.css?v=54">
+  <link rel="stylesheet" href="/css/map.css?v=55">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="map-page">
@@ -131,13 +131,18 @@
           <button type="button" class="map-layer-toggle__btn active" data-layer="streets" aria-pressed="true">خريطة</button>
           <button type="button" class="map-layer-toggle__btn" data-layer="satellite" aria-pressed="false">قمر صناعي</button>
         </div>
-        <aside class="map-legend" id="map-legend" aria-label="دليل الألوان"></aside>
+        <div class="map-legend-dock">
+          <button type="button" class="map-legend-btn" id="map-legend-toggle" aria-expanded="false" aria-controls="map-legend">
+            دليل الألوان
+          </button>
+          <aside class="map-legend" id="map-legend" hidden aria-label="دليل الألوان"></aside>
+        </div>
         <span class="map-count" id="map-count" aria-live="polite">0 عقار</span>
         <div class="map-loading" id="map-loading">جاري تحميل العقارات…</div>
         <div class="map-sheet" id="map-sheet" aria-hidden="true">
           <div class="map-sheet__backdrop" id="sheet-backdrop"></div>
           <div class="map-sheet__panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="تفاصيل العقار">
-            <div class="map-sheet__handle" aria-hidden="true"></div>
+            <button type="button" class="map-sheet__close" id="sheet-close" aria-label="إغلاق">×</button>
             <div id="sheet-content"></div>
           </div>
         </div>
@@ -165,7 +170,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
-  <script src="/js/map.js?v=13"></script>
+  <script src="/js/map.js?v=14"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     fetch('/api/config').then((r) => r.json()).then((c) => {

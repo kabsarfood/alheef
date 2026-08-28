@@ -38,6 +38,7 @@
     loading: document.getElementById('map-loading'),
     count: document.getElementById('map-count'),
     legend: document.getElementById('map-legend'),
+    legendToggle: document.getElementById('map-legend-toggle'),
     form: document.getElementById('map-filters-form'),
     sheet: document.getElementById('map-sheet'),
     sheetContent: document.getElementById('sheet-content'),
@@ -361,6 +362,7 @@
 
   function openSheet(p) {
     if (!els.sheet || !els.sheetContent) return;
+    closeLegend();
     const lat = Number(p.latitude);
     const lng = Number(p.longitude);
     const latlng = Number.isFinite(lat) && Number.isFinite(lng) ? L.latLng(lat, lng) : null;
@@ -372,29 +374,36 @@
     if (map) {
       L.DomEvent.disableClickPropagation(els.sheet);
       L.DomEvent.disableScrollPropagation(els.sheet);
-      if (MOBILE()) {
-        scrollMapIntoView();
-        requestAnimationFrame(() => {
-          if (latlng) panMapAboveSheet(latlng);
-          refreshMapSizeKeepAnchor();
-        });
-        setTimeout(() => {
-          if (latlng) panMapAboveSheet(latlng);
-          refreshMapSizeKeepAnchor();
-        }, 280);
-      } else {
-        setTimeout(refreshMapSizeKeepAnchor, 100);
-      }
     }
   }
 
   function closeSheet() {
     els.sheet?.classList.remove('open');
     els.sheet?.setAttribute('aria-hidden', 'true');
-    markersById.forEach((m) => {
-      if (m.isPopupOpen?.()) m.closePopup();
-    });
     unlockMapDetail();
+  }
+
+  function isLegendOpen() {
+    return els.legend?.classList.contains('is-open');
+  }
+
+  function openLegend() {
+    if (!els.legend) return;
+    els.legend.hidden = false;
+    els.legend.classList.add('is-open');
+    els.legendToggle?.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeLegend() {
+    if (!els.legend) return;
+    els.legend.hidden = true;
+    els.legend.classList.remove('is-open');
+    els.legendToggle?.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleLegend() {
+    if (isLegendOpen()) closeLegend();
+    else openLegend();
   }
 
   function createIcon(color) {
@@ -414,29 +423,10 @@
     const color = markerColor(p.propertyType, p.listingType);
     const marker = L.marker([lat, lng], { icon: createIcon(color) });
 
-    marker.bindPopup(buildCardHtml(p), {
-      className: 'map-popup',
-      maxWidth: 340,
-      autoPan: false,
-      keepInView: false,
-    });
-    marker.on('popupopen', () => {
-      lockMapDetail(marker.getLatLng());
-      const popEl = marker.getPopup()?.getElement();
-      if (popEl) bindCardActions(popEl);
-      requestAnimationFrame(restoreMapAnchor);
-    });
-    marker.on('popupclose', () => {
-      if (!isSheetOpen()) unlockMapDetail();
-    });
     marker.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
       if (window.AlheefMapAdd?.handleMarkerClick?.(e, p)) return;
-      if (MOBILE()) {
-        openSheet(p);
-        return;
-      }
-      marker.openPopup();
+      openSheet(p);
     });
 
     const prev = markersById.get(p.id);
@@ -695,6 +685,7 @@
           <span class="map-legend__dot" style="background:${i.c}"></span>
           ${i.l}
         </div>`).join('')}`;
+    closeLegend();
   }
 
   function filtersFromForm() {
@@ -931,6 +922,21 @@
     });
 
     els.sheetBackdrop?.addEventListener('click', closeSheet);
+    document.getElementById('sheet-close')?.addEventListener('click', closeSheet);
+    els.legendToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleLegend();
+    });
+    const legendDock = document.querySelector('.map-legend-dock');
+    if (legendDock && map) {
+      L.DomEvent.disableClickPropagation(legendDock);
+      L.DomEvent.disableScrollPropagation(legendDock);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (isSheetOpen()) closeSheet();
+      else closeLegend();
+    });
 
     document.getElementById('share-wa')?.addEventListener('click', () => {
       if (shareTarget) window.open(whatsappLink(shareText(shareTarget)), '_blank', 'noopener');
