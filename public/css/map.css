@@ -270,116 +270,117 @@ body.map-fs-active .map-stage {
   font-family: inherit;
 }
 
-.map-fs-btn {
+.map-tools {
+  --map-tool-fs: clamp(0.72rem, 1.35vh + 0.35rem, 0.84rem);
+  --map-tool-icon: clamp(16px, 2.2vh, 18px);
   position: absolute;
-  inset-inline-end: 1rem;
-  top: 3.25rem;
-  z-index: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--map-border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  color: var(--map-navy);
-  cursor: pointer;
-  box-shadow: var(--map-shadow);
-  transition: background 0.2s, color 0.2s;
-}
-
-.map-fs-btn:hover,
-.map-fs-btn[aria-pressed="true"] {
-  background: var(--map-navy);
-  color: #fff;
-}
-
-.map-fs-btn__icon {
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.map-layer-toggle,
-.map-layer-toggle.map-layer-toggle--stack {
-  position: absolute;
-  inset-inline-end: 1rem;
-  top: 1rem;
-  z-index: 500;
-  display: flex;
-  gap: 0;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--map-border);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: var(--map-shadow);
-}
-
-.map-layer-toggle__btn {
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.55rem 0.85rem;
-  border: none;
-  background: transparent;
-  color: rgba(30, 42, 56, 0.65);
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.map-layer-toggle__btn + .map-layer-toggle__btn {
-  border-inline-start: 1px solid var(--map-border);
-}
-
-.map-layer-toggle__btn.active {
-  background: var(--map-navy);
-  color: #fff;
-}
-
-.map-layer-toggle__btn:hover:not(.active) {
-  background: var(--map-gold-soft);
-  color: var(--map-navy);
-}
-
-.map-legend-dock {
-  position: absolute;
-  inset-inline-start: 1rem;
-  top: 1rem;
+  top: clamp(0.65rem, 1.6vh, 1rem);
+  right: clamp(0.65rem, 1.6vh, 1rem);
+  left: auto;
   z-index: 500;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.45rem;
-  max-width: min(220px, calc(100% - 5.5rem));
+  align-items: stretch;
+  gap: clamp(0.35rem, 0.9vh, 0.5rem);
+  max-width: min(13.5rem, calc(100% - 3.5rem));
+  pointer-events: none;
 }
 
-.map-legend-btn {
+.map-tools > * {
+  pointer-events: auto;
+}
+
+.map-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: clamp(2.35rem, 5vh, 2.6rem);
+  padding: 0.4rem 0.85rem;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: var(--map-tool-fs);
   font-weight: 800;
   color: var(--map-navy);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
   border: 1px solid var(--map-border);
   border-radius: 999px;
-  padding: 0.45rem 0.85rem;
-  cursor: pointer;
   box-shadow: var(--map-shadow);
+  cursor: pointer;
   white-space: nowrap;
+  line-height: 1;
 }
 
-.map-legend-btn[aria-expanded="true"] {
+.map-tool-btn__icon {
+  width: var(--map-tool-icon);
+  height: var(--map-tool-icon);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--map-tool-icon);
+  line-height: 1;
+}
+
+.map-tool-btn:hover,
+.map-tool-btn.active,
+.map-tool-btn[aria-pressed="true"],
+.map-tool-btn[aria-expanded="true"] {
   background: var(--map-navy);
   color: #fff;
   border-color: var(--map-navy);
 }
 
+.map-fs-btn {
+  position: static;
+  inset: auto;
+  top: auto;
+  z-index: auto;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+}
+
+.map-layer-toggle,
+.map-layer-toggle.map-layer-toggle--stack {
+  position: static;
+  inset: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 0.9vh, 0.5rem);
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+
+.map-layer-toggle__btn {
+  width: 100%;
+}
+
+.map-legend-dock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  max-width: none;
+  inset: auto;
+  top: auto;
+}
+
+.map-legend-btn {
+  display: none;
+}
+
 .map-legend {
   display: none;
+  position: absolute;
+  top: 0;
+  right: calc(100% + 0.45rem);
+  left: auto;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(8px);
   border: 1px solid var(--map-border);
@@ -387,7 +388,7 @@ body.map-fs-active .map-stage {
   padding: 0.85rem 1rem;
   min-width: 148px;
   width: max-content;
-  max-width: 100%;
+  max-width: min(220px, calc(100vw - 8rem));
   box-shadow: var(--map-shadow);
 }
 
@@ -808,41 +809,10 @@ body.map-fs-active .map-stage {
     width: min(340px, 100%);
   }
 
-  .map-layer-toggle,
-  .map-layer-toggle.map-layer-toggle--stack {
-    top: auto;
-    bottom: 4.5rem;
-    inset-inline-end: 0.75rem;
-  }
-
-  .map-layer-toggle__btn {
-    font-size: 0.72rem;
-    padding: 0.5rem 0.65rem;
-  }
-
-  .map-fs-btn,
-  .map-fs-btn.map-fs-btn--stack {
-    top: auto;
-    bottom: 7.5rem;
-    inset-inline-end: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.78rem;
-  }
-
-  .map-fs-btn__label {
-    display: none;
-  }
-
-  .map-fs-btn__icon {
-    font-size: 0.85rem;
-  }
-
-  .map-legend-dock {
-    top: auto;
-    bottom: 4.5rem;
-    inset-inline-start: 0.75rem;
-    flex-direction: column-reverse;
-    max-width: min(200px, calc(100% - 5rem));
+  .map-tools {
+    top: 0.65rem;
+    right: 0.65rem;
+    max-width: min(12.5rem, calc(100% - 3.25rem));
   }
 
   .map-legend {
@@ -869,20 +839,9 @@ body.map-fs-active .map-stage {
     display: none !important;
   }
 
-  body.map-fs-active .map-fs-btn,
-  body.map-fs-active .map-fs-btn.map-fs-btn--stack {
-    bottom: 1rem;
-    top: auto;
-  }
-
-  body.map-fs-active .map-layer-toggle,
-  body.map-fs-active .map-layer-toggle.map-layer-toggle--stack {
-    bottom: 1rem;
-  }
-
-  body.map-fs-active .map-legend-dock {
-    bottom: 1rem;
-    inset-inline-start: 0.5rem;
+  body.map-fs-active .map-tools {
+    top: 0.75rem;
+    right: 0.75rem;
   }
 
   body.map-fs-active .map-count {

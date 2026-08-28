@@ -540,11 +540,7 @@
       dragging: true,
     }).setView([24.7136, 46.6753], 11);
 
-    if (MOBILE()) {
-      map.zoomControl.setPosition('bottomright');
-    } else {
-      map.zoomControl.setPosition('topleft');
-    }
+    map.zoomControl.setPosition('topleft');
 
     layerStreet = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CARTO',
@@ -927,10 +923,10 @@
       e.stopPropagation();
       toggleLegend();
     });
-    const legendDock = document.querySelector('.map-legend-dock');
-    if (legendDock && map) {
-      L.DomEvent.disableClickPropagation(legendDock);
-      L.DomEvent.disableScrollPropagation(legendDock);
+    const tools = document.getElementById('map-tools');
+    if (tools && map) {
+      L.DomEvent.disableClickPropagation(tools);
+      L.DomEvent.disableScrollPropagation(tools);
     }
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
