@@ -27,7 +27,7 @@ const MapsUrlField = (() => {
     if (window.AlheefCoords?.looksLikeMapsUrl) return AlheefCoords.looksLikeMapsUrl(url);
     const text = stripUrl(url);
     return /^https?:\/\//i.test(text)
-      && /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google/i.test(text);
+      && /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google|share\.google/i.test(text);
   }
 
   function getInput() {
@@ -67,21 +67,22 @@ const MapsUrlField = (() => {
     const mapLink = cfg.mapPageUrl
       ? `<a href="${cfg.mapPageUrl}" target="_blank" rel="noopener">الخريطة العقارية</a>`
       : 'الخريطة';
-    return `الصيغ المقبولة: <span dir="ltr">maps.app.goo.gl</span> · <span dir="ltr">google.com/maps</span> · <span dir="ltr">goo.gl/maps</span> — من Google Maps: <strong>مشاركة</strong> ← <strong>نسخ الرابط</strong> ← الصق هنا — يظهر على ${mapLink}`;
+    return `انسخ رابط الموقع من Google Maps: <strong>مشاركة</strong> ← <strong>نسخ الرابط</strong> ثم الصقه هنا — يظهر بنقطة نابضة على ${mapLink}`;
   }
 
   function updateHint(state) {
     const hint = document.getElementById(cfg.hintId);
     if (!hint) return;
     const base = baseHintHtml();
+    const coords = getCoords();
 
     if (state === 'loading') {
       hint.innerHTML = `${base}<br><span style="color:var(--text-secondary)">جاري التحقق من الرابط…</span>`;
       return;
     }
 
-    if (getCoords()) {
-      hint.innerHTML = `${base} — <strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع ✓</strong>`;
+    if (coords) {
+      hint.innerHTML = `${base}<br><strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع ✓</strong> <span dir="ltr">${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</span>`;
       return;
     }
 
@@ -92,16 +93,16 @@ const MapsUrlField = (() => {
     }
 
     if (state === 'not-url' || !looksLike(url)) {
-      hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق <strong>رابط Google Maps</strong> من «مشاركة» — وليس نص العنوان فقط</span>`;
+      hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق <strong>رابط Google Maps</strong> من «مشاركة الموقع» — مثل <span dir="ltr">maps.app.goo.gl</span></span>`;
       return;
     }
 
-    hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">تعذر قراءة الرابط — جرّب نسخ الرابط من «مشاركة» مرة أخرى</span>`;
+    hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">تعذر قراءة الإحداثيات من الرابط — أعد النسخ من «مشاركة» داخل Google Maps</span>`;
   }
 
   function scheduleResolve() {
     clearTimeout(_timer);
-    _timer = setTimeout(() => resolve(), 450);
+    _timer = setTimeout(() => resolve(), 350);
   }
 
   async function resolve() {
@@ -169,7 +170,11 @@ const MapsUrlField = (() => {
       setCoords(null);
       scheduleResolve();
     });
-    input.addEventListener('paste', () => setTimeout(scheduleResolve, 0));
+    input.addEventListener('paste', () => setTimeout(() => {
+      const cleaned = getValue();
+      if (cleaned && cleaned !== input.value.trim()) input.value = cleaned;
+      scheduleResolve();
+    }, 0));
     input.addEventListener('change', () => resolve());
   }
 
@@ -200,10 +205,14 @@ const MapsUrlField = (() => {
 
     if (mapsUrl) await resolve();
 
-    const coords = getCoords();
+    let coords = getCoords();
     if (coords) {
       fd.set('latitude', coords.lat);
       fd.set('longitude', coords.lng);
+      if (!looksLike(mapsUrl) && window.AlheefCoords?.mapsUrlFromCoords) {
+        const built = AlheefCoords.mapsUrlFromCoords(coords.lat, coords.lng);
+        if (built) fd.set('mapsUrl', built);
+      }
     } else {
       fd.delete('latitude');
       fd.delete('longitude');
@@ -213,12 +222,18 @@ const MapsUrlField = (() => {
       if (!mapsUrl) {
         return { ok: false, message: 'رابط Google Maps مطلوب لنشر الإعلان على الخريطة' };
       }
-      if (!looksLike(mapsUrl)) {
-        return { ok: false, message: 'الصق رابط «مشاركة» من Google Maps — وليس نص العنوان فقط' };
+      coords = getCoords();
+      if (!coords) {
+        return {
+          ok: false,
+          message: looksLike(mapsUrl)
+            ? 'تعذر قراءة الموقع من الرابط — انسخ رابط «مشاركة» من Google Maps ثم الصقه مرة أخرى'
+            : 'الصق رابط «مشاركة» من Google Maps (مشاركة ← نسخ الرابط) وليس نص العنوان فقط',
+        };
       }
     }
 
-    return { ok: true, coords, mapsUrl };
+    return { ok: true, coords, mapsUrl: fd.get('mapsUrl') };
   }
 
   function fieldHtml(options = {}) {
@@ -229,7 +244,7 @@ const MapsUrlField = (() => {
     return `
       <div class="form-group full">
         <label for="${cfg.inputId}">${label}${reqMark}</label>
-        <input type="text" name="mapsUrl" id="${cfg.inputId}" placeholder="https://maps.app.goo.gl/... أو https://www.google.com/maps/place/..." dir="ltr" inputmode="url" autocomplete="off"${reqAttr}>
+        <input type="text" name="mapsUrl" id="${cfg.inputId}" placeholder="الصق رابط المشاركة من Google Maps مثل https://maps.app.goo.gl/..." dir="ltr" inputmode="url" autocomplete="off"${reqAttr}>
         <span class="form-hint" id="${cfg.hintId}">${baseHintHtml()}</span>
       </div>
     `;
