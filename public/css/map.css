@@ -23,9 +23,8 @@
   position: sticky;
   top: 0;
   z-index: 1001;
-  height: 72px;
-  min-height: 72px;
-  max-height: 72px;
+  height: var(--header-h);
+  min-height: var(--header-h);
   overflow: visible;
   background: rgba(250, 248, 245, 0.98);
   border-bottom: 1px solid var(--map-border);
@@ -49,38 +48,8 @@
   align-items: center;
 }
 
-.map-page .logo--header .logo__img,
-.map-page .logo--header img {
-  display: block;
-  height: 42px;
-  max-height: 42px;
-  width: auto;
-  max-width: min(150px, 38vw);
-  object-fit: contain;
-  object-position: right center;
-  transform: scale(var(--logo-header-scale, 1.25));
-  transform-origin: right center;
-}
-
 .map-page main {
   padding-top: 0;
-}
-
-@media (max-width: 768px) {
-  .map-page .header {
-    height: 64px;
-    min-height: 64px;
-    max-height: 64px;
-  }
-
-  .map-page .logo--header .logo__img,
-  .map-page .logo--header img {
-    height: 36px;
-    max-height: 36px;
-    max-width: min(120px, 42vw);
-    transform: scale(var(--logo-header-scale, 1.25));
-    transform-origin: right center;
-  }
 }
 
 .map-hero {

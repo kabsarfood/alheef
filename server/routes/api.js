@@ -203,7 +203,7 @@ router.post('/requests', requireDb, async (req, res) => {
 
 router.post('/request-property', requireDb, async (req, res) => {
   try {
-    const { propertyType, city, district, budget, description, phone, name } = req.body;
+    const { propertyType, city, district, streetWidth, street_width, budget, description, phone, name } = req.body;
     if (!propertyType || !city || !phone) {
       return res.status(400).json({ success: false, message: 'يرجى تعبئة الحقول المطلوبة' });
     }
@@ -211,7 +211,14 @@ router.post('/request-property', requireDb, async (req, res) => {
       customerName: name,
       customerPhone: phone,
       requestType: 'property_search',
-      message: JSON.stringify({ propertyType, city, district, budget, description }),
+      message: JSON.stringify({
+        propertyType,
+        city,
+        district,
+        streetWidth: streetWidth || street_width || '',
+        budget,
+        description,
+      }),
     });
     await notifyAdminsNewCustomerRequest(request);
     res.json({ success: true, message: 'تم استلام طلبك بنجاح، سنتواصل معك قريباً', requestId: request.id });

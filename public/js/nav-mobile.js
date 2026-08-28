@@ -56,6 +56,25 @@
     });
   }
 
+  function applyHeaderLogo() {
+    const img = document.getElementById('site-logo');
+    if (!img) return;
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((s) => {
+        if (!s || !s.logo) return;
+        const v = s.updatedAt || Date.now();
+        img.src = s.logo.includes('?') ? s.logo : `${s.logo}?v=${encodeURIComponent(v)}`;
+        if (s.siteName) img.alt = s.siteName;
+      })
+      .catch(() => {});
+  }
+
+  function boot() {
+    init();
+    applyHeaderLogo();
+  }
+
   window.AlheefNav = {
     open: () => setMenuOpen(true),
     close: () => setMenuOpen(false),
@@ -66,8 +85,8 @@
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    init();
+    boot();
   }
 })();

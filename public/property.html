@@ -17,10 +17,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=13">
-  <link rel="stylesheet" href="/css/mobile.css?v=13">
-  <link rel="stylesheet" href="/css/mobile.css?v=12">
-  <link rel="stylesheet" href="/css/map.css?v=54">
+  <link rel="stylesheet" href="/css/main.css?v=16">
+  <link rel="stylesheet" href="/css/mobile.css?v=19">
+  <link rel="stylesheet" href="/css/map.css?v=59">
   <link rel="stylesheet" href="/css/pwa.css">
   <title id="page-title">تفاصيل العقار | الهيف</title>
   <style>
@@ -43,8 +42,16 @@
 <body class="property-page map-page">
   <header class="header">
     <div class="container header__inner">
-      <a href="/" class="logo logo--header">
-        <img src="/images/logo-alheef.png" alt="الهيف" width="120" height="48">
+      <a href="/" class="logo logo--header" aria-label="الهيف العقارية — الرئيسية">
+        <img
+          id="site-logo"
+          src="/images/logo-alheef.png"
+          alt="الهيف العقارية"
+          class="logo__img"
+          width="200"
+          height="56"
+          fetchpriority="high"
+        >
       </a>
       <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
@@ -77,7 +84,7 @@
 
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
-  <script src="/js/nav-mobile.js?v=5" defer></script>
+  <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/property.js?v=5" defer></script>
 </body>
 </html>

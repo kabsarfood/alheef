@@ -18,17 +18,25 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
-  <link rel="stylesheet" href="/css/main.css?v=13">
-  <link rel="stylesheet" href="/css/mobile.css?v=13">
-  <link rel="stylesheet" href="/css/map.css?v=58">
+  <link rel="stylesheet" href="/css/main.css?v=16">
+  <link rel="stylesheet" href="/css/mobile.css?v=19">
+  <link rel="stylesheet" href="/css/map.css?v=59">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="map-page">
 
   <header class="header" id="header">
     <div class="container header__inner">
-      <a href="/" class="logo logo--header" aria-label="الهيف — الرئيسية">
-        <img id="site-logo" class="logo__img" src="/images/logo-alheef.png" alt="الهيف العقارية" width="120" height="48" loading="eager">
+      <a href="/" class="logo logo--header" aria-label="الهيف العقارية — الرئيسية">
+        <img
+          id="site-logo"
+          src="/images/logo-alheef.png"
+          alt="الهيف العقارية"
+          class="logo__img"
+          width="200"
+          height="56"
+          fetchpriority="high"
+        >
       </a>
       <nav class="nav" id="nav" aria-label="التنقل">
         <a href="/" class="nav__link">الرئيسية</a>
@@ -179,7 +187,7 @@
 
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
-  <script src="/js/nav-mobile.js?v=5" defer></script>
+  <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
