@@ -1245,28 +1245,34 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.55rem;
+}
+
+.ejar-footer__links li {
+  min-width: 0;
 }
 
 .ejar-footer__links a {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 76px;
-  padding: 0.7rem 0.4rem;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.65rem 0.85rem;
   font-size: var(--ejar-fs-footer-link);
   font-weight: var(--ejar-fw-semibold);
   color: var(--navy);
-  text-align: center;
+  text-align: start;
   text-decoration: none;
   background: var(--ivory);
   border: 1px solid var(--navy-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   line-height: 1.35;
   letter-spacing: normal;
+  box-sizing: border-box;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
@@ -1274,56 +1280,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
-  background: var(--ejar-olive-soft);
+  background: var(--white);
   color: var(--ejar-olive);
+  border: 1px solid var(--navy-border);
   flex-shrink: 0;
 }
 
 .ejar-footer__link-label {
   display: block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 359px) {
-  .ejar-footer__links {
-    grid-template-columns: 1fr;
-  }
-
-  .ejar-footer__links a {
-    flex-direction: row;
-    justify-content: flex-start;
-    min-height: 48px;
-    padding: 0.55rem 0.75rem;
-    text-align: start;
-    gap: 0.65rem;
-  }
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (hover: hover) {
   .ejar-footer__links a:hover {
-    background: var(--ejar-olive-soft);
-    border-color: var(--ejar-olive-border);
+    background: var(--white);
+    border-color: var(--gold-border);
     color: var(--ejar-olive);
-  }
-}
-
-@media (min-width: 768px) {
-  .ejar-footer__links {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .ejar-footer__links a {
-    flex-direction: row;
-    justify-content: flex-start;
-    min-height: 48px;
-    padding: 0.55rem 0.75rem;
-    text-align: start;
-    gap: 0.65rem;
   }
 }
 
