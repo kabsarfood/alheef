@@ -354,6 +354,25 @@
     display: none;
   }
 
+  .home-ejar {
+    padding: 1rem 0 1.35rem;
+  }
+
+  .home-ejar__card {
+    padding: 1.15rem 1.1rem 1.35rem;
+  }
+
+  .home-ejar__card:hover {
+    transform: none;
+  }
+
+  .home-ejar__btn {
+    min-height: 48px;
+    min-width: min(100%, 14rem);
+    justify-content: center;
+    width: min(100%, 16rem);
+  }
+
   /* ─── Sections typography ─── */
   .section-header {
     margin-bottom: 2.25rem;
@@ -828,7 +847,8 @@
 
   /* Disable hover lift on touch */
   .service-card:hover,
-  .offer-card:hover .offer-card__image img {
+  .offer-card:hover .offer-card__image img,
+  .home-ejar__card:hover {
     transform: none;
   }
 }
@@ -1139,6 +1159,11 @@
   .hero__actions .btn {
     flex: 1 1 160px;
     min-height: 48px;
+  }
+
+  .home-ejar__card {
+    grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
+    padding: 1.5rem 1.6rem;
   }
 
   .services__grid,

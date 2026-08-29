@@ -700,6 +700,119 @@ body:has(.ejar-ticker) [id] {
   background: linear-gradient(to bottom, var(--gold-light), transparent);
 }
 
+/* ─── Homepage Ejar CTA ─── */
+.home-ejar {
+  padding: clamp(1.35rem, 4vw, 2.75rem) 0;
+  background: linear-gradient(180deg, #f3efe6 0%, var(--ivory) 55%, var(--white) 100%);
+}
+
+.home-ejar__card {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  gap: clamp(1.15rem, 3vw, 2.5rem);
+  align-items: center;
+  padding: clamp(1.2rem, 3vw, 2rem) clamp(1.2rem, 3.5vw, 2.35rem);
+  background: var(--white);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.home-ejar__card:hover {
+  transform: translateY(-4px);
+  border-color: var(--gold);
+  box-shadow: var(--shadow-lg), var(--shadow-gold);
+}
+
+.home-ejar__card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+
+.home-ejar__art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-ejar__svg {
+  width: min(100%, 220px);
+  height: auto;
+  display: block;
+}
+
+.home-ejar__copy {
+  min-width: 0;
+}
+
+.home-ejar__label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: var(--fw-subheading);
+  letter-spacing: 0.06em;
+  color: #3d5244;
+}
+
+.home-ejar__title {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  font-weight: var(--fw-heading);
+  color: var(--text-primary);
+  line-height: var(--lh-heading);
+}
+
+.home-ejar__desc {
+  margin: 0 0 0.9rem;
+  font-size: var(--fs-detail, 1rem);
+  color: var(--text-secondary);
+  font-weight: var(--fw-body);
+  line-height: var(--lh-relaxed);
+  max-width: 36rem;
+}
+
+.home-ejar__prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.15rem;
+  font-size: 0.9rem;
+  font-weight: var(--fw-body);
+  color: var(--text-secondary);
+}
+
+.home-ejar__prices strong {
+  color: var(--navy);
+  font-weight: var(--fw-heading);
+}
+
+.home-ejar__btn {
+  display: inline-flex;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .home-ejar__card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .home-ejar__svg {
+    width: min(100%, 160px);
+  }
+
+  .home-ejar__desc {
+    max-width: 28rem;
+  }
+
+  .home-ejar__prices {
+    justify-content: center;
+  }
+}
+
 /* ─── Services ─── */
 .services {
   padding: var(--section-pad) 0;
