@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       el.innerHTML = `
         <div class="table-wrap">
           <table class="table table--cards">
-            <thead><tr><th>النوع</th><th>العميل</th><th>الجوال</th><th>التاريخ</th></tr></thead>
+            <thead><tr><th>النوع</th><th>العميل</th><th>الجوال</th><th>التاريخ والوقت</th></tr></thead>
             <tbody>
               ${recent.map((r) => {
                 const d = parseRequestRow(r);
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <td data-label="النوع">${d.type}</td>
                   <td data-label="العميل">${d.name}</td>
                   <td data-label="الجوال" dir="ltr">${d.phone}</td>
-                  <td data-label="التاريخ">${formatDate(r.createdAt)}</td>
+                  <td data-label="التاريخ والوقت" dir="ltr">${formatDateTime(r.createdAt)}</td>
                 </tr>`;
               }).join('')}
             </tbody>

@@ -60,6 +60,12 @@ function buildCustomerRequestNotificationContent({ requestType, message }) {
       body: 'وصل طلب جديد لعرض عقار ويحتاج إلى المتابعة.',
     };
   }
+  if (requestType === 'marketer_join') {
+    return {
+      title: 'طلب انضمام لفريق الهيف',
+      body: 'وصل طلب جديد للانضمام لفريق المسوقين ويحتاج إلى المراجعة.',
+    };
+  }
   return {
     title: 'طلب عميل جديد',
     body: 'وصل طلب عميل جديد ويحتاج إلى المتابعة.',
@@ -146,6 +152,7 @@ async function createCustomerRequestReceived({ requestId, requestType, message }
       requestId: String(requestId),
       requestType: requestType || '',
       body,
+      createdAt: new Date().toISOString(),
     },
     is_read: false,
   };

@@ -136,15 +136,12 @@ async function initAdminNotifications() {
         : [];
 
       if (fresh.length) {
-        if (window.matchMedia('(max-width: 767px)').matches) {
-          showAdminNotificationToast(fresh);
-        } else {
-          fresh.forEach((n) => showToast(n.title));
-        }
+        showAdminNotificationToast(fresh);
       }
 
       const unread = items.filter((n) => !n.isRead);
-      const display = unread.length ? unread : items.slice(0, 5);
+      const read = items.filter((n) => n.isRead);
+      const display = [...unread, ...read].slice(0, 20);
       const pushPermission = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
       const showPushEnable = pushPermission === 'default' && window.AlheefPWA;
 
@@ -235,7 +232,11 @@ async function initAdminNotifications() {
             const remaining = Math.max(0, unreadCount - 1);
             window.AlheefPWA.setBadge(remaining);
           }
-          window.location.href = `/dashboard/requests.html?request=${btn.dataset.requestId || ''}`;
+          const requestId = btn.dataset.requestId || '';
+          const type = btn.dataset.requestType || '';
+          window.location.href = type === 'marketer_join'
+            ? `/dashboard/marketer-requests.html?request=${requestId}`
+            : `/dashboard/requests.html?request=${requestId}`;
         });
       });
     } catch {
@@ -251,7 +252,23 @@ async function initAdminNotifications() {
 
   await render();
   clearInterval(_notificationsPollTimer);
-  _notificationsPollTimer = setInterval(render, 30000);
+  _notificationsPollTimer = setInterval(render, 12000);
+}
+
+function notificationCreatedAt(n) {
+  return n.createdAt || n.payload?.createdAt || n.propertyCreatedAt || '';
+}
+
+function renderNotifTime(n) {
+  const iso = notificationCreatedAt(n);
+  return `<time class="notif-item__time" datetime="${escapeLayoutHtml(iso)}">${escapeLayoutHtml(formatDateTime(iso))}</time>`;
+}
+
+function renderNotifCta({ isRead, attrs, label }) {
+  if (isRead) {
+    return `<button type="button" class="btn btn-outline btn-sm notif-item__cta notif-item__cta--read" ${attrs}>مقروء</button>`;
+  }
+  return `<button type="button" class="btn btn-primary btn-sm notif-item__cta" ${attrs}>${escapeLayoutHtml(label)}</button>`;
 }
 
 function renderNotificationItem(n) {
@@ -261,8 +278,13 @@ function renderNotificationItem(n) {
     return `
       <article class="notif-item${n.isRead ? ' notif-item--read' : ''}">
         <h4 class="notif-item__title">${escapeLayoutHtml(n.title || 'تقييم جديد لعقد إيجار')}</h4>
+        ${renderNotifTime(n)}
         <p class="notif-item__body">${escapeLayoutHtml(body)}</p>
-        <button type="button" class="btn btn-primary btn-sm" data-notif-ejar-review data-notif-id="${n.id}" data-review-id="${p.reviewId || ''}">مراجعة التقييم</button>
+        ${renderNotifCta({
+          isRead: n.isRead,
+          attrs: `data-notif-ejar-review data-notif-id="${n.id}" data-review-id="${p.reviewId || ''}"`,
+          label: 'مراجعة التقييم',
+        })}
       </article>
     `;
   }
@@ -273,8 +295,13 @@ function renderNotificationItem(n) {
     return `
       <article class="notif-item${n.isRead ? ' notif-item--read' : ''}">
         <h4 class="notif-item__title">${escapeLayoutHtml(n.title || 'طلب عميل جديد')}</h4>
+        ${renderNotifTime(n)}
         <p class="notif-item__body">${escapeLayoutHtml(body)}</p>
-        <button type="button" class="btn btn-primary btn-sm" data-notif-client-request data-notif-id="${n.id}" data-request-id="${p.requestId || ''}">عرض الطلب</button>
+        ${renderNotifCta({
+          isRead: n.isRead,
+          attrs: `data-notif-client-request data-notif-id="${n.id}" data-request-id="${p.requestId || ''}" data-request-type="${escapeLayoutHtml(p.requestType || '')}"`,
+          label: 'عرض الطلب',
+        })}
       </article>
     `;
   }
@@ -287,15 +314,20 @@ function renderNotificationItem(n) {
   const createdAt = n.propertyCreatedAt || p.createdAt || n.createdAt;
   return `
     <article class="notif-item${n.isRead ? ' notif-item--read' : ''}">
-      <h4 class="notif-item__title">${n.title}</h4>
+      <h4 class="notif-item__title">${escapeLayoutHtml(n.title)}</h4>
+      ${renderNotifTime({ createdAt, payload: p })}
       <ul class="notif-item__meta">
-        <li><span>المسوق:</span> ${marketerName}</li>
-        <li><span>النوع:</span> ${propertyType}</li>
-        <li><span>الحي:</span> ${district}</li>
-        <li><span>السعر:</span> ${price} ر.س</li>
-        <li><span>تاريخ الإضافة:</span> ${formatDate(createdAt)}</li>
+        <li><span>المسوق:</span> ${escapeLayoutHtml(marketerName)}</li>
+        <li><span>النوع:</span> ${escapeLayoutHtml(propertyType)}</li>
+        <li><span>الحي:</span> ${escapeLayoutHtml(district)}</li>
+        <li><span>السعر:</span> ${escapeLayoutHtml(String(price))} ر.س</li>
+        <li><span>تاريخ الإضافة:</span> ${escapeLayoutHtml(formatDateTime(createdAt))}</li>
       </ul>
-      <button type="button" class="btn btn-primary btn-sm" data-notif-review data-notif-id="${n.id}" data-property-id="${n.propertyId || ''}">مراجعة الإعلان</button>
+      ${renderNotifCta({
+        isRead: n.isRead,
+        attrs: `data-notif-review data-notif-id="${n.id}" data-property-id="${n.propertyId || ''}"`,
+        label: 'مراجعة الإعلان',
+      })}
     </article>
   `;
 }
@@ -380,12 +412,15 @@ function getNotificationBody(n) {
 function getNotificationAction(n) {
   const p = n.payload || {};
   if (n.type === 'ejar_review_received') {
-    return { url: `/dashboard/ejar-reviews.html?review=${p.reviewId || ''}`, label: 'فتح التقييم' };
+    return { url: `/dashboard/ejar-reviews.html?review=${p.reviewId || ''}`, label: n.isRead ? 'مقروء' : 'فتح التقييم' };
   }
   if (n.type === 'customer_request_received') {
-    return { url: `/dashboard/requests.html?request=${p.requestId || ''}`, label: 'فتح الطلب' };
+    if (p.requestType === 'marketer_join') {
+      return { url: `/dashboard/marketer-requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'مقروء' : 'عرض الطلب' };
+    }
+    return { url: `/dashboard/requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'مقروء' : 'عرض الطلب' };
   }
-  return { url: `/dashboard/property-reviews.html?property=${n.propertyId || ''}`, label: 'فتح' };
+  return { url: `/dashboard/property-reviews.html?property=${n.propertyId || ''}`, label: n.isRead ? 'مقروء' : 'فتح' };
 }
 
 function dismissAdminNotificationToast() {
@@ -406,8 +441,9 @@ function showAdminNotificationToast(freshNotifications) {
   const latest = freshNotifications[0];
   const extraCount = freshNotifications.length - 1;
   const body = getNotificationBody(latest);
-  const action = getNotificationAction(latest);
+  const action = getNotificationAction({ ...latest, isRead: false });
   const title = latest.title || 'إشعار جديد';
+  const when = formatDateTime(notificationCreatedAt(latest));
 
   if (!_adminNotifToastEl) {
     _adminNotifToastEl = document.createElement('div');
@@ -426,6 +462,7 @@ function showAdminNotificationToast(freshNotifications) {
         <div class="admin-notif-toast__copy">
           <strong class="admin-notif-toast__title">${escapeLayoutHtml(title)}</strong>
           <p class="admin-notif-toast__body">${escapeLayoutHtml(body)}</p>
+          <p class="admin-notif-toast__time">${escapeLayoutHtml(when)}</p>
         </div>
         ${extraCount > 0 ? `<span class="admin-notif-toast__more">+${extraCount}</span>` : ''}
       </div>

@@ -80,6 +80,12 @@ async function run() {
   if (!content.body.includes('تجاري')) fail('نص العقد التجاري');
   else ok('نص العقد التجاري صحيح');
 
+  const joinContent = adminNotificationsRepo.buildCustomerRequestNotificationContent({
+    requestType: 'marketer_join',
+  });
+  if (joinContent.title !== 'طلب انضمام لفريق الهيف') fail('عنوان إشعار انضمام الفريق');
+  else ok('عنوان إشعار انضمام الفريق صحيح');
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 }

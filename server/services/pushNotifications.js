@@ -108,7 +108,9 @@ async function notifyAdminsClientRequest({ requestId, requestType, message }) {
   await sendToAdmins({
     title,
     body: body.slice(0, 180),
-    url: requestId ? `/dashboard/requests.html?request=${requestId}` : '/dashboard/requests.html',
+    url: requestType === 'marketer_join'
+      ? (requestId ? `/dashboard/marketer-requests.html?request=${requestId}` : '/dashboard/marketer-requests.html')
+      : (requestId ? `/dashboard/requests.html?request=${requestId}` : '/dashboard/requests.html'),
     type: adminNotificationsRepo.CUSTOMER_REQUEST_TYPE,
     badgeCount: unreadCount,
     tag: requestId ? `customer-request-${requestId}` : 'customer-request',

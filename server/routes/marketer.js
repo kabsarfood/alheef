@@ -11,6 +11,7 @@ const { uploadFiles } = require('../services/storage');
 const { canMarketerEdit, canMarketerDelete } = require('../utils/propertyStatus');
 const { JOIN_STATUS_LABELS, PROPERTY_STATUS_LABELS, zoneLabel } = require('../utils/marketerZones');
 const { requireDb } = require('../middleware/requireDb');
+const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestNotifications');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
@@ -37,10 +38,16 @@ function mapJoinRequest(r) {
 router.post('/join', requireDb, async (req, res) => {
   try {
     const row = await marketerJoinRepo.createRequest(req.body);
+    const request = mapJoinRequest(row);
+    notifyAdminsNewCustomerRequest({
+      id: request.id,
+      requestType: 'marketer_join',
+      message: JSON.stringify({ fullName: request.fullName, phone: request.phone }),
+    }).catch((err) => console.error('[notify] marketer join:', err.message));
     res.json({
       success: true,
       message: 'تم استلام طلبك، وسيتم مراجعته من إدارة مكتب الهيف.',
-      request: mapJoinRequest(row),
+      request,
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

@@ -347,9 +347,25 @@ function showToast(message, type = 'success') {
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('ar-SA', {
+    calendar: 'gregory',
+    numberingSystem: 'latn',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+  });
+}
+
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('ar-SA', {
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
   });
 }
 

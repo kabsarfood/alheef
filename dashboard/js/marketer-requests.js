@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const highlightId = new URLSearchParams(location.search).get('request');
   await initLayout('marketer-requests', 'طلبات الانضمام لفريق المسوقين');
   const content = getPageContent();
   content.innerHTML = `
@@ -28,6 +29,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const status = document.getElementById('status-filter').value;
       const { items } = await DashboardAPI.getMarketerJoinRequests(status);
       wrap.innerHTML = renderTable(items || []);
+      if (highlightId) {
+        await DashboardAPI.markCustomerRequestNotificationRead(highlightId).catch(() => {});
+        setTimeout(() => {
+          const el = document.querySelector(`[data-id="${highlightId}"]`);
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el?.classList.add('table-row--highlight');
+        }, 400);
+      }
     } catch (err) {
       wrap.innerHTML = `<p class="empty-state">${err.message}</p>`;
     }
@@ -37,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!rows.length) return '<p class="empty-state">لا توجد طلبات</p>';
     return `<div class="table-wrap"><table class="table table--cards">
       <thead><tr>
-        <th>الاسم</th><th>الجوال</th><th>البريد</th><th>الهوية</th><th>رخصة فال</th><th>نطاق التسويق</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th>
+        <th>الاسم</th><th>الجوال</th><th>البريد</th><th>الهوية</th><th>رخصة فال</th><th>نطاق التسويق</th><th>التاريخ والوقت</th><th>الحالة</th><th>إجراءات</th>
       </tr></thead>
       <tbody>${rows.map((r) => `<tr data-id="${r.id}">
         <td data-label="الاسم">${r.fullName}</td>
@@ -46,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td data-label="الهوية">${r.nationalId}</td>
         <td data-label="رخصة فال">${r.falLicense}</td>
         <td data-label="النطاق">${r.marketingZoneLabel || r.marketingZone}</td>
-        <td data-label="التاريخ">${formatDate(r.createdAt)}</td>
+        <td data-label="التاريخ والوقت" dir="ltr">${formatDateTime(r.createdAt)}</td>
         <td data-label="الحالة"><span class="badge">${r.statusLabel || r.status}</span></td>
         <td data-label="إجراءات">${renderActions(r)}</td>
       </tr>`).join('')}</tbody>
