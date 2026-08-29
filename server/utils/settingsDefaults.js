@@ -6,8 +6,8 @@ const DEFAULT_SETTINGS = {
   faviconUrl: '/assets/favicon.png',
   heroTitle: 'الهيف للخدمات العقارية',
   heroSubtitle: 'مكتب عقاري اكتروني',
-  heroImage: 'https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=1920&q=85',
-  heroMobileImage: 'https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=960&q=80',
+  heroImage: '/assets/hero/banner-1920.jpg',
+  heroMobileImage: '/assets/hero/banner-mobile.jpg',
   whatsappNumber: '966500000000',
   email: 'info@alheef.com',
   phone: '050 000 0000',
@@ -27,4 +27,12 @@ const DEFAULT_SETTINGS = {
   updatedAt: new Date().toISOString(),
 };
 
-module.exports = { DEFAULT_SETTINGS };
+const LEGACY_HERO_RE = /images\.unsplash\.com\/photo-1600585154340-be6162a9a2c9/i;
+
+function resolveLegacyHeroImage(url, fallback) {
+  const value = String(url || '').trim();
+  if (!value || LEGACY_HERO_RE.test(value)) return fallback;
+  return value;
+}
+
+module.exports = { DEFAULT_SETTINGS, resolveLegacyHeroImage, LEGACY_HERO_RE };

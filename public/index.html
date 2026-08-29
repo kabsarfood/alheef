@@ -25,8 +25,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=19">
-  <link rel="stylesheet" href="/css/mobile.css?v=22">
+  <link rel="stylesheet" href="/css/main.css?v=20">
+  <link rel="stylesheet" href="/css/mobile.css?v=23">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body>
@@ -116,19 +116,25 @@
 
   <!-- HERO -->
   <section class="hero" id="hero">
-    <div class="hero__bg">
-      <img
-        id="hero-image"
-        src="https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=1200&q=80"
-        srcset="https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=640&q=75 640w, https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=960&q=80 960w, https://images.unsplash.com/photo-1600585154340-be6162a9a2c9?w=1200&q=80 1200w"
-        sizes="100vw"
-        alt="عقار فاخر — الهيف للخدمات العقارية"
-        width="1200"
-        height="800"
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-      >
+        <div class="hero__bg">
+      <picture>
+        <source
+          media="(max-width: 768px)"
+          srcset="/assets/hero/banner-mobile.jpg?v=1"
+        >
+        <img
+          id="hero-image"
+          src="/assets/hero/banner-1280.jpg?v=1"
+          srcset="/assets/hero/banner-640.jpg?v=1 640w, /assets/hero/banner-960.jpg?v=1 960w, /assets/hero/banner-1280.jpg?v=1 1280w, /assets/hero/banner-1920.jpg?v=1 1536w"
+          sizes="100vw"
+          alt="تسليم عقار — الهيف للخدمات العقارية"
+          width="1536"
+          height="1024"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        >
+      </picture>
     </div>
     <div class="hero__overlay"></div>
     <div class="container hero__content">
@@ -598,6 +604,6 @@
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/join-team.js?v=5" defer></script>
-  <script src="/js/main.js?v=12" defer></script>
+  <script src="/js/main.js?v=13" defer></script>
 </body>
 </html>

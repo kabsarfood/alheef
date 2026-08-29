@@ -1,4 +1,4 @@
-const { DEFAULT_SETTINGS } = require('../utils/settingsDefaults');
+const { DEFAULT_SETTINGS, resolveLegacyHeroImage } = require('../utils/settingsDefaults');
 const { parseCoord, parseCoordsFromMapsUrl } = require('../utils/coords');
 const {
   readMeta, resolveWorkflowStatus, injectIntoFeatures, metaFromBody, workflowToDbPatch, isWorkflowStatus,
@@ -67,8 +67,8 @@ function rowToSettings(row) {
     faviconUrl: row.favicon_url,
     heroTitle: row.hero_title,
     heroSubtitle: row.hero_subtitle,
-    heroImage: row.hero_image,
-    heroMobileImage: row.hero_mobile_image,
+    heroImage: resolveLegacyHeroImage(row.hero_image, DEFAULT_SETTINGS.heroImage),
+    heroMobileImage: resolveLegacyHeroImage(row.hero_mobile_image, DEFAULT_SETTINGS.heroMobileImage),
     whatsappNumber: row.whatsapp_number,
     email: row.email,
     phone: row.phone,
@@ -678,8 +678,8 @@ function toPublicSettings(s) {
     siteDescription: s.siteDescription,
     logo: s.logoUrl,
     favicon: s.faviconUrl,
-    heroImage: s.heroImage,
-    heroMobileImage: s.heroMobileImage,
+    heroImage: resolveLegacyHeroImage(s.heroImage, DEFAULT_SETTINGS.heroImage),
+    heroMobileImage: resolveLegacyHeroImage(s.heroMobileImage, DEFAULT_SETTINGS.heroMobileImage),
     colors: {
       primary: s.primaryColor,
       gold: s.secondaryColor,

@@ -152,6 +152,37 @@
     return `${url}${sep}v=${encodeURIComponent(v)}`;
   }
 
+  function applyHeroBanner(s, v) {
+    const heroImg = document.getElementById('hero-image');
+    if (!heroImg) return;
+
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const requested = isMobile && s.heroMobileImage ? s.heroMobileImage : s.heroImage;
+    const isLocalHero = /\/assets\/hero\//.test(String(requested || ''))
+      || /photo-1600585154340-be6162a9a2c9/.test(String(requested || ''));
+
+    if (isLocalHero) {
+      const desktop = '/assets/hero/banner-1920.jpg';
+      const mobile = '/assets/hero/banner-mobile.jpg';
+      heroImg.src = withCacheBust(isMobile ? mobile : desktop, v);
+      heroImg.srcset = [
+        `/assets/hero/banner-640.jpg?v=${encodeURIComponent(v || 1)} 640w`,
+        `/assets/hero/banner-960.jpg?v=${encodeURIComponent(v || 1)} 960w`,
+        `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(v || 1)} 1280w`,
+        `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(v || 1)} 1536w`,
+      ].join(', ');
+      heroImg.sizes = '100vw';
+      const source = heroImg.parentElement && heroImg.parentElement.querySelector('source');
+      if (source) source.srcset = withCacheBust(mobile, v);
+      return;
+    }
+
+    if (!requested) return;
+    heroImg.src = withCacheBust(requested, v);
+    heroImg.removeAttribute('srcset');
+    heroImg.removeAttribute('sizes');
+  }
+
   function applySiteSettings() {
     if (!siteSettings) return;
     const s = siteSettings;
@@ -198,15 +229,7 @@
     setText('hero-btn-offers', s.hero?.btnOffers);
     setText('hero-btn-request', s.hero?.btnRequest);
 
-    const heroImg = document.getElementById('hero-image');
-    const heroSrc = window.matchMedia('(max-width: 768px)').matches && s.heroMobileImage
-      ? s.heroMobileImage
-      : s.heroImage;
-    if (heroImg && heroSrc) {
-      heroImg.src = withCacheBust(heroSrc, v);
-      heroImg.removeAttribute('srcset');
-      heroImg.removeAttribute('sizes');
-    }
+    applyHeroBanner(s, v);
 
     const root = document.documentElement;
     if (c.primary) root.style.setProperty('--navy', c.primary);

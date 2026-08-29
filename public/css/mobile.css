@@ -311,7 +311,7 @@
   }
 
   .hero__bg img {
-    object-position: 50% 32%;
+    object-position: 50% 38%;
   }
 
   .hero__content {
@@ -855,7 +855,7 @@
   }
 
   .hero__bg img {
-    object-position: 50% 28%;
+    object-position: 50% 36%;
   }
 
   .footer__links a {
@@ -878,14 +878,14 @@
   }
 
   .hero__bg img {
-    object-position: 50% 30%;
+    object-position: 50% 38%;
   }
 }
 
 /* ─── Tablet portrait ─── */
 @media (min-width: 431px) and (max-width: 768px) {
   .hero__bg img {
-    object-position: 50% 34%;
+    object-position: 42% 40%;
   }
 
   .offers__grid {
@@ -1137,7 +1137,7 @@
   }
 
   .hero__bg img {
-    object-position: 50% 36%;
+    object-position: 38% 40%;
   }
 
   .hero__content {
