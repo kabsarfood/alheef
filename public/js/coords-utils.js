@@ -224,6 +224,8 @@ const AlheefCoords = (() => {
   }
 
   function looksLikeMapsUrl(url) {
+    const raw = String(url || '');
+    if (MAPS_HOST_RE.test(raw) || /^geo:/i.test(raw.trim())) return true;
     const text = normalizeMapsUrl(url);
     if (!text) return false;
     if (normalize(parseFromMapsUrl(text))) return true;

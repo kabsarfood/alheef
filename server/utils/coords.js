@@ -143,6 +143,8 @@ function normalizeMapsUrl(url) {
 }
 
 function looksLikeMapsUrl(url) {
+  const raw = String(url || '');
+  if (MAPS_HOST_RE.test(raw) || /^geo:/i.test(raw.trim())) return true;
   const text = normalizeMapsUrl(url);
   if (!text) return false;
   if (normalizeCoordsPair(parseCoordsFromMapsUrl(text))) return true;
@@ -415,6 +417,12 @@ function parseCoordsFromHtml(html) {
     if (pair) return pair;
   }
 
+  const appState = html.match(/APP_INITIALIZATION_STATE[\s\S]{0,4000}?(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/);
+  if (appState) {
+    const pair = pickValid(appState[1], appState[2]);
+    if (pair) return pair;
+  }
+
   const center = html.match(/"center"\s*:\s*\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/);
   if (center) {
     const pair = pickValid(center[1], center[2]);
@@ -425,6 +433,12 @@ function parseCoordsFromHtml(html) {
     || html.match(/"lat"\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*"lng"\s*:\s*(-?\d+(?:\.\d+)?)/i);
   if (latlng) {
     const pair = pickValid(latlng[1], latlng[2]);
+    if (pair) return pair;
+  }
+
+  const at = html.match(/\/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
+  if (at) {
+    const pair = pickValid(at[1], at[2]);
     if (pair) return pair;
   }
 
@@ -442,6 +456,9 @@ async function followMapsRedirects(startUrl, maxHops = 12) {
     current = unwrapMapsUrl(current);
     if (seen.has(current)) break;
     seen.add(current);
+    if (!isGoogleNetworkHost((() => { try { return new URL(current).hostname; } catch { return ''; } })()) && !isShortMapsUrl(current) && !isGoogleMapsUrl(current)) {
+      break;
+    }
 
     const coordsInCurrent = normalizeCoordsPair(parseCoordsFromMapsUrl(current));
     if (coordsInCurrent) {
@@ -561,6 +578,22 @@ async function parseCoordsFromMapsUrlResolved(url) {
   const normalized = normalizeMapsUrl(url);
   const direct = normalizeCoordsPair(parseCoordsFromMapsUrl(normalized));
   if (direct) return direct;
+
+  if (isShortMapsUrl(normalized)) {
+    try {
+      const { finalUrl, html } = await fetchWithFollow(normalized);
+      const fromUrl = normalizeCoordsPair(parseCoordsFromMapsUrl(finalUrl));
+      if (fromUrl) return { ...fromUrl, resolvedUrl: finalUrl };
+      const fromHtml = parseCoordsFromHtml(html);
+      if (fromHtml) return { ...fromHtml, resolvedUrl: finalUrl };
+      for (const href of extractMapsUrlsFromHtml(html)) {
+        const pair = normalizeCoordsPair(parseCoordsFromMapsUrl(href));
+        if (pair) return { ...pair, resolvedUrl: href };
+      }
+    } catch {
+      /* continue to hop-by-hop follow */
+    }
+  }
 
   const resolved = await resolveMapsUrl(normalized);
   if (resolved && resolved !== normalized) {

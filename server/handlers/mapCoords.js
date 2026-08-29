@@ -3,6 +3,7 @@ const {
   normalizeCoordsPair,
   parseCoordsFromMapsUrl,
   parseCoordsFromMapsUrlResolved,
+  looksLikeMapsUrl,
 } = require('../utils/coords');
 
 async function handleParseMapCoords(req, res) {
@@ -10,6 +11,10 @@ async function handleParseMapCoords(req, res) {
     const url = String(req.body?.url || req.body?.mapsUrl || '').trim();
     if (!url) {
       return res.status(400).json({ success: false, message: 'الرابط مطلوب' });
+    }
+
+    if (!looksLikeMapsUrl(url)) {
+      return res.status(400).json({ success: false, message: 'رابط Google Maps غير صالح' });
     }
 
     const normalized = normalizeMapsUrl(url);

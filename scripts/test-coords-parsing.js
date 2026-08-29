@@ -77,6 +77,12 @@ if (!isValidCoord(24.7, 46.6)) {
 
 const shortShare = 'https://maps.app.goo.gl/nnh7BrYTekxuCXtW6';
 const longPlace = 'https://www.google.com/maps/place/RDMA7603/@24.6555433,46.5253655,254m/data=!3m1!1e3?authuser=0&entry=tts&g_ep=Egoy&skid=abc';
+failed += expect('looksLike short share without coords', looksLikeMapsUrl(shortShare));
+failed += expect(
+  'short share has no coords in the string itself',
+  parseCoordsFromMapsUrl(shortShare) == null,
+  parseCoordsFromMapsUrl(shortShare),
+);
 failed += expect('isShortMapsUrl share link', isShortMapsUrl(shortShare));
 failed += expect(
   'preferStored keeps short share link',

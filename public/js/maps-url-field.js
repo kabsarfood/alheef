@@ -1,5 +1,5 @@
 /**
- * حقل رابط Google Maps — مشترك بين إنشاء وتعديل الإعلانات
+ * حقل رابط مشاركة Google Maps — الموقع يُستخرج على الخادم من الرابط
  */
 const MapsUrlField = (() => {
   let cfg = {
@@ -19,15 +19,18 @@ const MapsUrlField = (() => {
   }
 
   function stripUrl(raw) {
+    if (window.AlheefCoords?.extractMapsUrl) return AlheefCoords.extractMapsUrl(raw);
     if (window.AlheefCoords?.normalizeMapsUrl) return AlheefCoords.normalizeMapsUrl(raw);
-    return String(raw || '').trim();
+    return String(raw || '').replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim();
   }
 
   function looksLike(url) {
+    const raw = String(url || '');
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps|share\.google|google\.[a-z.]+\/maps|maps\.google|goo\.gle|g\.co\//i.test(raw)) {
+      return true;
+    }
     if (window.AlheefCoords?.looksLikeMapsUrl) return AlheefCoords.looksLikeMapsUrl(url);
-    const text = stripUrl(url);
-    return /^https?:\/\//i.test(text)
-      && /maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google|share\.google/i.test(text);
+    return false;
   }
 
   function getInput() {
@@ -67,7 +70,7 @@ const MapsUrlField = (() => {
     const mapLink = cfg.mapPageUrl
       ? `<a href="${cfg.mapPageUrl}" target="_blank" rel="noopener">الخريطة العقارية</a>`
       : 'الخريطة';
-    return `انسخ رابط الموقع من Google Maps: <strong>مشاركة</strong> ← <strong>نسخ الرابط</strong> ثم الصقه هنا — يظهر بنقطة نابضة على ${mapLink}`;
+    return `الصق <strong>رابط المشاركة</strong> من Google Maps (مشاركة ← نسخ الرابط) مثل <span dir="ltr">https://maps.app.goo.gl/...</span> — يظهر بنقطة نابضة على ${mapLink}`;
   }
 
   function updateHint(state) {
@@ -75,34 +78,48 @@ const MapsUrlField = (() => {
     if (!hint) return;
     const base = baseHintHtml();
     const coords = getCoords();
+    const url = getValue();
 
     if (state === 'loading') {
-      hint.innerHTML = `${base}<br><span style="color:var(--text-secondary)">جاري التحقق من الرابط…</span>`;
+      hint.innerHTML = `${base}<br><span style="color:var(--text-secondary)">جاري تحديد الموقع من رابط المشاركة…</span>`;
       return;
     }
 
     if (coords) {
-      hint.innerHTML = `${base}<br><strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع ✓</strong> <span dir="ltr">${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}</span>`;
+      hint.innerHTML = `${base}<br><strong style="color:var(--gold,#b8860b)">تم التعرف على الموقع ✓</strong>`;
       return;
     }
 
-    const url = getValue();
     if (!url) {
       hint.innerHTML = base;
       return;
     }
 
-    if (state === 'not-url' || !looksLike(url)) {
-      hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق <strong>رابط Google Maps</strong> من «مشاركة الموقع» — مثل <span dir="ltr">maps.app.goo.gl</span></span>`;
+    if (looksLike(url)) {
+      hint.innerHTML = `${base}<br><strong style="color:var(--gold,#b8860b)">رابط مشاركة صحيح — يُحدد الموقع تلقائياً عند الحفظ</strong>`;
       return;
     }
 
-    hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">تعذر قراءة الإحداثيات من الرابط — أعد النسخ من «مشاركة» داخل Google Maps</span>`;
+    hint.innerHTML = `${base}<br><span style="color:var(--danger,#c0392b)">الصق رابط المشاركة من Google Maps، وليس اسم الحي أو العنوان</span>`;
   }
 
   function scheduleResolve() {
     clearTimeout(_timer);
-    _timer = setTimeout(() => resolve(), 350);
+    _timer = setTimeout(() => resolve(), 200);
+  }
+
+  async function resolveFromServer(url) {
+    const res = await fetch(cfg.parseEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...cfg.authHeaders(),
+      },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.success && data.lat != null && data.lng != null) return data;
+    return null;
   }
 
   async function resolve() {
@@ -110,9 +127,7 @@ const MapsUrlField = (() => {
     if (!input) return null;
 
     const normalized = getValue();
-    if (normalized && normalized !== input.value.trim()) {
-      input.value = normalized;
-    }
+    if (normalized && normalized !== input.value.trim()) input.value = normalized;
 
     if (!normalized) {
       setCoords(null);
@@ -124,10 +139,6 @@ const MapsUrlField = (() => {
       ? AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(normalized))
       : null;
     if (local) {
-      const kept = window.AlheefCoords?.preferStoredMapsUrl
-        ? AlheefCoords.preferStoredMapsUrl(normalized)
-        : normalized;
-      if (kept && kept !== input.value) input.value = kept;
       setCoords(local, getValue());
       updateHint('ok');
       return local;
@@ -142,17 +153,8 @@ const MapsUrlField = (() => {
     updateHint('loading');
 
     try {
-      const res = await fetch(cfg.parseEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...cfg.authHeaders(),
-        },
-        body: JSON.stringify({ url: normalized }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) throw new Error('انتهت الجلسة');
-      if (data.success && data.lat != null && data.lng != null) {
+      const data = await resolveFromServer(normalized);
+      if (data) {
         const kept = window.AlheefCoords?.preferStoredMapsUrl
           ? AlheefCoords.preferStoredMapsUrl(normalized, data.resolvedUrl)
           : normalized;
@@ -162,26 +164,32 @@ const MapsUrlField = (() => {
         return resolved;
       }
     } catch {
-      /* fall through */
+      /* الموقع يُستخرج عند الحفظ على الخادم */
     }
 
     setCoords(null);
-    updateHint('fail');
+    updateHint('pending');
     return null;
   }
 
   function bind() {
     const input = getInput();
     if (!input) return;
+
+    input.addEventListener('paste', (e) => {
+      const clip = e.clipboardData?.getData('text') || e.clipboardData?.getData('text/plain') || '';
+      const extracted = stripUrl(clip);
+      if (!extracted || !looksLike(extracted)) return;
+      e.preventDefault();
+      input.value = extracted;
+      setCoords(null);
+      resolve();
+    });
+
     input.addEventListener('input', () => {
       setCoords(null);
       scheduleResolve();
     });
-    input.addEventListener('paste', () => setTimeout(() => {
-      const cleaned = getValue();
-      if (cleaned && cleaned !== input.value.trim()) input.value = cleaned;
-      scheduleResolve();
-    }, 0));
     input.addEventListener('change', () => resolve());
   }
 
@@ -216,28 +224,20 @@ const MapsUrlField = (() => {
     if (coords) {
       fd.set('latitude', coords.lat);
       fd.set('longitude', coords.lng);
-      if (!looksLike(mapsUrl) && window.AlheefCoords?.mapsUrlFromCoords) {
-        const built = AlheefCoords.mapsUrlFromCoords(coords.lat, coords.lng);
-        if (built) fd.set('mapsUrl', built);
-      }
     } else {
       fd.delete('latitude');
       fd.delete('longitude');
     }
 
-    if (validate) {
-      if (!mapsUrl) {
-        return { ok: false, message: 'رابط Google Maps مطلوب لنشر الإعلان على الخريطة' };
-      }
-      coords = getCoords();
-      if (!coords) {
-        return {
-          ok: false,
-          message: looksLike(mapsUrl)
-            ? 'تعذر قراءة الموقع من الرابط — انسخ رابط «مشاركة» من Google Maps ثم الصقه مرة أخرى'
-            : 'الصق رابط «مشاركة» من Google Maps (مشاركة ← نسخ الرابط) وليس نص العنوان فقط',
-        };
-      }
+    if (validate && !mapsUrl) {
+      return { ok: false, message: 'الصق رابط مشاركة Google Maps لنشر الإعلان على الخريطة' };
+    }
+
+    if (validate && mapsUrl && !looksLike(mapsUrl) && !coords) {
+      return {
+        ok: false,
+        message: 'الصق رابط «مشاركة» من Google Maps وليس اسم الحي أو العنوان',
+      };
     }
 
     return { ok: true, coords, mapsUrl: fd.get('mapsUrl') };
@@ -245,13 +245,13 @@ const MapsUrlField = (() => {
 
   function fieldHtml(options = {}) {
     const required = options.required !== false;
-    const label = options.label || 'رابط اللوكيشن (Google Maps)';
+    const label = options.label || 'رابط الموقع من Google Maps';
     const reqMark = required ? ' <span class="required">*</span>' : '';
     const reqAttr = required ? ' required' : '';
     return `
       <div class="form-group full">
         <label for="${cfg.inputId}">${label}${reqMark}</label>
-        <input type="text" name="mapsUrl" id="${cfg.inputId}" placeholder="الصق رابط المشاركة من Google Maps مثل https://maps.app.goo.gl/..." dir="ltr" inputmode="url" autocomplete="off"${reqAttr}>
+        <input type="text" name="mapsUrl" id="${cfg.inputId}" placeholder="الصق رابط المشاركة — https://maps.app.goo.gl/..." dir="ltr" inputmode="url" autocomplete="off"${reqAttr}>
         <span class="form-hint" id="${cfg.hintId}">${baseHintHtml()}</span>
       </div>
     `;
