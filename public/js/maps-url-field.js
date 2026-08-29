@@ -124,7 +124,11 @@ const MapsUrlField = (() => {
       ? AlheefCoords.normalize(AlheefCoords.parseFromMapsUrl(normalized))
       : null;
     if (local) {
-      setCoords(local, normalized);
+      const kept = window.AlheefCoords?.preferStoredMapsUrl
+        ? AlheefCoords.preferStoredMapsUrl(normalized)
+        : normalized;
+      if (kept && kept !== input.value) input.value = kept;
+      setCoords(local, getValue());
       updateHint('ok');
       return local;
     }
@@ -149,7 +153,10 @@ const MapsUrlField = (() => {
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) throw new Error('انتهت الجلسة');
       if (data.success && data.lat != null && data.lng != null) {
-        if (data.resolvedUrl) input.value = data.resolvedUrl;
+        const kept = window.AlheefCoords?.preferStoredMapsUrl
+          ? AlheefCoords.preferStoredMapsUrl(normalized, data.resolvedUrl)
+          : normalized;
+        if (kept && kept !== input.value) input.value = kept;
         const resolved = setCoords({ lat: data.lat, lng: data.lng }, getValue());
         updateHint('ok');
         return resolved;

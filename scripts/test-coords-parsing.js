@@ -8,6 +8,9 @@ const {
   looksLikeMapsUrl,
   normalizeMapsUrl,
   extractMapsUrl,
+  isShortMapsUrl,
+  cleanMapsShareUrl,
+  preferStoredMapsUrl,
 } = require('../server/utils/coords');
 
 function expect(label, ok, extra) {
@@ -71,5 +74,19 @@ if (!isValidCoord(24.7, 46.6)) {
 } else {
   failed += expect('isValidCoord Riyadh', true);
 }
+
+const shortShare = 'https://maps.app.goo.gl/nnh7BrYTekxuCXtW6';
+const longPlace = 'https://www.google.com/maps/place/RDMA7603/@24.6555433,46.5253655,254m/data=!3m1!1e3?authuser=0&entry=tts&g_ep=Egoy&skid=abc';
+failed += expect('isShortMapsUrl share link', isShortMapsUrl(shortShare));
+failed += expect(
+  'preferStored keeps short share link',
+  preferStoredMapsUrl(shortShare, longPlace) === shortShare,
+  preferStoredMapsUrl(shortShare, longPlace),
+);
+failed += expect(
+  'cleanMapsShareUrl strips tracking',
+  cleanMapsShareUrl(longPlace) === 'https://www.google.com/maps/place/RDMA7603/@24.6555433,46.5253655,254m/data=!3m1!1e3',
+  cleanMapsShareUrl(longPlace),
+);
 
 process.exit(failed ? 1 : 0);

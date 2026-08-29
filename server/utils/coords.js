@@ -158,6 +158,30 @@ function isShortMapsUrl(url) {
   return /(?:^|\/)maps\.app\.goo\.gl\/|(?:^|\/)goo\.gl\/maps\/|share\.google|goo\.gle\/|(?:^|\/)g\.co\//i.test(String(url || ''));
 }
 
+const TRACKING_QUERY_KEYS = [
+  'authuser', 'entry', 'g_ep', 'skid', 'g_st', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+];
+
+function cleanMapsShareUrl(url) {
+  const normalized = normalizeMapsUrl(url);
+  if (!normalized || isShortMapsUrl(normalized) || /^geo:/i.test(normalized)) return normalized;
+  try {
+    const parsed = new URL(normalized);
+    TRACKING_QUERY_KEYS.forEach((key) => parsed.searchParams.delete(key));
+    return parsed.href;
+  } catch {
+    return normalized;
+  }
+}
+
+/** احتفظ برابط المشاركة المختصر؛ لا تستبدله برابط المكان الطويل */
+function preferStoredMapsUrl(original, resolvedUrl) {
+  const pasted = normalizeMapsUrl(original);
+  if (!pasted) return cleanMapsShareUrl(resolvedUrl || '');
+  if (isShortMapsUrl(pasted)) return pasted;
+  return cleanMapsShareUrl(resolvedUrl || pasted);
+}
+
 function dmsToDecimal(deg, min, sec, hemi) {
   let value = Number(deg) + Number(min) / 60 + Number(sec || 0) / 3600;
   if (!Number.isFinite(value)) return null;
@@ -568,9 +592,10 @@ async function enrichBodyCoords(body) {
     if (coords) {
       body.latitude = coords.lat;
       body.longitude = coords.lng;
-      if (coords.resolvedUrl && !parseCoordsFromMapsUrl(mapsUrl)) {
-        body.mapsUrl = coords.resolvedUrl;
-        body.maps_url = coords.resolvedUrl;
+      const stored = preferStoredMapsUrl(mapsUrl, coords.resolvedUrl);
+      if (stored) {
+        body.mapsUrl = stored;
+        body.maps_url = stored;
       }
       return body;
     }
@@ -600,6 +625,8 @@ module.exports = {
   looksLikeMapsUrl,
   isGoogleMapsUrl,
   isShortMapsUrl,
+  cleanMapsShareUrl,
+  preferStoredMapsUrl,
   mapsUrlFromCoords,
   resolveMapsUrl,
   fetchCoordsFromMapsPage,

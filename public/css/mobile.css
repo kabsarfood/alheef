@@ -355,33 +355,8 @@
     font-size: 0.8125rem;
   }
 
-  .hero__actions .btn:last-child {
-    flex-basis: 100%;
-  }
-
   .hero__scroll {
     display: none;
-  }
-
-  .home-ejar {
-    padding: 1rem 0 1.35rem;
-  }
-
-  .home-ejar__card {
-    padding: 1.15rem 1.1rem 1.35rem;
-  }
-
-  .home-ejar__card:hover {
-    transform: none;
-  }
-
-  .home-ejar__btn {
-    min-height: 40px;
-    min-width: 8.5rem;
-    justify-content: center;
-    width: auto;
-    padding: 0.48rem 1.15rem;
-    font-size: 0.8125rem;
   }
 
   /* ─── Sections typography ─── */
@@ -858,8 +833,7 @@
 
   /* Disable hover lift on touch */
   .service-card:hover,
-  .offer-card:hover .offer-card__image img,
-  .home-ejar__card:hover {
+  .offer-card:hover .offer-card__image img {
     transform: none;
   }
 }
@@ -1180,11 +1154,6 @@
     min-height: 40px;
     padding: 0.5rem 1.05rem;
     font-size: 0.8125rem;
-  }
-
-  .home-ejar__card {
-    grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
-    padding: 1.5rem 1.6rem;
   }
 
   .services__grid,

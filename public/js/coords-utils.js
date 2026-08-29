@@ -231,6 +231,33 @@ const AlheefCoords = (() => {
     return MAPS_HOST_RE.test(text);
   }
 
+  function isShortMapsUrl(url) {
+    return /(?:^|\/)maps\.app\.goo\.gl\/|(?:^|\/)goo\.gl\/maps\/|share\.google|goo\.gle\/|(?:^|\/)g\.co\//i.test(String(url || ''));
+  }
+
+  const TRACKING_QUERY_KEYS = [
+    'authuser', 'entry', 'g_ep', 'skid', 'g_st', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+  ];
+
+  function cleanMapsShareUrl(url) {
+    const normalized = normalizeMapsUrl(url);
+    if (!normalized || isShortMapsUrl(normalized) || /^geo:/i.test(normalized)) return normalized;
+    try {
+      const parsed = new URL(normalized);
+      TRACKING_QUERY_KEYS.forEach((key) => parsed.searchParams.delete(key));
+      return parsed.href;
+    } catch {
+      return normalized;
+    }
+  }
+
+  function preferStoredMapsUrl(original, resolvedUrl) {
+    const pasted = normalizeMapsUrl(original);
+    if (!pasted) return cleanMapsShareUrl(resolvedUrl || '');
+    if (isShortMapsUrl(pasted)) return pasted;
+    return cleanMapsShareUrl(resolvedUrl || pasted);
+  }
+
   function mapsUrlFromCoords(lat, lng) {
     const pair = normalize({ lat, lng });
     if (!pair) return '';
@@ -244,6 +271,9 @@ const AlheefCoords = (() => {
     extractMapsUrl,
     normalizeMapsUrl,
     looksLikeMapsUrl,
+    isShortMapsUrl,
+    cleanMapsShareUrl,
+    preferStoredMapsUrl,
     parseFromMapsUrl,
     mapsUrlFromCoords,
   };
