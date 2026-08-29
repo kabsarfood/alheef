@@ -346,27 +346,21 @@ function showToast(message, type = 'success') {
 
 function formatDate(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('ar-SA', {
-    calendar: 'gregory',
-    numberingSystem: 'latn',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${d.getDate()} - ${d.getMonth() + 1} - ${d.getFullYear()}`;
 }
 
 function formatDateTime(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('ar-SA', {
-    calendar: 'gregory',
-    numberingSystem: 'latn',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const period = hours >= 12 ? 'م' : 'ص';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${formatDate(iso)}، ${hours}:${minutes} ${period}`;
 }
 
 function statusBadge(status) {
