@@ -157,30 +157,18 @@
     if (!heroImg) return;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const requested = isMobile && s.heroMobileImage ? s.heroMobileImage : s.heroImage;
-    const isLocalHero = /\/assets\/hero\//.test(String(requested || ''))
-      || /photo-1600585154340-be6162a9a2c9/.test(String(requested || ''));
-
-    if (isLocalHero) {
-      const desktop = '/assets/hero/banner-1920.jpg';
-      const mobile = '/assets/hero/banner-mobile.jpg';
-      heroImg.src = withCacheBust(isMobile ? mobile : desktop, v);
-      heroImg.srcset = [
-        `/assets/hero/banner-640.jpg?v=${encodeURIComponent(v || 1)} 640w`,
-        `/assets/hero/banner-960.jpg?v=${encodeURIComponent(v || 1)} 960w`,
-        `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(v || 1)} 1280w`,
-        `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(v || 1)} 1536w`,
-      ].join(', ');
-      heroImg.sizes = '100vw';
-      const source = heroImg.parentElement && heroImg.parentElement.querySelector('source');
-      if (source) source.srcset = withCacheBust(mobile, v);
-      return;
-    }
-
-    if (!requested) return;
-    heroImg.src = withCacheBust(requested, v);
-    heroImg.removeAttribute('srcset');
-    heroImg.removeAttribute('sizes');
+    const desktop = '/assets/hero/banner-1920.jpg';
+    const mobile = '/assets/hero/banner-mobile.jpg';
+    heroImg.src = withCacheBust(isMobile ? mobile : desktop, v);
+    heroImg.srcset = [
+      `/assets/hero/banner-640.jpg?v=${encodeURIComponent(v || 1)} 640w`,
+      `/assets/hero/banner-960.jpg?v=${encodeURIComponent(v || 1)} 960w`,
+      `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(v || 1)} 1280w`,
+      `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(v || 1)} 1536w`,
+    ].join(', ');
+    heroImg.sizes = '100vw';
+    const source = heroImg.parentElement && heroImg.parentElement.querySelector('source');
+    if (source) source.srcset = withCacheBust(mobile, v);
   }
 
   function applySiteSettings() {
@@ -255,7 +243,7 @@
   function applySeo(s) {
     const desc = s.siteDescription || s.hero?.description || '';
     const title = s.siteName || document.title;
-    const img = s.heroImage || s.logo || '';
+    const img = '/assets/hero/banner-1280.jpg';
 
     const md = document.getElementById('meta-description');
     if (md) md.setAttribute('content', desc);
