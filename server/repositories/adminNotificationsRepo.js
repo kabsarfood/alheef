@@ -38,37 +38,49 @@ function parseEjarContractKind(message) {
   return '';
 }
 
-function buildCustomerRequestNotificationContent({ requestType, message }) {
+function parseRequestCity(message) {
+  if (!message) return '';
+  try {
+    const parsed = typeof message === 'string' ? JSON.parse(message) : message;
+    return String(parsed?.city || parsed?.المدينة || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function appendRequestDetails(body, { customerName, customerPhone, message }) {
+  const parts = [body];
+  const name = String(customerName || '').trim();
+  const phone = String(customerPhone || '').trim();
+  const city = parseRequestCity(message);
+  if (name) parts.push(`الاسم: ${name}`);
+  if (phone) parts.push(`الجوال: ${phone}`);
+  if (city) parts.push(`المدينة: ${city}`);
+  return parts.join(' — ');
+}
+
+function buildCustomerRequestNotificationContent({ requestType, message, customerName, customerPhone }) {
+  let title = 'طلب عميل جديد';
+  let body = 'وصل طلب عميل جديد ويحتاج إلى المتابعة.';
   if (requestType === 'ejar_contract') {
     const kind = parseEjarContractKind(message);
-    return {
-      title: 'طلب جديد لعقد إيجار',
-      body: kind
-        ? `وصل طلب جديد لإنشاء عقد إيجار ${kind} ويحتاج إلى المتابعة.`
-        : 'وصل طلب جديد لإنشاء عقد إيجار ويحتاج إلى المتابعة.',
-    };
-  }
-  if (requestType === 'property_search') {
-    return {
-      title: 'طلب جديد للبحث عن عقار',
-      body: 'وصل طلب جديد للبحث عن عقار ويحتاج إلى المتابعة.',
-    };
-  }
-  if (requestType === 'owner_listing') {
-    return {
-      title: 'طلب جديد لعرض عقار',
-      body: 'وصل طلب جديد لعرض عقار ويحتاج إلى المتابعة.',
-    };
-  }
-  if (requestType === 'marketer_join') {
-    return {
-      title: 'طلب انضمام لفريق الهيف',
-      body: 'وصل طلب جديد للانضمام لفريق المسوقين ويحتاج إلى المراجعة.',
-    };
+    title = 'طلب جديد لعقد إيجار';
+    body = kind
+      ? `وصل طلب جديد لإنشاء عقد إيجار ${kind} ويحتاج إلى المتابعة.`
+      : 'وصل طلب جديد لإنشاء عقد إيجار ويحتاج إلى المتابعة.';
+  } else if (requestType === 'property_search') {
+    title = 'طلب جديد للبحث عن عقار';
+    body = 'وصل طلب جديد للبحث عن عقار ويحتاج إلى المتابعة.';
+  } else if (requestType === 'owner_listing') {
+    title = 'طلب جديد لعرض عقار';
+    body = 'وصل طلب جديد لعرض عقار ويحتاج إلى المتابعة.';
+  } else if (requestType === 'marketer_join') {
+    title = 'طلب انضمام لفريق الهيف';
+    body = 'وصل طلب جديد للانضمام لفريق المسوقين ويحتاج إلى المراجعة.';
   }
   return {
-    title: 'طلب عميل جديد',
-    body: 'وصل طلب عميل جديد ويحتاج إلى المتابعة.',
+    title,
+    body: appendRequestDetails(body, { customerName, customerPhone, message }),
   };
 }
 
@@ -136,13 +148,18 @@ async function findRequestNotification(requestId) {
   return mapRow(data);
 }
 
-async function createCustomerRequestReceived({ requestId, requestType, message }) {
+async function createCustomerRequestReceived({ requestId, requestType, message, customerName, customerPhone }) {
   if (!isEnabled() || !requestId) return null;
 
   const existing = await findRequestNotification(requestId);
   if (existing) return existing;
 
-  const { title, body } = buildCustomerRequestNotificationContent({ requestType, message });
+  const { title, body } = buildCustomerRequestNotificationContent({
+    requestType,
+    message,
+    customerName,
+    customerPhone,
+  });
   const row = {
     type: CUSTOMER_REQUEST_TYPE,
     title,
@@ -151,6 +168,8 @@ async function createCustomerRequestReceived({ requestId, requestType, message }
     payload: {
       requestId: String(requestId),
       requestType: requestType || '',
+      customerName: customerName || '',
+      customerPhone: customerPhone || '',
       body,
       createdAt: new Date().toISOString(),
     },
@@ -159,6 +178,33 @@ async function createCustomerRequestReceived({ requestId, requestType, message }
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
   if (error) throw new Error(error.message);
   return mapRow(data);
+}
+
+async function backfillMissingRequestNotifications(hours = 48) {
+  if (!isEnabled()) return 0;
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  const { data: requests, error } = await getAdmin()
+    .from('requests')
+    .select('id, request_type, customer_name, customer_phone, message, created_at')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(80);
+  if (error || !requests?.length) return 0;
+
+  let created = 0;
+  for (const row of requests) {
+    const existing = await findRequestNotification(row.id);
+    if (existing) continue;
+    await createCustomerRequestReceived({
+      requestId: row.id,
+      requestType: row.request_type,
+      message: row.message,
+      customerName: row.customer_name,
+      customerPhone: row.customer_phone,
+    });
+    created += 1;
+  }
+  return created;
 }
 
 async function markReadByRequestId(requestId) {
@@ -247,6 +293,7 @@ module.exports = {
   findRequestNotification,
   markReadByReviewId,
   markReadByRequestId,
+  backfillMissingRequestNotifications,
   list,
   countUnread,
   markRead,

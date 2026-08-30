@@ -14,8 +14,12 @@ async function load() {
       el.innerHTML = '<p class="empty-state">لا توجد آراء</p>';
       return;
     }
-    el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>العميل</th><th>التقييم</th><th>النص</th><th></th></tr></thead><tbody>
-      ${items.map((t) => `<tr><td>${t.customerName}</td><td>${t.rating}/5</td><td>${t.comment.slice(0, 80)}...</td><td>
+    el.innerHTML = `<div class="table-wrap"><table class="table table--cards"><thead><tr><th>العميل</th><th>التقييم</th><th>النص</th><th></th></tr></thead><tbody>
+      ${items.map((t) => `<tr>
+        <td data-label="العميل">${t.customerName}</td>
+        <td data-label="التقييم">${t.rating}/5</td>
+        <td data-label="النص">${t.comment.slice(0, 80)}...</td>
+        <td data-label="إجراءات">
         <button class="btn btn-outline btn-sm" data-edit="${t.id}">تعديل</button>
         <button class="btn btn-outline btn-sm" data-del="${t.id}">حذف</button>
       </td></tr>`).join('')}

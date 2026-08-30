@@ -57,6 +57,10 @@ async function initLayout(activePage, pageTitle) {
     `).join('')}
   `).join('');
 
+  const sidebarPhoneHtml = adminPhone
+    ? `<p class="sidebar__signed-in"><span>مسجّل الدخول</span><strong dir="ltr">${escapeLayoutHtml(adminPhone)}</strong></p>`
+    : '';
+
   app.innerHTML = [
     '<aside class="sidebar" id="sidebar">',
     '  <div class="sidebar__brand">',
@@ -66,7 +70,10 @@ async function initLayout(activePage, pageTitle) {
     '    </a>',
     '  </div>',
     `  <nav class="sidebar__nav">${navHtml}</nav>`,
-    '  <div class="sidebar__footer"><a href="/" target="_blank">↗ عرض الموقع</a></div>',
+    '  <div class="sidebar__footer">',
+    sidebarPhoneHtml,
+    '    <a href="/" target="_blank">↗ عرض الموقع</a>',
+    '  </div>',
     '</aside>',
     '<div class="sidebar-overlay" id="sidebar-overlay"></div>',
     '<main class="main">',
@@ -76,9 +83,13 @@ async function initLayout(activePage, pageTitle) {
     `      <h1 class="topbar__title">${pageTitle}</h1>`,
     `      ${adminProfileHtml}`,
     '    </div>',
+    '    <div class="topbar-extras" id="topbar-extras" hidden></div>',
     '    <div class="topbar__actions" id="topbar-actions">',
     '      <div class="admin-notifications" id="admin-notifications"></div>',
-    '      <button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>',
+    '      <button type="button" class="btn btn-outline btn-sm topbar-logout" id="logout-btn">',
+    '        <span class="logout-label logout-label--full">تسجيل خروج</span>',
+    '        <span class="logout-label logout-label--short">خروج</span>',
+    '      </button>',
     '    </div>',
     '  </header>',
     '  <div class="content" id="page-content"></div>',
@@ -87,6 +98,10 @@ async function initLayout(activePage, pageTitle) {
 
   document.getElementById('sidebar-toggle')?.addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+  document.getElementById('sidebar')?.addEventListener('click', (e) => {
+    if (!e.target.closest('.nav-item')) return;
+    if (window.matchMedia('(max-width: 1099px)').matches) closeSidebar();
+  });
   bindLogout();
   showSupabaseStatusBanner();
   initAdminNotifications();
@@ -146,9 +161,6 @@ async function initAdminNotifications() {
       const showPushEnable = pushPermission === 'default' && window.AlheefPWA;
 
       host.innerHTML = `
-        ${renderSoundToggleButton()}
-        <p class="notif-sound-hint" id="notif-sound-hint" hidden role="status">اضغط لتفعيل صوت التنبيهات</p>
-        ${showPushEnable ? '<button type="button" class="btn btn-outline btn-sm" id="enable-push-btn">تفعيل إشعارات الجوال</button>' : ''}
         <div class="notif-bell-wrap">
           <button type="button" class="notif-bell" id="notif-toggle" aria-label="الإشعارات">
             🔔
@@ -157,8 +169,13 @@ async function initAdminNotifications() {
           <div class="notif-panel" id="notif-panel" hidden>
             <div class="notif-panel__head">
               <strong>الإشعارات</strong>
-              ${unreadCount > 0 ? '<button type="button" class="notif-panel__read-all" id="notif-read-all">تعليم الكل كمقروء</button>' : ''}
+              <div class="notif-panel__tools">
+                ${renderSoundToggleButton()}
+                ${unreadCount > 0 ? '<button type="button" class="notif-panel__read-all" id="notif-read-all">تعليم الكل كمقروء</button>' : ''}
+              </div>
             </div>
+            ${showPushEnable ? '<div class="notif-panel__push"><button type="button" class="btn btn-outline btn-sm" id="enable-push-btn">تفعيل إشعارات الجوال</button></div>' : ''}
+            <p class="notif-sound-hint" id="notif-sound-hint" hidden role="status">اضغط الجرس أو زر الصوت لتفعيل صوت التنبيهات</p>
             <div class="notif-panel__list">
               ${display.length ? display.map(renderNotificationItem).join('') : '<p class="notif-panel__empty">لا توجد إشعارات</p>'}
             </div>
@@ -252,7 +269,7 @@ async function initAdminNotifications() {
 
   await render();
   clearInterval(_notificationsPollTimer);
-  _notificationsPollTimer = setInterval(render, 12000);
+  _notificationsPollTimer = setInterval(render, 5000);
 }
 
 function notificationCreatedAt(n) {
@@ -376,11 +393,10 @@ function setSidebarOpen(open) {
 }
 
 function setTopbarActions(html) {
-  const el = document.getElementById('topbar-actions');
-  if (!el) return;
-  const logoutBtn = '<button type="button" class="btn btn-outline btn-sm" id="logout-btn">تسجيل خروج</button>';
-  el.innerHTML = html ? `${html} ${logoutBtn}` : logoutBtn;
-  bindLogout();
+  const extras = document.getElementById('topbar-extras');
+  if (!extras) return;
+  extras.innerHTML = html || '';
+  extras.hidden = !html;
 }
 
 function getPageContent() {

@@ -3,22 +3,27 @@ const pushNotifications = require('./pushNotifications');
 
 async function notifyAdminsNewCustomerRequest(request) {
   if (!request?.id) return null;
-  // نموذج عقود الإيجار يُحفظ للإحصائيات فقط — التواصل الفعلي عبر واتساب
-  if (request.requestType === 'ejar_contract') return null;
 
-  const notification = await adminNotificationsRepo.createCustomerRequestReceived({
-    requestId: request.id,
-    requestType: request.requestType,
-    message: request.message,
-  });
+  try {
+    const notification = await adminNotificationsRepo.createCustomerRequestReceived({
+      requestId: request.id,
+      requestType: request.requestType,
+      message: request.message,
+      customerName: request.customerName,
+      customerPhone: request.customerPhone,
+    });
 
-  pushNotifications.notifyAdminsClientRequest({
-    requestId: request.id,
-    requestType: request.requestType,
-    message: request.message,
-  }).catch((err) => console.error('[push] customer request:', err.message));
+    pushNotifications.notifyAdminsClientRequest({
+      requestId: request.id,
+      requestType: request.requestType,
+      message: request.message,
+    }).catch((err) => console.error('[push] customer request:', err.message));
 
-  return notification;
+    return notification;
+  } catch (err) {
+    console.error('[notify] customer request:', err.message);
+    return null;
+  }
 }
 
 module.exports = { notifyAdminsNewCustomerRequest };

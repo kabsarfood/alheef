@@ -31,17 +31,17 @@ async function run() {
   if (!ejarRequest?.id) fail('إنشاء طلب ejar_contract');
   else ok('إنشاء طلب ejar_contract');
 
-  const skipped = await notifyAdminsNewCustomerRequest(ejarRequest);
-  if (skipped != null) fail('إيقاف إشعار إدارة نموذج ejar_contract');
-  else ok('لا يُرسل إشعار إدارة عند حفظ طلب ejar_contract');
+  const ejarNotif = await notifyAdminsNewCustomerRequest(ejarRequest);
+  if (ejarNotif?.title !== 'طلب جديد لعقد إيجار') fail('إشعار إدارة نموذج ejar_contract');
+  else ok('يُرسل إشعار الجرس عند حفظ طلب ejar_contract');
 
-  const skippedRow = await adminNotificationsRepo.findRequestNotification(ejarRequest.id);
-  if (skippedRow) fail('عدم إنشاء صف إشعار لنموذج ejar_contract');
-  else ok('لا يُنشأ صف إشعار لنموذج ejar_contract');
+  const ejarRow = await adminNotificationsRepo.findRequestNotification(ejarRequest.id);
+  if (!ejarRow) fail('إنشاء صف إشعار لنموذج ejar_contract');
+  else ok('يُنشأ صف إشعار لنموذج ejar_contract');
 
   const afterEjarUnread = await adminNotificationsRepo.countUnread();
-  if (afterEjarUnread !== beforeUnread) fail('عداد الإشعارات غير المقروءة لم يرتفع بعد ejar_contract');
-  else ok('عداد الإشعارات غير المقروءة لم يتغير بعد حفظ نموذج عقد الإيجار');
+  if (afterEjarUnread <= beforeUnread) fail('عداد الإشعارات غير المقروءة بعد ejar_contract');
+  else ok('عداد الإشعارات غير المقروءة ارتفع بعد حفظ نموذج عقد الإيجار');
 
   const searchRequest = await requestsRepo.create({
     requestType: 'property_search',
@@ -67,6 +67,7 @@ async function run() {
   if (listingNotif?.title !== 'طلب جديد لعرض عقار') fail('عنوان إشعار owner_listing');
   else ok('إشعارات طلب عرض عقار ما زالت تعمل');
 
+  await adminNotificationsRepo.markReadByRequestId(ejarRequest.id);
   await adminNotificationsRepo.markReadByRequestId(searchRequest.id);
   await adminNotificationsRepo.markReadByRequestId(listingRequest.id);
   const found = await adminNotificationsRepo.findRequestNotification(searchRequest.id);

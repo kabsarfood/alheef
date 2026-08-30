@@ -4,13 +4,22 @@ const STATS_TABLE = 'site_visit_stats';
 const SESSIONS_TABLE = 'site_visit_sessions';
 const PAGE_SESSIONS_TABLE = 'site_visit_page_sessions';
 const EJAR_PATH = '/ejar';
+const RIYADH_TZ = 'Asia/Riyadh';
 
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+/** يوم تقويمي بتوقيت الرياض — يبدأ 12:00 منتصف الليل وينتهي بعد 24 ساعة */
+function dateInRiyadh(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: RIYADH_TZ }).format(date);
 }
 
-function todayDateRiyadh() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+function todayDate() {
+  return dateInRiyadh();
+}
+
+function riyadhDateDaysAgo(days) {
+  const [year, month, day] = todayDate().split('-').map(Number);
+  const utc = Date.UTC(year, month - 1, day);
+  const then = new Date(utc - Number(days) * 24 * 60 * 60 * 1000);
+  return then.toISOString().slice(0, 10);
 }
 
 function isEjarPath(path) {
@@ -74,7 +83,7 @@ async function recordPageView(path, sessionKey) {
 
   if (isEjarPath(pagePath)) {
     try {
-      await recordPageSession(todayDateRiyadh(), EJAR_PATH, key);
+      await recordPageSession(todayDate(), EJAR_PATH, key);
     } catch {
       /* table may not exist yet */
     }
@@ -101,9 +110,7 @@ async function recordPageSession(visitDate, pagePath, sessionKey) {
 
 async function countViewsSince(days) {
   if (!isEnabled()) return 0;
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-  const sinceStr = since.toISOString().slice(0, 10);
+  const sinceStr = riyadhDateDaysAgo(days);
   const { data } = await getAdmin()
     .from(STATS_TABLE)
     .select('views')
@@ -145,7 +152,7 @@ async function countEjarVisitorsToday() {
   const { count, error } = await getAdmin()
     .from(PAGE_SESSIONS_TABLE)
     .select('*', { count: 'exact', head: true })
-    .eq('visit_date', todayDateRiyadh())
+    .eq('visit_date', todayDate())
     .eq('page_path', EJAR_PATH);
   if (error) return 0;
   return count || 0;
@@ -197,4 +204,7 @@ module.exports = {
   countViewsToday,
   countEjarUniqueVisitorsAllTime,
   countPlatformUniqueVisitorsAllTime,
+  dateInRiyadh,
+  todayDate,
+  riyadhDateDaysAgo,
 };

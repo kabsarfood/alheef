@@ -59,10 +59,10 @@ if (/966\d{9}/.test(ejarJs.replace(/cfg\.whatsapp|EJAR_SERVICE_WHATSAPP|96655839
 if (!/window\.EJAR_SERVICE_WHATSAPP/.test(ejarJs)) fail('استخدام رقم الخدمة من الإعدادات وليس رقمًا ثابتًا جديدًا');
 ok('لا يوجد رقم واتساب ثابت جديد داخل مسار النموذج');
 
-if (!/requestType === 'ejar_contract'/.test(notifJs) || !/return null/.test(notifJs)) {
-  fail('إيقاف إشعار الإدارة لنموذج عقد الإيجار');
+if (!/createCustomerRequestReceived/.test(notifJs)) {
+  fail('إشعار الإدارة لنموذج عقد الإيجار');
 }
-ok('إشعار الإدارة لنموذج عقد الإيجار متوقف في الخدمة');
+ok('إشعار الجرس يُرسل مع حفظ طلب عقد الإيجار');
 
 if (!/notifyAdminsNewCustomerRequest/.test(apiJs)) fail('حفظ الطلب عبر /api/requests ما زال موجودًا');
 ok('حفظ الطلب في قاعدة البيانات عبر /api/requests ما زال موجودًا');
