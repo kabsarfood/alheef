@@ -6,7 +6,7 @@
   var LEADS_KEY = 'ejar_leads_pending';
   var selectedContract = null;
 
-  var WA_MSG_DEFAULT = 'السلام عليكم، أرغب في إنشاء عقد إيجار عن طريق مكتب الهيف للخدمات العقارية.';
+  var WA_MSG_DEFAULT = 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية.';
 
   function getPrices() {
     return {
@@ -18,8 +18,8 @@
   function getWhatsAppMessages() {
     var prices = getPrices();
     return {
-      residential: 'السلام عليكم، أرغب في إنشاء عقد إيجار سكني بسعر ' + prices.residential + ' ريال شامل الرسوم.',
-      commercial: 'السلام عليكم، أرغب في إنشاء عقد إيجار تجاري بسعر ' + prices.commercial + ' ريال شامل الرسوم للسنة الأولى.',
+      residential: 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية. عقد سكني بسعر ' + prices.residential + ' ريال شامل الرسوم.',
+      commercial: 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية. عقد تجاري بسعر ' + prices.commercial + ' ريال شامل الرسوم للسنة الأولى.',
     };
   }
 
@@ -119,7 +119,7 @@
 
   function buildContractWhatsAppMessage(data) {
     var lines = [
-      'السلام عليكم، أرغب في إنشاء عقد إيجار عن طريق مكتب الهيف للخدمات العقارية.',
+      'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية.',
       '',
       'الاسم: ' + (data.name || ''),
       'رقم الجوال: ' + (data.phone || ''),
@@ -129,7 +129,7 @@
     if (data.role) {
       lines.push('الصفة: ' + data.role);
     }
-    lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد.');
+    lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد عبر منصة إيجار.');
     return lines.join('\n');
   }
 
@@ -309,7 +309,7 @@
         .then(function (result) {
           if (result.data && result.data.success) {
             trackEvent('ejar_form_submit', { contractType: contractType, role: role });
-            showMessage(msgEl, 'تم حفظ طلبك، جاري فتح واتساب لاستكمال الإجراءات', 'success');
+            showMessage(msgEl, 'تم حفظ طلبك لدى مكتب الهيف، جاري فتح واتساب لاستكمال الإجراءات', 'success');
             form.reset();
             selectedContract = null;
             applyPhoneDisplays();
@@ -321,7 +321,7 @@
         .catch(function () {
           saveLocalLead(payload);
           trackEvent('ejar_form_submit', { contractType: contractType, role: role, offline: true });
-          showMessage(msgEl, 'تم حفظ طلبك، جاري فتح واتساب لاستكمال الإجراءات', 'success');
+          showMessage(msgEl, 'تم حفظ طلبك لدى مكتب الهيف، جاري فتح واتساب لاستكمال الإجراءات', 'success');
           form.reset();
           openWhatsApp(waUrl, pendingWa);
         })

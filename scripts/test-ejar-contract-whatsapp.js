@@ -16,7 +16,7 @@ function ok(msg) {
 
 function buildContractWhatsAppMessage(data) {
   const lines = [
-    'السلام عليكم، أرغب في إنشاء عقد إيجار عن طريق مكتب الهيف للخدمات العقارية.',
+    'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية.',
     '',
     'الاسم: ' + (data.name || ''),
     'رقم الجوال: ' + (data.phone || ''),
@@ -24,7 +24,7 @@ function buildContractWhatsAppMessage(data) {
     'المدينة: ' + (data.city || ''),
   ];
   if (data.role) lines.push('الصفة: ' + data.role);
-  lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد.');
+  lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد عبر منصة إيجار.');
   return lines.join('\n');
 }
 
@@ -33,6 +33,9 @@ const ejarConfig = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'e
 const apiJs = fs.readFileSync(path.join(__dirname, '..', 'server', 'routes', 'api.js'), 'utf8');
 const notifJs = fs.readFileSync(path.join(__dirname, '..', 'server', 'services', 'customerRequestNotifications.js'), 'utf8');
 const ejarHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'ejar.html'), 'utf8');
+
+if (!/إنشاء عقد إيجار عبر مكتب الهيف العقارية/.test(ejarJs)) fail('رسالة واتساب تبدأ بصياغة مكتب الهيف');
+ok('رسالة واتساب تبدأ: إنشاء عقد إيجار عبر مكتب الهيف العقارية');
 
 if (!/إنشاء العقد/.test(ejarHtml)) fail('زر إنشاء العقد موجود في الصفحة');
 ok('زر إنشاء العقد موجود في الصفحة');

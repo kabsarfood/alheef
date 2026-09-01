@@ -20,4 +20,7 @@
   global.EJAR_SERVICE_WHATSAPP = EJAR_SERVICE_WHATSAPP;
   global.EJAR_PRICE_RESIDENTIAL = EJAR_PRICE_RESIDENTIAL;
   global.EJAR_PRICE_COMMERCIAL = EJAR_PRICE_COMMERCIAL;
+
+  /** Suggested WhatsApp Business greeting — set this in WhatsApp; the site does not auto-reply. */
+  global.EJAR_WA_WELCOME = 'وعليكم السلام ورحمة الله وبركاته، أهلاً بكم في مكتب الهيف العقارية. نحن وسيط عقاري مرخص لإنشاء وتوثيق العقود السكنية والتجارية عبر منصة إيجار.';
 })(typeof window !== 'undefined' ? window : global);
