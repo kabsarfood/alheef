@@ -257,12 +257,14 @@
     text-align: right;
   }
 
+  .table.table--cards td[data-label="إجراء"],
   .table.table--cards td[data-label="إجراءات"] {
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.45rem;
   }
 
+  .table.table--cards td[data-label="إجراء"] .btn,
   .table.table--cards td[data-label="إجراءات"] .btn {
     min-height: 40px;
   }
@@ -293,6 +295,12 @@
     margin: 1rem;
     max-height: calc(100svh - 2rem);
     overflow-y: auto;
+  }
+
+  .modal__box.req-detail {
+    margin: 0;
+    max-height: 100svh;
+    overflow: hidden;
   }
 }
 

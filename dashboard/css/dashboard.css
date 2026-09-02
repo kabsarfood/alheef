@@ -1798,6 +1798,156 @@ tr.table-row--highlight {
   color: var(--ejar-olive, #3d6b4f);
 }
 
+@media (max-width: 768px) {
+  .modal:has(.req-detail) {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal__box.req-detail {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    max-height: 100svh;
+    margin: 0;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: none;
+  }
+
+  .req-detail .modal__header {
+    flex-shrink: 0;
+    margin: 0;
+    padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    gap: 0.65rem;
+  }
+
+  .req-detail .modal__title {
+    font-size: 1.02rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .req-detail .modal__close {
+    width: 44px;
+    height: 44px;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .req-detail__scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 1rem calc(1.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .req-detail__meta {
+    font-size: 0.82rem;
+    line-height: 1.65;
+  }
+
+  .req-detail__status {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+  }
+
+  .req-detail__status label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+
+  .req-status-select,
+  .req-detail__status .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .req-detail__section {
+    padding: 0.9rem;
+  }
+
+  .req-detail__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.22rem;
+    padding: 0.62rem 0;
+    border-bottom: 1px solid rgba(30, 42, 56, 0.06);
+  }
+
+  .req-detail__row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .req-detail__label {
+    font-size: 0.75rem;
+  }
+
+  .req-detail__value {
+    font-weight: 600;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .req-copy-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .req-deed {
+    width: 100%;
+  }
+
+  .req-deed__img {
+    max-height: 220px;
+  }
+
+  .req-ejar-table.table--cards tr {
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .req-ejar-table.table--cards td[data-label="رقم الطلب"] {
+    font-weight: 800;
+    font-size: 1.05rem;
+    padding-top: 0;
+  }
+
+  .req-ejar-table.table--cards td[data-label="إجراء"],
+  .req-ejar-table.table--cards td[data-label="إجراءات"] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .req-ejar-table.table--cards td[data-label="إجراء"]::before,
+  .req-ejar-table.table--cards td[data-label="إجراءات"]::before {
+    display: none;
+  }
+
+  .req-ejar-table.table--cards td[data-label="إجراء"] .btn,
+  .req-ejar-table.table--cards td[data-label="إجراءات"] .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 480px) {
   .admin-app .quick-actions {
     grid-template-columns: 1fr;

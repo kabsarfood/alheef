@@ -177,10 +177,10 @@ function renderRequestsPage(content, list, highlightId) {
 
 function renderEjarTable(rows) {
   if (!rows.length) return '<p class="empty-state">لا توجد طلبات عقود إيجار</p>';
-  return `<div class="table-wrap"><table class="table table--cards">
+  return `<div class="table-wrap"><table class="table table--cards req-ejar-table">
     <thead><tr>
       <th>رقم الطلب</th><th>سكني / تجاري</th><th>جوال المالك</th><th>جوال المستأجر</th>
-      <th>قيمة الإيجار</th><th>طريقة الدفع</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th>
+      <th>قيمة الإيجار</th><th>طريقة الدفع</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراءات</th>
     </tr></thead>
     <tbody>${rows.map((r) => {
       const p = parseMessage(r.message);
@@ -196,7 +196,7 @@ function renderEjarTable(rows) {
         <td data-label="طريقة الدفع">${escapeCell(p.paymentMethod || '—')}</td>
         <td data-label="تاريخ الطلب" dir="ltr">${escapeCell(formatDateTime(r.createdAt))}</td>
         <td data-label="الحالة">${escapeCell(statusLabel(r.status))}</td>
-        <td data-label="إجراء">
+        <td data-label="إجراءات">
           <button type="button" class="btn btn-primary btn-sm" data-open-request="${escapeCell(r.id)}">عرض</button>
           <button type="button" class="btn btn-outline btn-sm" data-ejar-review-link data-id="${escapeCell(r.id)}">إرسال التقييم</button>
         </td>
@@ -298,13 +298,15 @@ function openRequestModal(row) {
         <h3 class="modal__title">${escapeCell(row.referenceNo || p.referenceNo || requestTypeLabel(row.requestType))}</h3>
         <button type="button" class="modal__close" data-close-req aria-label="إغلاق">×</button>
       </div>
-      <p class="req-detail__meta">${escapeCell(ejarKindLabel(p) !== '—' ? ejarKindLabel(p) : requestTypeLabel(row.requestType))} — ${escapeCell(formatDateTime(row.createdAt))}</p>
-      <div class="req-detail__status">
-        <label for="req-status">حالة الطلب</label>
-        ${statusSelect(row.status)}
-        <button type="button" class="btn btn-primary btn-sm" id="req-save-status">حفظ الحالة</button>
+      <div class="req-detail__scroll">
+        <p class="req-detail__meta">${escapeCell(ejarKindLabel(p) !== '—' ? ejarKindLabel(p) : requestTypeLabel(row.requestType))} — ${escapeCell(formatDateTime(row.createdAt))}</p>
+        <div class="req-detail__status">
+          <label for="req-status">حالة الطلب</label>
+          ${statusSelect(row.status)}
+          <button type="button" class="btn btn-primary btn-sm" id="req-save-status">حفظ الحالة</button>
+        </div>
+        ${body}
       </div>
-      ${body}
     </div>
   `;
   modal.querySelectorAll('.req-copy').forEach(bindCopy);
