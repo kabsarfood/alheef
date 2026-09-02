@@ -128,11 +128,10 @@ function valueWithCopy(value) {
 }
 
 function dateFieldHtml(iso) {
-  if (window.EjarDates && typeof window.EjarDates.html === 'function') {
-    const html = window.EjarDates.html(iso, '—');
+  if (window.EjarDates && typeof window.EjarDates.plain === 'function') {
     const plain = window.EjarDates.plain(iso);
-    if (!plain) return html;
-    return `<div class="req-date-wrap">${html}${copyBtn(plain)}</div>`;
+    if (!plain) return '—';
+    return `<span class="req-copy-wrap"><span>${escapeCell(plain)}</span>${copyBtn(plain)}</span>`;
   }
   return escapeCell(iso || '—');
 }
@@ -199,7 +198,7 @@ function renderEjarTable(rows) {
         <td data-label="الحالة">${escapeCell(statusLabel(r.status))}</td>
         <td data-label="إجراء">
           <button type="button" class="btn btn-primary btn-sm" data-open-request="${escapeCell(r.id)}">عرض</button>
-          <button type="button" class="btn btn-outline btn-sm" data-ejar-review-link data-id="${escapeCell(r.id)}">رابط تقييم</button>
+          <button type="button" class="btn btn-outline btn-sm" data-ejar-review-link data-id="${escapeCell(r.id)}">إرسال التقييم</button>
         </td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
@@ -219,11 +218,11 @@ function renderOtherTable(rows) {
     </tr>`).join('')}</tbody></table></div>`;
 }
 
-function rowItem(label, value, { copy = false, html = false } = {}) {
+function rowItem(label, value, { copy = false, html = false, stack = false } = {}) {
   const inner = html
     ? value
     : (copy ? valueWithCopy(value) : `<span>${escapeCell(value || '—')}</span>`);
-  return `<div class="req-detail__row${html ? ' req-detail__row--stack' : ''}">
+  return `<div class="req-detail__row${stack ? ' req-detail__row--stack' : ''}">
     <span class="req-detail__label">${escapeCell(label)}</span>
     <span class="req-detail__value">${inner}</span>
   </div>`;
@@ -250,7 +249,7 @@ function openRequestModal(row) {
       sectionBlock('بيانات الملكية', [
         rowItem('رقم الصك', p.deedNumber, { copy: true }),
         rowItem('تاريخ الصك', dateFieldHtml(p.deedDate), { html: true }),
-        rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true }),
+        rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true, stack: true }),
       ]),
       sectionBlock('بيانات المالك', [
         rowItem('رقم الهوية', p.ownerId, { copy: true }),
@@ -356,22 +355,17 @@ function bindCopy(btn) {
 async function openReviewLink(requestId, btn) {
   const original = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'جاري الإنشاء…';
+  btn.textContent = 'جاري الإرسال…';
   try {
     const data = await DashboardAPI.createEjarReviewLink(requestId);
-    const msg = [
-      `رابط التقييم (صالح ${data.expiryDays} يومًا):`,
-      data.reviewUrl,
-      '',
-      data.whatsappMessage,
-    ].join('\n');
-    await navigator.clipboard.writeText(data.reviewUrl).catch(() => {});
-    alert(`${msg}\n\nتم نسخ الرابط.`);
-    if (data.whatsappUrl && confirm('فتح واتساب لإرسال الرسالة للعميل؟')) {
-      window.open(data.whatsappUrl, '_blank', 'noopener');
+    if (!data.whatsappUrl) {
+      throw new Error('لا يوجد رقم جوال للعميل لإرسال التقييم عبر واتساب');
     }
+    showToast('جاري فتح واتساب لإرسال التقييم للعميل');
+    const opened = window.open(data.whatsappUrl, '_blank', 'noopener');
+    if (!opened) window.location.href = data.whatsappUrl;
   } catch (err) {
-    alert(err.message || 'تعذر إنشاء رابط التقييم');
+    alert(err.message || 'تعذر إرسال التقييم عبر واتساب');
   } finally {
     btn.disabled = false;
     btn.textContent = original;

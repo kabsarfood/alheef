@@ -1769,42 +1769,15 @@ tr.table-row--highlight {
   display: grid;
   gap: 0.45rem;
 }
-.ejar-date-dual {
-  display: grid;
-  gap: 0.45rem;
-}
-.ejar-date-dual--empty {
+.ejar-date-text {
   margin: 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-.ejar-date-dual__row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 12px;
-}
-.ejar-date-dual__label {
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-.ejar-date-dual__long {
-  font-weight: 700;
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-.ejar-date-dual__num {
-  font-size: 0.82rem;
+  font: inherit;
   font-weight: 600;
+  line-height: 1.7;
 }
-.ejar-date-dual__row--gregorian {
-  background: rgba(29, 78, 216, 0.08);
-  color: #1d4ed8;
-}
-.ejar-date-dual__row--hijri {
-  background: rgba(15, 81, 50, 0.1);
-  color: #0f5132;
+.ejar-date-text--empty {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 .req-deed {
   display: grid;

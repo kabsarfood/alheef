@@ -1,6 +1,6 @@
 /**
  * تواريخ عقود إيجار — ميلادي + هجري أم القرى
- * الاختيار الافتراضي هجري، مع مربع صغير للتبديل إلى الميلادي.
+ * الاختيار المعتمد هجري أم القرى، والميلادي يظهر ثانويًا للمطابقة.
  */
 (function (global) {
   'use strict';
@@ -113,6 +113,33 @@
     return trimmed + ' ' + era;
   }
 
+  function gregorianWords(date) {
+    return withEra(fmt(date, {
+      calendar: 'gregory',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }), 'م');
+  }
+
+  function hijriWords(date) {
+    try {
+      return withEra(fmt(date, {
+        calendar: 'islamic-umalqura',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }), 'هـ');
+    } catch (_) {
+      return withEra(fmt(date, {
+        calendar: 'islamic',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }), 'هـ');
+    }
+  }
+
   function gregorianLong(date) {
     return withEra(fmt(date, {
       calendar: 'gregory',
@@ -198,37 +225,28 @@
     return html;
   }
 
+  function line(iso) {
+    var date = parseIso(iso);
+    if (!date) return '';
+    return hijriWords(date) + ' الموافق ' + gregorianWords(date);
+  }
+
   function html(iso, emptyText) {
-    var data = format(iso);
-    if (!data) {
-      return '<p class="ejar-date-dual ejar-date-dual--empty">' + escapeHtml(emptyText || 'سيظهر التاريخ الهجري والميلادي بعد الاختيار') + '</p>';
+    var text = line(iso);
+    if (!text) {
+      return '<p class="ejar-date-text ejar-date-text--empty">' + escapeHtml(emptyText || 'سيظهر التاريخ بعد الاختيار') + '</p>';
     }
-    return ''
-      + '<div class="ejar-date-dual" dir="rtl">'
-      + '  <div class="ejar-date-dual__row ejar-date-dual__row--hijri">'
-      + '    <span class="ejar-date-dual__label">هجري</span>'
-      + '    <span class="ejar-date-dual__long">' + escapeHtml(data.hijriLong) + '</span>'
-      + '    <span class="ejar-date-dual__num" dir="ltr">' + escapeHtml(data.hijriNum) + ' هـ</span>'
-      + '  </div>'
-      + '  <div class="ejar-date-dual__row ejar-date-dual__row--gregorian">'
-      + '    <span class="ejar-date-dual__label">ميلادي</span>'
-      + '    <span class="ejar-date-dual__long">' + escapeHtml(data.gregorianLong) + '</span>'
-      + '    <span class="ejar-date-dual__num" dir="ltr">' + escapeHtml(data.gregorianNum) + '</span>'
-      + '  </div>'
-      + '</div>';
+    return '<p class="ejar-date-text" dir="rtl">' + escapeHtml(text) + '</p>';
   }
 
   function plain(iso) {
-    var data = format(iso);
-    if (!data) return '';
-    return data.hijriLong + ' — ' + data.hijriNum + ' هـ\n' + data.gregorianLong + ' — ' + data.gregorianNum;
+    return line(iso);
   }
 
   function pickerHtml(opts) {
     opts = opts || {};
     var iso = opts.iso || '';
     var maxIso = opts.maxIso || '';
-    var mode = opts.mode === 'gregorian' ? 'gregorian' : 'hijri';
     var fieldKey = opts.fieldKey || 'date';
     var date = parseIso(iso);
     var hijri = date ? hijriParts(date) : { year: '', month: '', day: '' };
@@ -238,18 +256,14 @@
 
     return ''
       + '<div class="ejar-date-picker" data-max-iso="' + escapeHtml(maxIso) + '">'
-      + '  <div class="ejar-date-mode" role="tablist" aria-label="نوع التقويم">'
-      + '    <button type="button" class="ejar-date-mode__btn' + (mode === 'hijri' ? ' is-active' : '') + '" data-date-mode="hijri" role="tab" aria-selected="' + (mode === 'hijri' ? 'true' : 'false') + '">هجري</button>'
-      + '    <button type="button" class="ejar-date-mode__btn' + (mode === 'gregorian' ? ' is-active' : '') + '" data-date-mode="gregorian" role="tab" aria-selected="' + (mode === 'gregorian' ? 'true' : 'false') + '">ميلادي</button>'
-      + '  </div>'
-      + '  <div class="ejar-date-hijri"' + (mode === 'hijri' ? '' : ' hidden') + ' data-date-panel="hijri">'
+      + '  <div class="ejar-date-hijri" data-date-panel="hijri">'
       + '    <label class="ejar-date-hijri__item"><span>السنة</span><select class="ejar-wizard__control" data-hijri="year" aria-label="السنة الهجرية"><option value="">السنة</option>' + optionList(maxHijri, minHijri, yearSelected) + '</select></label>'
       + '    <label class="ejar-date-hijri__item"><span>الشهر</span><select class="ejar-wizard__control" data-hijri="month" aria-label="الشهر الهجري">' + monthOptions(hijri.month) + '</select></label>'
       + '    <label class="ejar-date-hijri__item"><span>اليوم</span><select class="ejar-wizard__control" data-hijri="day" aria-label="اليوم الهجري">' + dayOptions(hijri.year, hijri.month, hijri.day) + '</select></label>'
       + '  </div>'
-      + '  <div class="ejar-date-gregorian"' + (mode === 'gregorian' ? '' : ' hidden') + ' data-date-panel="gregorian">'
+      + '  <label class="ejar-date-gregorian" data-date-panel="gregorian" for="ejar-date-gregorian"><span>التاريخ الميلادي</span>'
       + '    <input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-date-gregorian" type="date" dir="ltr" lang="ar-SA" value="' + escapeHtml(iso) + '"' + (maxIso ? ' max="' + escapeHtml(maxIso) + '"' : '') + '>'
-      + '  </div>'
+      + '  </label>'
       + '  <input type="hidden" id="ejar-wizard-field" data-wizard-field="' + escapeHtml(fieldKey) + '" value="' + escapeHtml(iso) + '" required>'
       + '  <div id="ejar-date-preview">' + html(iso) + '</div>'
       + '</div>';
@@ -272,6 +286,7 @@
     parseIso: parseIso,
     toIso: toIso,
     format: format,
+    line: line,
     html: html,
     plain: plain,
     pickerHtml: pickerHtml,

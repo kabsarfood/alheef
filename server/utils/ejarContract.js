@@ -112,11 +112,55 @@ function isWizardPayload(data) {
   return data?.schema === SCHEMA || Boolean(data?.deedNumber && data?.ownerId);
 }
 
-function contractKindFromPayload(data) {
-  const raw = String(data?.contractKind || data?.contractType || '').trim();
+function firstScalar(value) {
+  if (Array.isArray(value)) {
+    for (let i = value.length - 1; i >= 0; i -= 1) {
+      const inner = firstScalar(value[i]);
+      if (inner !== '') return inner;
+    }
+    return '';
+  }
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function flattenContractBody(body) {
+  const src = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+  let fromPayload = {};
+  const payloadRaw = src.payload;
+  if (typeof payloadRaw === 'string' && payloadRaw.trim()) {
+    try {
+      const parsed = JSON.parse(payloadRaw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) fromPayload = parsed;
+    } catch {
+      fromPayload = {};
+    }
+  } else if (payloadRaw && typeof payloadRaw === 'object' && !Array.isArray(payloadRaw)) {
+    fromPayload = payloadRaw;
+  }
+
+  const out = { ...fromPayload };
+  Object.keys(src).forEach((key) => {
+    if (key === 'payload') return;
+    const val = Array.isArray(src[key]) ? firstScalar(src[key]) : src[key];
+    if (val === '' || val == null) return;
+    out[key] = val;
+  });
+  return out;
+}
+
+function resolveContractKind(body) {
+  const raw = firstScalar(body?.contractKind || body?.contractType || body?.kind);
   if (raw === 'commercial' || raw === 'تجاري') return 'commercial';
   if (raw === 'residential' || raw === 'سكني') return 'residential';
+  const unit = firstScalar(body?.unitType);
+  if (COMMERCIAL_UNITS.includes(unit)) return 'commercial';
+  if (RESIDENTIAL_UNITS.includes(unit)) return 'residential';
   return '';
+}
+
+function contractKindFromPayload(data) {
+  return resolveContractKind(data);
 }
 
 function isDeclarationAccepted(value) {
@@ -125,14 +169,10 @@ function isDeclarationAccepted(value) {
   return s === 'true' || s === 'on' || s === '1' || s === 'yes';
 }
 
-function validateAndNormalize(body) {
+function validateAndNormalize(rawBody) {
   const errors = {};
-  const kindRaw = String(body?.contractKind || body?.contractType || '').trim();
-  const contractKind = kindRaw === 'commercial' || kindRaw === 'تجاري'
-    ? 'commercial'
-    : kindRaw === 'residential' || kindRaw === 'سكني'
-      ? 'residential'
-      : '';
+  const body = flattenContractBody(rawBody);
+  const contractKind = resolveContractKind(body);
   if (!contractKind) errors.contractKind = 'نوع العقد مطلوب';
 
   const deedNumber = trimStr(body?.deedNumber, 40);
@@ -286,6 +326,8 @@ module.exports = {
   formatReference,
   parsePayload,
   isWizardPayload,
+  flattenContractBody,
+  resolveContractKind,
   contractKindFromPayload,
   validateAndNormalize,
   displayUnitType,

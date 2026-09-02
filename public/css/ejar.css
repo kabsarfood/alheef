@@ -1705,23 +1705,35 @@
 }
 
 /* ─── Review page ─── */
+.ejar-review-page.ejar-page {
+  --ejar-ticker-h: 0px;
+  padding-top: var(--header-h);
+  padding-bottom: 0;
+}
+
 .ejar-review-main {
-  padding: 2rem 0 4rem;
-  min-height: 60vh;
+  padding: 1.25rem 0 3rem;
+  min-height: calc(100dvh - var(--header-h));
 }
 
 .ejar-review-card {
   max-width: 640px;
   margin: 0 auto;
-  background: var(--white);
-  border: 1px solid var(--navy-border);
-  border-radius: var(--radius-lg);
-  padding: clamp(1.25rem, 4vw, 2rem);
-  box-shadow: var(--shadow-card);
+  background: #fff;
+  border: 1px solid var(--ejar-olive-border, rgba(61, 82, 68, 0.18));
+  border-radius: 18px;
+  padding: clamp(1.15rem, 4vw, 2rem);
+  box-shadow: 0 10px 32px rgba(30, 42, 56, 0.08);
+}
+
+.ejar-review-loading-text {
+  margin: 0;
+  text-align: center;
+  color: var(--text-secondary, #5b6570);
 }
 
 .ejar-review-card__head h1 {
-  font-size: var(--fs-h2);
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
   margin-bottom: 0.5rem;
   color: var(--navy);
 }
@@ -1731,10 +1743,33 @@
   margin-bottom: 1.5rem;
 }
 
+.ejar-review-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.ejar-review-form input,
+.ejar-review-form select,
+.ejar-review-form textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--ejar-olive-border, rgba(61, 82, 68, 0.18));
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  background: #fbfaf6;
+}
+
+.ejar-review-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .ejar-stars {
   display: flex;
   flex-direction: row-reverse;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.35rem;
 }
 
@@ -1746,6 +1781,8 @@
   color: #d1d5db;
   cursor: pointer;
   padding: 0.15rem;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .ejar-star.is-active,
@@ -1794,52 +1831,46 @@
 }
 
 @media (max-width: 767px) {
-  .ejar-review-page {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  .ejar-review-page.ejar-page {
+    --ejar-ticker-h: 0px;
+    padding-top: var(--header-h);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .ejar-review-main {
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  .ejar-review-page .ejar-review-main {
+    padding: 0.85rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    min-height: calc(100dvh - var(--header-h));
   }
 
-  .ejar-review-mobile-bar {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    z-index: 120;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    min-height: 56px;
-    padding: 0.65rem 1rem;
-    border: 1px solid var(--gold-border);
-    border-radius: var(--radius-lg);
-    background: linear-gradient(180deg, var(--white) 0%, var(--ivory) 100%);
-    box-shadow: 0 10px 28px rgba(30, 42, 56, 0.14);
-    color: var(--navy);
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+  .ejar-review-page .ejar-container {
+    padding-inline: 0.85rem;
+    width: 100%;
   }
 
-  .ejar-review-mobile-bar__icon {
-    font-size: 1.15rem;
-    line-height: 1;
+  .ejar-review-page .ejar-review-card {
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 1.1rem 0.95rem 1.35rem;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid var(--ejar-olive-border, rgba(61, 82, 68, 0.22));
+    box-shadow: 0 8px 24px rgba(30, 42, 56, 0.1);
   }
 
-  .ejar-review-mobile-bar.is-dimmed {
-    opacity: 0.92;
-    transform: scale(0.985);
+  .ejar-review-page .ejar-review-card__head h1 {
+    font-size: 1.2rem;
+    line-height: 1.45;
   }
 
-  .ejar-review-mobile-bar.is-hidden {
-    opacity: 0;
-    transform: translateY(calc(100% + 16px));
-    pointer-events: none;
+  .ejar-review-page .ejar-star {
+    font-size: 2.15rem;
+  }
+
+  .ejar-review-page .btn {
+    width: 100%;
+    min-height: 48px;
   }
 
   .ejar-reviews-jump:not([hidden]) {
@@ -2494,16 +2525,99 @@ body.ejar-wizard-open .ejar-sticky-bar {
   line-height: 1.75;
 }
 
+.ejar-wizard__trust {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--ejar-olive);
+}
+
 .ejar-wizard__progress {
   padding: 0.75rem 1.35rem 0;
 }
 
-.ejar-wizard__progress span {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-size: 0.82rem;
+.ejar-wizard__stages {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0 0 0.7rem;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ejar-wizard__stages::-webkit-scrollbar {
+  display: none;
+}
+
+.ejar-wizard__stage {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  color: var(--text-muted, #7a8490);
+  font-size: 0.72rem;
+  font-weight: var(--ejar-fw-semibold);
+  white-space: nowrap;
+}
+
+.ejar-wizard__stage:not(:last-child) {
+  flex: 1;
+}
+
+.ejar-wizard__stage:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  min-width: 8px;
+  margin-inline: 0.3rem;
+  background: var(--ejar-olive-border);
+  border-radius: 99px;
+}
+
+.ejar-wizard__stage.is-done:not(:last-child)::after {
+  background: var(--ejar-olive);
+}
+
+.ejar-wizard__stage-mark {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ejar-olive-soft);
+  color: var(--ejar-olive);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.ejar-wizard__stage.is-current {
+  color: var(--ejar-olive);
+  font-weight: var(--ejar-fw-bold);
+}
+
+.ejar-wizard__stage.is-current .ejar-wizard__stage-mark,
+.ejar-wizard__stage.is-done .ejar-wizard__stage-mark {
+  background: var(--ejar-olive);
+  color: #fff;
+}
+
+.ejar-wizard__progress-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
   font-weight: var(--ejar-fw-semibold);
   color: var(--ejar-olive);
+}
+
+.ejar-wizard__progress-text strong {
+  font-weight: var(--ejar-fw-bold);
+  color: var(--navy, #1E2A38);
 }
 
 .ejar-wizard__bar {
@@ -2517,6 +2631,25 @@ body.ejar-wizard-open .ejar-sticky-bar {
   height: 100%;
   background: linear-gradient(90deg, var(--ejar-olive), var(--gold, #C5A46D));
   transition: width 0.25s ease;
+}
+
+.ejar-wizard__nav .ejar-wizard__prev[hidden] {
+  display: none;
+}
+
+.ejar-wizard__question {
+  animation: ejar-wizard-in 0.22s ease;
+}
+
+@keyframes ejar-wizard-in {
+  from { opacity: 0.4; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ejar-wizard__question {
+    animation: none;
+  }
 }
 
 .ejar-wizard__form {
@@ -2739,6 +2872,7 @@ body.ejar-wizard-open .ejar-sticky-bar {
   gap: 0.75rem;
   padding: 0.28rem 0;
   font-size: 0.9rem;
+  flex-wrap: wrap;
 }
 
 .ejar-wizard-review dt {
@@ -2749,16 +2883,15 @@ body.ejar-wizard-open .ejar-sticky-bar {
   margin: 0;
   font-weight: var(--ejar-fw-semibold);
   text-align: start;
+  flex: 1;
+  min-width: 0;
 }
 
-.ejar-wizard-review dl > div:has(.ejar-date-dual) {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
-}
-
-.ejar-wizard-review .ejar-date-dual {
-  margin-top: 0;
+.ejar-wizard-review .ejar-date-text {
+  margin: 0;
+  font: inherit;
+  font-weight: inherit;
+  line-height: 1.7;
 }
 
 .ejar-wizard__control--date {
@@ -2766,58 +2899,34 @@ body.ejar-wizard-open .ejar-sticky-bar {
   font-size: 1.05rem;
 }
 
-.ejar-date-mode {
-  display: inline-flex;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-}
-
-.ejar-date-mode__btn {
-  min-width: 4.6rem;
-  min-height: 36px;
-  padding: 0.35rem 0.7rem;
-  border-radius: 10px;
-  border: 1px solid var(--ejar-olive-border);
-  background: #fff;
-  color: var(--navy, #1E2A38);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: var(--ejar-fw-bold);
-  cursor: pointer;
-}
-
-.ejar-date-mode__btn.is-active[data-date-mode="hijri"] {
-  background: #0f5132;
-  border-color: #0f5132;
-  color: #fff;
-}
-
-.ejar-date-mode__btn.is-active[data-date-mode="gregorian"] {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #fff;
+.ejar-date-picker {
+  display: grid;
+  gap: 0.85rem;
 }
 
 .ejar-date-hijri {
   display: grid;
   grid-template-columns: 1fr 1.15fr 0.85fr;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
 
-.ejar-date-hijri__item {
+.ejar-date-hijri__item,
+.ejar-date-gregorian {
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.32rem;
   margin: 0;
 }
 
-.ejar-date-hijri__item span {
-  font-size: 0.75rem;
+.ejar-date-hijri__item span,
+.ejar-date-gregorian span {
+  font-size: 0.82rem;
   font-weight: var(--ejar-fw-semibold);
-  color: #0f5132;
+  color: var(--text-secondary, #5b6570);
 }
 
-.ejar-date-hijri .ejar-wizard__control {
+.ejar-date-hijri .ejar-wizard__control,
+.ejar-date-gregorian .ejar-wizard__control--date {
   padding: 0.7rem 0.55rem;
   min-height: 48px;
   font-size: 1rem;
@@ -2833,53 +2942,18 @@ body.ejar-wizard-open .ejar-sticky-bar {
   }
 }
 
-.ejar-date-dual {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.ejar-date-dual--empty {
-  margin: 0.7rem 0 0;
-  color: var(--text-muted, #7a8490);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.ejar-date-dual__row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 12px;
-}
-
-.ejar-date-dual__label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.ejar-date-dual__long {
-  font-weight: 700;
+.ejar-date-text {
+  margin: 0.15rem 0 0;
   font-size: 0.95rem;
-  line-height: 1.55;
+  font-weight: var(--ejar-fw-semibold);
+  line-height: 1.75;
+  color: var(--text, #1e2a38);
 }
 
-.ejar-date-dual__num {
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.ejar-date-dual__row--gregorian {
-  background: rgba(29, 78, 216, 0.08);
-  color: #1d4ed8;
-}
-
-.ejar-date-dual__row--hijri {
-  background: rgba(15, 81, 50, 0.1);
-  color: #0f5132;
+.ejar-date-text--empty {
+  font-weight: 500;
+  color: var(--text-muted, #7a8490);
+  font-size: 0.85rem;
 }
 
 .ejar-wizard__check {
@@ -2978,6 +3052,25 @@ body.ejar-wizard-open .ejar-sticky-bar {
 
   .ejar-wizard__lead {
     font-size: 0.82rem;
+  }
+
+  .ejar-wizard__trust {
+    font-size: 0.72rem;
+  }
+
+  .ejar-wizard__stage-label {
+    display: none;
+  }
+
+  .ejar-wizard__stage.is-current .ejar-wizard__stage-label {
+    display: inline;
+    max-width: 7.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ejar-wizard__progress-text {
+    font-size: 0.84rem;
   }
 }
 

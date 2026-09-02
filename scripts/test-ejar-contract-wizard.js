@@ -109,6 +109,36 @@ else ok('يقبل الإقرار القادم من النموذج المتعدد
 if (declStr.data.deedImageUrl) fail('لا يُقبل رابط صورة الصك من العميل');
 else ok('لا يُحفظ رابط صورة الصك إلا بعد الرفع من الخادم');
 
+const fromArabicType = validateAndNormalize({ ...base, contractType: 'سكني', unitType: 'شقة' });
+if (!fromArabicType.ok || fromArabicType.data.contractKind !== 'residential') fail('قبول نوع العقد بالعربية');
+else ok('يقبل نوع العقد «سكني»');
+
+const fromUnitOnly = validateAndNormalize({ ...base, unitType: 'شقة' });
+if (!fromUnitOnly.ok || fromUnitOnly.data.contractKind !== 'residential') fail('استنتاج نوع العقد من الوحدة السكنية');
+else ok('يُستنتج السكني من نوع الوحدة عند غياب الحقل');
+
+const fromShop = validateAndNormalize({ ...base, unitType: 'محل' });
+if (!fromShop.ok || fromShop.data.contractKind !== 'commercial') fail('استنتاج نوع العقد من الوحدة التجارية');
+else ok('يُستنتج التجاري من نوع الوحدة عند غياب الحقل');
+
+const fromNested = validateAndNormalize({
+  payload: JSON.stringify({ ...base, contractKind: 'commercial', unitType: 'مكتب' }),
+});
+if (!fromNested.ok || fromNested.data.contractKind !== 'commercial') fail('قراءة نوع العقد من payload');
+else ok('يُقرأ نوع العقد من حقل payload في النموذج المتعدد');
+
+const fromArrayKind = validateAndNormalize({
+  ...base,
+  contractKind: ['', 'residential'],
+  unitType: 'فيلا',
+});
+if (!fromArrayKind.ok || fromArrayKind.data.contractKind !== 'residential') fail('نوع العقد كمصفوفة من النموذج');
+else ok('يُأخذ نوع العقد من آخر قيمة عند تكرار الحقل');
+
+const missingKind = validateAndNormalize({ ...base });
+if (missingKind.ok || missingKind.errors.contractKind !== 'نوع العقد مطلوب') fail('رفض الطلب بدون نوع عقد أو وحدة');
+else ok('يرفض الطلب إن لم يُعرف نوع العقد');
+
 const otherFloor = validateAndNormalize({
   ...base,
   contractKind: 'residential',
@@ -169,20 +199,36 @@ if (!/إرسال طلب إنشاء العقد/.test(wizardJs)) fail('نص زر �
 else ok('زر الإرسال يستخدم «إرسال طلب إنشاء العقد»');
 if (/إرسال العقد للتوثيق/.test(wizardJs)) fail('عبارة توثيق مبكرة');
 else ok('لا تُستخدم عبارة إرسال العقد للتوثيق');
-if (/كلمة المرور|نفاذ|OTP|otp/.test(wizardJs)) fail('الحقول الحساسة ممنوعة');
+var wizardWithoutTrust = wizardJs.replace(/تُستخدم بياناتك[\s\S]*?نفاذ\./, '');
+if (/كلمة المرور|نفاذ|OTP|otp/.test(wizardWithoutTrust)) fail('الحقول الحساسة ممنوعة');
 else ok('لا يُطلب OTP أو نفاذ أو كلمة مرور إيجار');
+if (/الخطوة /.test(wizardJs)) fail('لا يُعرض عداد الخطوات الكلي');
+else ok('لا يظهر «الخطوة 1 من 18»');
+if (!/السؤال /.test(wizardJs) || !/sectionProgress/.test(wizardJs)) fail('عداد السؤال داخل القسم');
+else ok('عداد الأسئلة يُحسب داخل كل قسم');
+if (!/تُستخدم بياناتك فقط لإعداد طلب العقد/.test(wizardJs)) fail('سطر الثقة');
+else ok('سطر الثقة يظهر أسفل وصف النموذج');
+['ownership', 'owner', 'tenant', 'unit', 'finance'].forEach((id) => {
+  const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
+  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 4, finance: 5 }[id];
+  if (n !== expected) fail('عدد أسئلة ' + id + ': ' + n);
+});
+ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، وحدة 4، مالية 5');
 if (!/checkRateLimit/.test(apiContracts)) fail('Rate limiting');
 else ok('Rate limiting على API إنشاء العقد');
 if (!/notifyOfficeNewEjarContract/.test(apiContracts)) fail('Hook واتساب غير مستدعى');
 else ok('Hook واتساب يُستدعى دون إسقاط الطلب');
-if (!/عقود إيجار/.test(dashRequests) || !/req-copy/.test(dashRequests)) fail('لوحة الطلبات');
-else ok('لوحة طلبات العملاء تعرض عقود الإيجار مع أزرار نسخ');
+if (!/إرسال التقييم/.test(dashRequests) || /تم نسخ الرابط/.test(dashRequests)) fail('إرسال التقييم عبر واتساب');
+else ok('لوحة التحكم ترسل التقييم عبر واتساب بدل النسخ');
 if (!/under_review|ready_to_create|authenticated/.test(dashRequests)) fail('حالات الطلب');
 else ok('حالات متابعة العقد موجودة في لوحة التحكم');
 if (!/ejar-deed-file/.test(wizardJs) || !/deedUploadHtml/.test(wizardJs)) fail('رفع صورة الصك في آخر النموذج');
 else ok('آخر النموذج يتيح رفع صورة الصك اختياريًا');
 if (!/FormData/.test(wizardJs) || !/deedImage/.test(wizardJs)) fail('إرسال صورة الصك');
 else ok('الإرسال يرفق صورة الصك عند توفرها');
+if (!/application\/json/.test(wizardJs) || !/JSON\.stringify\(data\)/.test(wizardJs) || !/fd\.append\('payload'/.test(wizardJs)) {
+  fail('إرسال نوع العقد مع الطلب');
+} else ok('الإرسال يضم نوع العقد ضمن JSON أو حقل payload');
 if (!/multer/.test(apiContracts) || !/ejar-deeds/.test(apiContracts)) fail('API رفع صورة الصك');
 else ok('API يستقبل صورة الصك ويرفعها للتخزين');
 if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests)) fail('عرض صورة الصك في اللوحة');
@@ -191,10 +237,10 @@ else ok('لوحة التحكم تعرض صورة الصك في تفاصيل ال
 const datesJs = fs.readFileSync(path.join(root, 'public', 'js', 'ejar-dates.js'), 'utf8');
 if (!/islamic-umalqura/.test(datesJs)) fail('تقويم أم القرى');
 else ok('التواريخ تستخدم تقويم أم القرى الرسمي');
-if (!/#1d4ed8/.test(fs.readFileSync(path.join(root, 'public', 'css', 'ejar.css'), 'utf8'))) fail('لون الميلادي');
-else ok('لون الميلادي أزرق');
-if (!/#0f5132/.test(fs.readFileSync(path.join(root, 'public', 'css', 'ejar.css'), 'utf8'))) fail('لون الهجري');
-else ok('لون الهجري أخضر غامق');
+if (/ejar-date-dual__row|ejar-date-block--primary/.test(datesJs)) fail('كروت التاريخ المنفصلة');
+else ok('لا تُعرض التواريخ في كروت مستقلة');
+if (!/ الموافق /.test(datesJs)) fail('صيغة التاريخ العربية');
+else ok('التاريخ يُكتب بالصيغة العربية: الهجري الموافق الميلادي');
 
 require(path.join(root, 'public', 'js', 'ejar-dates.js'));
 const sample = global.EjarDates.format('2026-09-02');
@@ -206,6 +252,12 @@ if (!/^\d{4}\/\d{2}\/\d{2}$/.test(sample.gregorianNum)) fail('الرقم الم�
 else ok('الرقم الميلادي ' + sample.gregorianNum);
 if (!sample.hijriNum) fail('الرقم الهجري');
 else ok('الرقم الهجري ' + sample.hijriNum);
+const arabicLine = global.EjarDates.plain('2026-09-02');
+if (!arabicLine || !arabicLine.includes('هـ') || !arabicLine.includes('الموافق') || !arabicLine.includes('م')) {
+  fail('سطر التاريخ العربي');
+} else ok('سطر التاريخ العربي: ' + arabicLine);
+if (/ejar-date-dual/.test(global.EjarDates.html('2026-09-02'))) fail('معاينة التاريخ ما زالت كروت');
+else ok('معاينة التاريخ نص عادي');
 
 async function runDb() {
   require('dotenv').config();

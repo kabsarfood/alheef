@@ -9,8 +9,17 @@
   var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var YES_NO = ['لا', 'نعم'];
   var LEAD = 'أدخل بيانات العقد وسيتولى فريق مكتب الهيف للخدمات العقارية مراجعتها وإنشاء العقد عبر منصة إيجار وإرساله للأطراف للتوثيق.';
+  var TRUST = '🔒 تُستخدم بياناتك فقط لإعداد طلب العقد، ولا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
   var DECLARATION = 'أقر بصحة البيانات المدخلة وأطلب من مكتب الهيف للخدمات العقارية إعداد عقد الإيجار عبر منصة إيجار وإرساله للأطراف للتوثيق.';
   var DISCLAIMER = 'مكتب الهيف للخدمات العقارية وسيط عقاري مرخص، وهذه الخدمة ليست الموقع الرسمي لمنصة إيجار.';
+  var SECTIONS = [
+    { id: 'ownership', title: 'بيانات الملكية', short: 'الملكية' },
+    { id: 'owner', title: 'بيانات المؤجر', short: 'المؤجر' },
+    { id: 'tenant', title: 'بيانات المستأجر', short: 'المستأجر' },
+    { id: 'unit', title: 'بيانات الوحدة الإيجارية', short: 'الوحدة' },
+    { id: 'finance', title: 'البيانات المالية', short: 'تفاصيل العقد' },
+    { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة' },
+  ];
 
   var root = null;
   var kind = 'residential';
@@ -100,6 +109,76 @@
       },
       { key: 'review', section: 'review', type: 'review' },
     ];
+  }
+
+  function sectionMeta(id) {
+    for (var i = 0; i < SECTIONS.length; i += 1) {
+      if (SECTIONS[i].id === id) return SECTIONS[i];
+    }
+    return { id: id, title: id, short: id };
+  }
+
+  function sectionOrder(steps) {
+    var order = [];
+    steps.forEach(function (step) {
+      if (order.indexOf(step.section) === -1) order.push(step.section);
+    });
+    return order;
+  }
+
+  function sectionQuestionIndexes(steps, sectionId) {
+    var indexes = [];
+    steps.forEach(function (step, i) {
+      if (step.section === sectionId && step.type !== 'review') indexes.push(i);
+    });
+    return indexes;
+  }
+
+  function sectionProgress(steps, index) {
+    var step = steps[index] || {};
+    var indexes = sectionQuestionIndexes(steps, step.section);
+    var current = indexes.indexOf(index) + 1;
+    var meta = sectionMeta(step.section);
+    return {
+      id: step.section,
+      title: meta.title,
+      short: meta.short,
+      current: current > 0 ? current : 0,
+      total: indexes.length,
+      isReview: step.type === 'review',
+    };
+  }
+
+  function stagesHtml(steps, index) {
+    var currentSection = (steps[index] || {}).section;
+    var order = sectionOrder(steps);
+    var currentPos = order.indexOf(currentSection);
+    return '<ol class="ejar-wizard__stages" aria-label="مراحل الطلب">'
+      + order.map(function (id, i) {
+        var meta = sectionMeta(id);
+        var cls = 'ejar-wizard__stage';
+        if (i < currentPos) cls += ' is-done';
+        if (i === currentPos) cls += ' is-current';
+        var mark = i < currentPos ? '✓' : String(i + 1);
+        return '<li class="' + cls + '"' + (i === currentPos ? ' aria-current="step"' : '') + '>'
+          + '<span class="ejar-wizard__stage-mark" aria-hidden="true">' + mark + '</span>'
+          + '<span class="ejar-wizard__stage-label">' + escapeHtml(meta.short) + '</span>'
+          + '</li>';
+      }).join('')
+      + '</ol>';
+  }
+
+  function progressHtml(steps, index) {
+    var stats = sectionProgress(steps, index);
+    var pct = stats.isReview || !stats.total ? 100 : Math.round((stats.current / stats.total) * 100);
+    var text = stats.isReview
+      ? escapeHtml(stats.title)
+      : '<strong>' + escapeHtml(stats.title) + '</strong><span> السؤال ' + stats.current + ' من ' + stats.total + '</span>';
+    return '<div class="ejar-wizard__progress">'
+      + stagesHtml(steps, index)
+      + '<p class="ejar-wizard__progress-text" aria-live="polite">' + text + '</p>'
+      + (stats.isReview ? '' : '<div class="ejar-wizard__bar" aria-hidden="true"><div class="ejar-wizard__bar-fill" style="width:' + pct + '%"></div></div>')
+      + '</div>';
   }
 
   function normalizeSaudiMobile(input) {
@@ -431,21 +510,6 @@
       if (yearEl.value && monthEl.value && dayEl.value) applyHijri();
     }
 
-    picker.querySelectorAll('[data-date-mode]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        dateMode = btn.getAttribute('data-date-mode') === 'gregorian' ? 'gregorian' : 'hijri';
-        picker.querySelectorAll('[data-date-mode]').forEach(function (b) {
-          var on = b === btn;
-          b.classList.toggle('is-active', on);
-          b.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
-        var hijriPanel = picker.querySelector('[data-date-panel="hijri"]');
-        var gregPanel = picker.querySelector('[data-date-panel="gregorian"]');
-        if (hijriPanel) hijriPanel.hidden = dateMode !== 'hijri';
-        if (gregPanel) gregPanel.hidden = dateMode !== 'gregorian';
-      });
-    });
-
     if (yearEl) yearEl.addEventListener('change', refreshHijriDays);
     if (monthEl) monthEl.addEventListener('change', refreshHijriDays);
     if (dayEl) dayEl.addEventListener('change', applyHijri);
@@ -555,7 +619,6 @@
           iso: value,
           maxIso: max,
           fieldKey: step.key,
-          mode: dateMode,
         });
       }
       return '<input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="date" dir="ltr" value="' + escapeHtml(value) + '"' + (max ? ' max="' + max + '"' : '') + ' required>'
@@ -625,7 +688,13 @@
   }
 
   function reviewText(label, key) {
-    if (isDateField(key)) return { label: label, value: dualDateHtml(answers[key]), html: true };
+    if (isDateField(key)) {
+      var text = '';
+      if (window.EjarDates && typeof window.EjarDates.plain === 'function') {
+        text = window.EjarDates.plain(answers[key]);
+      }
+      return { label: label, value: text || answers[key] || '—' };
+    }
     return { label: label, value: displayValue(key) };
   }
 
@@ -634,7 +703,7 @@
       reviewText('رقم الصك', 'deedNumber'),
       reviewText('تاريخ الصك', 'deedDate'),
     ])
-    + reviewSection('بيانات المالك', 'owner', [
+    + reviewSection('بيانات المؤجر', 'owner', [
       reviewText('رقم الهوية', 'ownerId'),
       reviewText('تاريخ الميلاد', 'ownerDob'),
       reviewText('الجوال', 'ownerPhone'),
@@ -644,13 +713,13 @@
       reviewText('تاريخ الميلاد', 'tenantDob'),
       reviewText('الجوال', 'tenantPhone'),
     ])
-    + reviewSection('بيانات الوحدة', 'unit', [
+    + reviewSection('بيانات الوحدة الإيجارية', 'unit', [
       reviewText('النوع', 'unitType'),
       reviewText('الدور', 'floor'),
       reviewText('رقم الوحدة', 'unitNumber'),
       reviewText('المساحة', 'area'),
     ])
-    + reviewSection('تفاصيل العقد', 'finance', [
+    + reviewSection('البيانات المالية', 'finance', [
       reviewText('قيمة الإيجار', 'rentAmount'),
       reviewText('طريقة الدفع', 'paymentMethod'),
       reviewText('مدة العقد', 'contractDuration'),
@@ -694,9 +763,6 @@
   function render() {
     var steps = getSteps(kind);
     var step = steps[stepIndex];
-    var total = steps.length;
-    var current = stepIndex + 1;
-    var pct = Math.round((current / total) * 100);
     var isReview = step.type === 'review';
     var isFirst = stepIndex === 0;
     var body = isReview
@@ -716,17 +782,17 @@
       + '<h2 id="ejar-wizard-title">' + escapeHtml(titleFor(kind)) + '</h2>'
       + '<p class="ejar-wizard__price">' + escapeHtml(priceText(kind)) + '</p>'
       + '<p class="ejar-wizard__lead">' + LEAD + '</p>'
+      + '<p class="ejar-wizard__trust">' + TRUST + '</p>'
       + '</header>'
-      + '<div class="ejar-wizard__progress" aria-hidden="true">'
-      + '<span>الخطوة ' + current + ' من ' + total + '</span>'
-      + '<div class="ejar-wizard__bar"><div class="ejar-wizard__bar-fill" style="width:' + pct + '%"></div></div>'
-      + '</div>'
+      + progressHtml(steps, stepIndex)
       + '<form class="ejar-wizard__form" novalidate>'
+      + '<input type="hidden" name="contractKind" value="' + (kind === 'commercial' ? 'commercial' : 'residential') + '">'
+      + '<input type="hidden" name="contractType" value="' + (kind === 'commercial' ? 'تجاري' : 'سكني') + '">'
       + '<input type="text" name="website" class="ejar-hp" tabindex="-1" autocomplete="off" aria-hidden="true">'
       + '<p class="ejar-wizard__error" role="alert" hidden></p>'
       + '<div class="ejar-wizard__body">' + body + '</div>'
       + '<div class="ejar-wizard__nav">'
-      + '<button type="button" class="btn btn-outline ejar-wizard__prev"' + (isFirst ? ' disabled' : '') + '>السابق</button>'
+      + '<button type="button" class="btn btn-outline ejar-wizard__prev"' + (isFirst ? ' disabled hidden' : '') + '>السابق</button>'
       + '<button type="button" class="btn btn-primary ejar-wizard__next">' + (isReview ? 'إرسال طلب إنشاء العقد' : 'التالي') + '</button>'
       + '</div>'
       + '</form></div>';
@@ -785,8 +851,11 @@
   }
 
   function payload() {
+    var k = kind === 'commercial' ? 'commercial' : 'residential';
     return {
-      contractKind: kind,
+      contractKind: k,
+      contractType: k === 'commercial' ? 'تجاري' : 'سكني',
+      kind: k,
       deedNumber: answers.deedNumber,
       deedDate: answers.deedDate,
       ownerId: answers.ownerId,
@@ -822,18 +891,26 @@
     btn.textContent = 'جاري الإرسال...';
     hideError();
     var data = payload();
-    var fd = new FormData();
-    Object.keys(data).forEach(function (key) {
-      var val = data[key];
-      if (val == null || val === false) return;
-      fd.append(key, val === true ? 'true' : String(val));
-    });
+    var headers = {};
+    var body;
     if (deedFile) {
+      var fd = new FormData();
+      fd.append('payload', JSON.stringify(data));
+      Object.keys(data).forEach(function (key) {
+        var val = data[key];
+        if (val == null || val === false) return;
+        fd.append(key, val === true ? 'true' : String(val));
+      });
       fd.append('deedImage', deedFile, deedFile.name || 'deed.jpg');
+      body = fd;
+    } else {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(data);
     }
     fetch('/api/ejar/contracts', {
       method: 'POST',
-      body: fd,
+      headers: headers,
+      body: body,
     })
       .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
       .then(function (result) {

@@ -20,11 +20,29 @@ function starsText(rating) {
 
 function buildWhatsAppMessage(reviewUrl) {
   return [
-    'السلام عليكم، نشكرك لاختيار مكتب الهيف للخدمات العقارية.',
-    'يسعدنا تقييم تجربتك معنا في خدمة عقود الإيجار من خلال الرابط التالي:',
+    'تشرفنا في خدمتكم في الهيف العقارية',
+    'أرجو التقييم عبر الرابط التالي:',
     reviewUrl,
-    'تقييمك يساعدنا على تطوير الخدمة، وشكرًا لثقتك.',
   ].join('\n');
+}
+
+function toWhatsAppNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (/^9665\d{8}$/.test(digits)) return digits;
+  if (/^05\d{8}$/.test(digits)) return `966${digits.slice(1)}`;
+  if (/^5\d{8}$/.test(digits)) return `966${digits}`;
+  return '';
+}
+
+function customerPhoneFromRequest(request) {
+  const meta = parseEjarRequestMessage(request?.message);
+  return request?.customerPhone || meta.ownerPhone || meta.tenantPhone || '';
+}
+
+function buildCustomerWhatsAppUrl(phone, reviewUrl) {
+  const n = toWhatsAppNumber(phone);
+  if (!n) return null;
+  return `https://wa.me/${n}?text=${encodeURIComponent(buildWhatsAppMessage(reviewUrl))}`;
 }
 
 function sanitizeComment(text) {
@@ -59,6 +77,9 @@ module.exports = {
   hashToken,
   buildReviewUrl,
   buildWhatsAppMessage,
+  toWhatsAppNumber,
+  customerPhoneFromRequest,
+  buildCustomerWhatsAppUrl,
   starsText,
   sanitizeComment,
   resolveDisplayName,

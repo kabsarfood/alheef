@@ -9,6 +9,9 @@ const {
   generateToken,
   buildReviewUrl,
   buildWhatsAppMessage,
+  buildCustomerWhatsAppUrl,
+  customerPhoneFromRequest,
+  toWhatsAppNumber,
   sanitizeComment,
   resolveDisplayName,
   parseEjarRequestMessage,
@@ -210,6 +213,9 @@ router.createReviewLinkForRequest = async function createReviewLinkForRequest(re
   if (request.requestType !== 'ejar_contract') {
     throw new Error('رابط التقييم متاح لطلبات عقود الإيجار فقط');
   }
+  if (!toWhatsAppNumber(customerPhoneFromRequest(request))) {
+    throw new Error('لا يوجد رقم جوال للعميل لإرسال التقييم عبر واتساب');
+  }
 
   const rawToken = generateToken();
   const expiresAt = new Date();
@@ -224,10 +230,7 @@ router.createReviewLinkForRequest = async function createReviewLinkForRequest(re
 
   const reviewUrl = buildReviewUrl(rawToken);
   const whatsappMessage = buildWhatsAppMessage(reviewUrl);
-  const phone = String(request.customerPhone || '').replace(/\D/g, '');
-  const whatsappUrl = phone
-    ? `https://wa.me/966${phone.startsWith('0') ? phone.slice(1) : phone}?text=${encodeURIComponent(whatsappMessage)}`
-    : null;
+  const whatsappUrl = buildCustomerWhatsAppUrl(customerPhoneFromRequest(request), reviewUrl);
 
   return {
     reviewUrl,

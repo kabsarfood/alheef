@@ -36,6 +36,12 @@ async function run() {
   const link = await ejarReviewsRoutes.createReviewLinkForRequest(request.id);
   if (!link.reviewUrl) return fail('إنشاء رابط تقييم');
   ok('إنشاء رابط تقييم');
+  if (!link.whatsappUrl || !link.whatsappUrl.includes('wa.me/966500000000')) fail('واتساب يُرسل لجوال العميل');
+  else ok('رابط واتساب يذهب إلى جوال العميل صاحب الطلب');
+  if (!String(link.whatsappMessage || '').startsWith('تشرفنا في خدمتكم في الهيف العقارية')) fail('نص رسالة التقييم');
+  else ok('رسالة واتساب تبدأ: تشرفنا في خدمتكم في الهيف العقارية');
+  if (!decodeURIComponent(link.whatsappUrl).includes('أرجو التقييم')) fail('الرسالة تطلب التقييم');
+  else ok('الرسالة تطلب التقييم مع الرابط');
 
   const token = link.reviewUrl.split('/').pop();
   const beforeUnread = await adminNotificationsRepo.countUnread();
