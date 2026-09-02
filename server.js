@@ -38,6 +38,7 @@ let pushRoutes;
 let privateOffersRoutes;
 let analyticsRoutes;
 let ejarReviewsRoutes;
+let ejarContractsRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -52,6 +53,7 @@ try {
   privateOffersRoutes = require('./server/routes/privateOffers');
   analyticsRoutes = require('./server/routes/analytics');
   ejarReviewsRoutes = require('./server/routes/ejarReviews');
+  ejarContractsRoutes = require('./server/routes/ejarContracts');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -203,6 +205,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/private-offers', privateOffersRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/marketer', marketerRoutes);
+app.use('/api/ejar', ejarContractsRoutes);
 app.use('/api/ejar', ejarReviewsRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/admin', adminRoutes);

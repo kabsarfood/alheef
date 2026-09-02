@@ -13,7 +13,8 @@ const {
   resolveDisplayName,
   parseEjarRequestMessage,
 } = require('../services/ejarReviewService');
-const { getEjarTrustStats } = require('../services/ejarTrustStats');
+const { getEjarTrustStats, invalidateEjarTrustStats } = require('../services/ejarTrustStats');
+const { getReviewLinkExpiryDays } = require('../utils/ejarReviewConfig');
 
 const router = express.Router();
 
@@ -219,6 +220,7 @@ router.createReviewLinkForRequest = async function createReviewLinkForRequest(re
     rawToken,
     expiresAt: expiresAt.toISOString(),
   });
+  invalidateEjarTrustStats();
 
   const reviewUrl = buildReviewUrl(rawToken);
   const whatsappMessage = buildWhatsAppMessage(reviewUrl);

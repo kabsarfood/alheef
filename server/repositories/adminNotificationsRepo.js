@@ -48,23 +48,35 @@ function parseRequestCity(message) {
   }
 }
 
-function appendRequestDetails(body, { customerName, customerPhone, message }) {
+function parseRequestReference(message) {
+  if (!message) return '';
+  try {
+    const parsed = typeof message === 'string' ? JSON.parse(message) : message;
+    return String(parsed?.referenceNo || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function appendRequestDetails(body, { customerName, customerPhone, message, referenceNo }) {
   const parts = [body];
+  const ref = String(referenceNo || parseRequestReference(message) || '').trim();
   const name = String(customerName || '').trim();
   const phone = String(customerPhone || '').trim();
   const city = parseRequestCity(message);
-  if (name) parts.push(`الاسم: ${name}`);
+  if (ref) parts.push(`رقم الطلب: ${ref}`);
+  if (name && !name.startsWith('عقد إيجار')) parts.push(`الاسم: ${name}`);
   if (phone) parts.push(`الجوال: ${phone}`);
   if (city) parts.push(`المدينة: ${city}`);
   return parts.join(' — ');
 }
 
-function buildCustomerRequestNotificationContent({ requestType, message, customerName, customerPhone }) {
+function buildCustomerRequestNotificationContent({ requestType, message, customerName, customerPhone, referenceNo }) {
   let title = 'طلب عميل جديد';
   let body = 'وصل طلب عميل جديد ويحتاج إلى المتابعة.';
   if (requestType === 'ejar_contract') {
     const kind = parseEjarContractKind(message);
-    title = 'طلب جديد لعقد إيجار';
+    title = 'طلب عقد إيجار جديد';
     body = kind
       ? `وصل طلب جديد لإنشاء عقد إيجار ${kind} ويحتاج إلى المتابعة.`
       : 'وصل طلب جديد لإنشاء عقد إيجار ويحتاج إلى المتابعة.';
@@ -80,7 +92,7 @@ function buildCustomerRequestNotificationContent({ requestType, message, custome
   }
   return {
     title,
-    body: appendRequestDetails(body, { customerName, customerPhone, message }),
+    body: appendRequestDetails(body, { customerName, customerPhone, message, referenceNo }),
   };
 }
 
@@ -148,7 +160,7 @@ async function findRequestNotification(requestId) {
   return mapRow(data);
 }
 
-async function createCustomerRequestReceived({ requestId, requestType, message, customerName, customerPhone }) {
+async function createCustomerRequestReceived({ requestId, requestType, message, customerName, customerPhone, referenceNo }) {
   if (!isEnabled() || !requestId) return null;
 
   const existing = await findRequestNotification(requestId);
@@ -159,6 +171,7 @@ async function createCustomerRequestReceived({ requestId, requestType, message, 
     message,
     customerName,
     customerPhone,
+    referenceNo,
   });
   const row = {
     type: CUSTOMER_REQUEST_TYPE,
@@ -170,6 +183,7 @@ async function createCustomerRequestReceived({ requestId, requestType, message, 
       requestType: requestType || '',
       customerName: customerName || '',
       customerPhone: customerPhone || '',
+      referenceNo: referenceNo || parseRequestReference(message) || '',
       body,
       createdAt: new Date().toISOString(),
     },

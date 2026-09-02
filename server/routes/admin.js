@@ -427,6 +427,7 @@ router.get('/requests', async (req, res) => {
 router.put('/requests/:id/status', async (req, res) => {
   try {
     const r = await requestsRepo.updateStatus(req.params.id, req.body.status);
+    require('../services/ejarTrustStats').invalidateEjarTrustStats();
     res.json({ success: true, request: r });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -434,7 +435,9 @@ router.put('/requests/:id/status', async (req, res) => {
 });
 
 router.delete('/requests/:id', async (req, res) => {
-  res.json({ success: await requestsRepo.remove(req.params.id) });
+  const ok = await requestsRepo.remove(req.params.id);
+  require('../services/ejarTrustStats').invalidateEjarTrustStats();
+  res.json({ success: ok });
 });
 
 router.put('/requests/:id/read-notification', async (req, res) => {
@@ -957,6 +960,7 @@ router.post('/ejar-reviews/tokens', async (req, res) => {
       return res.status(400).json({ success: false, message: 'معرّف الطلب مطلوب' });
     }
     const link = await ejarReviewsRoutes.createReviewLinkForRequest(requestId);
+    require('../services/ejarTrustStats').invalidateEjarTrustStats();
     res.json({ success: true, ...link });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -967,6 +971,7 @@ router.put('/ejar-reviews/:id/approve', async (req, res) => {
   try {
     const review = await ejarReviewsRepo.setStatus(req.params.id, 'approved');
     if (!review) return res.status(404).json({ success: false, message: 'التقييم غير موجود' });
+    require('../services/ejarTrustStats').invalidateEjarTrustStats();
     const publicStats = await ejarReviewsRepo.getPublicStats();
     res.json({ success: true, review, publicStats });
   } catch (err) {
@@ -978,6 +983,7 @@ router.put('/ejar-reviews/:id/hide', async (req, res) => {
   try {
     const review = await ejarReviewsRepo.setStatus(req.params.id, 'hidden');
     if (!review) return res.status(404).json({ success: false, message: 'التقييم غير موجود' });
+    require('../services/ejarTrustStats').invalidateEjarTrustStats();
     res.json({ success: true, review });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

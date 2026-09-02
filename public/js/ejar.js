@@ -213,6 +213,11 @@
         selectedContract = type;
         applyPhoneDisplays();
         trackEvent(type === 'residential' ? 'ejar_residential_select' : 'ejar_commercial_select');
+        if (window.EjarWizard && typeof window.EjarWizard.open === 'function') {
+          window.EjarWizard.open(type);
+          trackEvent('ejar_start_contract', { contractType: type, wizard: true });
+          return;
+        }
         scrollToForm(type);
       });
     });
@@ -221,8 +226,11 @@
   function setupStartButtons() {
     document.querySelectorAll('[data-ejar-start]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
-        if (btn.tagName === 'A' && btn.getAttribute('href') === '#ejar-form') {
-          e.preventDefault();
+        if (btn.tagName === 'A') e.preventDefault();
+        if (window.EjarWizard && typeof window.EjarWizard.open === 'function') {
+          window.EjarWizard.open();
+          trackEvent('ejar_start_contract', { contractType: null, wizard: true });
+          return;
         }
         scrollToForm();
       });
@@ -371,6 +379,40 @@
       .catch(function () { /* keep default logo */ });
   }
 
+  function wizardKindFromHomeLink() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var create = String(params.get('create') || '').trim().toLowerCase();
+      if (create === 'commercial' || create === 'residential') return create;
+      if (create === '1' || create === 'true' || create === 'start') return '';
+    } catch (_) { /* noop */ }
+    var hash = String(window.location.hash || '').replace(/^#/, '').toLowerCase();
+    if (hash === 'create' || hash === 'ejar-start' || hash === 'start') return '';
+    return null;
+  }
+
+  function clearHomeCreateParam() {
+    try {
+      var url = new URL(window.location.href);
+      if (!url.searchParams.has('create') && !/^#(create|ejar-start|start)$/i.test(url.hash)) return;
+      url.searchParams.delete('create');
+      url.hash = '';
+      var next = url.pathname + url.search;
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', next);
+      }
+    } catch (_) { /* noop */ }
+  }
+
+  function openWizardFromHome() {
+    var kind = wizardKindFromHomeLink();
+    if (kind == null) return;
+    if (!window.EjarWizard || typeof window.EjarWizard.open !== 'function') return;
+    window.EjarWizard.open(kind || undefined, { fromHome: true });
+    trackEvent('ejar_start_contract', { contractType: kind || null, wizard: true, from: 'home' });
+    clearHomeCreateParam();
+  }
+
   function init() {
     captureAttribution();
     applySiteLogo();
@@ -388,6 +430,8 @@
     var yearEls = document.querySelectorAll('.ejar-year, #year, .footer__year');
     var year = String(new Date().getFullYear());
     yearEls.forEach(function (el) { el.textContent = year; });
+
+    openWizardFromHome();
   }
 
   if (document.readyState === 'loading') {

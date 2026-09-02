@@ -633,6 +633,17 @@ function rowToTestimonial(row) {
   };
 }
 
+function parseRequestReference(row) {
+  if (row.reference_no) return row.reference_no;
+  if (!row.message) return '';
+  try {
+    const parsed = typeof row.message === 'string' ? JSON.parse(row.message) : row.message;
+    return parsed?.referenceNo || '';
+  } catch {
+    return '';
+  }
+}
+
 function rowToRequest(row) {
   return {
     id: row.id,
@@ -643,6 +654,7 @@ function rowToRequest(row) {
     propertyId: row.property_id,
     message: row.message,
     status: row.status,
+    referenceNo: parseRequestReference(row),
     createdAt: row.created_at,
   };
 }

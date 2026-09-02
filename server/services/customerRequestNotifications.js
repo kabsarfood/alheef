@@ -11,6 +11,7 @@ async function notifyAdminsNewCustomerRequest(request) {
       message: request.message,
       customerName: request.customerName,
       customerPhone: request.customerPhone,
+      referenceNo: request.referenceNo,
     });
 
     pushNotifications.notifyAdminsClientRequest({

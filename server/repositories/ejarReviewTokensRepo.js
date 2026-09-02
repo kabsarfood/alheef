@@ -86,9 +86,10 @@ async function markExpired(id) {
   return mapRow(data);
 }
 
-async function countDistinctCompletedRequests() {
-  if (!isEnabled()) return 0;
-  const ids = new Set();
+async function listDistinctRequestIds() {
+  if (!isEnabled()) return [];
+  const ids = [];
+  const seen = new Set();
   const pageSize = 1000;
   let from = 0;
   for (;;) {
@@ -96,16 +97,23 @@ async function countDistinctCompletedRequests() {
       .from(TABLE)
       .select('request_id')
       .range(from, from + pageSize - 1);
-    if (error) return ids.size;
+    if (error) return ids;
     const rows = data || [];
     rows.forEach((row) => {
-      if (row.request_id) ids.add(row.request_id);
+      if (row.request_id && !seen.has(row.request_id)) {
+        seen.add(row.request_id);
+        ids.push(row.request_id);
+      }
     });
     if (rows.length < pageSize) break;
     from += pageSize;
     if (from > 50000) break;
   }
-  return ids.size;
+  return ids;
+}
+
+async function countDistinctCompletedRequests() {
+  return (await listDistinctRequestIds()).length;
 }
 
 module.exports = {
@@ -115,5 +123,6 @@ module.exports = {
   markUsed,
   markExpired,
   revokeActiveForRequest,
+  listDistinctRequestIds,
   countDistinctCompletedRequests,
 };

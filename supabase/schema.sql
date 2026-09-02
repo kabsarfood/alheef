@@ -155,8 +155,13 @@ CREATE TABLE requests (
   property_id UUID REFERENCES properties(id) ON DELETE SET NULL,
   message TEXT,
   status TEXT NOT NULL DEFAULT 'new',
+  reference_no TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT requests_status_check CHECK (status IN ('new', 'in_progress', 'done', 'cancelled'))
+  CONSTRAINT requests_status_check CHECK (status IN (
+    'new', 'in_progress', 'done', 'cancelled',
+    'under_review', 'missing_data', 'ready_to_create',
+    'contract_created', 'sent_for_auth', 'authenticated'
+  ))
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -242,6 +247,11 @@ CREATE INDEX idx_news_status ON news (status);
 CREATE INDEX idx_news_created_at ON news (created_at DESC);
 CREATE INDEX idx_requests_status ON requests (status);
 CREATE INDEX idx_requests_created_at ON requests (created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_reference_no
+  ON requests (reference_no)
+  WHERE reference_no IS NOT NULL AND reference_no <> '';
+CREATE INDEX IF NOT EXISTS idx_requests_type_created
+  ON requests (request_type, created_at DESC);
 CREATE INDEX idx_subscriptions_email ON subscriptions (email);
 CREATE INDEX idx_banners_active_sort ON banners (active, sort_order);
 CREATE INDEX idx_testimonials_active ON testimonials (active, created_at DESC);

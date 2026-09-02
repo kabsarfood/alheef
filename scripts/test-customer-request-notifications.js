@@ -32,7 +32,7 @@ async function run() {
   else ok('إنشاء طلب ejar_contract');
 
   const ejarNotif = await notifyAdminsNewCustomerRequest(ejarRequest);
-  if (ejarNotif?.title !== 'طلب جديد لعقد إيجار') fail('إشعار إدارة نموذج ejar_contract');
+  if (ejarNotif?.title !== 'طلب عقد إيجار جديد') fail('إشعار إدارة نموذج ejar_contract');
   else ok('يُرسل إشعار الجرس عند حفظ طلب ejar_contract');
 
   const ejarRow = await adminNotificationsRepo.findRequestNotification(ejarRequest.id);

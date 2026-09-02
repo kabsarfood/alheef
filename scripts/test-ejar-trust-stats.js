@@ -45,6 +45,48 @@ async function run() {
   if (cached.visitors !== stats.visitors || cached.contracts !== stats.contracts) fail('الكاش يعيد نفس النتيجة');
   else ok('الكاش يعمل');
 
+  const requestsRepo = require('../server/repositories/requestsRepo');
+  const ejarReviewsRoutes = require('../server/routes/ejarReviews');
+  const { invalidateEjarTrustStats } = require('../server/services/ejarTrustStats');
+
+  invalidateEjarTrustStats();
+  const before = await getEjarTrustStats();
+
+  const createdReq = await requestsRepo.create({
+    requestType: 'ejar_contract',
+    customerName: 'عداد إنشاء عقد',
+    customerPhone: '0500000091',
+    message: JSON.stringify({ schema: 'ejar_contract_v2', contractKind: 'residential' }),
+    status: 'contract_created',
+  });
+  if (!createdReq?.id) fail('إنشاء طلب بحالة تم إنشاء العقد');
+  invalidateEjarTrustStats();
+  const afterCreated = await getEjarTrustStats();
+  if (afterCreated.contracts !== before.contracts + 1) {
+    fail('عداد العقود بعد إنشاء العقد: ' + before.contracts + ' → ' + afterCreated.contracts);
+  } else ok('إنشاء العقد يزيد عدد العقود أسفل الموقع');
+
+  const reviewReq = await requestsRepo.create({
+    requestType: 'ejar_contract',
+    customerName: 'عداد رابط تقييم',
+    customerPhone: '0500000092',
+    message: JSON.stringify({ schema: 'ejar_contract_v2', contractKind: 'commercial' }),
+    status: 'new',
+  });
+  const link = await ejarReviewsRoutes.createReviewLinkForRequest(reviewReq.id);
+  if (!link?.reviewUrl) fail('زر إنشاء رابط التقييم');
+  const afterLink = await getEjarTrustStats();
+  if (afterLink.contracts !== afterCreated.contracts + 1) {
+    fail('عداد العقود بعد رابط التقييم: ' + afterCreated.contracts + ' → ' + afterLink.contracts);
+  } else ok('زر إنشاء رابط التقييم يزيد عدد العقود أسفل الموقع');
+
+  await requestsRepo.updateStatus(reviewReq.id, 'contract_created');
+  invalidateEjarTrustStats();
+  const afterBoth = await getEjarTrustStats();
+  if (afterBoth.contracts !== afterLink.contracts) {
+    fail('لا يُحسب الطلب مرتين عند الحالة ورابط التقييم');
+  } else ok('الطلب الواحد يُحسب مرة واحدة حتى لو أُنشئ العقد وأُرسل رابط التقييم');
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 }

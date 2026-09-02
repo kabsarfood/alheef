@@ -80,6 +80,14 @@ const DashboardAPI = {
     return this.request('/requests').then((d) => d.data || d);
   },
 
+  updateRequestStatus(id, status) {
+    return this.request(`/requests/${id}/status`, {
+      method: 'PUT',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status }),
+    });
+  },
+
   getSubscriptions() {
     return this.request('/subscriptions').then((d) => d.data || d);
   },
