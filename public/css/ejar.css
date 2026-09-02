@@ -274,7 +274,7 @@
   }
 
   .ejar-price-card__type {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     line-height: 1.4;
   }
 
@@ -372,20 +372,30 @@
 
 .ejar-pricing {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.65rem, 2vw, 1rem);
-  max-width: 680px;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  max-width: 26.5rem;
   margin: 0 auto clamp(0.85rem, 2vw, 1.15rem);
   width: 100%;
 }
 
 .ejar-price-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "type amount"
+    "note note"
+    "action action";
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
   background: var(--white);
   border: 1px solid var(--ejar-olive-border);
   border-radius: var(--radius);
-  padding: clamp(0.85rem, 2.5vw, 1.35rem) clamp(0.65rem, 2vw, 1rem);
-  text-align: center;
+  padding: 0.95rem 1rem 1rem;
+  text-align: start;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .ejar-price-card--featured {
@@ -394,20 +404,23 @@
 }
 
 .ejar-price-card__type {
+  grid-area: type;
   font-size: var(--ejar-fs-card-title);
   font-weight: var(--ejar-fw-bold);
   color: var(--ejar-olive);
-  margin-bottom: 0.35rem;
+  margin: 0;
   line-height: var(--ejar-lh-section);
 }
 
 .ejar-price-card__amount {
-  font-size: var(--ejar-fs-price);
+  grid-area: amount;
+  font-size: clamp(1.55rem, 7vw, 1.95rem);
   font-weight: var(--ejar-fw-heavy);
   color: var(--navy);
   line-height: var(--ejar-lh-tight);
-  margin-bottom: 0.25rem;
+  margin: 0;
   letter-spacing: normal;
+  white-space: nowrap;
 }
 
 .ejar-price-card__amount small {
@@ -416,22 +429,65 @@
 }
 
 .ejar-price-card__note {
+  grid-area: note;
   font-size: var(--ejar-fs-sm);
   font-weight: var(--ejar-fw-normal);
   color: var(--text-muted);
-  line-height: 1.7;
-  margin-bottom: 0.75rem;
+  line-height: 1.65;
+  margin: 0.35rem 0 0.65rem;
   min-height: 0;
+  overflow-wrap: anywhere;
 }
 
 .ejar-price-card .btn {
+  grid-area: action;
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   justify-content: center;
   font-size: var(--ejar-fs-btn);
   font-weight: var(--ejar-fw-semibold);
-  padding-inline: 0.5rem;
+  padding-inline: 0.75rem;
   letter-spacing: normal;
+  white-space: normal;
+  text-wrap: balance;
+  line-height: 1.35;
+}
+
+@media (min-width: 600px) {
+  .ejar-pricing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 680px;
+    gap: 0.85rem;
+    align-items: stretch;
+  }
+
+  .ejar-price-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    height: 100%;
+    padding: clamp(1rem, 2.4vw, 1.4rem) clamp(0.8rem, 2vw, 1.15rem);
+  }
+
+  .ejar-price-card__type {
+    margin-bottom: 0.35rem;
+  }
+
+  .ejar-price-card__amount {
+    font-size: var(--ejar-fs-price);
+    margin-bottom: 0.3rem;
+  }
+
+  .ejar-price-card__note {
+    margin: 0 0 0.85rem;
+    flex: 1 1 auto;
+  }
+
+  .ejar-price-card .btn {
+    margin-top: auto;
+    min-height: 48px;
+  }
 }
 
 .ejar-hero__actions {
@@ -2175,12 +2231,17 @@
   }
 
   .ejar-pricing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 864px;
     gap: clamp(1rem, 2.2vw, 1.35rem);
     margin-bottom: clamp(1rem, 2.5vw, 1.4rem);
   }
 
   .ejar-price-card {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    height: 100%;
     padding: clamp(1.02rem, 3vw, 1.62rem) clamp(0.78rem, 2.4vw, 1.2rem);
   }
 
@@ -2196,9 +2257,11 @@
   .ejar-price-card__note {
     font-size: calc(var(--ejar-fs-sm) * 1.2);
     margin-bottom: 0.9rem;
+    flex: 1 1 auto;
   }
 
   .ejar-price-card .btn {
+    margin-top: auto;
     min-height: 53px;
     font-size: calc(var(--ejar-fs-btn) * 1.2);
     padding-inline: 0.6rem;
@@ -2372,8 +2435,27 @@
   }
 
   .ejar-pricing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 720px;
     gap: 1rem;
+    align-items: stretch;
+  }
+
+  .ejar-price-card {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    height: 100%;
+    padding: 1.2rem 1.05rem 1.15rem;
+  }
+
+  .ejar-price-card__note {
+    flex: 1 1 auto;
+  }
+
+  .ejar-price-card .btn {
+    margin-top: auto;
+    min-height: 50px;
   }
 
   .ejar-creds__grid {
