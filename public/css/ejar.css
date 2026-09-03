@@ -222,11 +222,13 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: 0.78rem;
-    line-height: 1.5;
+    font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.4rem);
+    font-weight: var(--ejar-fw-heavy);
+    line-height: var(--ejar-lh-small);
     padding: 0.42rem 0.75rem;
     border-radius: 12px;
-    max-width: min(100%, 21rem);
+    width: max-content;
+    max-width: 100%;
     text-wrap: balance;
   }
 
@@ -315,8 +317,8 @@
 
 .ejar-hero__badge {
   display: inline-block;
-  font-size: var(--ejar-fs-sm);
-  font-weight: var(--ejar-fw-semibold);
+  font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.4rem);
+  font-weight: var(--ejar-fw-heavy);
   letter-spacing: 0;
   text-transform: none;
   color: var(--ejar-olive);
@@ -324,7 +326,8 @@
   border: 1px solid var(--ejar-olive-border);
   padding: 0.4rem 0.95rem;
   border-radius: 999px;
-  line-height: 1.55;
+  line-height: var(--ejar-lh-small);
+  width: max-content;
   max-width: 100%;
 }
 
@@ -2224,14 +2227,6 @@
     display: none;
   }
 
-  .ejar-hero__badge {
-    font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.4rem);
-    font-weight: var(--ejar-fw-heavy);
-    line-height: var(--ejar-lh-small);
-    width: max-content;
-    max-width: 100%;
-  }
-
   .ejar-hero__title {
     margin: 0;
   }
@@ -2391,12 +2386,15 @@
   }
 
   .ejar-hero__office {
-    font-size: 1.15rem;
-    margin-bottom: 0.5rem;
+    display: none;
   }
 
   .ejar-hero__badge {
-    font-size: 0.9rem;
+    font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.4rem);
+    font-weight: var(--ejar-fw-heavy);
+    line-height: var(--ejar-lh-small);
+    width: max-content;
+    max-width: 100%;
     padding: 0.5rem 1.05rem;
     border-radius: 14px;
     text-wrap: balance;
