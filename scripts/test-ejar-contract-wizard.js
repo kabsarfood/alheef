@@ -241,6 +241,13 @@ if (/ejar-date-dual__row|ejar-date-block--primary/.test(datesJs)) fail('كروت
 else ok('لا تُعرض التواريخ في كروت مستقلة');
 if (!/ الموافق /.test(datesJs)) fail('صيغة التاريخ العربية');
 else ok('التاريخ يُكتب بالصيغة العربية: الهجري الموافق الميلادي');
+if (!/ejar-date-orb/.test(datesJs) || !/اختر نوع التقويم/.test(datesJs) || !/data-date-mode/.test(datesJs)) {
+  fail('اختيار نوع التاريخ هجري/ميلادي');
+} else ok('مرحلة التاريخ تبدأ بدائرتي هجري وميلادي');
+if (!/applyDateMode/.test(wizardJs) || !/bindDateChooser/.test(wizardJs)) fail('تبديل نوع التاريخ في المعالج');
+else ok('المعالج يخفي التقويم غير المختار بعد الاختيار');
+if (!/if \(step && step\.type === 'date'\) return;/.test(wizardJs)) fail('منع فتح التاريخ تلقائيًا');
+else ok('الانتقال لتاريخ الصك لا يفتح أي تقويم تلقائيًا');
 
 require(path.join(root, 'public', 'js', 'ejar-dates.js'));
 const sample = global.EjarDates.format('2026-09-02');

@@ -23,7 +23,7 @@
 
   var root = null;
   var kind = 'residential';
-  var dateMode = 'hijri';
+  var dateMode = '';
   var stepIndex = 0;
   var answers = {};
   var submitting = false;
@@ -278,7 +278,7 @@
   function resetForm() {
     answers = {};
     stepIndex = 0;
-    dateMode = 'hijri';
+    dateMode = '';
     submitting = false;
     clearDeedFile();
     clearDraft();
@@ -375,6 +375,7 @@
       return '';
     }
     if (step.type === 'date') {
+      if (!dateMode) return 'يرجى اختيار نوع التقويم أولاً (هجري أو ميلادي)';
       if (!isIsoDate(value)) return 'يرجى اختيار التاريخ';
       if ((step.key === 'ownerDob' || step.key === 'tenantDob') && value > todayIso()) {
         return 'تاريخ الميلاد يجب أن يكون في الماضي';
@@ -405,13 +406,18 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  function enterStep(index) {
+    var steps = getSteps(kind);
+    stepIndex = Math.max(0, Math.min(index, steps.length - 1));
+    if (currentStep() && currentStep().type === 'date') dateMode = '';
+    render();
+    focusCurrent();
+  }
+
   function goTo(index) {
     collectCurrent();
     saveDraft();
-    var steps = getSteps(kind);
-    stepIndex = Math.max(0, Math.min(index, steps.length - 1));
-    render();
-    focusCurrent();
+    enterStep(index);
   }
 
   function next() {
@@ -430,18 +436,14 @@
       submit();
       return;
     }
-    stepIndex += 1;
-    render();
-    focusCurrent();
+    enterStep(stepIndex + 1);
   }
 
   function prev() {
     collectCurrent();
     saveDraft();
     if (stepIndex <= 0) return;
-    stepIndex -= 1;
-    render();
-    focusCurrent();
+    enterStep(stepIndex - 1);
   }
 
   function showError(text) {
@@ -449,7 +451,9 @@
     if (!el) return;
     el.textContent = text;
     el.hidden = false;
-    var field = root.querySelector('[data-wizard-field]');
+    var step = currentStep();
+    if (step && step.type === 'date') return;
+    var field = root.querySelector('[data-wizard-field]:not([type="hidden"])');
     if (field) {
       field.setAttribute('aria-invalid', 'true');
       field.focus();
@@ -468,6 +472,49 @@
     var preview = root && root.querySelector('#ejar-date-preview');
     if (!preview) return;
     preview.innerHTML = dualDateHtml(iso);
+  }
+
+  function applyDateMode(mode) {
+    dateMode = mode === 'hijri' || mode === 'gregorian' ? mode : '';
+    var picker = root && root.querySelector('.ejar-date-picker');
+    if (!picker) return;
+    picker.setAttribute('data-date-mode', dateMode);
+    var hijri = picker.querySelector('[data-date-panel="hijri"]');
+    var gregorian = picker.querySelector('[data-date-panel="gregorian"]');
+    var hint = picker.querySelector('.ejar-date-chooser__hint');
+    var changeBtn = picker.querySelector('.ejar-date-chooser__change');
+    picker.querySelectorAll('.ejar-date-orb').forEach(function (btn) {
+      var selected = dateMode && btn.getAttribute('data-date-mode') === dateMode;
+      btn.classList.toggle('is-selected', !!selected);
+      btn.hidden = !!(dateMode && !selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    if (hijri) hijri.hidden = dateMode !== 'hijri';
+    if (gregorian) gregorian.hidden = dateMode !== 'gregorian';
+    if (changeBtn) changeBtn.hidden = !dateMode;
+    if (hint) {
+      hint.textContent = !dateMode
+        ? 'اختر نوع التقويم'
+        : (dateMode === 'hijri' ? 'أدخل التاريخ الهجري' : 'أدخل التاريخ الميلادي');
+    }
+  }
+
+  function bindDateChooser() {
+    var picker = root && root.querySelector('.ejar-date-picker');
+    if (!picker) return;
+    picker.querySelectorAll('.ejar-date-orb').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        applyDateMode(btn.getAttribute('data-date-mode'));
+        hideError();
+      });
+    });
+    var changeBtn = picker.querySelector('.ejar-date-chooser__change');
+    if (changeBtn) {
+      changeBtn.addEventListener('click', function () {
+        applyDateMode('');
+      });
+    }
+    applyDateMode(dateMode);
   }
 
   function bindDatePicker() {
@@ -578,9 +625,9 @@
   }
 
   function focusCurrent() {
-    var hijriYear = root && root.querySelector('[data-date-panel="hijri"]:not([hidden]) [data-hijri="year"]');
-    var gregorian = root && root.querySelector('[data-date-panel="gregorian"]:not([hidden]) #ejar-date-gregorian');
-    var field = hijriYear || gregorian || (root && root.querySelector('[data-wizard-field]:not([type="hidden"]), #ejar-wizard-declaration, .ejar-wizard__next'));
+    var step = currentStep();
+    if (step && step.type === 'date') return;
+    var field = root && root.querySelector('[data-wizard-field]:not([type="hidden"]), #ejar-wizard-declaration, .ejar-wizard__next');
     if (field && typeof field.focus === 'function') {
       try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
     }
@@ -619,6 +666,7 @@
           iso: value,
           maxIso: max,
           fieldKey: step.key,
+          mode: dateMode,
         });
       }
       return '<input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="date" dir="ltr" value="' + escapeHtml(value) + '"' + (max ? ' max="' + max + '"' : '') + ' required>'
@@ -767,7 +815,7 @@
     var isFirst = stepIndex === 0;
     var body = isReview
       ? reviewHtml()
-      : '<div class="ejar-wizard__question"><label for="ejar-wizard-field">' + escapeHtml(step.label) + '</label>'
+      : '<div class="ejar-wizard__question"><label' + (step.type === 'date' ? '' : ' for="ejar-wizard-field"') + '>' + escapeHtml(step.label) + '</label>'
         + inputHtml(step) + '</div>';
 
     ensureRoot().innerHTML = ''
@@ -830,6 +878,7 @@
         saveDraft();
       });
     }
+    bindDateChooser();
     bindDatePicker();
     bindDeedUpload();
     var closeBtn = root.querySelector('.ejar-wizard__close');

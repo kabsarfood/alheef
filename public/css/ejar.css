@@ -2965,7 +2965,203 @@ body.ejar-wizard-open .ejar-sticky-bar {
 
 .ejar-date-picker {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
+}
+
+.ejar-date-chooser {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0 0.15rem;
+  text-align: center;
+}
+
+.ejar-date-chooser__hint {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: var(--ejar-fw-bold);
+  color: var(--ejar-olive);
+  letter-spacing: 0.01em;
+}
+
+.ejar-date-orbs {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.ejar-date-orb {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.2rem;
+  margin: 0;
+  min-width: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ejar-date-orb__circle {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 26%, #fffdf8 0%, #f6edd8 46%, #e8d5a3 100%);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px rgba(197, 164, 109, 0.78),
+    0 14px 30px rgba(22, 32, 43, 0.14);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, width 0.22s ease, height 0.22s ease;
+}
+
+.ejar-date-orb__circle::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(197, 164, 109, 0.35);
+  pointer-events: none;
+}
+
+.ejar-date-orb[data-date-mode="hijri"] .ejar-date-orb__circle {
+  background:
+    radial-gradient(circle at 30% 26%, #fbfaf6 0%, #e7eee6 48%, #c5d0c4 100%);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px rgba(61, 82, 68, 0.55),
+    0 14px 30px rgba(61, 82, 68, 0.16);
+}
+
+.ejar-date-orb[data-date-mode="gregorian"] .ejar-date-orb__circle {
+  background:
+    radial-gradient(circle at 30% 26%, #fffdf8 0%, #f4ead4 46%, #e0c98a 100%);
+}
+
+.ejar-date-orb__letter {
+  font-size: 2.05rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #1e2a38;
+}
+
+.ejar-date-orb[data-date-mode="hijri"] .ejar-date-orb__letter {
+  color: #3d5244;
+}
+
+.ejar-date-orb[data-date-mode="gregorian"] .ejar-date-orb__letter {
+  color: #8a6b32;
+}
+
+.ejar-date-orb__meta {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.ejar-date-orb__title {
+  font-size: 1.05rem;
+  font-weight: var(--ejar-fw-bold);
+  color: var(--navy, #1e2a38);
+}
+
+.ejar-date-orb__sub {
+  font-size: 0.75rem;
+  font-weight: var(--ejar-fw-semibold);
+  color: var(--text-muted, #7a8490);
+}
+
+.ejar-date-orb:hover .ejar-date-orb__circle,
+.ejar-date-orb:focus-visible .ejar-date-orb__circle {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.ejar-date-orb:focus-visible {
+  outline: none;
+}
+
+.ejar-date-orb:focus-visible .ejar-date-orb__circle {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px var(--gold, #c5a46d),
+    0 16px 34px rgba(197, 164, 109, 0.28);
+}
+
+.ejar-date-orb:active .ejar-date-orb__circle {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.ejar-date-picker:not([data-date-mode=""]) .ejar-date-orb.is-selected {
+  flex-direction: row;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.ejar-date-picker:not([data-date-mode=""]) .ejar-date-orb.is-selected .ejar-date-orb__circle {
+  width: 58px;
+  height: 58px;
+}
+
+.ejar-date-picker:not([data-date-mode=""]) .ejar-date-orb.is-selected .ejar-date-orb__letter {
+  font-size: 1.25rem;
+}
+
+.ejar-date-picker:not([data-date-mode=""]) .ejar-date-orb.is-selected .ejar-date-orb__circle::after {
+  inset: 5px;
+}
+
+.ejar-date-chooser__change {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: var(--ejar-fw-bold);
+  color: var(--ejar-olive);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ejar-date-chooser__change:hover,
+.ejar-date-chooser__change:focus-visible {
+  color: #2d3d33;
+}
+
+.ejar-date-orb[hidden],
+.ejar-date-chooser__change[hidden],
+.ejar-date-hijri[hidden],
+.ejar-date-gregorian[hidden] {
+  display: none !important;
+}
+
+.ejar-date-hijri,
+.ejar-date-gregorian {
+  animation: ejar-date-panel-in 0.22s ease;
+}
+
+@keyframes ejar-date-panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ejar-date-hijri,
+  .ejar-date-gregorian,
+  .ejar-date-orb__circle {
+    animation: none;
+    transition: none;
+  }
 }
 
 .ejar-date-hijri {
@@ -2997,6 +3193,23 @@ body.ejar-wizard-open .ejar-sticky-bar {
 }
 
 @media (max-width: 520px) {
+  .ejar-date-orbs {
+    gap: 1rem;
+  }
+
+  .ejar-date-orb {
+    min-width: 118px;
+  }
+
+  .ejar-date-orb__circle {
+    width: 96px;
+    height: 96px;
+  }
+
+  .ejar-date-orb__letter {
+    font-size: 1.8rem;
+  }
+
   .ejar-date-hijri {
     grid-template-columns: 1fr 1fr;
   }
