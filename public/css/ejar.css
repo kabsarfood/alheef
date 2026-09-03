@@ -383,6 +383,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
+    "tag tag"
     "type amount"
     "note note"
     "action action";
@@ -401,6 +402,11 @@
 .ejar-price-card--featured {
   border-color: var(--gold-border);
   background: linear-gradient(180deg, var(--white) 0%, var(--ejar-olive-soft) 100%);
+}
+
+.ejar-price-card__tag {
+  grid-area: tag;
+  margin: 0;
 }
 
 .ejar-price-card__type {
@@ -3209,5 +3215,267 @@ body.ejar-wizard-open .ejar-sticky-bar {
 
   .ejar-wizard__lead {
     display: none;
+  }
+}
+
+/* ═══════════════════════════════════════
+   VIP surface — جميع الشاشات
+   ═══════════════════════════════════════ */
+.ejar-page {
+  --ejar-gold: #c5a46d;
+  --ejar-gold-2: #e8d5a3;
+  --ejar-navy-deep: #16202b;
+  --ejar-card-shadow: 0 12px 40px rgba(22, 32, 43, 0.08);
+  --ejar-card-hover-shadow: 0 18px 44px rgba(197, 164, 109, 0.18);
+  background:
+    radial-gradient(1200px 480px at 100% -8%, rgba(197, 164, 109, 0.16), transparent 58%),
+    var(--ivory);
+}
+
+.ejar-page .ejar-ticker {
+  background: linear-gradient(90deg, #16202b 0%, #1e2a38 50%, #16202b 100%);
+  color: #f4ead4;
+  border-bottom: 1px solid rgba(197, 164, 109, 0.45);
+}
+
+.ejar-page .ejar-ticker__seq {
+  color: #f7f1e4;
+}
+
+.ejar-page .ejar-ticker__seq strong {
+  color: var(--ejar-gold-2);
+}
+
+.ejar-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(920px 380px at 85% -20%, rgba(197, 164, 109, 0.28), transparent 58%),
+    radial-gradient(720px 320px at -10% 110%, rgba(61, 82, 68, 0.14), transparent 52%),
+    linear-gradient(180deg, #fffdf8 0%, #f6f1e6 100%);
+  border-bottom: 1px solid rgba(197, 164, 109, 0.28);
+  padding-block: clamp(1.45rem, 3.4vw, 3.1rem) clamp(1.7rem, 3.4vw, 2.8rem);
+}
+
+.ejar-hero::after {
+  content: '';
+  position: absolute;
+  inset-inline: 12%;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  pointer-events: none;
+}
+
+.ejar-hero__badge {
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.95), rgba(197, 164, 109, 0.12));
+  border-color: rgba(197, 164, 109, 0.45);
+  color: var(--ejar-olive);
+  box-shadow: 0 6px 18px rgba(197, 164, 109, 0.12);
+}
+
+.ejar-hero__title {
+  max-width: 18em;
+  text-wrap: balance;
+}
+
+.ejar-hero__desc {
+  max-width: 38rem;
+}
+
+.ejar-price-card {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid rgba(61, 82, 68, 0.16);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf6 100%);
+  box-shadow: var(--ejar-card-shadow);
+  overflow: hidden;
+}
+
+.ejar-price-card::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(197, 164, 109, 0.85), transparent);
+}
+
+.ejar-price-card--featured {
+  border-color: rgba(197, 164, 109, 0.55);
+  background: linear-gradient(180deg, #fffdf8 0%, #f4ecda 100%);
+  box-shadow: 0 16px 42px rgba(197, 164, 109, 0.2);
+}
+
+.ejar-price-card__tag {
+  grid-area: tag;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: var(--ejar-fw-bold);
+  letter-spacing: 0.04em;
+  color: var(--gold);
+}
+
+.ejar-price-card--featured .ejar-price-card__tag {
+  color: #8a6b32;
+}
+
+.ejar-price-card .btn {
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(30, 42, 56, 0.08);
+}
+
+.ejar-creds {
+  background: linear-gradient(180deg, #f7f3ea 0%, #fbfaf6 100%);
+}
+
+.ejar-creds__label,
+.ejar-section__title {
+  position: relative;
+}
+
+.ejar-creds__label::after,
+.ejar-section__title::after {
+  content: '';
+  display: block;
+  width: 3.4rem;
+  height: 2px;
+  margin: 0.7rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.ejar-cred-card,
+.ejar-step,
+.ejar-purpose,
+.ejar-faq__item,
+.ejar-proof-card,
+.ejar-review-item,
+.ejar-page .form-card {
+  border-radius: 16px;
+  border-color: rgba(197, 164, 109, 0.22);
+  box-shadow: 0 10px 28px rgba(22, 32, 43, 0.06);
+}
+
+.ejar-cred-card__icon,
+.ejar-proof-card__icon,
+.ejar-step::before {
+  background: linear-gradient(180deg, rgba(197, 164, 109, 0.18), rgba(61, 82, 68, 0.1));
+  color: var(--ejar-olive);
+  border: 1px solid rgba(197, 164, 109, 0.28);
+}
+
+.ejar-step::before {
+  width: 2.35rem;
+  height: 2.35rem;
+  box-sizing: border-box;
+}
+
+.ejar-trust {
+  background: linear-gradient(90deg, #16202b, #3d5244 55%, #1e2a38);
+}
+
+.ejar-cta-bar {
+  background: linear-gradient(180deg, #1e2a38, #16202b);
+  border-block: 1px solid rgba(197, 164, 109, 0.35);
+}
+
+.ejar-official-note {
+  border-radius: 14px;
+  background: rgba(197, 164, 109, 0.1);
+  border-color: rgba(197, 164, 109, 0.28);
+}
+
+.ejar-footer {
+  background: #f7f3ea;
+}
+
+.ejar-footer__card {
+  border: 1px solid rgba(197, 164, 109, 0.28);
+  box-shadow: 0 16px 40px rgba(22, 32, 43, 0.08);
+}
+
+.ejar-wizard__panel {
+  border: 1px solid rgba(197, 164, 109, 0.32);
+  box-shadow: 0 28px 80px rgba(22, 32, 43, 0.28);
+}
+
+.ejar-wizard__kind.is-active {
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+@media (max-width: 767px) {
+  .ejar-sticky-bar {
+    background: rgba(255, 253, 248, 0.96);
+    border-top: 1px solid rgba(197, 164, 109, 0.38);
+    box-shadow: 0 -10px 28px rgba(22, 32, 43, 0.12);
+    backdrop-filter: blur(10px);
+  }
+
+  .ejar-sticky-bar__btn--start {
+    background: linear-gradient(180deg, #4a6353, #3d5244);
+    border-color: #3d5244;
+  }
+
+  .ejar-price-card {
+    padding: 1.05rem 1.05rem 1.1rem;
+  }
+
+  .ejar-hero__title {
+    font-size: clamp(1.28rem, 5.4vw, 1.58rem);
+  }
+}
+
+@media (min-width: 600px) {
+  .ejar-price-card {
+    padding-top: 1.25rem;
+  }
+
+  .ejar-price-card__tag {
+    margin-bottom: 0.55rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .ejar-page .ejar-trust.ejar-desktop-only,
+  .ejar-page .ejar-cta-bar.ejar-desktop-only {
+    display: block !important;
+  }
+
+  .ejar-pricing {
+    max-width: 760px;
+    gap: 1.1rem;
+  }
+
+  .ejar-hero__title {
+    font-size: clamp(1.7rem, 3.2vw, 2.45rem);
+  }
+
+  .ejar-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .ejar-purposes {
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ejar-hero {
+    padding-block: 2.4rem 2.2rem;
+  }
+
+  .ejar-pricing {
+    max-width: 900px;
+    gap: 1.35rem;
+  }
+
+  .ejar-price-card {
+    padding: 1.55rem 1.25rem 1.4rem;
+  }
+
+  .ejar-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
