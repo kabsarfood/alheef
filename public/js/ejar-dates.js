@@ -1,6 +1,6 @@
 /**
  * تواريخ عقود إيجار — ميلادي + هجري أم القرى
- * معبئ البيانات يختار نوع التقويم أولاً، ثم يظهر حقل ذلك النوع فقط.
+ * معبئ البيانات يختار هجري أو ميلادي بزر Radio، ثم يظهر حقل ذلك النوع فقط.
  */
 (function (global) {
   'use strict';
@@ -243,15 +243,12 @@
     return line(iso);
   }
 
-  function orbHtml(mode, letter, title, sub) {
+  function radioHtml(mode, label, checked) {
     return ''
-      + '<button type="button" class="ejar-date-orb" data-date-mode="' + escapeHtml(mode) + '" aria-pressed="false">'
-      + '  <span class="ejar-date-orb__circle" aria-hidden="true"><span class="ejar-date-orb__letter">' + letter + '</span></span>'
-      + '  <span class="ejar-date-orb__meta">'
-      + '    <span class="ejar-date-orb__title">' + title + '</span>'
-      + '    <span class="ejar-date-orb__sub">' + sub + '</span>'
-      + '  </span>'
-      + '</button>';
+      + '<label class="ejar-date-radio">'
+      + '  <input type="radio" name="ejar-date-mode" value="' + escapeHtml(mode) + '"' + (checked ? ' checked' : '') + '>'
+      + '  <span>' + escapeHtml(label) + '</span>'
+      + '</label>';
   }
 
   function pickerHtml(opts) {
@@ -265,24 +262,27 @@
     var maxHijri = currentHijriYear() + (maxIso ? 0 : 5);
     var minHijri = 1350;
     var yearSelected = hijri.year || '';
-    var hint = !mode ? 'اختر نوع التقويم' : (mode === 'hijri' ? 'أدخل التاريخ الهجري' : 'أدخل التاريخ الميلادي');
+    var hint = !mode ? 'اختر نوع التاريخ' : (mode === 'hijri' ? 'التاريخ الهجري' : 'التاريخ الميلادي');
 
     return ''
       + '<div class="ejar-date-picker" data-max-iso="' + escapeHtml(maxIso) + '" data-date-mode="' + escapeHtml(mode) + '">'
       + '  <div class="ejar-date-chooser">'
-      + '    <p class="ejar-date-chooser__hint" id="ejar-date-chooser-hint">' + hint + '</p>'
-      + '    <div class="ejar-date-orbs" role="group" aria-labelledby="ejar-date-chooser-hint">'
-      + orbHtml('hijri', 'هـ', 'هجري', 'تقويم أم القرى')
-      + orbHtml('gregorian', 'م', 'ميلادي', 'التقويم الميلادي')
+      + '    <div class="ejar-date-chooser__bar">'
+      + '      <p class="ejar-date-chooser__hint" id="ejar-date-chooser-hint">' + hint + '</p>'
+      + '      <button type="button" class="ejar-date-chooser__change"' + (mode ? '' : ' hidden') + '>تغيير نوع التاريخ</button>'
       + '    </div>'
-      + '    <button type="button" class="ejar-date-chooser__change"' + (mode ? '' : ' hidden') + '>تغيير نوع التقويم</button>'
+      + '    <div class="ejar-date-radios" role="radiogroup" aria-labelledby="ejar-date-chooser-hint"' + (mode ? ' hidden' : '') + '>'
+      + radioHtml('hijri', 'هجري', mode === 'hijri')
+      + radioHtml('gregorian', 'ميلادي', mode === 'gregorian')
+      + '    </div>'
       + '  </div>'
       + '  <div class="ejar-date-hijri" data-date-panel="hijri"' + (mode === 'hijri' ? '' : ' hidden') + '>'
-      + '    <label class="ejar-date-hijri__item"><span>السنة</span><select class="ejar-wizard__control" data-hijri="year" aria-label="السنة الهجرية"><option value="">السنة</option>' + optionList(maxHijri, minHijri, yearSelected) + '</select></label>'
-      + '    <label class="ejar-date-hijri__item"><span>الشهر</span><select class="ejar-wizard__control" data-hijri="month" aria-label="الشهر الهجري">' + monthOptions(hijri.month) + '</select></label>'
       + '    <label class="ejar-date-hijri__item"><span>اليوم</span><select class="ejar-wizard__control" data-hijri="day" aria-label="اليوم الهجري">' + dayOptions(hijri.year, hijri.month, hijri.day) + '</select></label>'
+      + '    <label class="ejar-date-hijri__item"><span>الشهر</span><select class="ejar-wizard__control" data-hijri="month" aria-label="الشهر الهجري">' + monthOptions(hijri.month) + '</select></label>'
+      + '    <label class="ejar-date-hijri__item"><span>السنة</span><select class="ejar-wizard__control" data-hijri="year" aria-label="السنة الهجرية"><option value="">السنة</option>' + optionList(maxHijri, minHijri, yearSelected) + '</select></label>'
       + '  </div>'
-      + '  <label class="ejar-date-gregorian" data-date-panel="gregorian"' + (mode === 'gregorian' ? '' : ' hidden') + ' for="ejar-date-gregorian"><span>التاريخ الميلادي</span>'
+      + '  <label class="ejar-date-gregorian" data-date-panel="gregorian"' + (mode === 'gregorian' ? '' : ' hidden') + ' for="ejar-date-gregorian">'
+      + '    <span class="ejar-sr-only">التاريخ الميلادي</span>'
       + '    <input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-date-gregorian" type="date" dir="ltr" lang="ar-SA" autocomplete="off" value="' + escapeHtml(iso) + '"' + (maxIso ? ' max="' + escapeHtml(maxIso) + '"' : '') + '>'
       + '  </label>'
       + '  <input type="hidden" id="ejar-wizard-field" data-wizard-field="' + escapeHtml(fieldKey) + '" value="' + escapeHtml(iso) + '" required>'

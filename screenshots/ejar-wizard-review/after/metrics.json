@@ -1,0 +1,381 @@
+{
+  "all": {
+    "desktop-1440": {
+      "inner": {
+        "w": 1440,
+        "h": 900
+      },
+      "vv": {
+        "w": 1440,
+        "h": 900,
+        "top": 0
+      },
+      "wizardH": "900px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 340,
+        "y": 219.8125,
+        "width": 760,
+        "height": 460.359375,
+        "top": 219.8125,
+        "right": 1100,
+        "bottom": 680.171875,
+        "left": 340
+      },
+      "nav": {
+        "pos": "static",
+        "x": 341,
+        "y": 587,
+        "width": 758,
+        "height": 92.171875,
+        "top": 587,
+        "right": 1099,
+        "bottom": 679.171875,
+        "left": 341
+      },
+      "next": {
+        "top": 600.6099243164062,
+        "bottom": 661.3911743164062,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد إيجار سكني",
+      "lead": false,
+      "stages": "flex"
+    },
+    "laptop-1024": {
+      "inner": {
+        "w": 1024,
+        "h": 768
+      },
+      "vv": {
+        "w": 1024,
+        "h": 768,
+        "top": 0
+      },
+      "wizardH": "768px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 132,
+        "y": 154.3125,
+        "width": 760,
+        "height": 459.359375,
+        "top": 154.3125,
+        "right": 892,
+        "bottom": 613.671875,
+        "left": 132
+      },
+      "nav": {
+        "pos": "static",
+        "x": 133,
+        "y": 521.5,
+        "width": 758,
+        "height": 91.171875,
+        "top": 521.5,
+        "right": 891,
+        "bottom": 612.671875,
+        "left": 133
+      },
+      "next": {
+        "top": 536.890625,
+        "bottom": 596.671875,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد إيجار سكني",
+      "lead": false,
+      "stages": "flex"
+    },
+    "tablet-768": {
+      "inner": {
+        "w": 768,
+        "h": 1024
+      },
+      "vv": {
+        "w": 768,
+        "h": 1024,
+        "top": 0
+      },
+      "wizardH": "1024px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 20,
+        "y": 283.828125,
+        "width": 728,
+        "height": 456.34375,
+        "top": 283.828125,
+        "right": 748,
+        "bottom": 740.171875,
+        "left": 20
+      },
+      "nav": {
+        "pos": "static",
+        "x": 21,
+        "y": 649.59375,
+        "width": 726,
+        "height": 89.578125,
+        "top": 649.59375,
+        "right": 747,
+        "bottom": 739.171875,
+        "left": 21
+      },
+      "next": {
+        "top": 664.984375,
+        "bottom": 723.171875,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد إيجار سكني",
+      "lead": false,
+      "stages": "flex"
+    },
+    "mobile-430": {
+      "inner": {
+        "w": 430,
+        "h": 932
+      },
+      "vv": {
+        "w": 430,
+        "h": 932,
+        "top": 0
+      },
+      "wizardH": "932px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 0,
+        "y": 0,
+        "width": 430,
+        "height": 932,
+        "top": 0,
+        "right": 430,
+        "bottom": 932,
+        "left": 0
+      },
+      "nav": {
+        "pos": "static",
+        "x": 1,
+        "y": 848.625,
+        "width": 428,
+        "height": 82.375,
+        "top": 848.625,
+        "right": 429,
+        "bottom": 931,
+        "left": 1
+      },
+      "next": {
+        "top": 860.8125,
+        "bottom": 919,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد سكني",
+      "lead": false,
+      "stages": "none"
+    },
+    "mobile-390": {
+      "inner": {
+        "w": 390,
+        "h": 844
+      },
+      "vv": {
+        "w": 390,
+        "h": 844,
+        "top": 0
+      },
+      "wizardH": "844px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "top": 0,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "nav": {
+        "pos": "static",
+        "x": 1,
+        "y": 760.625,
+        "width": 388,
+        "height": 82.375,
+        "top": 760.625,
+        "right": 389,
+        "bottom": 843,
+        "left": 1
+      },
+      "next": {
+        "top": 772.8125,
+        "bottom": 831,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد سكني",
+      "lead": false,
+      "stages": "none"
+    },
+    "mobile-375": {
+      "inner": {
+        "w": 375,
+        "h": 812
+      },
+      "vv": {
+        "w": 375,
+        "h": 812,
+        "top": 0
+      },
+      "wizardH": "812px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 0,
+        "y": 0,
+        "width": 375,
+        "height": 812,
+        "top": 0,
+        "right": 375,
+        "bottom": 812,
+        "left": 0
+      },
+      "nav": {
+        "pos": "static",
+        "x": 1,
+        "y": 728.625,
+        "width": 373,
+        "height": 82.375,
+        "top": 728.625,
+        "right": 374,
+        "bottom": 811,
+        "left": 1
+      },
+      "next": {
+        "top": 740.8125,
+        "bottom": 799,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد سكني",
+      "lead": false,
+      "stages": "none"
+    },
+    "desktop-review": {
+      "inner": {
+        "w": 1440,
+        "h": 900
+      },
+      "vv": {
+        "w": 1440,
+        "h": 900,
+        "top": 0
+      },
+      "wizardH": "900px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 340,
+        "y": 36,
+        "width": 760,
+        "height": 828,
+        "top": 36,
+        "right": 1100,
+        "bottom": 864,
+        "left": 340
+      },
+      "nav": {
+        "pos": "static",
+        "x": 341,
+        "y": 770.828125,
+        "width": 758,
+        "height": 92.171875,
+        "top": 770.828125,
+        "right": 1099,
+        "bottom": 863,
+        "left": 341
+      },
+      "next": {
+        "top": 786.21875,
+        "bottom": 847,
+        "visible": true
+      },
+      "progress": "مراجعة الطلب",
+      "title": "إنشاء عقد إيجار سكني",
+      "lead": false,
+      "stages": "flex"
+    },
+    "mobile-review": {
+      "bodyScroll": {
+        "sh": 850,
+        "ch": 654
+      },
+      "accordionOpen": 0,
+      "accordionTotal": 5
+    },
+    "keyboard": {
+      "inner": {
+        "w": 390,
+        "h": 520
+      },
+      "vv": {
+        "w": 390,
+        "h": 520,
+        "top": 0
+      },
+      "wizardH": "520px",
+      "wizardTop": "0px",
+      "panel": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 520,
+        "top": 0,
+        "right": 390,
+        "bottom": 520,
+        "left": 0
+      },
+      "nav": {
+        "pos": "static",
+        "x": 1,
+        "y": 436.625,
+        "width": 388,
+        "height": 82.375,
+        "top": 436.625,
+        "right": 389,
+        "bottom": 519,
+        "left": 1
+      },
+      "next": {
+        "top": 448.8125,
+        "bottom": 507,
+        "visible": true
+      },
+      "progress": "بيانات الملكية — 1 من 2",
+      "title": "إنشاء عقد سكني",
+      "lead": false,
+      "stages": "none"
+    },
+    "resume": "لديك طلب غير مكتمل",
+    "dateBack": "gregorian"
+  },
+  "files": [
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\01-desktop-1440-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\02-laptop-1024-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\03-tablet-768-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\04-mobile-430-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\05-mobile-390-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\06-mobile-375-first.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\07-desktop-1440-date.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\08-desktop-1440-owner.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\09-desktop-1440-unit-cards.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\10-desktop-1440-payment-cards.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\11-desktop-1440-deposit-cards.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\12-desktop-1440-review.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\13-mobile-390-owner.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\14-mobile-390-unit-cards.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\15-mobile-390-payment-cards.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\16-mobile-390-review-accordion.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\17-mobile-390-review-expanded.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\18-mobile-390-keyboard.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\19-mobile-390-resume.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\20-mobile-390-resume-continued.png",
+    "C:\\Users\\USER\\Desktop\\ALHEEF\\screenshots\\ejar-wizard-review\\after\\21-desktop-date-mode-restored.png"
+  ]
+}

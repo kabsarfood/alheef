@@ -8,22 +8,22 @@
   var FLOORS = ['أرضي', 'أول', 'ثاني', 'ثالث', 'رابع', 'خامس', 'أعلى', 'أخرى'];
   var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var YES_NO = ['لا', 'نعم'];
-  var LEAD = 'أدخل بيانات العقد وسيتولى فريق مكتب الهيف للخدمات العقارية مراجعتها وإنشاء العقد عبر منصة إيجار وإرساله للأطراف للتوثيق.';
-  var TRUST = '🔒 تُستخدم بياناتك فقط لإعداد طلب العقد، ولا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
+  var TRUST = '🔒 لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
   var DECLARATION = 'أقر بصحة البيانات المدخلة وأطلب من مكتب الهيف للخدمات العقارية إعداد عقد الإيجار عبر منصة إيجار وإرساله للأطراف للتوثيق.';
   var DISCLAIMER = 'مكتب الهيف للخدمات العقارية وسيط عقاري مرخص، وهذه الخدمة ليست الموقع الرسمي لمنصة إيجار.';
   var SECTIONS = [
     { id: 'ownership', title: 'بيانات الملكية', short: 'الملكية' },
     { id: 'owner', title: 'بيانات المؤجر', short: 'المؤجر' },
     { id: 'tenant', title: 'بيانات المستأجر', short: 'المستأجر' },
-    { id: 'unit', title: 'بيانات الوحدة الإيجارية', short: 'الوحدة' },
-    { id: 'finance', title: 'البيانات المالية', short: 'تفاصيل العقد' },
+    { id: 'unit', title: 'بيانات الوحدة', short: 'الوحدة' },
+    { id: 'finance', title: 'تفاصيل العقد', short: 'العقد' },
     { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة' },
   ];
 
   var root = null;
   var kind = 'residential';
   var dateMode = '';
+  var dateModes = {};
   var stepIndex = 0;
   var answers = {};
   var submitting = false;
@@ -31,6 +31,9 @@
   var deedPreviewUrl = '';
   var DEED_MAX_BYTES = 8 * 1024 * 1024;
   var openedFromHome = false;
+  var resumePendingKind = 'residential';
+  var viewportBound = false;
+  var onViewportChange = null;
 
   function prices() {
     return {
@@ -43,6 +46,10 @@
     return k === 'commercial' ? 'إنشاء عقد إيجار تجاري' : 'إنشاء عقد إيجار سكني';
   }
 
+  function shortTitleFor(k) {
+    return k === 'commercial' ? 'إنشاء عقد تجاري' : 'إنشاء عقد سكني';
+  }
+
   function priceText(k) {
     var p = prices();
     var n = k === 'commercial' ? p.commercial : p.residential;
@@ -53,19 +60,20 @@
     var unitOptions = k === 'commercial' ? COMMERCIAL_UNITS : RESIDENTIAL_UNITS;
     var unitTitle = k === 'commercial' ? 'ما نوع الوحدة التجارية؟' : 'ما نوع الوحدة؟';
     return [
-      { key: 'deedNumber', section: 'ownership', label: 'رقم الصك', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
-      { key: 'deedDate', section: 'ownership', label: 'تاريخ الصك', type: 'date' },
-      { key: 'ownerId', section: 'owner', label: 'رقم هوية المالك', type: 'nid' },
-      { key: 'ownerDob', section: 'owner', label: 'تاريخ ميلاد المالك', type: 'date' },
-      { key: 'ownerPhone', section: 'owner', label: 'رقم جوال المالك', type: 'phone' },
-      { key: 'tenantId', section: 'tenant', label: 'رقم هوية المستأجر', type: 'nid' },
-      { key: 'tenantDob', section: 'tenant', label: 'تاريخ ميلاد المستأجر', type: 'date' },
-      { key: 'tenantPhone', section: 'tenant', label: 'رقم جوال المستأجر', type: 'phone' },
+      { key: 'deedNumber', section: 'ownership', label: 'ما رقم الصك؟', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
+      { key: 'deedDate', section: 'ownership', label: 'ما تاريخ الصك؟', type: 'date' },
+      { key: 'ownerId', section: 'owner', label: 'ما رقم هوية المالك؟', type: 'nid' },
+      { key: 'ownerDob', section: 'owner', label: 'ما تاريخ ميلاد المالك؟', type: 'date' },
+      { key: 'ownerPhone', section: 'owner', label: 'ما رقم جوال المالك؟', type: 'phone' },
+      { key: 'tenantId', section: 'tenant', label: 'ما رقم هوية المستأجر؟', type: 'nid' },
+      { key: 'tenantDob', section: 'tenant', label: 'ما تاريخ ميلاد المستأجر؟', type: 'date' },
+      { key: 'tenantPhone', section: 'tenant', label: 'ما رقم جوال المستأجر؟', type: 'phone' },
       {
         key: 'unitType',
         section: 'unit',
         label: unitTitle,
         type: 'select',
+        ui: 'cards',
         options: unitOptions,
         otherKey: 'unitTypeOther',
         otherValue: 'وحدة تجارية أخرى',
@@ -74,33 +82,34 @@
       {
         key: 'floor',
         section: 'unit',
-        label: 'رقم الدور',
+        label: 'ما رقم الدور؟',
         type: 'select',
         options: FLOORS,
         otherKey: 'floorOther',
         otherValue: 'أخرى',
         otherLabel: 'حدد الدور',
       },
-      { key: 'unitNumber', section: 'unit', label: 'رقم الوحدة', type: 'text', inputmode: 'text' },
-      { key: 'area', section: 'unit', label: 'مساحة الوحدة', type: 'number', suffix: 'م²', min: 0 },
-      { key: 'rentAmount', section: 'finance', label: 'قيمة الإيجار', type: 'number', suffix: 'ريال', min: 0 },
-      { key: 'paymentMethod', section: 'finance', label: 'طريقة الدفع', type: 'select', options: PAYMENT_METHODS },
+      { key: 'unitNumber', section: 'unit', label: 'ما رقم الوحدة؟', type: 'text', inputmode: 'text' },
+      { key: 'area', section: 'unit', label: 'ما مساحة الوحدة؟', type: 'number', suffix: 'م²', min: 0 },
+      { key: 'rentAmount', section: 'finance', label: 'ما قيمة الإيجار؟', type: 'number', suffix: 'ريال', min: 0 },
+      { key: 'paymentMethod', section: 'finance', label: 'طريقة الدفع', type: 'select', ui: 'cards', options: PAYMENT_METHODS },
       {
         key: 'contractDuration',
         section: 'finance',
-        label: 'مدة العقد',
+        label: 'ما مدة العقد؟',
         type: 'select',
         options: DURATIONS,
         otherKey: 'contractDurationOther',
         otherValue: 'مدة أخرى',
         otherLabel: 'حدد المدة',
       },
-      { key: 'startDate', section: 'finance', label: 'تاريخ بداية العقد', type: 'date' },
+      { key: 'startDate', section: 'finance', label: 'ما تاريخ بداية العقد؟', type: 'date' },
       {
         key: 'hasDeposit',
         section: 'finance',
         label: 'هل يوجد مبلغ ضمان/تأمين؟',
         type: 'select',
+        ui: 'cards',
         options: YES_NO,
         extraKey: 'depositAmount',
         extraValue: 'نعم',
@@ -159,10 +168,10 @@
         var cls = 'ejar-wizard__stage';
         if (i < currentPos) cls += ' is-done';
         if (i === currentPos) cls += ' is-current';
-        var mark = i < currentPos ? '✓' : String(i + 1);
+        var mark = i <= currentPos ? '●' : '○';
         return '<li class="' + cls + '"' + (i === currentPos ? ' aria-current="step"' : '') + '>'
-          + '<span class="ejar-wizard__stage-mark" aria-hidden="true">' + mark + '</span>'
           + '<span class="ejar-wizard__stage-label">' + escapeHtml(meta.short) + '</span>'
+          + '<span class="ejar-wizard__stage-mark" aria-hidden="true">' + mark + '</span>'
           + '</li>';
       }).join('')
       + '</ol>';
@@ -171,14 +180,18 @@
   function progressHtml(steps, index) {
     var stats = sectionProgress(steps, index);
     var pct = stats.isReview || !stats.total ? 100 : Math.round((stats.current / stats.total) * 100);
-    var text = stats.isReview
+    var mobileText = stats.isReview
       ? escapeHtml(stats.title)
+      : escapeHtml(stats.title) + ' — ' + stats.current + ' من ' + stats.total;
+    var desktopText = stats.isReview
+      ? ''
       : '<strong>' + escapeHtml(stats.title) + '</strong><span> السؤال ' + stats.current + ' من ' + stats.total + '</span>';
     return '<div class="ejar-wizard__progress">'
       + stagesHtml(steps, index)
-      + '<p class="ejar-wizard__progress-text" aria-live="polite">' + text + '</p>'
+      + '<p class="ejar-wizard__progress-text ejar-wizard__progress-text--mobile" aria-live="polite">' + mobileText + '</p>'
       + (stats.isReview ? '' : '<div class="ejar-wizard__bar" aria-hidden="true"><div class="ejar-wizard__bar-fill" style="width:' + pct + '%"></div></div>')
-      + '</div>';
+      + '</div>'
+      + (stats.isReview ? '' : '<p class="ejar-wizard__progress-text ejar-wizard__progress-text--desktop" aria-live="polite">' + desktopText + '</p>');
   }
 
   function normalizeSaudiMobile(input) {
@@ -229,18 +242,141 @@
     });
   }
 
-  function saveDraft() {
-    /* تُحفظ البيانات في الذاكرة فقط أثناء فتح النموذج */
-  }
-
-  function clearDraft() {
-    try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) { /* noop */ }
+  function maskId(value) {
+    var s = String(value || '').replace(/\D/g, '');
+    if (s.length < 6) return value || '—';
+    return s.charAt(0) + '******' + s.slice(-2);
   }
 
   function hasAnswers() {
     return Object.keys(answers).some(function (k) {
       return answers[k] !== '' && answers[k] != null && answers[k] !== false;
     });
+  }
+
+  function unitDataStarted() {
+    return !!(answers.unitType || answers.floor || answers.unitNumber || answers.area
+      || answers.rentAmount || answers.paymentMethod || answers.contractDuration
+      || answers.startDate || answers.hasDeposit);
+  }
+
+  function firstUnitStepIndex() {
+    var steps = getSteps(kind);
+    for (var i = 0; i < steps.length; i += 1) {
+      if (steps[i].section === 'unit') return i;
+    }
+    return 8;
+  }
+
+  function saveDraft() {
+    if (!hasAnswers()) return;
+    try {
+      var payload = {
+        v: 1,
+        kind: kind,
+        stepIndex: stepIndex,
+        answers: answers,
+        dateModes: dateModes,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+    } catch (_) { /* noop */ }
+  }
+
+  function readDraft() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY) || sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data || data.v !== 1 || !data.answers || typeof data.answers !== 'object') return null;
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function draftHasAnswers(data) {
+    if (!data || !data.answers) return false;
+    return Object.keys(data.answers).some(function (k) {
+      return data.answers[k] !== '' && data.answers[k] != null && data.answers[k] !== false;
+    });
+  }
+
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (_) { /* noop */ }
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) { /* noop */ }
+  }
+
+  function applyDraft(data) {
+    kind = data.kind === 'commercial' ? 'commercial' : 'residential';
+    answers = data.answers || {};
+    dateModes = data.dateModes && typeof data.dateModes === 'object' ? data.dateModes : {};
+    var max = getSteps(kind).length - 1;
+    stepIndex = Math.max(0, Math.min(Number(data.stepIndex) || 0, max));
+  }
+
+  function resetMemory() {
+    answers = {};
+    stepIndex = 0;
+    dateMode = '';
+    dateModes = {};
+    submitting = false;
+    clearDeedFile();
+  }
+
+  function resetForm() {
+    resetMemory();
+    clearDraft();
+  }
+
+  function syncVisualViewport() {
+    if (!root || root.hidden) return;
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    if (!mobile) {
+      root.style.removeProperty('--ejar-vv-top');
+      root.style.removeProperty('--ejar-vv-height');
+      root.classList.remove('is-keyboard');
+      return;
+    }
+    var vv = window.visualViewport;
+    var top = 0;
+    var height = window.innerHeight;
+    if (vv) {
+      top = Math.max(0, vv.offsetTop || 0);
+      height = Math.max(240, Math.round(vv.height));
+    }
+    root.style.setProperty('--ejar-vv-top', top + 'px');
+    root.style.setProperty('--ejar-vv-height', height + 'px');
+    var layoutH = window.innerHeight || height;
+    root.classList.toggle('is-keyboard', layoutH - height > 80);
+  }
+
+  function bindViewport() {
+    if (viewportBound) {
+      syncVisualViewport();
+      return;
+    }
+    onViewportChange = syncVisualViewport;
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', onViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onViewportChange);
+      window.visualViewport.addEventListener('scroll', onViewportChange);
+    }
+    viewportBound = true;
+    syncVisualViewport();
+  }
+
+  function unbindViewport() {
+    if (!viewportBound) return;
+    window.removeEventListener('resize', onViewportChange);
+    window.removeEventListener('orientationchange', onViewportChange);
+    if (window.visualViewport && onViewportChange) {
+      window.visualViewport.removeEventListener('resize', onViewportChange);
+      window.visualViewport.removeEventListener('scroll', onViewportChange);
+    }
+    viewportBound = false;
+    onViewportChange = null;
   }
 
   function ensureRoot() {
@@ -269,19 +405,16 @@
 
   function requestClose() {
     if (submitting) return;
-    if (hasAnswers() && !root.querySelector('.ejar-wizard__success')) {
-      if (!window.confirm('هل تريد إغلاق النموذج؟ لن تُحفظ البيانات المدخلة.')) return;
+    if (root.querySelector('.ejar-wizard__success')) {
+      close();
+      return;
+    }
+    collectCurrent();
+    if (hasAnswers()) {
+      saveDraft();
+      if (!window.confirm('هل تريد إغلاق النموذج؟ يمكنك متابعة الطلب لاحقًا.')) return;
     }
     close();
-  }
-
-  function resetForm() {
-    answers = {};
-    stepIndex = 0;
-    dateMode = '';
-    submitting = false;
-    clearDeedFile();
-    clearDraft();
   }
 
   function clearDeedFile() {
@@ -292,15 +425,41 @@
     deedPreviewUrl = '';
   }
 
-  function open(nextKind, options) {
-    resetForm();
-    openedFromHome = !!(options && options.fromHome);
-    kind = nextKind === 'commercial' ? 'commercial' : 'residential';
-    render();
+  function showShell() {
     document.body.classList.add('ejar-wizard-open');
     var el = ensureRoot();
     el.hidden = false;
     el.classList.add('is-open');
+    bindViewport();
+    window.setTimeout(focusCurrent, 40);
+  }
+
+  function open(nextKind, options) {
+    resetMemory();
+    openedFromHome = !!(options && options.fromHome);
+    resumePendingKind = nextKind === 'commercial' ? 'commercial' : 'residential';
+    var draft = readDraft();
+    if (draftHasAnswers(draft)) {
+      renderResume(draft);
+      showShell();
+      return;
+    }
+    kind = resumePendingKind;
+    render();
+    showShell();
+  }
+
+  function continueDraft(draft) {
+    applyDraft(draft);
+    render();
+    showShell();
+  }
+
+  function startFresh() {
+    clearDraft();
+    resetMemory();
+    kind = resumePendingKind;
+    render();
     window.setTimeout(focusCurrent, 40);
   }
 
@@ -316,6 +475,9 @@
     if (nextKind !== 'residential' && nextKind !== 'commercial') return;
     if (nextKind === kind) return;
     collectCurrent();
+    if (unitDataStarted() || stepIndex >= firstUnitStepIndex()) {
+      if (!window.confirm('تغيير نوع العقد قد يمسح بيانات الوحدة غير المتوافقة. هل تريد المتابعة؟')) return;
+    }
     kind = nextKind;
     sanitizeUnitForKind();
     saveDraft();
@@ -324,7 +486,9 @@
   }
 
   function close() {
-    resetForm();
+    if (hasAnswers() && !root.querySelector('.ejar-wizard__success')) saveDraft();
+    resetMemory();
+    unbindViewport();
     if (!root) return;
     root.hidden = true;
     root.classList.remove('is-open');
@@ -342,7 +506,7 @@
 
   function collectCurrent() {
     var step = currentStep();
-    if (!step) return;
+    if (!step || !root) return;
     if (step.type === 'review') {
       var box = root.querySelector('#ejar-wizard-declaration');
       answers.declarationAccepted = !!(box && box.checked);
@@ -406,10 +570,20 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  function restoreDateModeForStep(step) {
+    if (!step || step.type !== 'date') {
+      dateMode = '';
+      return;
+    }
+    dateMode = dateModes[step.key] === 'hijri' || dateModes[step.key] === 'gregorian'
+      ? dateModes[step.key]
+      : '';
+  }
+
   function enterStep(index) {
     var steps = getSteps(kind);
     stepIndex = Math.max(0, Math.min(index, steps.length - 1));
-    if (currentStep() && currentStep().type === 'date') dateMode = '';
+    restoreDateModeForStep(currentStep());
     render();
     focusCurrent();
   }
@@ -474,8 +648,40 @@
     preview.innerHTML = dualDateHtml(iso);
   }
 
+  function clearDateValue() {
+    var picker = root && root.querySelector('.ejar-date-picker');
+    if (!picker) return;
+    var hidden = picker.querySelector('#ejar-wizard-field');
+    var gregorian = picker.querySelector('#ejar-date-gregorian');
+    var yearEl = picker.querySelector('[data-hijri="year"]');
+    var monthEl = picker.querySelector('[data-hijri="month"]');
+    var dayEl = picker.querySelector('[data-hijri="day"]');
+    if (hidden) {
+      hidden.value = '';
+      var key = hidden.getAttribute('data-wizard-field');
+      if (key) answers[key] = '';
+    }
+    if (gregorian) gregorian.value = '';
+    if (yearEl) yearEl.value = '';
+    if (monthEl) monthEl.value = '';
+    if (dayEl) dayEl.value = '';
+    refreshDatePreview('');
+  }
+
   function applyDateMode(mode) {
-    dateMode = mode === 'hijri' || mode === 'gregorian' ? mode : '';
+    var nextMode = mode === 'hijri' || mode === 'gregorian' ? mode : '';
+    var step = currentStep();
+    var stored = step && step.type === 'date' ? dateModes[step.key] : '';
+    if (nextMode && stored && stored !== nextMode) {
+      clearDateValue();
+    }
+    dateMode = nextMode;
+    if (step && step.type === 'date' && dateMode) {
+      dateModes[step.key] = dateMode;
+      saveDraft();
+    } else if (step && step.type === 'date') {
+      saveDraft();
+    }
     var picker = root && root.querySelector('.ejar-date-picker');
     if (!picker) return;
     picker.setAttribute('data-date-mode', dateMode);
@@ -483,35 +689,56 @@
     var gregorian = picker.querySelector('[data-date-panel="gregorian"]');
     var hint = picker.querySelector('.ejar-date-chooser__hint');
     var changeBtn = picker.querySelector('.ejar-date-chooser__change');
-    picker.querySelectorAll('.ejar-date-orb').forEach(function (btn) {
-      var selected = dateMode && btn.getAttribute('data-date-mode') === dateMode;
-      btn.classList.toggle('is-selected', !!selected);
-      btn.hidden = !!(dateMode && !selected);
-      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    var radios = picker.querySelector('.ejar-date-radios');
+    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
+      input.checked = !!(dateMode && input.value === dateMode);
     });
+    if (radios) radios.hidden = !!dateMode;
     if (hijri) hijri.hidden = dateMode !== 'hijri';
     if (gregorian) gregorian.hidden = dateMode !== 'gregorian';
     if (changeBtn) changeBtn.hidden = !dateMode;
     if (hint) {
       hint.textContent = !dateMode
-        ? 'اختر نوع التقويم'
-        : (dateMode === 'hijri' ? 'أدخل التاريخ الهجري' : 'أدخل التاريخ الميلادي');
+        ? 'اختر نوع التاريخ'
+        : (dateMode === 'hijri' ? 'التاريخ الهجري' : 'التاريخ الميلادي');
     }
+  }
+
+  function revealDateTypeChooser() {
+    var picker = root && root.querySelector('.ejar-date-picker');
+    if (!picker) return;
+    var hijri = picker.querySelector('[data-date-panel="hijri"]');
+    var gregorian = picker.querySelector('[data-date-panel="gregorian"]');
+    var hint = picker.querySelector('.ejar-date-chooser__hint');
+    var changeBtn = picker.querySelector('.ejar-date-chooser__change');
+    var radios = picker.querySelector('.ejar-date-radios');
+    picker.setAttribute('data-date-mode', '');
+    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
+      input.checked = !!(dateMode && input.value === dateMode);
+    });
+    if (radios) radios.hidden = false;
+    if (hijri) hijri.hidden = true;
+    if (gregorian) gregorian.hidden = true;
+    if (changeBtn) changeBtn.hidden = true;
+    if (hint) hint.textContent = 'اختر نوع التاريخ';
   }
 
   function bindDateChooser() {
     var picker = root && root.querySelector('.ejar-date-picker');
     if (!picker) return;
-    picker.querySelectorAll('.ejar-date-orb').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        applyDateMode(btn.getAttribute('data-date-mode'));
+    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
+      function choose() {
+        if (!input.checked) return;
+        applyDateMode(input.value);
         hideError();
-      });
+      }
+      input.addEventListener('change', choose);
+      input.addEventListener('click', choose);
     });
     var changeBtn = picker.querySelector('.ejar-date-chooser__change');
     if (changeBtn) {
       changeBtn.addEventListener('click', function () {
-        applyDateMode('');
+        revealDateTypeChooser();
       });
     }
     applyDateMode(dateMode);
@@ -639,25 +866,51 @@
     }).join('');
   }
 
+  function cardOptions(step) {
+    if (step.key === 'hasDeposit') return ['نعم', 'لا'];
+    return step.options || [];
+  }
+
+  function followHtml(step, value) {
+    var extra = '';
+    if (step.otherKey) {
+      extra += '<div class="ejar-wizard__follow"' + (value === step.otherValue ? '' : ' hidden') + ' data-follow="' + step.otherKey + '">'
+        + '<label for="ejar-wizard-other">' + escapeHtml(step.otherLabel) + '</label>'
+        + '<input class="ejar-wizard__control" id="ejar-wizard-other" data-wizard-field="' + step.otherKey + '" type="text" value="' + escapeHtml(answers[step.otherKey] || '') + '">'
+        + '</div>';
+    }
+    if (step.extraKey) {
+      extra += '<div class="ejar-wizard__follow"' + (value === step.extraValue ? '' : ' hidden') + ' data-follow="' + step.extraKey + '">'
+        + '<label for="ejar-wizard-extra">' + escapeHtml(step.extraLabel) + '</label>'
+        + '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-wizard-extra" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>'
+        + '</div>';
+    }
+    return extra;
+  }
+
+  function cardsHtml(step) {
+    var value = answers[step.key] || '';
+    var options = cardOptions(step);
+    var countClass = options.length <= 2 ? 'ejar-choice--2' : (options.length <= 4 ? 'ejar-choice--4' : 'ejar-choice--grid');
+    return '<div class="ejar-choice ' + countClass + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
+      + '<input type="hidden" id="ejar-wizard-field" data-wizard-field="' + step.key + '" value="' + escapeHtml(value) + '">'
+      + options.map(function (opt) {
+        var selected = value === opt;
+        return '<button type="button" class="ejar-choice__card' + (selected ? ' is-selected' : '') + '" data-choice="' + escapeHtml(opt) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">'
+          + escapeHtml(opt)
+          + '</button>';
+      }).join('')
+      + '</div>'
+      + followHtml(step, value);
+  }
+
   function inputHtml(step) {
     var value = answers[step.key] || '';
-    var extra = '';
+    if (step.type === 'select' && step.ui === 'cards') return cardsHtml(step);
     if (step.type === 'select') {
-      extra = '<select class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" required>'
-        + optionHtml(step.options, value) + '</select>';
-      if (step.otherKey) {
-        extra += '<div class="ejar-wizard__follow"' + (value === step.otherValue ? '' : ' hidden') + ' data-follow="' + step.otherKey + '">'
-          + '<label for="ejar-wizard-other">' + escapeHtml(step.otherLabel) + '</label>'
-          + '<input class="ejar-wizard__control" id="ejar-wizard-other" data-wizard-field="' + step.otherKey + '" type="text" value="' + escapeHtml(answers[step.otherKey] || '') + '">'
-          + '</div>';
-      }
-      if (step.extraKey) {
-        extra += '<div class="ejar-wizard__follow"' + (value === step.extraValue ? '' : ' hidden') + ' data-follow="' + step.extraKey + '">'
-          + '<label for="ejar-wizard-extra">' + escapeHtml(step.extraLabel) + '</label>'
-          + '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-wizard-extra" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>'
-          + '</div>';
-      }
-      return extra;
+      return '<select class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" required>'
+        + optionHtml(step.options, value) + '</select>'
+        + followHtml(step, value);
     }
     if (step.type === 'date') {
       var max = (step.key === 'ownerDob' || step.key === 'tenantDob') ? todayIso() : '';
@@ -727,7 +980,11 @@
 
   function reviewSection(title, section, rows) {
     return '<section class="ejar-wizard-review">'
-      + '<header><h3>' + escapeHtml(title) + '</h3>'
+      + '<header>'
+      + '<button type="button" class="ejar-wizard-review__toggle" aria-expanded="false">'
+      + '<span class="ejar-wizard-review__check" aria-hidden="true">✓</span>'
+      + '<h3>' + escapeHtml(title) + '</h3>'
+      + '</button>'
       + '<button type="button" class="ejar-wizard__edit" data-goto="' + firstStepOf(section) + '">تعديل</button></header>'
       + '<dl>' + rows.map(function (row) {
         var value = row.html ? row.value : escapeHtml(row.value);
@@ -736,6 +993,20 @@
   }
 
   function reviewText(label, key) {
+    if (key === 'ownerId' || key === 'tenantId') {
+      return {
+        label: label,
+        html: true,
+        value: answers[key] ? '<span dir="ltr">' + escapeHtml(maskId(answers[key])) + '</span>' : '—',
+      };
+    }
+    if (key === 'ownerPhone' || key === 'tenantPhone') {
+      return {
+        label: label,
+        html: true,
+        value: answers[key] ? '<span dir="ltr">' + escapeHtml(answers[key]) + '</span>' : '—',
+      };
+    }
     if (isDateField(key)) {
       var text = '';
       if (window.EjarDates && typeof window.EjarDates.plain === 'function') {
@@ -747,27 +1018,27 @@
   }
 
   function reviewHtml() {
-    return reviewSection('بيانات الملكية', 'ownership', [
+    return reviewSection('الملكية', 'ownership', [
       reviewText('رقم الصك', 'deedNumber'),
       reviewText('تاريخ الصك', 'deedDate'),
     ])
-    + reviewSection('بيانات المؤجر', 'owner', [
+    + reviewSection('المؤجر', 'owner', [
       reviewText('رقم الهوية', 'ownerId'),
       reviewText('تاريخ الميلاد', 'ownerDob'),
       reviewText('الجوال', 'ownerPhone'),
     ])
-    + reviewSection('بيانات المستأجر', 'tenant', [
+    + reviewSection('المستأجر', 'tenant', [
       reviewText('رقم الهوية', 'tenantId'),
       reviewText('تاريخ الميلاد', 'tenantDob'),
       reviewText('الجوال', 'tenantPhone'),
     ])
-    + reviewSection('بيانات الوحدة الإيجارية', 'unit', [
+    + reviewSection('الوحدة', 'unit', [
       reviewText('النوع', 'unitType'),
       reviewText('الدور', 'floor'),
       reviewText('رقم الوحدة', 'unitNumber'),
       reviewText('المساحة', 'area'),
     ])
-    + reviewSection('البيانات المالية', 'finance', [
+    + reviewSection('تفاصيل العقد', 'finance', [
       reviewText('قيمة الإيجار', 'rentAmount'),
       reviewText('طريقة الدفع', 'paymentMethod'),
       reviewText('مدة العقد', 'contractDuration'),
@@ -784,7 +1055,7 @@
   function deedUploadHtml() {
     var hasFile = !!(deedFile && deedPreviewUrl);
     return '<section class="ejar-deed-upload">'
-      + '<h3>صورة الصك <small>اختياري عند الحاجة</small></h3>'
+      + '<h3>إرفاق صورة الصك <small>اختياري</small></h3>'
       + '<p>أرفق صورة واضحة للصك إن توفرت، لتسهيل مراجعة الطلب وإنشاء العقد عبر منصة إيجار.</p>'
       + '<label class="ejar-deed-upload__drop">'
       + '<input type="file" id="ejar-deed-file" accept="image/jpeg,image/png,image/webp,image/*">'
@@ -808,6 +1079,36 @@
       + '</div>';
   }
 
+  function kindsHtml() {
+    return '<div class="ejar-wizard__kinds" role="tablist" aria-label="نوع العقد">'
+      + '<button type="button" class="ejar-wizard__kind' + (kind === 'residential' ? ' is-active' : '') + '" data-kind="residential" role="tab" aria-selected="' + (kind === 'residential' ? 'true' : 'false') + '">عقد سكني</button>'
+      + '<button type="button" class="ejar-wizard__kind' + (kind === 'commercial' ? ' is-active' : '') + '" data-kind="commercial" role="tab" aria-selected="' + (kind === 'commercial' ? 'true' : 'false') + '">عقد تجاري</button>'
+      + '</div>';
+  }
+
+  function renderResume(draft) {
+    ensureRoot().innerHTML = ''
+      + '<div class="ejar-wizard__backdrop" tabindex="-1"></div>'
+      + '<div class="ejar-wizard__panel ejar-wizard__panel--resume" role="dialog" aria-modal="true" aria-labelledby="ejar-wizard-title">'
+      + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
+      + '<div class="ejar-wizard__resume">'
+      + '<h2 id="ejar-wizard-title">لديك طلب غير مكتمل</h2>'
+      + '<p>هل تريد متابعة تعبئته؟</p>'
+      + '<div class="ejar-wizard__resume-actions">'
+      + '<button type="button" class="btn btn-primary" data-draft="continue">متابعة</button>'
+      + '<button type="button" class="btn btn-outline" data-draft="restart">بدء طلب جديد</button>'
+      + '</div></div></div>';
+    root.querySelector('[data-draft="continue"]').addEventListener('click', function () {
+      continueDraft(draft);
+    });
+    root.querySelector('[data-draft="restart"]').addEventListener('click', startFresh);
+    var closeBtn = root.querySelector('.ejar-wizard__close');
+    if (closeBtn) closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      close();
+    });
+  }
+
   function render() {
     var steps = getSteps(kind);
     var step = steps[stepIndex];
@@ -815,7 +1116,8 @@
     var isFirst = stepIndex === 0;
     var body = isReview
       ? reviewHtml()
-      : '<div class="ejar-wizard__question"><label' + (step.type === 'date' ? '' : ' for="ejar-wizard-field"') + '>' + escapeHtml(step.label) + '</label>'
+      : '<div class="ejar-wizard__question">'
+        + '<label' + (step.type === 'date' ? '' : ' for="ejar-wizard-field"') + '>' + escapeHtml(step.label) + '</label>'
         + inputHtml(step) + '</div>';
 
     ensureRoot().innerHTML = ''
@@ -823,14 +1125,13 @@
       + '<div class="ejar-wizard__panel" role="dialog" aria-modal="true" aria-labelledby="ejar-wizard-title">'
       + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
       + '<header class="ejar-wizard__head">'
-      + '<div class="ejar-wizard__kinds" role="tablist" aria-label="نوع العقد">'
-      + '<button type="button" class="ejar-wizard__kind' + (kind === 'residential' ? ' is-active' : '') + '" data-kind="residential" role="tab" aria-selected="' + (kind === 'residential' ? 'true' : 'false') + '">عقد سكني</button>'
-      + '<button type="button" class="ejar-wizard__kind' + (kind === 'commercial' ? ' is-active' : '') + '" data-kind="commercial" role="tab" aria-selected="' + (kind === 'commercial' ? 'true' : 'false') + '">عقد تجاري</button>'
-      + '</div>'
-      + '<h2 id="ejar-wizard-title">' + escapeHtml(titleFor(kind)) + '</h2>'
+      + kindsHtml()
+      + '<h2 id="ejar-wizard-title">'
+      + '<span class="ejar-wizard__title-full">' + escapeHtml(titleFor(kind)) + '</span>'
+      + '<span class="ejar-wizard__title-short">' + escapeHtml(shortTitleFor(kind)) + '</span>'
+      + '</h2>'
       + '<p class="ejar-wizard__price">' + escapeHtml(priceText(kind)) + '</p>'
-      + '<p class="ejar-wizard__lead">' + LEAD + '</p>'
-      + '<p class="ejar-wizard__trust">' + TRUST + '</p>'
+      + (isFirst ? '<p class="ejar-wizard__trust">' + TRUST + '</p>' : '')
       + '</header>'
       + progressHtml(steps, stepIndex)
       + '<form class="ejar-wizard__form" novalidate>'
@@ -846,6 +1147,47 @@
       + '</form></div>';
 
     bindRendered();
+    syncVisualViewport();
+  }
+
+  function bindChoiceCards() {
+    var hidden = root.querySelector('input#ejar-wizard-field[type="hidden"]');
+    if (!hidden) return;
+    root.querySelectorAll('.ejar-choice__card').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var value = btn.getAttribute('data-choice') || '';
+        hidden.value = value;
+        answers[hidden.getAttribute('data-wizard-field')] = value;
+        root.querySelectorAll('.ejar-choice__card').forEach(function (other) {
+          var on = other === btn;
+          other.classList.toggle('is-selected', on);
+          other.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        var step = currentStep();
+        if (step.otherKey) {
+          var box = root.querySelector('[data-follow="' + step.otherKey + '"]');
+          if (box) box.hidden = value !== step.otherValue;
+        }
+        if (step.extraKey) {
+          var extraBox = root.querySelector('[data-follow="' + step.extraKey + '"]');
+          if (extraBox) extraBox.hidden = value !== step.extraValue;
+        }
+        hideError();
+        saveDraft();
+      });
+    });
+  }
+
+  function bindReviewAccordion() {
+    root.querySelectorAll('.ejar-wizard-review__toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var section = btn.closest('.ejar-wizard-review');
+        if (!section) return;
+        var open = !section.classList.contains('is-open');
+        section.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
   }
 
   function bindRendered() {
@@ -854,15 +1196,19 @@
         switchKind(btn.getAttribute('data-kind'));
       });
     });
-    root.querySelector('.ejar-wizard__prev').addEventListener('click', prev);
-    root.querySelector('.ejar-wizard__next').addEventListener('click', next);
+    var prevBtn = root.querySelector('.ejar-wizard__prev');
+    if (prevBtn) prevBtn.addEventListener('click', prev);
+    var nextBtn = root.querySelector('.ejar-wizard__next');
+    if (nextBtn) nextBtn.addEventListener('click', next);
     var form = root.querySelector('.ejar-wizard__form');
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      next();
-    });
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        next();
+      });
+    }
     var field = root.querySelector('#ejar-wizard-field');
-    if (field) {
+    if (field && field.type !== 'hidden') {
       field.addEventListener('input', hideError);
       field.addEventListener('change', function () {
         answers[field.getAttribute('data-wizard-field')] = field.value;
@@ -878,9 +1224,19 @@
         saveDraft();
       });
     }
+    var followInputs = root.querySelectorAll('[data-follow] [data-wizard-field]');
+    followInputs.forEach(function (input) {
+      input.addEventListener('input', function () {
+        answers[input.getAttribute('data-wizard-field')] = input.value;
+        hideError();
+        saveDraft();
+      });
+    });
+    bindChoiceCards();
     bindDateChooser();
     bindDatePicker();
     bindDeedUpload();
+    bindReviewAccordion();
     var closeBtn = root.querySelector('.ejar-wizard__close');
     if (closeBtn) {
       closeBtn.addEventListener('click', function (e) {

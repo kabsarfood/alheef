@@ -199,15 +199,27 @@ if (!/إرسال طلب إنشاء العقد/.test(wizardJs)) fail('نص زر �
 else ok('زر الإرسال يستخدم «إرسال طلب إنشاء العقد»');
 if (/إرسال العقد للتوثيق/.test(wizardJs)) fail('عبارة توثيق مبكرة');
 else ok('لا تُستخدم عبارة إرسال العقد للتوثيق');
-var wizardWithoutTrust = wizardJs.replace(/تُستخدم بياناتك[\s\S]*?نفاذ\./, '');
+var wizardWithoutTrust = wizardJs.replace(/لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ\./, '');
 if (/كلمة المرور|نفاذ|OTP|otp/.test(wizardWithoutTrust)) fail('الحقول الحساسة ممنوعة');
 else ok('لا يُطلب OTP أو نفاذ أو كلمة مرور إيجار');
 if (/الخطوة /.test(wizardJs)) fail('لا يُعرض عداد الخطوات الكلي');
 else ok('لا يظهر «الخطوة 1 من 18»');
 if (!/السؤال /.test(wizardJs) || !/sectionProgress/.test(wizardJs)) fail('عداد السؤال داخل القسم');
 else ok('عداد الأسئلة يُحسب داخل كل قسم');
-if (!/تُستخدم بياناتك فقط لإعداد طلب العقد/.test(wizardJs)) fail('سطر الثقة');
-else ok('سطر الثقة يظهر أسفل وصف النموذج');
+if (!/لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ/.test(wizardJs)) fail('سطر الثقة');
+else ok('سطر الثقة يظهر بشكل مختصر');
+if (!/localStorage\.setItem\(DRAFT_KEY/.test(wizardJs) || !/لديك طلب غير مكتمل/.test(wizardJs)) fail('حفظ المسودة');
+else ok('المسودة تُحفظ محليًا مع شاشة المتابعة');
+if (!/visualViewport/.test(wizardJs) || !/--ejar-vv-height/.test(wizardJs)) fail('visualViewport للوحة المفاتيح');
+else ok('شريط التالي يلتزم بـ visualViewport');
+if (!/ejar-choice__card/.test(wizardJs) || !/ui: 'cards'/.test(wizardJs)) fail('بطاقات الاختيار');
+else ok('نوع الوحدة وطريقة الدفع والضمان بطاقات اختيار');
+if (!/ejar-wizard-review__toggle/.test(wizardJs) || !/maskId/.test(wizardJs)) fail('مراجعة الجوال');
+else ok('المراجعة Accordion مع إخفاء جزء الهوية');
+if (!/restoreDateModeForStep/.test(wizardJs) || !/dateModes/.test(wizardJs)) fail('حفظ نوع التقويم');
+else ok('الرجوع للتاريخ يستعيد نوع التقويم المختار');
+if (!/إنشاء عقد عبر مكتب الهيف/.test(html) || /إنشاء عقد عبر مؤسسة الهيف/.test(html)) fail('نص إنشاء عقد عبر مكتب الهيف');
+else ok('أزرار إنشاء العقد تستخدم «مكتب الهيف»');
 ['ownership', 'owner', 'tenant', 'unit', 'finance'].forEach((id) => {
   const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
   const expected = { ownership: 2, owner: 3, tenant: 3, unit: 4, finance: 5 }[id];
@@ -241,13 +253,18 @@ if (/ejar-date-dual__row|ejar-date-block--primary/.test(datesJs)) fail('كروت
 else ok('لا تُعرض التواريخ في كروت مستقلة');
 if (!/ الموافق /.test(datesJs)) fail('صيغة التاريخ العربية');
 else ok('التاريخ يُكتب بالصيغة العربية: الهجري الموافق الميلادي');
-if (!/ejar-date-orb/.test(datesJs) || !/اختر نوع التقويم/.test(datesJs) || !/data-date-mode/.test(datesJs)) {
+if (!/ejar-date-radio/.test(datesJs) || !/اختر نوع التاريخ/.test(datesJs) || !/type="radio"/.test(datesJs) || !/data-date-mode/.test(datesJs) || !/تغيير نوع التاريخ/.test(datesJs)) {
   fail('اختيار نوع التاريخ هجري/ميلادي');
-} else ok('مرحلة التاريخ تبدأ بدائرتي هجري وميلادي');
-if (!/applyDateMode/.test(wizardJs) || !/bindDateChooser/.test(wizardJs)) fail('تبديل نوع التاريخ في المعالج');
+} else ok('مرحلة التاريخ تبدأ بخيارَي Radio: هجري وميلادي');
+if (/ejar-date-orb/.test(datesJs) || /ejar-date-orb/.test(wizardJs)) fail('دوائر التاريخ الكبيرة ما زالت موجودة');
+else ok('لا تُستخدم دوائر كبيرة لاختيار نوع التاريخ');
+if (!/applyDateMode/.test(wizardJs) || !/bindDateChooser/.test(wizardJs) || !/revealDateTypeChooser/.test(wizardJs)) fail('تبديل نوع التاريخ في المعالج');
 else ok('المعالج يخفي التقويم غير المختار بعد الاختيار');
 if (!/if \(step && step\.type === 'date'\) return;/.test(wizardJs)) fail('منع فتح التاريخ تلقائيًا');
 else ok('الانتقال لتاريخ الصك لا يفتح أي تقويم تلقائيًا');
+if (/if \(currentStep\(\) && currentStep\(\)\.type === 'date'\) dateMode = '';/.test(wizardJs)) {
+  fail('تصفير نوع التقويم عند الرجوع');
+} else ok('نوع التقويم لا يُصفَّر عند الرجوع لسؤال تاريخ');
 
 require(path.join(root, 'public', 'js', 'ejar-dates.js'));
 const sample = global.EjarDates.format('2026-09-02');
