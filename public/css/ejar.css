@@ -2220,6 +2220,18 @@
     margin-bottom: 0;
   }
 
+  .ejar-hero__office {
+    display: none;
+  }
+
+  .ejar-hero__badge {
+    font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.4rem);
+    font-weight: var(--ejar-fw-heavy);
+    line-height: var(--ejar-lh-small);
+    width: max-content;
+    max-width: 100%;
+  }
+
   .ejar-hero__title {
     margin: 0;
   }
