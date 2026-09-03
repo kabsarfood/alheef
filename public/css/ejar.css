@@ -163,10 +163,6 @@
   100% { transform: translateX(280%); }
 }
 
-.header--ejar__office {
-  display: none;
-}
-
 .ejar-page .header--ejar .header__inner {
   gap: 0.75rem;
   overflow: visible;
@@ -206,28 +202,6 @@
   .ejar-page .logo--ejar .logo__img {
     height: 34px;
     max-width: min(200px, 50vw);
-  }
-
-  .header--ejar__office {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    padding: 0 0.2rem;
-    text-align: center;
-    font-size: clamp(0.72rem, 3vw, 0.88rem);
-    font-weight: var(--ejar-fw-bold);
-    color: var(--ejar-olive);
-    line-height: 1.35;
-    letter-spacing: 0;
-  }
-
-  .header--ejar__office span {
-    display: block;
-    max-width: 100%;
   }
 
   .ejar-hero__office {
@@ -2391,22 +2365,6 @@
 @media (min-width: 768px) and (max-width: 1099px) {
   .ejar-container {
     padding-inline: clamp(1.5rem, 4vw, 2.25rem);
-  }
-
-  .header--ejar__office {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    padding: 0 0.35rem;
-    text-align: center;
-    font-size: clamp(0.82rem, 1.7vw, 1.02rem);
-    font-weight: var(--ejar-fw-bold);
-    color: var(--ejar-olive);
-    line-height: 1.35;
   }
 }
 
