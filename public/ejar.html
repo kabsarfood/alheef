@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=22">
   <link rel="stylesheet" href="/css/mobile.css?v=24">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=57">
+  <link rel="stylesheet" href="/css/ejar.css?v=58">
 </head>
 <body class="ejar-page">
 
@@ -96,7 +96,7 @@
         <div class="ejar-hero__stack">
           <div class="ejar-hero__brand">
             <p class="ejar-hero__office">مؤسسة الهيف للخدمات العقارية</p>
-            <span class="ejar-hero__badge">مؤسسة الهيف للخدمات العقارية — وسيط عقاري مرخص</span>
+            <span class="ejar-hero__badge">مؤسسة الهيف للخدمات العقارية — وسيط معتمد</span>
           </div>
           <h1 class="ejar-hero__title">عقود إلكترونية عبر منصة إيجار</h1>
           <button type="button" class="ejar-reviews-jump" id="ejar-reviews-jump" hidden aria-label="اذهب إلى تقييمات عملائنا">⭐ تقييمات عملائنا</button>
@@ -458,40 +458,32 @@
         <div class="ejar-footer__panels">
           <nav class="ejar-footer__panel" aria-label="روابط الموقع">
             <h2 class="ejar-footer__panel-title">روابط</h2>
-            <ul class="ejar-footer__links">
-              <li>
-                <a href="/">
-                  <span class="ejar-footer__link-icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M9 22V12h6v10"/></svg>
-                  </span>
-                  <span class="ejar-footer__link-label">الرئيسية</span>
-                </a>
-              </li>
-              <li>
-                <a href="/ejar">
-                  <span class="ejar-footer__link-icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
-                  </span>
-                  <span class="ejar-footer__link-label">عقود إيجار</span>
-                </a>
-              </li>
-              <li>
-                <a href="#ejar-faq">
-                  <span class="ejar-footer__link-icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-                  </span>
-                  <span class="ejar-footer__link-label">الأسئلة الشائعة</span>
-                </a>
-              </li>
-              <li>
-                <a href="https://maps.app.goo.gl/9hEfBsWh8yLRrh3q8" target="_blank" rel="noopener noreferrer" aria-label="موقعنا على خرائط جوجل — الرياض حي المهدية">
-                  <span class="ejar-footer__link-icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 21s7-6.2 7-11.2A7 7 0 0012 3a7 7 0 00-7 6.8C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.2"/></svg>
-                  </span>
-                  <span class="ejar-footer__link-label">موقعنا — الرياض حي المهدية</span>
-                </a>
-              </li>
-            </ul>
+            <div class="ejar-footer__contact">
+              <a href="/" class="ejar-footer__contact-btn">
+                <span class="ejar-footer__contact-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M9 22V12h6v10"/></svg>
+                </span>
+                <span class="ejar-footer__contact-text">
+                  <span class="ejar-footer__contact-value">الرئيسية</span>
+                </span>
+              </a>
+              <a href="/ejar" class="ejar-footer__contact-btn">
+                <span class="ejar-footer__contact-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+                </span>
+                <span class="ejar-footer__contact-text">
+                  <span class="ejar-footer__contact-value">عقود إيجار</span>
+                </span>
+              </a>
+              <a href="#ejar-faq" class="ejar-footer__contact-btn ejar-footer__contact-btn--wide">
+                <span class="ejar-footer__contact-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                </span>
+                <span class="ejar-footer__contact-text">
+                  <span class="ejar-footer__contact-value">الأسئلة الشائعة</span>
+                </span>
+              </a>
+            </div>
           </nav>
 
           <div class="ejar-footer__panel ejar-footer__panel--contact">

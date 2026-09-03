@@ -3760,7 +3760,8 @@ body.ejar-wizard-open .ejar-sticky-bar {
   }
 
   .ejar-footer__contact-btn--map,
-  .ejar-footer__contact-btn--wa {
+  .ejar-footer__contact-btn--wa,
+  .ejar-footer__contact-btn--wide {
     grid-column: 1 / -1;
   }
 }
