@@ -172,6 +172,27 @@
   overflow: visible;
 }
 
+.ejar-page .logo--ejar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.ejar-page .logo__alhaif {
+  display: inline-flex;
+  align-items: center;
+  font-size: clamp(0.72rem, 1.4vw, 1.02rem);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  line-height: 1;
+  padding-inline-start: 0.55rem;
+  border-inline-start: 1px solid rgba(197, 164, 109, 0.5);
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 252, 246, 0.6);
+}
+
 .ejar-page .header--ejar .nav__link--active {
   color: var(--ejar-olive);
 }
@@ -195,6 +216,16 @@
 
   .ejar-page .header--ejar .header__inner {
     gap: 0.35rem;
+  }
+
+  .ejar-page .logo--ejar .logo__img {
+    max-width: min(112px, 32vw);
+  }
+
+  .ejar-page .logo__alhaif {
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    padding-inline-start: 0.38rem;
   }
 
   .header--ejar__office {
@@ -1328,7 +1359,9 @@
 
 .ejar-footer__logo-link {
   display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.55rem;
   margin-bottom: 0.65rem;
 }
 
@@ -1538,6 +1571,12 @@
 .ejar-footer__contact-btn--wa .ejar-footer__contact-icon {
   color: #128c7e;
   border-color: rgba(37, 211, 102, 0.35);
+}
+
+.ejar-footer__contact-btn--map .ejar-footer__contact-icon {
+  color: var(--gold);
+  border-color: rgba(197, 164, 109, 0.4);
+  background: rgba(197, 164, 109, 0.1);
 }
 
 .ejar-footer__contact-text {
@@ -3477,5 +3516,61 @@ body.ejar-wizard-open .ejar-sticky-bar {
 
   .ejar-steps {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ejar-footer__card {
+  border-radius: 20px;
+  border: 1px solid rgba(197, 164, 109, 0.32);
+  background:
+    radial-gradient(720px 220px at 100% 0%, rgba(197, 164, 109, 0.14), transparent 60%),
+    #fffdf8;
+  box-shadow: 0 18px 48px rgba(22, 32, 43, 0.08);
+}
+
+.ejar-footer__card::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+@media (max-width: 767px) {
+  .ejar-footer {
+    padding-block: 1.35rem 1.6rem;
+  }
+
+  .ejar-footer__panels {
+    grid-template-columns: 1fr;
+  }
+
+  .ejar-footer__panel:first-child {
+    border-inline-end: none;
+    border-bottom: 1px solid rgba(197, 164, 109, 0.22);
+  }
+
+  .ejar-footer__contact-btn {
+    min-height: 56px;
+    border-radius: 14px;
+    background: #fff;
+    border-color: rgba(197, 164, 109, 0.28);
+  }
+
+  .ejar-footer__contact-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+}
+
+@media (min-width: 768px) {
+  .ejar-footer__contact {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ejar-footer__contact-btn--map,
+  .ejar-footer__contact-btn--wa {
+    grid-column: 1 / -1;
   }
 }
