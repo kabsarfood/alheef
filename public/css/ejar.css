@@ -175,22 +175,7 @@
 .ejar-page .logo--ejar {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
   min-width: 0;
-}
-
-.ejar-page .logo__alhaif {
-  display: inline-flex;
-  align-items: center;
-  font-size: clamp(0.72rem, 1.4vw, 1.02rem);
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--gold);
-  line-height: 1;
-  padding-inline-start: 0.55rem;
-  border-inline-start: 1px solid rgba(197, 164, 109, 0.5);
-  white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(255, 252, 246, 0.6);
 }
 
 .ejar-page .header--ejar .nav__link--active {
@@ -219,13 +204,8 @@
   }
 
   .ejar-page .logo--ejar .logo__img {
-    max-width: min(112px, 32vw);
-  }
-
-  .ejar-page .logo__alhaif {
-    font-size: 0.66rem;
-    letter-spacing: 0.14em;
-    padding-inline-start: 0.38rem;
+    height: 34px;
+    max-width: min(200px, 50vw);
   }
 
   .header--ejar__office {
@@ -334,8 +314,8 @@
   }
 
   .ejar-footer__logo {
-    height: 46px;
-    max-width: 168px;
+    height: 44px;
+    max-width: 220px;
   }
 }
 
@@ -1361,14 +1341,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.55rem;
   margin-bottom: 0.65rem;
 }
 
 .ejar-footer__logo {
   width: auto;
-  height: 64px;
-  max-width: 220px;
+  height: 56px;
+  max-width: 280px;
   object-fit: contain;
   object-position: right center;
 }

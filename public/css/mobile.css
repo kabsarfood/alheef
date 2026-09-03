@@ -78,10 +78,8 @@
 
   /* ─── Header & nav ─── */
   .logo--header .logo__img {
-    height: 40px;
-    max-width: 140px;
-    transform: scale(var(--logo-header-scale, 1.25));
-    transform-origin: right center;
+    height: 36px;
+    max-width: min(210px, 52vw);
   }
 
   .header__inner {
@@ -962,8 +960,8 @@
   }
 
   .logo--header .logo__img {
-    height: 44px;
-    max-width: 160px;
+    height: 40px;
+    max-width: min(230px, 50vw);
   }
 
   .header__inner {

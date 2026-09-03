@@ -256,13 +256,11 @@ ul { list-style: none; }
 
 .logo--header .logo__img {
   display: block;
-  height: 52px;
+  height: 48px;
   width: auto;
-  max-width: min(200px, 42vw);
+  max-width: min(280px, 56vw);
   object-fit: contain;
   object-position: right center;
-  transform: scale(var(--logo-header-scale));
-  transform-origin: right center;
 }
 
 .logo__icon {
@@ -299,9 +297,9 @@ ul { list-style: none; }
 }
 
 .footer__brand .logo__img {
-  height: 64px;
+  height: 58px;
   width: auto;
-  max-width: 220px;
+  max-width: 280px;
   object-fit: contain;
 }
 
@@ -396,8 +394,8 @@ ul { list-style: none; }
 
 @media (min-width: 769px) and (max-width: 1099px) {
   .logo--header .logo__img {
-    height: 46px;
-    max-width: 168px;
+    height: 42px;
+    max-width: 240px;
   }
 }
 

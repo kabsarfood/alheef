@@ -35,13 +35,15 @@
   margin-bottom: 2rem;
 }
 
-.login-card__icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 0.75rem;
+.login-card__icon,
+.login-card__logo {
+  width: auto;
+  height: auto;
+  max-width: 240px;
+  max-height: 76px;
+  margin: 0 auto 0.85rem;
   display: block;
   object-fit: contain;
-  border-radius: 22%;
 }
 
 .login-card__brand h1 {

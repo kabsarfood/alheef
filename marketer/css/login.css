@@ -19,8 +19,9 @@
 
 .login-card--marketer .login-card__logo {
   width: auto;
-  height: clamp(2.5rem, 8vw, 3rem);
-  max-width: 168px;
+  height: auto;
+  max-height: 72px;
+  max-width: 240px;
   margin: 0 auto clamp(0.85rem, 2vw, 1rem);
   object-fit: contain;
   border-radius: 0;

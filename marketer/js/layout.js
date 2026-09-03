@@ -64,7 +64,7 @@ async function initMarketerLayout(activePage, pageTitle) {
     <aside class="sidebar marketer-sidebar" id="sidebar">
       <div class="sidebar__brand">
         <a href="/marketer/" class="sidebar__logo">
-          <img src="/assets/app-icon.png?v=5" alt="الهيف العقارية" class="sidebar__logo-icon" width="40" height="40">
+          <img src="/assets/app-icon.png?v=6" alt="الهيف العقارية" class="sidebar__logo-icon" width="44" height="44">
           <div class="sidebar__logo-text"><strong>الهيف العقارية</strong><span>لوحة مسوق الهيف</span></div>
         </a>
       </div>

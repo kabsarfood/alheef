@@ -161,7 +161,7 @@ function sendPrivateOffersPage(req, res) {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   let html = fs.readFileSync(pagePath, 'utf8');
   const origin = `${req.protocol}://${req.get('host')}`;
-  html = html.replace(/content="\/assets\/app-icon\.png(\?v=\d+)?"/g, `content="${origin}/assets/app-icon.png?v=5"`);
+  html = html.replace(/content="\/assets\/app-icon\.png(\?v=\d+)?"/g, `content="${origin}/assets/app-icon.png?v=6"`);
   return res.type('html').send(html);
 }
 
