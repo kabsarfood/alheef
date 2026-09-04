@@ -185,8 +185,8 @@ if (!html.includes('ejar-dates.js')) fail('ملف التواريخ غير مرب
 else ok('صفحة /ejar تربط تنسيق التواريخ الهجري/الميلادي');
 if (!/EjarWizard\.open/.test(ejarJs)) fail('الزران لا يفتحان المعالج');
 else ok('الزران يفتحان المعالج بدل واتساب المباشر');
-if (!/data-ejar-start/.test(html) || !/EjarWizard\.open\(\)/.test(ejarJs)) fail('زر إنشاء عقد لا يفتح المعالج');
-else ok('زر إنشاء عقد يفتح المعالج');
+if (/ejar-sticky-bar__btn--start/.test(html) || /data-ejar-start/.test(html)) fail('الشريط السفلي ما زال يحتوي زر إنشاء عقد');
+else ok('الشريط السفلي للجوال بدون زر إنشاء عقد');
 const homeHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
 if (!/id="hero-btn-ejar"/.test(homeHtml) || !/إنشاء عقد إيجار/.test(homeHtml) || !/\/ejar\?create=1/.test(homeHtml)) {
   fail('زر الصفحة الرئيسية إنشاء عقد إيجار');
