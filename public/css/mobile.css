@@ -1193,6 +1193,86 @@
   }
 }
 
+/* ─── Home sticky bar — same system as /ejar ─── */
+.home-page .ejar-sticky-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .home-page {
+    --home-sticky-h: 60px;
+    padding-bottom: calc(var(--home-sticky-h) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  }
+
+  .home-page .header__actions .btn-whatsapp {
+    display: none !important;
+  }
+
+  .home-page .pwa-push-banner {
+    bottom: calc(var(--home-sticky-h) + 0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .home-page .ejar-sticky-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: rgba(255, 253, 248, 0.96);
+    border-top: 1px solid rgba(197, 164, 109, 0.38);
+    box-shadow: 0 -10px 28px rgba(22, 32, 43, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 0.45rem clamp(0.65rem, 3vw, 1rem);
+    padding-bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    min-height: var(--home-sticky-h, 60px);
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .home-page .ejar-sticky-bar__btn {
+    flex: 1;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.35rem;
+    font-family: var(--font);
+    font-size: 0.7rem;
+    font-weight: var(--fw-subheading);
+    line-height: 1.25;
+    text-align: center;
+    color: var(--navy);
+    background: var(--ivory);
+    border: 1px solid var(--navy-border);
+    border-radius: var(--radius);
+    min-height: 44px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: normal;
+    transition: background var(--transition), border-color var(--transition);
+  }
+
+  .home-page .ejar-sticky-bar__btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .home-page .ejar-sticky-bar__btn--wa {
+    background: #25d366;
+    color: var(--white);
+    border-color: #25d366;
+  }
+
+  .home-page .ejar-sticky-bar__btn--start {
+    background: linear-gradient(180deg, #4a6353, #3d5244);
+    color: var(--white);
+    border-color: #3d5244;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero__label,
   .hero__title,

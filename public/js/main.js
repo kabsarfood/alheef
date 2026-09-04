@@ -316,7 +316,7 @@
     const waUrl = `https://wa.me/${config.whatsapp}`;
     const waMsg = encodeURIComponent('مرحباً، أتواصل معكم من موقع الهيف للخدمات العقارية');
 
-    ['header-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link', 'footer-whatsapp-btn'].forEach((id) => {
+    ['header-whatsapp', 'sticky-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link', 'footer-whatsapp-btn'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.href = `${waUrl}?text=${waMsg}`;
     });
