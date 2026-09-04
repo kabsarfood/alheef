@@ -3684,6 +3684,10 @@ body.ejar-wizard-open .ejar-sticky-bar {
   border-block: 1px solid rgba(197, 164, 109, 0.35);
 }
 
+.ejar-cta-bar__title {
+  color: #fff;
+}
+
 .ejar-official-note {
   border-radius: 14px;
   background: rgba(197, 164, 109, 0.1);
