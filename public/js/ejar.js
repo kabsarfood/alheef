@@ -6,7 +6,7 @@
   var LEADS_KEY = 'ejar_leads_pending';
   var selectedContract = null;
 
-  var WA_MSG_DEFAULT = 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية.';
+  var WA_MSG_DEFAULT = 'السلام عليكم، لدي استفسار قبل إنشاء العقد عبر مؤسسة الهيف للخدمات العقارية.';
 
   function getPrices() {
     return {
@@ -16,10 +16,9 @@
   }
 
   function getWhatsAppMessages() {
-    var prices = getPrices();
     return {
-      residential: 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية. عقد سكني بسعر ' + prices.residential + ' ريال شامل الرسوم.',
-      commercial: 'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية. عقد تجاري بسعر ' + prices.commercial + ' ريال شامل الرسوم للسنة الأولى.',
+      residential: WA_MSG_DEFAULT,
+      commercial: WA_MSG_DEFAULT,
     };
   }
 
@@ -117,19 +116,14 @@
     window.location.assign(url);
   }
 
-  function buildContractWhatsAppMessage(data) {
+  function buildInquiryWhatsAppMessage(data) {
     var lines = [
-      'السلام عليكم، أرغب في إنشاء عقد إيجار عبر مكتب الهيف العقارية.',
+      'السلام عليكم، لدي استفسار قبل إنشاء العقد عبر مؤسسة الهيف للخدمات العقارية.',
       '',
       'الاسم: ' + (data.name || ''),
       'رقم الجوال: ' + (data.phone || ''),
-      'نوع العقد: ' + (data.contractType || ''),
-      'المدينة: ' + (data.city || ''),
+      'الاستفسار: ' + (data.inquiry || ''),
     ];
-    if (data.role) {
-      lines.push('الصفة: ' + data.role);
-    }
-    lines.push('', 'أرغب في استكمال إجراءات إنشاء العقد عبر منصة إيجار.');
     return lines.join('\n');
   }
 
@@ -179,20 +173,13 @@
     });
   }
 
-  function scrollToForm(preselect) {
+  function scrollToForm() {
     var form = document.getElementById('ejar-form');
-    var select = document.getElementById('ejar-contract-type');
-    if (preselect && select) {
-      select.value = preselect === 'residential' ? 'سكني' : 'تجاري';
-      selectedContract = preselect;
-      applyPhoneDisplays();
-    }
     if (form) {
       form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      var first = form.querySelector('input, select');
+      var first = form.querySelector('input, textarea, select');
       if (first) first.focus({ preventScroll: true });
     }
-    trackEvent('ejar_start_contract', { contractType: preselect || null });
   }
 
   function saveLocalLead(payload) {
@@ -218,7 +205,7 @@
           trackEvent('ejar_start_contract', { contractType: type, wizard: true });
           return;
         }
-        scrollToForm(type);
+        scrollToForm();
       });
     });
   }
@@ -237,25 +224,7 @@
     });
   }
 
-  function setupContractTypeSelect() {
-    var select = document.getElementById('ejar-contract-type');
-    if (!select) return;
-    select.addEventListener('change', function () {
-      if (select.value === 'سكني') {
-        selectedContract = 'residential';
-        trackEvent('ejar_residential_select');
-      } else if (select.value === 'تجاري') {
-        selectedContract = 'commercial';
-        trackEvent('ejar_commercial_select');
-      } else {
-        selectedContract = null;
-      }
-      applyPhoneDisplays();
-    });
-  }
-
   function setupForm() {
-    var form = document.getElementById('ejar-request-form');
     var msgEl = document.getElementById('ejar-form-message');
     if (!form) return;
 
@@ -264,12 +233,10 @@
       var btn = form.querySelector('[type="submit"]');
       var name = (form.elements.name && form.elements.name.value || '').trim();
       var phoneRaw = (form.elements.phone && form.elements.phone.value || '').trim();
-      var city = (form.elements.city && form.elements.city.value || '').trim();
-      var contractType = (form.elements.contractType && form.elements.contractType.value || '').trim();
-      var role = (form.elements.role && form.elements.role.value || '').trim();
+      var inquiry = (form.elements.inquiry && form.elements.inquiry.value || '').trim();
 
-      if (!contractType || !name || !city || !role) {
-        showMessage(msgEl, 'يرجى تعبئة جميع الحقول المطلوبة', 'error');
+      if (!name || !inquiry) {
+        showMessage(msgEl, 'يرجى تعبئة الاسم والاستفسار', 'error');
         return;
       }
       if (!isValidSaudiMobile(phoneRaw)) {
@@ -278,24 +245,10 @@
       }
 
       var phone = normalizeSaudiMobile(phoneRaw);
-      var payload = {
-        customerName: name,
-        customerPhone: phone,
-        requestType: 'ejar_contract',
-        message: JSON.stringify({
-          contractType: contractType,
-          city: city,
-          role: role,
-          attribution: getAttribution(),
-        }),
-      };
-
-      var waMessage = buildContractWhatsAppMessage({
+      var waMessage = buildInquiryWhatsAppMessage({
         name: name,
         phone: phone,
-        contractType: contractType,
-        city: city,
-        role: role,
+        inquiry: inquiry,
       });
       var waUrl = whatsappUrl(waMessage);
       var pendingWa = null;
@@ -305,38 +258,16 @@
 
       btn.disabled = true;
       var originalText = btn.textContent;
-      btn.textContent = 'جاري الإرسال...';
+      btn.textContent = 'جاري فتح واتساب...';
       hideMessage(msgEl);
-
-      fetch('/api/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-        .then(function (result) {
-          if (result.data && result.data.success) {
-            trackEvent('ejar_form_submit', { contractType: contractType, role: role });
-            showMessage(msgEl, 'تم حفظ طلبك لدى مكتب الهيف، جاري فتح واتساب لاستكمال الإجراءات', 'success');
-            form.reset();
-            selectedContract = null;
-            applyPhoneDisplays();
-            openWhatsApp(waUrl, pendingWa);
-            return;
-          }
-          throw new Error((result.data && result.data.message) || 'تعذر إرسال الطلب');
-        })
-        .catch(function () {
-          saveLocalLead(payload);
-          trackEvent('ejar_form_submit', { contractType: contractType, role: role, offline: true });
-          showMessage(msgEl, 'تم حفظ طلبك لدى مكتب الهيف، جاري فتح واتساب لاستكمال الإجراءات', 'success');
-          form.reset();
-          openWhatsApp(waUrl, pendingWa);
-        })
-        .finally(function () {
-          btn.disabled = false;
-          btn.textContent = originalText;
-        });
+      trackEvent('ejar_inquiry_whatsapp', { source: 'form' });
+      showMessage(msgEl, 'جاري فتح واتساب لإرسال استفسارك إلى فريق مؤسسة الهيف للخدمات العقارية', 'success');
+      form.reset();
+      openWhatsApp(waUrl, pendingWa);
+      window.setTimeout(function () {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }, 600);
     });
   }
 
@@ -420,7 +351,6 @@
     applyPhoneDisplays();
     setupContractButtons();
     setupStartButtons();
-    setupContractTypeSelect();
     setupForm();
     setupHeaderWhatsApp();
 

@@ -185,8 +185,8 @@ if (!html.includes('ejar-dates.js')) fail('ملف التواريخ غير مرب
 else ok('صفحة /ejar تربط تنسيق التواريخ الهجري/الميلادي');
 if (!/EjarWizard\.open/.test(ejarJs)) fail('الزران لا يفتحان المعالج');
 else ok('الزران يفتحان المعالج بدل واتساب المباشر');
-if (!/data-ejar-start/.test(html) || !/EjarWizard\.open\(\)/.test(ejarJs)) fail('زر إنشاء عقد عبر مكتب الهيف لا يفتح المعالج');
-else ok('زر إنشاء عقد عبر مكتب الهيف يفتح المعالج');
+if (!/data-ejar-start/.test(html) || !/EjarWizard\.open\(\)/.test(ejarJs)) fail('زر إنشاء عقد لا يفتح المعالج');
+else ok('زر إنشاء عقد يفتح المعالج');
 const homeHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
 if (!/id="hero-btn-ejar"/.test(homeHtml) || !/إنشاء عقد إيجار/.test(homeHtml) || !/\/ejar\?create=1/.test(homeHtml)) {
   fail('زر الصفحة الرئيسية إنشاء عقد إيجار');
@@ -218,8 +218,12 @@ if (!/ejar-wizard-review__toggle/.test(wizardJs) || !/maskId/.test(wizardJs)) fa
 else ok('المراجعة Accordion مع إخفاء جزء الهوية');
 if (!/restoreDateModeForStep/.test(wizardJs) || !/dateModes/.test(wizardJs)) fail('حفظ نوع التقويم');
 else ok('الرجوع للتاريخ يستعيد نوع التقويم المختار');
-if (!/إنشاء عقد عبر مكتب الهيف/.test(html) || /إنشاء عقد عبر مؤسسة الهيف/.test(html)) fail('نص إنشاء عقد عبر مكتب الهيف');
-else ok('أزرار إنشاء العقد تستخدم «مكتب الهيف»');
+if (!/مؤسسة الهيف للخدمات العقارية/.test(html) || /إنشاء عقد عبر مكتب الهيف/.test(html)) fail('اسم مؤسسة الهيف في صفحة إيجار');
+else ok('صفحة /ejar تستخدم «مؤسسة الهيف للخدمات العقارية»');
+if (/ejar-purposes|حساب المواطن|الضمان المطور/.test(html)) fail('قسم الأغراض المحددة ما زال موجودًا');
+else ok('حُذف قسم العقود للأغراض المحددة');
+if (!/لديك استفسار قبل إنشاء العقد/.test(html) || !/اسأل عبر واتساب/.test(html) || !/name="inquiry"/.test(html)) fail('نموذج الاستفسار');
+else ok('النموذج السفلي للاستفسار عبر واتساب');
 ['ownership', 'owner', 'tenant', 'unit', 'finance'].forEach((id) => {
   const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
   const expected = { ownership: 2, owner: 3, tenant: 3, unit: 4, finance: 5 }[id];
