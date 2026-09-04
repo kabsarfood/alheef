@@ -77,8 +77,17 @@
   flex-shrink: 0;
 }
 
-.pwa-push-stop {
+.btn.pwa-push-stop {
   margin-top: 0.5rem;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+}
+
+.btn.pwa-push-stop:hover {
+  color: var(--navy, #1E2A38);
+  background: #fff;
+  border-color: #fff;
 }
 
 .pwa-push-banner {
