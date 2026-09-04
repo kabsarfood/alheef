@@ -109,6 +109,9 @@ async function initLayout(activePage, pageTitle) {
 
 let _notificationsPollTimer = null;
 let _adminSoundLoadPromise = null;
+let _notifPanelOpen = false;
+let _notifRenderSeq = 0;
+let _notifOutsideClickBound = false;
 
 function loadAdminNotificationSound() {
   if (window.AdminNotificationSound) return Promise.resolve();
@@ -142,13 +145,16 @@ async function initAdminNotifications() {
   if (!host) return;
 
   async function render() {
+    const seq = ++_notifRenderSeq;
     try {
       const { items = [], unreadCount = 0 } = await DashboardAPI.getNotifications();
+      if (seq !== _notifRenderSeq) return;
       if (window.AlheefPWA) window.AlheefPWA.setBadge(unreadCount);
 
       const fresh = window.AdminNotificationSound
         ? await AdminNotificationSound.handlePoll(items)
         : [];
+      if (seq !== _notifRenderSeq) return;
 
       if (fresh.length) {
         showAdminNotificationToast(fresh);
@@ -159,14 +165,15 @@ async function initAdminNotifications() {
       const display = [...unread, ...read].slice(0, 20);
       const pushPermission = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
       const showPushEnable = pushPermission === 'default' && window.AlheefPWA;
+      const panelWasOpen = _notifPanelOpen || document.getElementById('notif-panel')?.hidden === false;
 
       host.innerHTML = `
         <div class="notif-bell-wrap">
-          <button type="button" class="notif-bell" id="notif-toggle" aria-label="الإشعارات">
+          <button type="button" class="notif-bell" id="notif-toggle" aria-label="الإشعارات" aria-expanded="${panelWasOpen ? 'true' : 'false'}">
             🔔
             ${unreadCount > 0 ? `<span class="notif-bell__badge">${unreadCount}</span>` : ''}
           </button>
-          <div class="notif-panel" id="notif-panel" hidden>
+          <div class="notif-panel" id="notif-panel"${panelWasOpen ? '' : ' hidden'}>
             <div class="notif-panel__head">
               <strong>الإشعارات</strong>
               <div class="notif-panel__tools">
@@ -184,10 +191,14 @@ async function initAdminNotifications() {
       `;
 
       document.getElementById('notif-toggle')?.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         const panel = document.getElementById('notif-panel');
+        if (!panel) return;
         panel.hidden = !panel.hidden;
-        if (!panel.hidden) maybeShowSoundUnlockHint(true);
+        _notifPanelOpen = !panel.hidden;
+        e.currentTarget.setAttribute('aria-expanded', String(_notifPanelOpen));
+        if (_notifPanelOpen) maybeShowSoundUnlockHint(true);
       });
 
       document.getElementById('notif-sound-toggle')?.addEventListener('click', async () => {
@@ -257,15 +268,21 @@ async function initAdminNotifications() {
         });
       });
     } catch {
-      host.innerHTML = '';
+      if (!document.getElementById('notif-toggle')) host.innerHTML = '';
     }
   }
 
-  document.addEventListener('click', (e) => {
-    const panel = document.getElementById('notif-panel');
-    if (!panel || panel.hidden) return;
-    if (!e.target.closest('.notif-bell-wrap')) panel.hidden = true;
-  });
+  if (!_notifOutsideClickBound) {
+    _notifOutsideClickBound = true;
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('notif-panel');
+      if (!panel || panel.hidden) return;
+      if (e.target.closest('.notif-bell-wrap')) return;
+      panel.hidden = true;
+      _notifPanelOpen = false;
+      document.getElementById('notif-toggle')?.setAttribute('aria-expanded', 'false');
+    });
+  }
 
   await render();
   clearInterval(_notificationsPollTimer);
