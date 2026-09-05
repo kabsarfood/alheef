@@ -1796,6 +1796,16 @@ tr.table-row--highlight {
   font-size: 0.82rem;
   color: var(--ejar-olive, #3d6b4f);
 }
+.req-deed--file {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--gold-border, #e4d5b5);
+  background: #fff;
+  font-weight: 700;
+}
 
 @media (max-width: 768px) {
   .modal:has(.req-detail) {

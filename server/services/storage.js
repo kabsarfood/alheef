@@ -16,7 +16,18 @@ const MIME = {
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.avif': 'image/avif',
+  '.pdf': 'application/pdf',
 };
+
+const BUCKET_FILE_LIMIT = 32 * 1024 * 1024;
+let bucketsReady = false;
 
 function contentType(filename) {
   return MIME[path.extname(filename).toLowerCase()] || 'application/octet-stream';
@@ -32,21 +43,31 @@ function resolveBucket(folder) {
 }
 
 async function ensureBuckets() {
+  if (bucketsReady) return;
   const admin = getAdmin();
   const names = Object.values(BUCKETS);
   const { data: buckets } = await admin.storage.listBuckets();
   const existing = new Set((buckets || []).map((b) => b.name || b.id));
 
   for (const name of names) {
-    if (existing.has(name)) continue;
-    const { error } = await admin.storage.createBucket(name, {
-      public: true,
-      fileSizeLimit: name === BUCKETS.properties ? 10 * 1024 * 1024 : 8 * 1024 * 1024,
+    if (!existing.has(name)) {
+      const { error } = await admin.storage.createBucket(name, {
+        public: true,
+        fileSizeLimit: BUCKET_FILE_LIMIT,
+      });
+      if (error && !/already exists/i.test(error.message)) {
+        console.warn('[Storage] bucket', name, error.message);
+      }
+      continue;
+    }
+    const { error } = await admin.storage.updateBucket(name, {
+      fileSizeLimit: BUCKET_FILE_LIMIT,
     });
-    if (error && !/already exists/i.test(error.message)) {
-      console.warn('[Storage] bucket', name, error.message);
+    if (error && !/not found|does not exist/i.test(error.message || '')) {
+      console.warn('[Storage] update bucket', name, error.message);
     }
   }
+  bucketsReady = true;
 }
 
 async function uploadBuffer(buffer, originalName, folder = 'assets', options = {}) {
@@ -56,8 +77,9 @@ async function uploadBuffer(buffer, originalName, folder = 'assets', options = {
   const compress = options.compress !== false;
   let body = buffer;
   let name = originalName || 'file.jpg';
+  const type = contentType(name);
 
-  if (compress && /^image\//i.test(contentType(name))) {
+  if (compress && /^image\/(jpeg|png|webp)$/i.test(type)) {
     body = await compressImage(buffer, options.compressOpts);
     name = outputName(originalName, 'webp');
   }

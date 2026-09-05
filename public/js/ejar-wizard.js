@@ -32,7 +32,9 @@
   var submitting = false;
   var deedFile = null;
   var deedPreviewUrl = '';
-  var DEED_MAX_BYTES = 8 * 1024 * 1024;
+  var DEED_MAX_MB = 32;
+  var DEED_MAX_BYTES = DEED_MAX_MB * 1024 * 1024;
+  var DEED_ACCEPT = 'image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif';
   var openedFromHome = false;
   var resumePendingKind = 'residential';
   var viewportBound = false;
@@ -930,24 +932,66 @@
     }
   }
 
+  function deedExt(file) {
+    return String(file && file.name || '').split('.').pop().toLowerCase();
+  }
+
+  function isDeedPdf(file) {
+    if (!file) return false;
+    if (/^application\/pdf$/i.test(file.type || '')) return true;
+    return deedExt(file) === 'pdf';
+  }
+
+  function isDeedImage(file) {
+    if (!file) return false;
+    if (/^image\//i.test(file.type || '') && !/svg/i.test(file.type || '')) return true;
+    return /^(jpe?g|png|webp|gif|bmp|tif|tiff|heic|heif|avif)$/i.test(deedExt(file));
+  }
+
+  function isAllowedDeedFile(file) {
+    if (!file) return false;
+    if (isDeedPdf(file) || isDeedImage(file)) return true;
+    return !file.type && !deedExt(file);
+  }
+
+  function canPreviewDeedImage(file) {
+    if (!file || isDeedPdf(file)) return false;
+    return /^(image\/(jpeg|jpg|pjpeg|png|webp|gif|bmp|avif)|)$/i.test(file.type || '') && !/^(heic|heif)$/i.test(deedExt(file));
+  }
+
   function bindDeedUpload() {
     var input = root.querySelector('#ejar-deed-file');
     if (!input) return;
     var preview = root.querySelector('.ejar-deed-upload__preview');
     var img = preview && preview.querySelector('img');
+    var fileBadge = preview && preview.querySelector('.ejar-deed-upload__file');
     var nameEl = root.querySelector('.ejar-deed-upload__name');
     var removeBtn = root.querySelector('#ejar-deed-remove');
 
     function showPreview() {
-      if (!preview || !img) return;
-      if (deedPreviewUrl) {
-        img.src = deedPreviewUrl;
-        preview.hidden = false;
-        if (nameEl) nameEl.textContent = deedFile && deedFile.name ? deedFile.name : '';
-      } else {
+      if (!preview) return;
+      if (!deedFile) {
         preview.hidden = true;
-        img.removeAttribute('src');
+        if (img) img.removeAttribute('src');
+        if (fileBadge) fileBadge.hidden = true;
         if (nameEl) nameEl.textContent = '';
+        return;
+      }
+      preview.hidden = false;
+      if (nameEl) nameEl.textContent = deedFile.name || '';
+      if (canPreviewDeedImage(deedFile) && deedPreviewUrl && img) {
+        img.hidden = false;
+        img.src = deedPreviewUrl;
+        if (fileBadge) fileBadge.hidden = true;
+      } else {
+        if (img) {
+          img.hidden = true;
+          img.removeAttribute('src');
+        }
+        if (fileBadge) {
+          fileBadge.hidden = false;
+          fileBadge.textContent = isDeedPdf(deedFile) ? 'ملف PDF جاهز للرفع' : 'المرفق جاهز للرفع';
+        }
       }
     }
 
@@ -955,12 +999,12 @@
       var file = input.files && input.files[0];
       if (!file) return;
       if (file.size > DEED_MAX_BYTES) {
-        showError('حجم صورة الصك كبير. الحد الأقصى 8 ميجا.');
+        showError('حجم المرفق كبير. الحد الأقصى ' + DEED_MAX_MB + ' ميجا.');
         input.value = '';
         return;
       }
-      if (file.type && !/^image\/(jpeg|jpg|pjpeg|png|webp)$/i.test(file.type)) {
-        showError('صيغة صورة الصك غير مدعومة. استخدم JPG أو PNG.');
+      if (!isAllowedDeedFile(file)) {
+        showError('صيغة المرفق غير مدعومة. ارفع صورة أو ملف PDF.');
         input.value = '';
         return;
       }
@@ -1227,19 +1271,21 @@
   }
 
   function deedUploadHtml() {
-    var hasFile = !!(deedFile && deedPreviewUrl);
+    var hasFile = !!deedFile;
+    var showImage = hasFile && canPreviewDeedImage(deedFile) && deedPreviewUrl;
     return '<section class="ejar-deed-upload">'
       + '<h3>إرفاق صورة الصك <small>اختياري</small></h3>'
-      + '<p>أرفق صورة واضحة للصك إن توفرت، لتسهيل مراجعة الطلب وإنشاء العقد عبر منصة إيجار.</p>'
+      + '<p>أرفق صورة أو ملف PDF للصك إن توفر، لتسهيل مراجعة الطلب وإنشاء العقد عبر منصة إيجار.</p>'
       + '<label class="ejar-deed-upload__drop">'
-      + '<input type="file" id="ejar-deed-file" accept="image/jpeg,image/png,image/webp,image/*">'
-      + '<span class="ejar-deed-upload__cta">اضغط لاختيار صورة أو التقاطها من الكاميرا</span>'
-      + '<span class="ejar-deed-upload__hint">JPG أو PNG — بحد أقصى 8 ميجا</span>'
+      + '<input type="file" id="ejar-deed-file" accept="' + DEED_ACCEPT + '">'
+      + '<span class="ejar-deed-upload__cta">اضغط لاختيار صورة أو PDF أو التقاطها من الكاميرا</span>'
+      + '<span class="ejar-deed-upload__hint">صور أو PDF — حتى ' + DEED_MAX_MB + ' ميجا</span>'
       + '</label>'
       + '<div class="ejar-deed-upload__preview"' + (hasFile ? '' : ' hidden') + '>'
-      + (hasFile ? '<img src="' + escapeHtml(deedPreviewUrl) + '" alt="معاينة صورة الصك">' : '<img alt="معاينة صورة الصك">')
+      + '<img alt="معاينة صورة الصك"' + (showImage ? ' src="' + escapeHtml(deedPreviewUrl) + '"' : ' hidden') + '>'
+      + '<p class="ejar-deed-upload__file"' + (hasFile && !showImage ? '' : ' hidden') + '>' + (hasFile && isDeedPdf(deedFile) ? 'ملف PDF جاهز للرفع' : 'المرفق جاهز للرفع') + '</p>'
       + '<p class="ejar-deed-upload__name">' + escapeHtml(deedFile && deedFile.name ? deedFile.name : '') + '</p>'
-      + '<button type="button" class="btn btn-outline ejar-deed-upload__remove" id="ejar-deed-remove">إزالة الصورة</button>'
+      + '<button type="button" class="btn btn-outline ejar-deed-upload__remove" id="ejar-deed-remove">إزالة المرفق</button>'
       + '</div></section>';
   }
 
@@ -1510,7 +1556,7 @@
         if (val == null || val === false) return;
         fd.append(key, val === true ? 'true' : String(val));
       });
-      fd.append('deedImage', deedFile, deedFile.name || 'deed.jpg');
+      fd.append('deedImage', deedFile, deedFile.name || (isDeedPdf(deedFile) ? 'deed.pdf' : 'deed.jpg'));
       body = fd;
     } else {
       headers['Content-Type'] = 'application/json';

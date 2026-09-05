@@ -11,14 +11,38 @@ const { uploadFiles } = require('../services/storage');
 const router = express.Router();
 const rateMap = new Map();
 
+const DEED_MAX_BYTES = 32 * 1024 * 1024;
+
+function deedExtFromMime(mime) {
+  const type = String(mime || '').toLowerCase();
+  if (type === 'application/pdf') return '.pdf';
+  if (type === 'image/png') return '.png';
+  if (type === 'image/webp') return '.webp';
+  if (type === 'image/gif') return '.gif';
+  if (type === 'image/bmp') return '.bmp';
+  if (type === 'image/tiff') return '.tiff';
+  if (type === 'image/heic') return '.heic';
+  if (type === 'image/heif') return '.heif';
+  if (type === 'image/avif') return '.avif';
+  if (/^image\//.test(type)) return '.jpg';
+  return '';
+}
+
+function isAllowedDeedUpload(file) {
+  if (!file) return false;
+  const mime = String(file.mimetype || '').toLowerCase();
+  const name = String(file.originalname || '');
+  const mimeOk = (/^image\//i.test(mime) && mime !== 'image/svg+xml') || mime === 'application/pdf';
+  const extOk = /\.(jpe?g|png|webp|gif|bmp|tif|tiff|heic|heif|avif|pdf)$/i.test(name);
+  return mimeOk || extOk || (!mime && !path.extname(name));
+}
+
 const deedUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 40, fieldSize: 256 * 1024 },
+  limits: { fileSize: DEED_MAX_BYTES, files: 1, fields: 40, fieldSize: 256 * 1024 },
   fileFilter(_req, file, cb) {
     if (!file || !String(file.originalname || '').trim()) return cb(null, false);
-    const mimeOk = /^image\/(jpeg|jpg|pjpeg|png|webp)$/i.test(file.mimetype || '');
-    const extOk = /\.(jpe?g|png|webp)$/i.test(file.originalname || '');
-    if (mimeOk || extOk) return cb(null, true);
+    if (isAllowedDeedUpload(file)) return cb(null, true);
     cb(new Error('نوع الملف غير مدعوم'));
   },
 });
@@ -58,13 +82,13 @@ function acceptUpload(req, res, next) {
     if (err) {
       return res.status(400).json({
         success: false,
-        message: 'تعذر رفع صورة الصك. استخدم صورة JPG أو PNG بحجم لا يتجاوز 8 ميجا.',
+        message: 'تعذر رفع مرفق الصك. استخدم صورة أو ملف PDF بحجم لا يتجاوز 32 ميجا.',
       });
     }
     const uploaded = req.files && req.files.deedImage;
     req.file = Array.isArray(uploaded) ? uploaded[0] : uploaded || req.file;
     if (req.file && !path.extname(req.file.originalname || '')) {
-      req.file.originalname = 'deed.jpg';
+      req.file.originalname = `deed${deedExtFromMime(req.file.mimetype) || '.jpg'}`;
     }
     next();
   });
@@ -96,7 +120,7 @@ router.post('/contracts', requireDb, acceptUpload, async (req, res) => {
 
     let deedImageUrl = '';
     if (req.file) {
-      const urls = await uploadFiles([req.file], 'ejar-deeds');
+      const urls = await uploadFiles([req.file], 'ejar-deeds', { compress: false });
       deedImageUrl = urls[0] || '';
       if (!deedImageUrl) {
         return res.status(500).json({ success: false, message: 'تعذر حفظ صورة الصك. يرجى المحاولة مرة أخرى.' });

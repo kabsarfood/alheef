@@ -3019,6 +3019,20 @@ body.ejar-wizard-open .ejar-sticky-bar {
   border: 1px solid var(--ejar-olive-border);
 }
 
+.ejar-deed-upload__preview img[hidden] {
+  display: none;
+}
+
+.ejar-deed-upload__file {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--ejar-olive-border);
+  font-weight: var(--ejar-fw-bold);
+  color: var(--ejar-olive);
+}
+
 .ejar-deed-upload__name {
   margin: 0.45rem 0;
   font-size: 0.8rem;

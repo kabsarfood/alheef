@@ -404,8 +404,13 @@ if (!/application\/json/.test(wizardJs) || !/JSON\.stringify\(data\)/.test(wizar
 } else ok('الإرسال يضم نوع العقد ضمن JSON أو حقل payload');
 if (!/multer/.test(apiContracts) || !/ejar-deeds/.test(apiContracts)) fail('API رفع صورة الصك');
 else ok('API يستقبل صورة الصك ويرفعها للتخزين');
-if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests)) fail('عرض صورة الصك في اللوحة');
-else ok('لوحة التحكم تعرض صورة الصك في تفاصيل الطلب');
+if (!/application\/pdf/.test(apiContracts) || !/32 \* 1024 \* 1024/.test(apiContracts) || !/compress: false/.test(apiContracts)) {
+  fail('API يقبل PDF وحجمًا أكبر دون ضغط الصك');
+} else ok('API يقبل صور وPDF حتى 32 ميجا دون ضغط المرفق');
+if (!/application\/pdf/.test(wizardJs) || !/DEED_MAX_MB = 32/.test(wizardJs)) fail('المعالج يقبل PDF وحجمًا أكبر');
+else ok('المعالج يقبل صور وPDF حتى 32 ميجا');
+if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests) || !/deedFileKind/.test(dashRequests)) fail('عرض صورة الصك في اللوحة');
+else ok('لوحة التحكم تعرض صورة الصك أو ملف PDF في تفاصيل الطلب');
 if (!/submitterName/.test(dashRequests) || !/معبئ النموذج التعاقدي/.test(dashRequests)) fail('عرض معبئ النموذج في اللوحة');
 else ok('لوحة التحكم تعرض اسم وجوال وصفة معبئ النموذج');
 if (!/subleaseTenantName/.test(dashRequests) || !/subleasePoaNumber/.test(dashRequests) || !/subtenantName/.test(dashRequests) || !/المستأجر من الباطن/.test(dashRequests) || !/عقد بالباطن/.test(dashRequests)) {

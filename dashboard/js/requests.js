@@ -97,13 +97,25 @@ function safeHttpUrl(url) {
   }
 }
 
+function deedFileKind(url) {
+  const path = String(url || '').split('?')[0].toLowerCase();
+  if (path.endsWith('.pdf')) return 'pdf';
+  if (/\.(jpe?g|png|webp|gif|bmp|avif)$/.test(path)) return 'image';
+  return 'file';
+}
+
 function deedImageHtml(url) {
   const safe = safeHttpUrl(url);
   if (!safe) return '<span>لم تُرفق</span>';
-  return `<a class="req-deed" href="${escapeCell(safe)}" target="_blank" rel="noopener noreferrer">
-    <img class="req-deed__img" src="${escapeCell(safe)}" alt="صورة الصك">
-    <span>فتح الصورة في تبويب جديد</span>
-  </a>`;
+  const kind = deedFileKind(safe);
+  if (kind === 'image') {
+    return `<a class="req-deed" href="${escapeCell(safe)}" target="_blank" rel="noopener noreferrer">
+      <img class="req-deed__img" src="${escapeCell(safe)}" alt="صورة الصك">
+      <span>فتح الصورة في تبويب جديد</span>
+    </a>`;
+  }
+  const label = kind === 'pdf' ? 'فتح ملف الصك (PDF)' : 'فتح مرفق الصك';
+  return `<a class="req-deed req-deed--file" href="${escapeCell(safe)}" target="_blank" rel="noopener noreferrer">${escapeCell(label)}</a>`;
 }
 
 function parseMessage(message) {
