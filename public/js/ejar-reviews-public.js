@@ -37,7 +37,7 @@
   fetch('/api/ejar/reviews/public')
     .then((r) => r.json())
     .then((data) => {
-      const minRequired = Number(data.minRequired) || 10;
+      const minRequired = Number(data.minRequired) || 1;
       const count = Number(data.count) || 0;
       const canShow = data.success
         && data.visible === true
@@ -57,8 +57,10 @@
   function renderReview(r) {
     const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
     const comment = r.comment ? `<p class="ejar-review-item__text">${escapeHtml(r.comment)}</p>` : '';
+    const isNew = r.isNew === true;
     return `
-      <article class="ejar-review-item">
+      <article class="ejar-review-item${isNew ? ' ejar-review-item--new' : ''}">
+        ${isNew ? '<span class="ejar-review-item__new">تقييم جديد</span>' : ''}
         <div class="ejar-review-item__stars" aria-label="${r.rating} من 5">${stars}</div>
         ${comment}
         <footer class="ejar-review-item__meta">${escapeHtml(r.displayName || 'عميل')}${r.city ? ` — ${escapeHtml(r.city)}` : ''}</footer>

@@ -271,9 +271,12 @@ app.get('*', (req, res, next) => {
       return sendPrivateOffersPage(res);
     }
 
-    if (/^\/ejar\/review\/[A-Za-z0-9_-]{20,128}$/.test(req.path)) {
+    if (/^\/ejar\/review\/[A-Za-z0-9_-]{16,128}\/?$/.test(req.path) || req.path === '/ejar-review.html') {
       const reviewPage = path.join(publicDir, 'ejar-review.html');
-      if (fs.existsSync(reviewPage)) return res.sendFile(reviewPage);
+      if (fs.existsSync(reviewPage)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return res.sendFile(reviewPage);
+      }
     }
 
     const pageMap = {

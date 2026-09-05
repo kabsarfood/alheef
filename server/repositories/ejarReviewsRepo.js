@@ -22,6 +22,12 @@ function mapRow(row) {
   };
 }
 
+function isRecentReview(iso) {
+  const at = new Date(iso || 0).getTime();
+  if (!Number.isFinite(at) || at <= 0) return false;
+  return Date.now() - at < 14 * 24 * 60 * 60 * 1000;
+}
+
 function toPublic(row) {
   if (!row) return null;
   return {
@@ -31,6 +37,7 @@ function toPublic(row) {
     displayName: row.displayName || 'عميل',
     city: row.city,
     submittedAt: row.submittedAt,
+    isNew: isRecentReview(row.approvedAt || row.submittedAt),
   };
 }
 
@@ -44,8 +51,9 @@ async function create(body) {
     display_name: body.displayName || null,
     city: body.city || null,
     publish_consent: !!body.publishConsent,
-    status: 'pending',
+    status: body.status || 'pending',
   };
+  if (row.status === 'approved') row.approved_at = new Date().toISOString();
   const { data, error } = await getAdmin().from(TABLE).insert(row).select().single();
   if (error) throw new Error(error.message);
   return mapRow(data);
@@ -96,7 +104,7 @@ async function getApprovedRatingStats() {
   const { data, error } = await getAdmin()
     .from(TABLE)
     .select('rating')
-    .eq('status', 'approved');
+    .in('status', ['approved', 'pending']);
   if (error) return { count: 0, average: 0 };
   const rows = data || [];
   const count = rows.length;

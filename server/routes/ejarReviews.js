@@ -179,9 +179,11 @@ router.post('/review/:token/submit', requireDb, async (req, res) => {
       displayName,
       city,
       publishConsent,
+      status: publishConsent ? 'approved' : 'pending',
     });
 
     await ejarReviewTokensRepo.markUsed(resolved.tokenRow.id);
+    invalidateEjarTrustStats();
 
     await adminNotificationsRepo.createEjarReviewReceived({
       reviewId: review.id,

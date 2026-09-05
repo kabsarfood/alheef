@@ -1,5 +1,5 @@
 (function () {
-  const TOKEN = (location.pathname.match(/\/ejar\/review\/([A-Za-z0-9_-]+)/) || [])[1] || '';
+  const TOKEN = readToken();
   const card = document.getElementById('review-card');
   const loading = document.getElementById('review-loading');
   let selectedRating = 0;
@@ -9,14 +9,35 @@
     return;
   }
 
+  document.body.classList.add('ejar-review-page--ready');
   init();
+
+  function readToken() {
+    const fromPath = (location.pathname.match(/\/ejar\/review\/([A-Za-z0-9_-]+)/) || [])[1] || '';
+    if (fromPath) return fromPath;
+    const params = new URLSearchParams(location.search);
+    return String(params.get('t') || params.get('token') || '').trim();
+  }
+
+  function focusReview() {
+    window.scrollTo(0, 0);
+    const target = document.getElementById('ejar-rating-section') || card;
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    const firstStar = document.querySelector('.ejar-star');
+    if (firstStar && typeof firstStar.focus === 'function') {
+      setTimeout(() => firstStar.focus(), 80);
+    }
+  }
 
   async function init() {
     try {
-      const res = await fetch(`/api/ejar/review/${encodeURIComponent(TOKEN)}`);
+      const res = await fetch(`/api/ejar/review/${encodeURIComponent(TOKEN)}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.state === 'active') {
         renderForm(data.city || '');
+        focusReview();
         return;
       }
       if (data.state === 'used') {
@@ -29,12 +50,13 @@
       }
       showMessage('invalid', 'الرابط غير صالح', data.message || 'تعذر فتح صفحة التقييم.');
     } catch {
-      showMessage('invalid', 'خطأ', 'تعذر تحميل الصفحة. حاول مرة أخرى لاحقًا.');
+      showMessage('invalid', 'خطأ', 'تعذر تحميل الصفحة. حاول مرة أخرى أو افتح الرابط في المتصفح.');
     }
   }
 
   function showMessage(kind, title, text) {
     loading?.remove();
+    card.hidden = false;
     card.innerHTML = `
       <div class="ejar-review-state ejar-review-state--${kind}">
         <h1>${escapeHtml(title)}</h1>
@@ -42,23 +64,26 @@
         <a href="/ejar" class="btn btn-primary">العودة لصفحة عقود الإيجار</a>
       </div>
     `;
+    window.scrollTo(0, 0);
   }
 
   function renderForm(defaultCity) {
     loading?.remove();
+    card.hidden = false;
     card.innerHTML = `
       <header class="ejar-review-card__head">
+        <p class="ejar-review-kicker">تقييم الخدمة</p>
         <h1>قيّم تجربتك مع خدمة عقود الإيجار</h1>
-        <p>رأيك يساعدنا على تحسين الخدمة. التقييم يخضع للمراجعة قبل النشر.</p>
+        <p>اختر النجوم أولًا، ثم أرسل التقييم ليظهر في صفحة العقود داخل المنصة.</p>
       </header>
       <form id="review-form" class="ejar-review-form" novalidate>
         <input type="text" name="website" class="ejar-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <div class="form-group" id="ejar-rating-section">
+        <div class="form-group ejar-review-form__rating" id="ejar-rating-section">
           <label>التقييم</label>
           <div class="ejar-stars" id="stars" role="radiogroup" aria-label="اختر عدد النجوم">
             ${[5, 4, 3, 2, 1].map((n) => `<button type="button" class="ejar-star" data-value="${n}" aria-label="${n} نجوم">★</button>`).join('')}
           </div>
-          <p class="form-hint" id="rating-hint">اختر من 1 إلى 5 نجوم</p>
+          <p class="form-hint" id="rating-hint">اضغط على النجوم من 1 إلى 5</p>
         </div>
         <div class="form-group">
           <label for="comment">تعليقك (اختياري)</label>
@@ -81,8 +106,8 @@
           <input type="text" id="city" name="city" maxlength="60" value="${escapeAttr(defaultCity)}">
         </div>
         <label class="ejar-consent">
-          <input type="checkbox" id="publish-consent" name="publishConsent">
-          <span>أوافق على نشر تقييمي في صفحة عقود الإيجار بعد مراجعته</span>
+          <input type="checkbox" id="publish-consent" name="publishConsent" checked>
+          <span>أوافق على نشر تقييمي في صفحة عقود الإيجار</span>
         </label>
         <button type="submit" class="btn btn-primary" id="submit-btn">إرسال التقييم</button>
         <p class="form-error" id="form-error" hidden></p>
@@ -113,6 +138,7 @@
     if (!selectedRating) {
       errEl.textContent = 'يرجى اختيار تقييم من 1 إلى 5 نجوم';
       errEl.hidden = false;
+      document.getElementById('ejar-rating-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -144,7 +170,7 @@
         }
         throw new Error(data.message || 'تعذر إرسال التقييم');
       }
-      showMessage('success', 'شكرًا لتقييمك', 'تم استلام تقييمك وسيتم مراجعته قبل النشر.');
+      showMessage('success', 'شكرًا لتقييمك', 'تم استلام تقييمك وسيظهر في صفحة العقود داخل المنصة.');
     } catch (err) {
       errEl.textContent = err.message || 'تعذر إرسال التقييم';
       errEl.hidden = false;

@@ -4,7 +4,7 @@
   var root = document.getElementById('ejar-proof');
   if (!root) return;
 
-  var REFRESH_MS = 75000;
+  var REFRESH_MS = 20000;
   var animated = false;
   var latest = null;
 

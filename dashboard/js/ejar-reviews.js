@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="filter-bar" style="margin-bottom:1rem">
           <select id="status-filter" class="form-control" style="max-width:260px">
+            <option value="all">الكل</option>
             <option value="pending">بانتظار المراجعة</option>
             <option value="approved">معتمد</option>
             <option value="hidden">مخفي</option>
-            <option value="all">الكل</option>
           </select>
         </div>
         <div id="list-wrap"><div class="loading"><div class="spinner"></div></div></div>
@@ -81,11 +81,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const stars = '⭐'.repeat(r.rating);
     const statusLabel = r.status === 'pending' ? 'بانتظار المراجعة' : r.status === 'approved' ? 'معتمد' : 'مخفي';
     const consent = r.publishConsent ? 'موافق على النشر' : 'بدون موافقة نشر';
+    const submitted = new Date(r.submittedAt || r.createdAt || 0).getTime();
+    const isNew = Number.isFinite(submitted) && Date.now() - submitted < 14 * 24 * 60 * 60 * 1000;
     return `
-      <article class="offer-admin-card" data-review-id="${r.id}">
+      <article class="offer-admin-card${isNew ? ' offer-admin-card--highlight' : ''}" data-review-id="${r.id}">
         <div class="offer-admin-card__head">
           <strong>${stars}</strong>
-          <span class="badge">${statusLabel}</span>
+          <span class="badge">${isNew ? 'تقييم جديد — ' : ''}${statusLabel}</span>
         </div>
         <p>${escapeHtml(r.comment || '—')}</p>
         <ul class="offer-admin-card__meta">

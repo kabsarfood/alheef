@@ -8,7 +8,7 @@ const {
   getReviewsBase,
 } = require('../utils/ejarReviewConfig');
 
-const CACHE_MS = 45000;
+const CACHE_MS = 15000;
 let cache = { at: 0, value: null };
 
 function invalidateEjarTrustStats() {

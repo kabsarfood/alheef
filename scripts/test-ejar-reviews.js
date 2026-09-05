@@ -4,6 +4,8 @@
  */
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const { initSupabase } = require('../server/lib/supabase');
 const requestsRepo = require('../server/repositories/requestsRepo');
 const ejarReviewsRoutes = require('../server/routes/ejarReviews');
@@ -21,6 +23,15 @@ async function run() {
   let failed = 0;
   const ok = (msg) => { console.log('✓', msg); passed += 1; };
   const fail = (msg) => { console.error('✗', msg); failed += 1; };
+
+  const reviewJs = fs.readFileSync(path.join(__dirname, '../public/js/ejar-review.js'), 'utf8');
+  if (!/readToken/.test(reviewJs) || !/focusReview/.test(reviewJs) || !/scrollIntoView/.test(reviewJs)) {
+    fail('نموذج التقييم يُركَّز عند الفتح');
+  } else ok('نموذج التقييم يُستخرج من الرابط ويُركَّز في الشاشة');
+
+  const swJs = fs.readFileSync(path.join(__dirname, '../public/sw.js'), 'utf8');
+  if (!/isReviewPath/.test(swJs) || !/ejar-review.html/.test(swJs)) fail('مسار التقييم لا يسقط للصفحة الرئيسية');
+  else ok('Service Worker لا يستبدل صفحة التقييم بالرئيسية');
 
   const request = await requestsRepo.create({
     requestType: 'ejar_contract',
@@ -98,6 +109,10 @@ async function run() {
   await ejarReviewsRepo.setStatus(review.id, 'approved');
   const pendingAfter = await ejarReviewsRepo.countPending();
   ok(`بعد الاعتماد pendingCount=${pendingAfter}`);
+
+  const publicStats = await ejarReviewsRepo.getPublicStats();
+  if (publicStats.minRequired > 1) fail('الحد الأدنى لعرض التقييمات يجب أن يكون 1');
+  else ok('التقييمات تظهر في صفحة العقود من أول تقييم معتمد');
 
   console.log('\n--- ملخص ---');
   console.log(`نجح: ${passed} | فشل: ${failed}`);

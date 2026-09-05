@@ -1839,11 +1839,25 @@
   --ejar-ticker-h: 0px;
   padding-top: var(--header-h);
   padding-bottom: 0;
+  background:
+    radial-gradient(900px 420px at 50% -10%, rgba(197, 164, 109, 0.22), transparent 58%),
+    #f7f3ea;
 }
 
 .ejar-review-main {
   padding: 1.25rem 0 3rem;
   min-height: calc(100dvh - var(--header-h));
+}
+
+.ejar-review-kicker {
+  display: inline-block;
+  margin: 0 0 0.55rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--gold-subtle, #f4ead4);
+  color: var(--navy);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .ejar-review-card {
@@ -1903,16 +1917,23 @@
   gap: 0.35rem;
 }
 
+.ejar-review-form__rating {
+  padding: 0.85rem 0.75rem 1rem;
+  border-radius: 16px;
+  background: #fffdf8;
+  border: 1px solid var(--ejar-olive-border, rgba(61, 82, 68, 0.18));
+}
+
 .ejar-star {
-  font-size: 2rem;
+  font-size: 2.4rem;
   line-height: 1;
   border: none;
   background: transparent;
   color: #d1d5db;
   cursor: pointer;
   padding: 0.15rem;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 48px;
 }
 
 .ejar-star.is-active,
@@ -1995,7 +2016,7 @@
   }
 
   .ejar-review-page .ejar-star {
-    font-size: 2.15rem;
+    font-size: 2.55rem;
   }
 
   .ejar-review-page .btn {
@@ -2047,6 +2068,22 @@
   margin: 0 0 0.75rem;
   color: var(--navy);
   line-height: 1.7;
+}
+
+.ejar-review-item--new {
+  border-color: rgba(197, 164, 109, 0.55);
+  box-shadow: 0 10px 24px rgba(197, 164, 109, 0.12);
+}
+
+.ejar-review-item__new {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--gold-subtle, #f4ead4);
+  color: var(--navy);
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .ejar-review-item__meta {

@@ -37,6 +37,10 @@ function isPrivatePath(url) {
   return /^\/(?:v|p)\/[A-Za-z0-9_-]{8,64}\/?$/.test(url.pathname);
 }
 
+function isReviewPath(url) {
+  return url.pathname.startsWith('/ejar/review') || url.pathname === '/ejar-review.html';
+}
+
 async function networkFirst(request, fallbackUrl) {
   const cache = await caches.open(CACHE_NAME);
   try {
@@ -113,6 +117,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isHtmlRequest(request, url)) {
+    if (isReviewPath(url)) {
+      event.respondWith(networkFirst(request, '/ejar-review.html'));
+      return;
+    }
     if (isPrivatePath(url)) {
       event.respondWith(networkFirst(request));
       return;

@@ -8,7 +8,7 @@ module.exports = {
     return intEnv('EJAR_REVIEW_LINK_EXPIRY_DAYS', 30);
   },
   getMinReviewsToDisplay() {
-    return intEnv('EJAR_REVIEWS_MIN_TO_DISPLAY', 10);
+    return intEnv('EJAR_REVIEWS_MIN_TO_DISPLAY', 1);
   },
   getMaxCommentLength() {
     return intEnv('EJAR_REVIEW_MAX_COMMENT', 1000);
