@@ -229,31 +229,34 @@ async function initAdminNotifications() {
       });
 
       host.querySelectorAll('[data-notif-review]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
           const id = btn.dataset.notifId;
           if (id) await DashboardAPI.markNotificationRead(id).catch(() => {});
           if (window.AlheefPWA) {
             const remaining = Math.max(0, unreadCount - 1);
             window.AlheefPWA.setBadge(remaining);
           }
-          window.location.href = `/dashboard/property-reviews.html?property=${btn.dataset.propertyId || ''}`;
+          goDashboardUrl(`/dashboard/property-reviews.html?property=${btn.dataset.propertyId || ''}`);
         });
       });
 
       host.querySelectorAll('[data-notif-ejar-review]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
           const id = btn.dataset.notifId;
           if (id) await DashboardAPI.markNotificationRead(id).catch(() => {});
           if (window.AlheefPWA) {
             const remaining = Math.max(0, unreadCount - 1);
             window.AlheefPWA.setBadge(remaining);
           }
-          window.location.href = `/dashboard/ejar-reviews.html?review=${btn.dataset.reviewId || ''}`;
+          goDashboardUrl(`/dashboard/ejar-reviews.html?review=${btn.dataset.reviewId || ''}`);
         });
       });
 
       host.querySelectorAll('[data-notif-client-request]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
           const id = btn.dataset.notifId;
           if (id) await DashboardAPI.markNotificationRead(id).catch(() => {});
           if (window.AlheefPWA) {
@@ -262,9 +265,9 @@ async function initAdminNotifications() {
           }
           const requestId = btn.dataset.requestId || '';
           const type = btn.dataset.requestType || '';
-          window.location.href = type === 'marketer_join'
-            ? `/dashboard/marketer-requests.html?request=${requestId}`
-            : `/dashboard/requests.html?request=${requestId}`;
+          goDashboardUrl(type === 'marketer_join'
+            ? `/dashboard/marketer-requests.html?request=${encodeURIComponent(requestId)}`
+            : `/dashboard/requests.html?request=${encodeURIComponent(requestId)}`);
         });
       });
     } catch {
@@ -300,7 +303,7 @@ function renderNotifTime(n) {
 
 function renderNotifCta({ isRead, attrs, label }) {
   if (isRead) {
-    return `<button type="button" class="btn btn-outline btn-sm notif-item__cta notif-item__cta--read" ${attrs}>مقروء</button>`;
+    return `<button type="button" class="btn btn-outline btn-sm notif-item__cta notif-item__cta--read" ${attrs}>عرض</button>`;
   }
   return `<button type="button" class="btn btn-primary btn-sm notif-item__cta" ${attrs}>${escapeLayoutHtml(label)}</button>`;
 }
@@ -442,18 +445,44 @@ function getNotificationBody(n) {
   return n.title || 'إشعار جديد';
 }
 
+function closeNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (panel) panel.hidden = true;
+  _notifPanelOpen = false;
+  document.getElementById('notif-toggle')?.setAttribute('aria-expanded', 'false');
+}
+
+function sameDashboardPath(pathname, destPath) {
+  const a = String(pathname || '').replace(/\/+$/, '');
+  const b = String(destPath || '').replace(/\/+$/, '');
+  return a === b || a.endsWith(b) || b.endsWith(a);
+}
+
+function goDashboardUrl(url) {
+  const dest = new URL(url, window.location.origin);
+  const onRequests = sameDashboardPath(window.location.pathname, '/dashboard/requests.html');
+  if (onRequests && dest.pathname.includes('requests.html')) {
+    const requestId = dest.searchParams.get('request') || '';
+    window.history.replaceState({}, '', dest.pathname + dest.search);
+    window.dispatchEvent(new CustomEvent('alheef:open-request', { detail: { id: requestId } }));
+    closeNotifPanel();
+    return;
+  }
+  window.location.href = dest.pathname + dest.search;
+}
+
 function getNotificationAction(n) {
   const p = n.payload || {};
   if (n.type === 'ejar_review_received') {
-    return { url: `/dashboard/ejar-reviews.html?review=${p.reviewId || ''}`, label: n.isRead ? 'مقروء' : 'فتح التقييم' };
+    return { url: `/dashboard/ejar-reviews.html?review=${p.reviewId || ''}`, label: n.isRead ? 'عرض' : 'فتح التقييم' };
   }
   if (n.type === 'customer_request_received') {
     if (p.requestType === 'marketer_join') {
-      return { url: `/dashboard/marketer-requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'مقروء' : 'عرض الطلب' };
+      return { url: `/dashboard/marketer-requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'عرض' : 'عرض الطلب' };
     }
-    return { url: `/dashboard/requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'مقروء' : 'عرض الطلب' };
+    return { url: `/dashboard/requests.html?request=${p.requestId || ''}`, label: n.isRead ? 'عرض' : 'عرض الطلب' };
   }
-  return { url: `/dashboard/property-reviews.html?property=${n.propertyId || ''}`, label: n.isRead ? 'مقروء' : 'فتح' };
+  return { url: `/dashboard/property-reviews.html?property=${n.propertyId || ''}`, label: n.isRead ? 'عرض' : 'فتح' };
 }
 
 function dismissAdminNotificationToast() {
@@ -465,7 +494,7 @@ function dismissAdminNotificationToast() {
 async function openAdminNotificationToast(n) {
   if (n?.id) await DashboardAPI.markNotificationRead(n.id).catch(() => {});
   dismissAdminNotificationToast();
-  window.location.href = getNotificationAction(n).url;
+  goDashboardUrl(getNotificationAction(n).url);
 }
 
 function showAdminNotificationToast(freshNotifications) {

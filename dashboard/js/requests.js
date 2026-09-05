@@ -1,8 +1,39 @@
+let requestsCache = [];
+
+function sameId(a, b) {
+  return String(a || '') === String(b || '');
+}
+
+function findRequest(id) {
+  return requestsCache.find((r) => sameId(r.id, id));
+}
+
+function openRequestById(id) {
+  const row = findRequest(id);
+  if (!row) {
+    showToast('تعذر العثور على الطلب', 'error');
+    return;
+  }
+  try {
+    openRequestModal(row);
+  } catch (err) {
+    console.error(err);
+    showToast('تعذر فتح تفاصيل الطلب', 'error');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const highlightId = new URLSearchParams(location.search).get('request');
   await initLayout('requests', 'طلبات العملاء');
   const content = getPageContent();
   content.innerHTML = '<div class="card"><div class="card__body" id="table-wrap"><div class="loading"><div class="spinner"></div></div></div></div>';
+
+  window.addEventListener('alheef:open-request', (e) => {
+    const id = e.detail?.id;
+    if (!id) return;
+    openRequestById(id);
+    highlightRequestRow(id);
+  });
 
   try {
     const rows = await DashboardAPI.getRequests();
@@ -11,16 +42,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (highlightId) {
       await DashboardAPI.markCustomerRequestNotificationRead(highlightId).catch(() => {});
-      setTimeout(() => {
-        const el = document.querySelector(`[data-request-id="${highlightId}"]`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el?.classList.add('table-row--highlight');
-      }, 400);
+      highlightRequestRow(highlightId);
     }
   } catch {
     content.querySelector('#table-wrap').innerHTML = '<p class="empty-state">تعذر تحميل البيانات</p>';
   }
 });
+
+function highlightRequestRow(id) {
+  setTimeout(() => {
+    const el = document.querySelector(`[data-request-id="${CSS.escape ? CSS.escape(String(id)) : String(id)}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelectorAll('.table-row--highlight').forEach((row) => row.classList.remove('table-row--highlight'));
+    el?.classList.add('table-row--highlight');
+  }, 400);
+}
 
 const REQUEST_TYPE_LABELS = {
   property_search: 'طلب عقار',
@@ -137,8 +173,9 @@ function dateFieldHtml(iso) {
 }
 
 function renderRequestsPage(content, list, highlightId) {
-  const ejar = list.filter((r) => r.requestType === 'ejar_contract');
-  const others = list.filter((r) => r.requestType !== 'ejar_contract');
+  requestsCache = Array.isArray(list) ? list : [];
+  const ejar = requestsCache.filter((r) => r.requestType === 'ejar_contract');
+  const others = requestsCache.filter((r) => r.requestType !== 'ejar_contract');
   content.querySelector('#table-wrap').innerHTML = `
     <div class="req-page-head">
       <h3>الطلبات (${list.length})</h3>
@@ -151,7 +188,6 @@ function renderRequestsPage(content, list, highlightId) {
       <h4>طلبات أخرى</h4>
       ${renderOtherTable(others)}
     </section>
-    <div class="modal" id="req-modal" hidden></div>
   `;
 
   content.querySelectorAll('[data-ejar-review-link]').forEach((btn) => {
@@ -161,18 +197,29 @@ function renderRequestsPage(content, list, highlightId) {
     });
   });
   content.querySelectorAll('[data-open-request]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const row = list.find((r) => r.id === el.dataset.openRequest);
-      if (row) openRequestModal(row);
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.req-copy') || e.target.closest('[data-ejar-review-link]')) return;
+      if (el.tagName === 'TR' && e.target.closest('button[data-open-request]')) return;
+      e.stopPropagation();
+      openRequestById(el.dataset.openRequest);
     });
   });
   content.querySelectorAll('.req-copy').forEach(bindCopy);
-  bindModal(content.querySelector('#req-modal'));
+  ensureRequestModal();
 
-  if (highlightId) {
-    const highlighted = list.find((r) => r.id === highlightId);
-    if (highlighted) openRequestModal(highlighted);
-  }
+  if (highlightId) openRequestById(highlightId);
+}
+
+function ensureRequestModal() {
+  let modal = document.getElementById('req-modal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'req-modal';
+  modal.className = 'modal';
+  modal.hidden = true;
+  document.body.appendChild(modal);
+  bindModal(modal);
+  return modal;
 }
 
 function renderEjarTable(rows) {
@@ -240,7 +287,7 @@ function statusSelect(current) {
 }
 
 function openRequestModal(row) {
-  const modal = document.getElementById('req-modal');
+  const modal = ensureRequestModal();
   if (!modal) return;
   const p = parseMessage(row.message);
   const wizard = row.requestType === 'ejar_contract' && isEjarWizard(p);
@@ -303,8 +350,8 @@ function openRequestModal(row) {
         rowItem('سعر الخدمة', p.servicePrice != null ? `${p.servicePrice} ريال` : '—'),
       ]),
       sectionBlock('معبئ النموذج التعاقدي', [
-        rowItem('الاسم', p.submitterName || r.customerName),
-        rowItem('الجوال', p.submitterPhone || r.customerPhone, { copy: true }),
+        rowItem('الاسم', p.submitterName || row.customerName),
+        rowItem('الجوال', p.submitterPhone || row.customerPhone, { copy: true }),
         rowItem('الصفة', p.submitterRelation),
       ]),
     ].join('');
