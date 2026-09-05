@@ -199,7 +199,7 @@
         var type = btn.getAttribute('data-ejar-contract');
         selectedContract = type;
         applyPhoneDisplays();
-        trackEvent(type === 'residential' ? 'ejar_residential_select' : 'ejar_commercial_select');
+        trackEvent(type === 'residential' ? 'ejar_residential_select' : (type === 'sublease' ? 'ejar_sublease_select' : 'ejar_commercial_select'));
         if (window.EjarWizard && typeof window.EjarWizard.open === 'function') {
           window.EjarWizard.open(type);
           trackEvent('ejar_start_contract', { contractType: type, wizard: true });
@@ -314,7 +314,7 @@
     try {
       var params = new URLSearchParams(window.location.search);
       var create = String(params.get('create') || '').trim().toLowerCase();
-      if (create === 'commercial' || create === 'residential') return create;
+      if (create === 'commercial' || create === 'residential' || create === 'sublease') return create;
       if (create === '1' || create === 'true' || create === 'start') return '';
     } catch (_) { /* noop */ }
     var hash = String(window.location.hash || '').replace(/^#/, '').toLowerCase();

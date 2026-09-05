@@ -18,7 +18,9 @@ function isWhatsAppApiEnabled() {
 
 function buildOfficeMessage(request) {
   const payload = parsePayload(request.message);
-  const kind = payload.contractKind === 'commercial' ? 'تجاري' : 'سكني';
+  const kind = payload.contractKind === 'sublease' || payload.contractType === 'عقد بالباطن'
+    ? 'عقد بالباطن'
+    : payload.contractKind === 'commercial' ? 'تجاري' : 'سكني';
   const ref = request.referenceNo || payload.referenceNo || request.id;
   const rent = payload.rentAmount != null ? `${payload.rentAmount} ريال` : '—';
   const payment = payload.paymentMethod || '—';
@@ -29,12 +31,19 @@ function buildOfficeMessage(request) {
     '',
     `رقم الطلب: ${ref}`,
     `النوع: ${kind}`,
+    `حالة التعاقد: ${payload.contractingStatus || '—'}`,
+    payload.contractingStatus === 'عقد بالباطن'
+      ? `المستأجر من الباطن: ${payload.subtenantName || '—'}`
+      : null,
+    `معبئ النموذج: ${payload.submitterName || '—'}`,
+    `صفته: ${payload.submitterRelation || '—'}`,
+    `جوال المعبئ: ${payload.submitterPhone || '—'}`,
     `قيمة الإيجار: ${rent}`,
     `طريقة الدفع: ${payment}`,
     'الحالة: جديد',
     '',
     `فتح الطلب: ${adminUrl}`,
-  ].join('\n');
+  ].filter((line) => line != null).join('\n');
 }
 
 async function notifyOfficeNewEjarContract(request) {

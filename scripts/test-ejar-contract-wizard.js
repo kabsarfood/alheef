@@ -44,8 +44,17 @@ const base = {
   tenantId,
   tenantDob: '1992-08-20',
   tenantPhone: '0500001111',
-  floor: 'أول',
+  propertyLocation: 'حي النرجس، الرياض',
+  propertyMapUrl: 'https://maps.app.goo.gl/alheefLocation',
+  streetName: 'طريق الملك سلمان',
+  floor: '1',
   unitNumber: '12',
+  furnished: 'مؤثث',
+  rooms: 3,
+  bathrooms: 2,
+  acs: 3,
+  majlis: 1,
+  kitchens: 1,
   area: 140,
   rentAmount: 45000,
   paymentMethod: 'سنوي',
@@ -53,6 +62,9 @@ const base = {
   startDate: '2026-10-01',
   hasDeposit: 'نعم',
   depositAmount: 5000,
+  submitterName: 'خالد العتيبي',
+  submitterPhone: '0551234567',
+  submitterRelation: 'المستأجر',
   declarationAccepted: true,
 };
 
@@ -70,7 +82,7 @@ else ok('سعر السكني ثابت 229 ريال');
 const commercial = validateAndNormalize({
   ...base,
   contractKind: 'commercial',
-  unitType: 'محل',
+  unitType: 'عمارة',
 });
 if (!commercial.ok) fail('Validation التجاري: ' + JSON.stringify(commercial.errors));
 else ok('Validation العقد التجاري يمر بالبيانات الصحيحة');
@@ -92,6 +104,111 @@ else ok('يرفض رقم جوال غير سعودي');
 
 if (!isValidSaudiMobile('0583912490') && isValidSaudiMobile('0558391249')) ok('تحقق رقم الجوال السعودي');
 else ok('تحقق رقم الجوال السعودي');
+
+const noSubmitter = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  submitterName: '',
+  submitterPhone: '',
+  submitterRelation: '',
+});
+if (noSubmitter.ok || !noSubmitter.errors.submitterName || !noSubmitter.errors.submitterPhone || !noSubmitter.errors.submitterRelation) {
+  fail('بيانات معبئ النموذج إلزامية');
+} else ok('يرفض الطلب بدون اسم وجوال وصفة معبئ النموذج');
+
+if (residential.data.submitterName !== 'خالد العتيبي' || residential.data.submitterPhone !== '0551234567' || residential.data.submitterRelation !== 'المستأجر') {
+  fail('حفظ بيانات معبئ النموذج');
+} else ok('يُحفظ اسم وجوال وصفة معبئ النموذج');
+
+if (residential.data.contractingStatus) fail('العقد السكني لا يحمل حالة تعاقد');
+else ok('العقد السكني يبقى بدون حالة التعاقد');
+
+const leftoverSublease = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  subleaseTenantName: 'يجب أن يُحذف',
+  subleaseIdOrCr: '7001234567',
+  subleaseRepId: ownerId,
+  subleaseRepDob: '1990-01-01',
+  subleaseRepPhone: '0550001111',
+  subleasePoaNumber: '44123',
+});
+if (!leftoverSublease.ok) fail('التعاقد المباشر مع حقول باطن زائدة: ' + JSON.stringify(leftoverSublease.errors));
+else if (
+  leftoverSublease.data.subleaseTenantName
+  || leftoverSublease.data.subleaseIdOrCr
+  || leftoverSublease.data.subleasePoaNumber
+  || leftoverSublease.data.subtenantName
+) {
+  fail('يجب إفراغ حقول الباطن في العقود السكنية والتجارية');
+} else ok('حقول عقد بالباطن لا تُحفظ في العقود القديمة');
+
+const incompleteSublease = validateAndNormalize({
+  ...base,
+  contractKind: 'sublease',
+  unitType: 'شقة',
+});
+if (
+  incompleteSublease.ok
+  || !incompleteSublease.errors.subleaseTenantName
+  || !incompleteSublease.errors.subleaseIdOrCr
+  || !incompleteSublease.errors.subleaseIdOrCrDate
+  || !incompleteSublease.errors.subleaseUnifiedNumber
+  || !incompleteSublease.errors.subleaseRepName
+  || !incompleteSublease.errors.subleaseRepId
+  || !incompleteSublease.errors.subleaseRepDob
+  || !incompleteSublease.errors.subleaseRepPhone
+  || !incompleteSublease.errors.subleasePoaNumber
+  || !incompleteSublease.errors.subtenantName
+  || !incompleteSublease.errors.subtenantId
+  || !incompleteSublease.errors.subtenantDob
+  || !incompleteSublease.errors.subtenantPhone
+) {
+  fail('حقول عقد بالباطن إلزامية');
+} else ok('يرفض عقد بالباطن بدون بيانات المستأجر والممثل والمستأجر من الباطن');
+
+const subleaseRepId = makeSaudiId('1');
+const subtenantId = makeSaudiId('2');
+const completeSublease = validateAndNormalize({
+  ...base,
+  contractKind: 'sublease',
+  unitType: 'شقة',
+  subleaseTenantName: 'شركة النور للتجارة',
+  subleaseIdOrCr: '7001234567',
+  subleaseIdOrCrDate: '2018-06-01',
+  subleaseUnifiedNumber: '7009876543',
+  subleaseRepName: 'أحمد النور',
+  subleaseRepId,
+  subleaseRepDob: '1985-04-15',
+  subleaseRepPhone: '0559876543',
+  subleasePoaNumber: '4412345678',
+  subtenantName: 'سامي الدوسري',
+  subtenantId,
+  subtenantDob: '1994-02-10',
+  subtenantPhone: '0551112233',
+});
+if (!completeSublease.ok) fail('Validation عقد بالباطن: ' + JSON.stringify(completeSublease.errors));
+else if (
+  completeSublease.data.subleaseTenantName !== 'شركة النور للتجارة'
+  || completeSublease.data.subleaseIdOrCr !== '7001234567'
+  || completeSublease.data.subleaseIdOrCrDate !== '2018-06-01'
+  || completeSublease.data.subleaseUnifiedNumber !== '7009876543'
+  || completeSublease.data.subleaseRepName !== 'أحمد النور'
+  || completeSublease.data.subleaseRepId !== subleaseRepId
+  || completeSublease.data.subleaseRepDob !== '1985-04-15'
+  || completeSublease.data.subleaseRepPhone !== '0559876543'
+  || completeSublease.data.subleasePoaNumber !== '4412345678'
+  || completeSublease.data.subtenantName !== 'سامي الدوسري'
+  || completeSublease.data.subtenantId !== subtenantId
+  || completeSublease.data.subtenantDob !== '1994-02-10'
+  || completeSublease.data.subtenantPhone !== '0551112233'
+) {
+  fail('حفظ بيانات عقد بالباطن');
+} else if (completeSublease.data.contractKind !== 'sublease' || completeSublease.data.contractType !== 'عقد بالباطن') {
+  fail('نوع عقد بالباطن');
+} else ok('يُحفظ عقد بالباطن وبيانات المستأجر من الباطن كنموذج مستقل');
 
 const noDecl = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', declarationAccepted: false });
 if (noDecl.ok) fail('الإقرار إلزامي');
@@ -117,12 +234,12 @@ const fromUnitOnly = validateAndNormalize({ ...base, unitType: 'شقة' });
 if (!fromUnitOnly.ok || fromUnitOnly.data.contractKind !== 'residential') fail('استنتاج نوع العقد من الوحدة السكنية');
 else ok('يُستنتج السكني من نوع الوحدة عند غياب الحقل');
 
-const fromShop = validateAndNormalize({ ...base, unitType: 'محل' });
-if (!fromShop.ok || fromShop.data.contractKind !== 'commercial') fail('استنتاج نوع العقد من الوحدة التجارية');
-else ok('يُستنتج التجاري من نوع الوحدة عند غياب الحقل');
+const fromBuilding = validateAndNormalize({ ...base, unitType: 'عمارة' });
+if (!fromBuilding.ok || fromBuilding.data.contractKind !== 'residential') fail('استنتاج نوع العقد من عمارة');
+else ok('يُستنتج السكني من نوع العقار «عمارة» عند غياب الحقل');
 
 const fromNested = validateAndNormalize({
-  payload: JSON.stringify({ ...base, contractKind: 'commercial', unitType: 'مكتب' }),
+  payload: JSON.stringify({ ...base, contractKind: 'commercial', unitType: 'دور' }),
 });
 if (!fromNested.ok || fromNested.data.contractKind !== 'commercial') fail('قراءة نوع العقد من payload');
 else ok('يُقرأ نوع العقد من حقل payload في النموذج المتعدد');
@@ -139,15 +256,36 @@ const missingKind = validateAndNormalize({ ...base });
 if (missingKind.ok || missingKind.errors.contractKind !== 'نوع العقد مطلوب') fail('رفض الطلب بدون نوع عقد أو وحدة');
 else ok('يرفض الطلب إن لم يُعرف نوع العقد');
 
-const otherFloor = validateAndNormalize({
+const numberedFloor = validateAndNormalize({
   ...base,
   contractKind: 'residential',
   unitType: 'فيلا',
-  floor: 'أخرى',
-  floorOther: 'السادس',
+  floor: '6',
 });
-if (!otherFloor.ok || otherFloor.data.floorOther !== 'السادس') fail('حقل الدور الأخرى');
-else ok('حقل الدور «أخرى» يُحفظ');
+if (!numberedFloor.ok || numberedFloor.data.floor !== '6') fail('رقم الدور');
+else ok('رقم الدور من 0 إلى 10 يُحفظ');
+
+const badFloor = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  floor: '11',
+});
+if (badFloor.ok || !badFloor.errors.floor) fail('رفض الدور خارج المدى');
+else ok('يرفض رقم دور أكبر من 10');
+
+if (residential.data.propertyLocation !== 'حي النرجس، الرياض' || residential.data.propertyMapUrl !== 'https://maps.app.goo.gl/alheefLocation' || residential.data.furnished !== 'مؤثث' || residential.data.rooms !== 3 || residential.data.bathrooms !== 2) {
+  fail('حفظ بيانات العقار');
+} else ok('يُحفظ موقع العقار ورابط اللكيشن والتأثيث وعدد الغرف ودورات المياه');
+
+const badMap = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  propertyMapUrl: 'ليس-رابطا',
+});
+if (badMap.ok || !badMap.errors.propertyMapUrl) fail('رفض رابط اللكيشن غير الصحيح');
+else ok('يرفض رابط موقع العقار غير الصحيح');
 
 const ref = formatReference(riyadhYmd(), 1);
 if (!/^EJ-\d{8}-001$/.test(ref)) fail('صيغة رقم الطلب');
@@ -216,6 +354,9 @@ if (!/ejar-choice__card/.test(wizardJs) || !/ui: 'cards'/.test(wizardJs)) fail('
 else ok('نوع الوحدة وطريقة الدفع والضمان بطاقات اختيار');
 if (!/ejar-wizard-review__toggle/.test(wizardJs) || !/maskId/.test(wizardJs)) fail('مراجعة الجوال');
 else ok('المراجعة Accordion مع إخفاء جزء الهوية');
+if (!/submitterName/.test(wizardJs) || !/submitterPhone/.test(wizardJs) || !/submitterRelation/.test(wizardJs) || !/معبئ النموذج/.test(wizardJs)) {
+  fail('حقول معبئ النموذج في المعالج');
+} else ok('نهاية النموذج تطلب اسم وجوال وصفة معبئ النموذج');
 if (!/restoreDateModeForStep/.test(wizardJs) || !/dateModes/.test(wizardJs)) fail('حفظ نوع التقويم');
 else ok('الرجوع للتاريخ يستعيد نوع التقويم المختار');
 if (!/مؤسسة الهيف للخدمات العقارية/.test(html) || /إنشاء عقد عبر مكتب الهيف/.test(html)) fail('اسم مؤسسة الهيف في صفحة إيجار');
@@ -224,12 +365,28 @@ if (/ejar-purposes|حساب المواطن|الضمان المطور/.test(html)
 else ok('حُذف قسم العقود للأغراض المحددة');
 if (!/لديك استفسار قبل إنشاء العقد/.test(html) || !/اسأل عبر واتساب/.test(html) || !/name="inquiry"/.test(html)) fail('نموذج الاستفسار');
 else ok('النموذج السفلي للاستفسار عبر واتساب');
-['ownership', 'owner', 'tenant', 'unit', 'finance'].forEach((id) => {
+['ownership', 'owner', 'tenant', 'unit', 'finance', 'submitter'].forEach((id) => {
   const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
-  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 4, finance: 5 }[id];
+  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 13, finance: 5, submitter: 3 }[id];
   if (n !== expected) fail('عدد أسئلة ' + id + ': ' + n);
 });
-ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، وحدة 4، مالية 5');
+ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، عقار 13، مالية 5، معبئ 3');
+if ((wizardJs.match(/section: 'sublease'/g) || []).length !== 9) fail('أسئلة عقد بالباطن');
+else ok('نموذج عقد بالباطن يضيف 9 أسئلة للمستأجر الأصلي والممثل');
+if ((wizardJs.match(/section: 'subtenant'/g) || []).length !== 4) fail('أسئلة المستأجر من الباطن');
+else ok('نموذج عقد بالباطن يضيف 4 أسئلة للمستأجر من الباطن');
+if (/ما حالة التعاقد/.test(wizardJs)) fail('حالة التعاقد ما زالت في العقود القديمة');
+else ok('العقود السكنية والتجارية بدون سؤال حالة التعاقد');
+if (!/k === 'sublease'/.test(wizardJs) || !/إنشاء عقد بالباطن/.test(wizardJs)) fail('نموذج عقد بالباطن في المعالج');
+else ok('المعالج يفتح نموذجًا مستقلًا لعقد بالباطن');
+if (!html.includes('data-ejar-contract="sublease"') || !html.includes('ابدأ عقد بالباطن')) fail('بطاقة عقد بالباطن');
+else ok('صفحة /ejar تحتوي بطاقة عقد بالباطن مستقلة');
+if (!/propertyLocation/.test(wizardJs) || !/propertyMapUrl/.test(wizardJs) || !/streetName/.test(wizardJs) || !/furnished/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs)) {
+  fail('حقول بيانات العقار في المعالج');
+} else ok('بيانات العقار تشمل الموقع والشارع والدور والتأثيث وتفاصيل الشقة ونوع العقار');
+if (!/بيانات العقار/.test(dashRequests) || !/propertyLocation/.test(dashRequests) || !/propertyMapUrl/.test(dashRequests) || !/furnished/.test(dashRequests)) {
+  fail('عرض بيانات العقار في اللوحة');
+} else ok('لوحة التحكم تعرض بيانات العقار الجديدة');
 if (!/checkRateLimit/.test(apiContracts)) fail('Rate limiting');
 else ok('Rate limiting على API إنشاء العقد');
 if (!/notifyOfficeNewEjarContract/.test(apiContracts)) fail('Hook واتساب غير مستدعى');
@@ -249,6 +406,11 @@ if (!/multer/.test(apiContracts) || !/ejar-deeds/.test(apiContracts)) fail('API 
 else ok('API يستقبل صورة الصك ويرفعها للتخزين');
 if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests)) fail('عرض صورة الصك في اللوحة');
 else ok('لوحة التحكم تعرض صورة الصك في تفاصيل الطلب');
+if (!/submitterName/.test(dashRequests) || !/معبئ النموذج التعاقدي/.test(dashRequests)) fail('عرض معبئ النموذج في اللوحة');
+else ok('لوحة التحكم تعرض اسم وجوال وصفة معبئ النموذج');
+if (!/subleaseTenantName/.test(dashRequests) || !/subleasePoaNumber/.test(dashRequests) || !/subtenantName/.test(dashRequests) || !/المستأجر من الباطن/.test(dashRequests) || !/عقد بالباطن/.test(dashRequests)) {
+  fail('عرض عقد بالباطن في اللوحة');
+} else ok('لوحة التحكم تعرض بيانات عقد بالباطن والمستأجر من الباطن');
 
 const datesJs = fs.readFileSync(path.join(root, 'public', 'js', 'ejar-dates.js'), 'utf8');
 if (!/islamic-umalqura/.test(datesJs)) fail('تقويم أم القرى');

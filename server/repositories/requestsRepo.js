@@ -120,8 +120,8 @@ async function createEjarContract(data) {
       : formatReference(ymd, parseSeq(await nextEjarReference(), `EJ-${ymd}-`) + attempt);
     const payload = { ...data, referenceNo, status: 'new' };
     const row = buildInsertRow({
-      customerName: `عقد إيجار ${data.contractType}`,
-      customerPhone: data.ownerPhone,
+      customerName: data.submitterName || `عقد إيجار ${data.contractType}`,
+      customerPhone: data.submitterPhone || data.ownerPhone,
       requestType: 'ejar_contract',
       message: JSON.stringify(payload),
       status: 'new',

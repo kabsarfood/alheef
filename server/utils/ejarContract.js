@@ -3,14 +3,20 @@ const SCHEMA = 'ejar_contract_v2';
 const CONTRACT_KINDS = {
   residential: { label: 'سكني', price: 229 },
   commercial: { label: 'تجاري', price: 329 },
+  sublease: { label: 'عقد بالباطن', price: 229 },
 };
 
 const PAYMENT_METHODS = ['شهري', 'ربع سنوي', 'نصف سنوي', 'سنوي'];
 const RESIDENTIAL_UNITS = ['شقة', 'فيلا'];
 const COMMERCIAL_UNITS = ['محل', 'مكتب', 'معرض', 'مستودع', 'وحدة تجارية أخرى'];
+const PROPERTY_TYPES = ['شقة', 'فيلا', 'عمارة', 'دور'];
+const FLOOR_NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+const FURNISHED_OPTIONS = ['مؤثث', 'غير مؤثث'];
 const FLOORS = ['أرضي', 'أول', 'ثاني', 'ثالث', 'رابع', 'خامس', 'أعلى', 'أخرى'];
 const DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
 const YES_NO = ['لا', 'نعم'];
+const SUBMITTER_RELATIONS = ['المستأجر', 'المؤجر', 'ابن/ابنة أحد الأطراف', 'وكيل'];
+const CONTRACTING_STATUSES = ['مؤجر ومستأجر', 'عقد بالباطن'];
 
 const STATUS_LABELS = {
   new: 'جديد',
@@ -55,6 +61,30 @@ function isValidSaudiId(input) {
   return sum % 10 === 0;
 }
 
+function isValidIdOrEstablishment(input) {
+  const s = String(input || '').replace(/\D/g, '');
+  if (isValidSaudiId(s)) return true;
+  return /^\d{7,15}$/.test(s);
+}
+
+function isValidUnifiedNumber(input) {
+  const s = String(input || '').replace(/\D/g, '');
+  return /^\d{7,15}$/.test(s);
+}
+
+function normalizeMapUrl(input) {
+  let s = String(input || '').trim();
+  if (!s) return '';
+  if (/^(maps\.|goo\.gl\/|www\.)/i.test(s)) s = `https://${s}`;
+  return s.slice(0, 800);
+}
+
+function isValidMapUrl(input) {
+  const s = normalizeMapUrl(input);
+  if (s.length < 12 || s.length > 800) return false;
+  return /^https?:\/\/[^\s]+$/i.test(s);
+}
+
 function isIsoDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false;
   const [y, m, d] = String(value).split('-').map(Number);
@@ -75,6 +105,13 @@ function riyadhIsoDate(date = new Date()) {
 function isPastDate(value) {
   if (!isIsoDate(value)) return false;
   return value <= riyadhIsoDate();
+}
+
+function parseIntInRange(value, min, max) {
+  if (value === '' || value == null) return null;
+  const n = typeof value === 'number' ? value : Number(String(value).trim());
+  if (!Number.isInteger(n) || n < min || n > max) return null;
+  return n;
 }
 
 function parsePositiveNumber(value, { integer = false } = {}) {
@@ -151,11 +188,12 @@ function flattenContractBody(body) {
 
 function resolveContractKind(body) {
   const raw = firstScalar(body?.contractKind || body?.contractType || body?.kind);
+  if (raw === 'sublease' || raw === 'عقد بالباطن') return 'sublease';
   if (raw === 'commercial' || raw === 'تجاري') return 'commercial';
   if (raw === 'residential' || raw === 'سكني') return 'residential';
   const unit = firstScalar(body?.unitType);
   if (COMMERCIAL_UNITS.includes(unit)) return 'commercial';
-  if (RESIDENTIAL_UNITS.includes(unit)) return 'residential';
+  if (PROPERTY_TYPES.includes(unit) || RESIDENTIAL_UNITS.includes(unit)) return 'residential';
   return '';
 }
 
@@ -181,6 +219,67 @@ function validateAndNormalize(rawBody) {
   const deedDate = trimStr(body?.deedDate, 10);
   if (!isIsoDate(deedDate)) errors.deedDate = 'يرجى اختيار تاريخ الصك';
 
+  const isSublease = contractKind === 'sublease';
+  const contractingStatus = isSublease ? 'عقد بالباطن' : '';
+
+  let subleaseTenantName = '';
+  let subleaseIdOrCr = '';
+  let subleaseIdOrCrDate = '';
+  let subleaseUnifiedNumber = '';
+  let subleaseRepName = '';
+  let subleaseRepId = '';
+  let subleaseRepDob = '';
+  let subleaseRepPhone = '';
+  let subleasePoaNumber = '';
+  let subtenantName = '';
+  let subtenantId = '';
+  let subtenantDob = '';
+  let subtenantPhone = '';
+  if (isSublease) {
+    subleaseTenantName = trimStr(body?.subleaseTenantName, 80);
+    if (subleaseTenantName.length < 2) errors.subleaseTenantName = 'يرجى إدخال اسم المستأجر';
+
+    subleaseIdOrCr = String(body?.subleaseIdOrCr || '').replace(/\D/g, '');
+    if (!isValidIdOrEstablishment(subleaseIdOrCr)) {
+      errors.subleaseIdOrCr = 'رقم البطاقة أو المنشأة غير صحيح';
+    }
+
+    subleaseIdOrCrDate = trimStr(body?.subleaseIdOrCrDate, 10);
+    if (!isPastDate(subleaseIdOrCrDate)) errors.subleaseIdOrCrDate = 'يرجى إدخال تاريخ السجل أو البطاقة';
+
+    subleaseUnifiedNumber = String(body?.subleaseUnifiedNumber || '').replace(/\D/g, '');
+    if (!isValidUnifiedNumber(subleaseUnifiedNumber)) {
+      errors.subleaseUnifiedNumber = 'الرقم الموحد غير صحيح';
+    }
+
+    subleaseRepName = trimStr(body?.subleaseRepName, 80);
+    if (subleaseRepName.length < 2) errors.subleaseRepName = 'يرجى إدخال اسم الممثل';
+
+    subleaseRepId = String(body?.subleaseRepId || '').replace(/\D/g, '');
+    if (!isValidSaudiId(subleaseRepId)) errors.subleaseRepId = 'رقم بطاقة الممثل غير صحيح';
+
+    subleaseRepDob = trimStr(body?.subleaseRepDob, 10);
+    if (!isPastDate(subleaseRepDob)) errors.subleaseRepDob = 'يرجى إدخال تاريخ ميلاد الممثل';
+
+    subleaseRepPhone = normalizeSaudiMobile(body?.subleaseRepPhone);
+    if (!isValidSaudiMobile(subleaseRepPhone)) errors.subleaseRepPhone = 'رقم جوال الممثل غير صحيح';
+
+    subleasePoaNumber = trimStr(body?.subleasePoaNumber, 40);
+    if (subleasePoaNumber.length < 2) errors.subleasePoaNumber = 'يرجى إدخال رقم الوكالة';
+
+    subtenantName = trimStr(body?.subtenantName, 80);
+    if (subtenantName.length < 2) errors.subtenantName = 'يرجى إدخال اسم المستأجر من الباطن';
+
+    subtenantId = String(body?.subtenantId || '').replace(/\D/g, '');
+    if (!isValidSaudiId(subtenantId)) errors.subtenantId = 'رقم بطاقة المستأجر من الباطن غير صحيح';
+
+    subtenantDob = trimStr(body?.subtenantDob, 10);
+    if (!isPastDate(subtenantDob)) errors.subtenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر من الباطن';
+
+    subtenantPhone = normalizeSaudiMobile(body?.subtenantPhone);
+    if (!isValidSaudiMobile(subtenantPhone)) errors.subtenantPhone = 'رقم جوال المستأجر من الباطن غير صحيح';
+  }
+
   const ownerId = String(body?.ownerId || '').replace(/\D/g, '');
   if (!isValidSaudiId(ownerId)) errors.ownerId = 'رقم هوية المالك غير صحيح';
 
@@ -190,30 +289,53 @@ function validateAndNormalize(rawBody) {
   const ownerPhone = normalizeSaudiMobile(body?.ownerPhone);
   if (!isValidSaudiMobile(ownerPhone)) errors.ownerPhone = 'رقم جوال المالك غير صحيح';
 
-  const tenantId = String(body?.tenantId || '').replace(/\D/g, '');
+  let tenantId = String(body?.tenantId || '').replace(/\D/g, '');
+  let tenantDob = trimStr(body?.tenantDob, 10);
+  let tenantPhone = normalizeSaudiMobile(body?.tenantPhone);
+  if (isSublease) {
+    if (!isValidSaudiId(tenantId)) tenantId = subtenantId;
+    if (!isPastDate(tenantDob)) tenantDob = subtenantDob;
+    if (!isValidSaudiMobile(tenantPhone)) tenantPhone = subtenantPhone;
+  }
   if (!isValidSaudiId(tenantId)) errors.tenantId = 'رقم هوية المستأجر غير صحيح';
-
-  const tenantDob = trimStr(body?.tenantDob, 10);
   if (!isPastDate(tenantDob)) errors.tenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر';
-
-  const tenantPhone = normalizeSaudiMobile(body?.tenantPhone);
   if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
 
-  const unitOptions = contractKind === 'commercial' ? COMMERCIAL_UNITS : RESIDENTIAL_UNITS;
-  const unitType = trimStr(body?.unitType, 40);
-  if (!unitOptions.includes(unitType)) errors.unitType = 'يرجى اختيار نوع الوحدة';
-  const unitTypeOther = trimStr(body?.unitTypeOther, 60);
-  if (unitType === 'وحدة تجارية أخرى' && unitTypeOther.length < 2) {
-    errors.unitTypeOther = 'يرجى تحديد نوع الوحدة التجارية';
-  }
+  const propertyLocation = trimStr(body?.propertyLocation, 80);
+  if (propertyLocation.length < 2) errors.propertyLocation = 'يرجى إدخال موقع العقار';
 
-  const floor = trimStr(body?.floor, 20);
-  if (!FLOORS.includes(floor)) errors.floor = 'يرجى اختيار رقم الدور';
-  const floorOther = trimStr(body?.floorOther, 40);
-  if (floor === 'أخرى' && floorOther.length < 1) errors.floorOther = 'يرجى تحديد الدور';
+  const propertyMapUrl = normalizeMapUrl(body?.propertyMapUrl);
+  if (!isValidMapUrl(propertyMapUrl)) errors.propertyMapUrl = 'يرجى لصق رابط موقع العقار (اللكيشن)';
+
+  const streetName = trimStr(body?.streetName, 80);
+  if (streetName.length < 2) errors.streetName = 'يرجى إدخال اسم الشارع';
+
+  const floor = String(body?.floor ?? '').trim();
+  if (!FLOOR_NUMBERS.includes(floor)) errors.floor = 'يرجى اختيار رقم الدور من 0 إلى 10';
 
   const unitNumber = trimStr(body?.unitNumber, 30);
   if (!unitNumber) errors.unitNumber = 'يرجى إدخال رقم الوحدة';
+
+  const furnished = trimStr(body?.furnished, 20);
+  if (!FURNISHED_OPTIONS.includes(furnished)) errors.furnished = 'يرجى تحديد إذا كان العقار مؤثثًا';
+
+  const rooms = parseIntInRange(body?.rooms, 1, 10);
+  if (rooms == null) errors.rooms = 'عدد الغرف يجب أن يكون من 1 إلى 10';
+
+  const bathrooms = parseIntInRange(body?.bathrooms, 1, 5);
+  if (bathrooms == null) errors.bathrooms = 'عدد دورات المياه يجب أن يكون من 1 إلى 5';
+
+  const acs = parseIntInRange(body?.acs, 0, 10);
+  if (acs == null) errors.acs = 'عدد المكيفات يجب أن يكون من 0 إلى 10';
+
+  const majlis = parseIntInRange(body?.majlis, 0, 10);
+  if (majlis == null) errors.majlis = 'عدد المجالس يجب أن يكون من 0 إلى 10';
+
+  const kitchens = parseIntInRange(body?.kitchens, 0, 10);
+  if (kitchens == null) errors.kitchens = 'عدد المطابخ يجب أن يكون من 0 إلى 10';
+
+  const unitType = trimStr(body?.unitType, 40);
+  if (!PROPERTY_TYPES.includes(unitType)) errors.unitType = 'يرجى اختيار نوع العقار';
 
   const area = parsePositiveNumber(body?.area);
   if (area == null || area > 100000) errors.area = 'المساحة يجب أن تكون رقمًا موجبًا';
@@ -242,29 +364,62 @@ function validateAndNormalize(rawBody) {
     if (depositAmount == null) errors.depositAmount = 'يرجى إدخال قيمة مبلغ الضمان';
   }
 
+  const submitterName = trimStr(body?.submitterName, 80);
+  if (submitterName.length < 2) errors.submitterName = 'يرجى إدخال اسم معبئ النموذج';
+
+  const submitterPhone = normalizeSaudiMobile(body?.submitterPhone);
+  if (!isValidSaudiMobile(submitterPhone)) errors.submitterPhone = 'رقم جوال معبئ النموذج غير صحيح';
+
+  const submitterRelation = trimStr(body?.submitterRelation, 40);
+  if (!SUBMITTER_RELATIONS.includes(submitterRelation)) {
+    errors.submitterRelation = 'يرجى تحديد صفة معبئ النموذج';
+  }
+
   if (!isDeclarationAccepted(body?.declarationAccepted)) {
     errors.declarationAccepted = 'يلزم الإقرار بصحة البيانات قبل الإرسال';
   }
 
   const meta = CONTRACT_KINDS[contractKind] || CONTRACT_KINDS.residential;
+  const servicePrice = meta.price;
   const data = {
     schema: SCHEMA,
     contractKind,
     contractType: meta.label,
-    servicePrice: meta.price,
+    servicePrice,
     deedNumber,
     deedDate,
+    contractingStatus,
+    subleaseTenantName,
+    subleaseIdOrCr,
+    subleaseIdOrCrDate,
+    subleaseUnifiedNumber,
+    subleaseRepName,
+    subleaseRepId,
+    subleaseRepDob,
+    subleaseRepPhone,
+    subleasePoaNumber,
+    subtenantName,
+    subtenantId,
+    subtenantDob,
+    subtenantPhone,
     ownerId,
     ownerDob,
     ownerPhone,
     tenantId,
     tenantDob,
     tenantPhone,
-    unitType,
-    unitTypeOther: unitType === 'وحدة تجارية أخرى' ? unitTypeOther : '',
+    propertyLocation,
+    propertyMapUrl,
+    streetName,
     floor,
-    floorOther: floor === 'أخرى' ? floorOther : '',
     unitNumber,
+    furnished,
+    rooms,
+    bathrooms,
+    acs,
+    majlis,
+    kitchens,
+    unitType,
     area,
     rentAmount,
     paymentMethod,
@@ -273,6 +428,9 @@ function validateAndNormalize(rawBody) {
     startDate,
     hasDeposit,
     depositAmount: hasDeposit === 'نعم' ? depositAmount : null,
+    submitterName,
+    submitterPhone,
+    submitterRelation,
     declarationAccepted: true,
   };
 
@@ -280,13 +438,12 @@ function validateAndNormalize(rawBody) {
 }
 
 function displayUnitType(data) {
-  if (data.unitType === 'وحدة تجارية أخرى' && data.unitTypeOther) return data.unitTypeOther;
   return data.unitType || '—';
 }
 
 function displayFloor(data) {
-  if (data.floor === 'أخرى' && data.floorOther) return data.floorOther;
-  return data.floor || '—';
+  if (data.floor === '' || data.floor == null) return '—';
+  return String(data.floor);
 }
 
 function displayDuration(data) {
@@ -311,15 +468,22 @@ module.exports = {
   PAYMENT_METHODS,
   RESIDENTIAL_UNITS,
   COMMERCIAL_UNITS,
+  PROPERTY_TYPES,
+  FLOOR_NUMBERS,
+  FURNISHED_OPTIONS,
   FLOORS,
   DURATIONS,
   YES_NO,
+  SUBMITTER_RELATIONS,
+  CONTRACTING_STATUSES,
   STATUS_LABELS,
   ALLOWED_STATUSES,
   CREATED_CONTRACT_STATUSES,
   normalizeSaudiMobile,
   isValidSaudiMobile,
   isValidSaudiId,
+  isValidIdOrEstablishment,
+  isValidUnifiedNumber,
   isIsoDate,
   parsePositiveNumber,
   riyadhYmd,

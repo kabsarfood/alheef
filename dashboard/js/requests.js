@@ -86,6 +86,7 @@ function isEjarWizard(payload) {
 
 function ejarKindLabel(payload) {
   const raw = String(payload.contractKind || payload.contractType || '').trim();
+  if (raw === 'sublease' || raw === 'عقد بالباطن' || payload.contractingStatus === 'عقد بالباطن') return 'عقد بالباطن';
   if (raw === 'commercial' || raw === 'تجاري') return 'تجاري';
   if (raw === 'residential' || raw === 'سكني') return 'سكني';
   return '—';
@@ -96,13 +97,12 @@ function statusLabel(status) {
 }
 
 function displayUnit(payload) {
-  if (payload.unitType === 'وحدة تجارية أخرى' && payload.unitTypeOther) return payload.unitTypeOther;
   return payload.unitType || '—';
 }
 
 function displayFloor(payload) {
-  if (payload.floor === 'أخرى' && payload.floorOther) return payload.floorOther;
-  return payload.floor || '—';
+  if (payload.floor === '' || payload.floor == null) return '—';
+  return String(payload.floor);
 }
 
 function displayDuration(payload) {
@@ -179,7 +179,7 @@ function renderEjarTable(rows) {
   if (!rows.length) return '<p class="empty-state">لا توجد طلبات عقود إيجار</p>';
   return `<div class="table-wrap"><table class="table table--cards req-ejar-table">
     <thead><tr>
-      <th>رقم الطلب</th><th>سكني / تجاري</th><th>جوال المالك</th><th>جوال المستأجر</th>
+      <th>رقم الطلب</th><th>سكني / تجاري</th><th>معبئ النموذج</th><th>جوال المالك</th><th>جوال المستأجر</th>
       <th>قيمة الإيجار</th><th>طريقة الدفع</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراءات</th>
     </tr></thead>
     <tbody>${rows.map((r) => {
@@ -190,6 +190,7 @@ function renderEjarTable(rows) {
       return `<tr data-request-id="${escapeCell(r.id)}" data-open-request="${escapeCell(r.id)}">
         <td data-label="رقم الطلب" dir="ltr">${escapeCell(r.referenceNo || p.referenceNo || '—')}</td>
         <td data-label="النوع">${escapeCell(ejarKindLabel(p))}</td>
+        <td data-label="معبئ النموذج">${escapeCell(p.submitterName || r.customerName || '—')}${p.submitterRelation ? ` — ${escapeCell(p.submitterRelation)}` : ''}</td>
         <td data-label="جوال المالك">${valueWithCopy(ownerPhone)}</td>
         <td data-label="جوال المستأجر">${valueWithCopy(tenantPhone)}</td>
         <td data-label="قيمة الإيجار">${valueWithCopy(p.rentAmount != null ? String(p.rentAmount) : '')}</td>
@@ -251,20 +252,46 @@ function openRequestModal(row) {
         rowItem('تاريخ الصك', dateFieldHtml(p.deedDate), { html: true }),
         rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true, stack: true }),
       ]),
+      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? sectionBlock('عقد بالباطن', [
+        rowItem('اسم المستأجر', p.subleaseTenantName),
+        rowItem('رقم البطاقة أو المنشأة', p.subleaseIdOrCr, { copy: true }),
+        rowItem('تاريخ السجل أو البطاقة', dateFieldHtml(p.subleaseIdOrCrDate), { html: true }),
+        rowItem('الرقم الموحد', p.subleaseUnifiedNumber, { copy: true }),
+        rowItem('اسم الممثل', p.subleaseRepName),
+        rowItem('رقم بطاقة الممثل', p.subleaseRepId, { copy: true }),
+        rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.subleaseRepDob), { html: true }),
+        rowItem('الجوال', p.subleaseRepPhone, { copy: true }),
+        rowItem('رقم الوكالة', p.subleasePoaNumber, { copy: true }),
+      ]) : '',
+      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? sectionBlock('المستأجر من الباطن', [
+        rowItem('الاسم', p.subtenantName),
+        rowItem('رقم البطاقة', p.subtenantId, { copy: true }),
+        rowItem('تاريخ الميلاد', dateFieldHtml(p.subtenantDob), { html: true }),
+        rowItem('الجوال', p.subtenantPhone, { copy: true }),
+      ]) : '',
       sectionBlock('بيانات المالك', [
         rowItem('رقم الهوية', p.ownerId, { copy: true }),
         rowItem('تاريخ الميلاد', dateFieldHtml(p.ownerDob), { html: true }),
         rowItem('الجوال', p.ownerPhone, { copy: true }),
       ]),
-      sectionBlock('بيانات المستأجر', [
+      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? '' : sectionBlock('بيانات المستأجر', [
         rowItem('رقم الهوية', p.tenantId, { copy: true }),
         rowItem('تاريخ الميلاد', dateFieldHtml(p.tenantDob), { html: true }),
         rowItem('الجوال', p.tenantPhone, { copy: true }),
       ]),
-      sectionBlock('بيانات الوحدة', [
-        rowItem('النوع', displayUnit(p)),
+      sectionBlock('بيانات العقار', [
+        rowItem('الموقع', p.propertyLocation),
+        rowItem('رابط الموقع (اللكيشن)', p.propertyMapUrl, { copy: true }),
+        rowItem('الشارع', p.streetName),
         rowItem('الدور', displayFloor(p)),
         rowItem('رقم الوحدة', p.unitNumber, { copy: true }),
+        rowItem('التأثيث', p.furnished),
+        rowItem('الغرف', p.rooms != null ? String(p.rooms) : '—'),
+        rowItem('دورات المياه', p.bathrooms != null ? String(p.bathrooms) : '—'),
+        rowItem('المكيفات', p.acs != null ? String(p.acs) : '—'),
+        rowItem('المجالس', p.majlis != null ? String(p.majlis) : '—'),
+        rowItem('المطابخ', p.kitchens != null ? String(p.kitchens) : '—'),
+        rowItem('نوع العقار', displayUnit(p)),
         rowItem('المساحة', p.area != null ? `${p.area} م²` : '—'),
       ]),
       sectionBlock('تفاصيل العقد', [
@@ -274,6 +301,11 @@ function openRequestModal(row) {
         rowItem('تاريخ البداية', dateFieldHtml(p.startDate), { html: true }),
         rowItem('مبلغ الضمان', displayDeposit(p)),
         rowItem('سعر الخدمة', p.servicePrice != null ? `${p.servicePrice} ريال` : '—'),
+      ]),
+      sectionBlock('معبئ النموذج التعاقدي', [
+        rowItem('الاسم', p.submitterName || r.customerName),
+        rowItem('الجوال', p.submitterPhone || r.customerPhone, { copy: true }),
+        rowItem('الصفة', p.submitterRelation),
       ]),
     ].join('');
   } else {

@@ -463,6 +463,16 @@
   line-height: 1.35;
 }
 
+.ejar-price-card--sublease {
+  border-color: var(--navy, #1E2A38);
+}
+
+.ejar-wizard__kind.is-active[data-kind="sublease"] {
+  background: var(--navy, #1E2A38);
+  border-color: var(--navy, #1E2A38);
+  color: #fff;
+}
+
 @media (min-width: 600px) {
   .ejar-pricing {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2299,8 +2309,8 @@
   }
 
   .ejar-pricing {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 864px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 1080px;
     gap: clamp(1rem, 2.2vw, 1.35rem);
     margin-bottom: clamp(1rem, 2.5vw, 1.4rem);
   }
@@ -2491,7 +2501,7 @@
 
   .ejar-pricing {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 720px;
+    max-width: 760px;
     gap: 1rem;
     align-items: stretch;
   }
