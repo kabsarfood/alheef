@@ -6,10 +6,13 @@ const CONTRACT_KINDS = {
   sublease: { label: 'عقد بالباطن', price: 229 },
 };
 
-const PAYMENT_METHODS = ['شهري', 'ربع سنوي', 'نصف سنوي', 'سنوي'];
+const PAYMENT_METHODS = ['شهري', 'كل 3 أشهر', 'نصف سنوي', 'سنوي'];
+const PAYMENT_METHOD_ALIASES = { 'ربع سنوي': 'كل 3 أشهر' };
 const RESIDENTIAL_UNITS = ['شقة', 'فيلا'];
-const COMMERCIAL_UNITS = ['محل', 'مكتب', 'معرض', 'مستودع', 'وحدة تجارية أخرى'];
+const COMMERCIAL_UNITS = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى', 'وحدة تجارية أخرى'];
 const PROPERTY_TYPES = ['شقة', 'فيلا', 'عمارة', 'دور'];
+const RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'عمارة', 'ملحق', 'استوديو', 'أخرى'];
+const COMMERCIAL_PROPERTY_TYPES = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى'];
 const FLOOR_NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 const FURNISHED_OPTIONS = ['مؤثث', 'غير مؤثث'];
 const FLOORS = ['أرضي', 'أول', 'ثاني', 'ثالث', 'رابع', 'خامس', 'أعلى', 'أخرى'];
@@ -192,9 +195,24 @@ function resolveContractKind(body) {
   if (raw === 'commercial' || raw === 'تجاري') return 'commercial';
   if (raw === 'residential' || raw === 'سكني') return 'residential';
   const unit = firstScalar(body?.unitType);
-  if (COMMERCIAL_UNITS.includes(unit)) return 'commercial';
-  if (PROPERTY_TYPES.includes(unit) || RESIDENTIAL_UNITS.includes(unit)) return 'residential';
+  if (unit === 'أخرى') return '';
+  if (COMMERCIAL_PROPERTY_TYPES.includes(unit) || COMMERCIAL_UNITS.includes(unit)) return 'commercial';
+  if (RESIDENTIAL_PROPERTY_TYPES.includes(unit) || PROPERTY_TYPES.includes(unit) || RESIDENTIAL_UNITS.includes(unit)) {
+    return 'residential';
+  }
   return '';
+}
+
+function allowedUnitTypes(contractKind) {
+  if (contractKind === 'commercial') {
+    return COMMERCIAL_PROPERTY_TYPES.concat(COMMERCIAL_UNITS).concat(PROPERTY_TYPES);
+  }
+  return RESIDENTIAL_PROPERTY_TYPES.concat(PROPERTY_TYPES);
+}
+
+function normalizePaymentMethod(raw) {
+  const s = trimStr(raw, 30);
+  return PAYMENT_METHOD_ALIASES[s] || s;
 }
 
 function contractKindFromPayload(data) {
@@ -302,13 +320,10 @@ function validateAndNormalize(rawBody) {
   if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
 
   const propertyLocation = trimStr(body?.propertyLocation, 80);
-  if (propertyLocation.length < 2) errors.propertyLocation = 'يرجى إدخال موقع العقار';
-
   const propertyMapUrl = normalizeMapUrl(body?.propertyMapUrl);
   if (!isValidMapUrl(propertyMapUrl)) errors.propertyMapUrl = 'يرجى لصق رابط موقع العقار (اللكيشن)';
 
   const streetName = trimStr(body?.streetName, 80);
-  if (streetName.length < 2) errors.streetName = 'يرجى إدخال اسم الشارع';
 
   const floor = String(body?.floor ?? '').trim();
   if (!FLOOR_NUMBERS.includes(floor)) errors.floor = 'يرجى اختيار رقم الدور من 0 إلى 10';
@@ -317,7 +332,7 @@ function validateAndNormalize(rawBody) {
   if (!unitNumber) errors.unitNumber = 'يرجى إدخال رقم الوحدة';
 
   const furnished = trimStr(body?.furnished, 20);
-  if (!FURNISHED_OPTIONS.includes(furnished)) errors.furnished = 'يرجى تحديد إذا كان العقار مؤثثًا';
+  if (furnished && !FURNISHED_OPTIONS.includes(furnished)) errors.furnished = 'يرجى تحديد إذا كان العقار مؤثثًا';
 
   const rooms = parseIntInRange(body?.rooms, 1, 10);
   if (rooms == null) errors.rooms = 'عدد الغرف يجب أن يكون من 1 إلى 10';
@@ -335,15 +350,17 @@ function validateAndNormalize(rawBody) {
   if (kitchens == null) errors.kitchens = 'عدد المطابخ يجب أن يكون من 0 إلى 10';
 
   const unitType = trimStr(body?.unitType, 40);
-  if (!PROPERTY_TYPES.includes(unitType)) errors.unitType = 'يرجى اختيار نوع العقار';
+  if (!allowedUnitTypes(contractKind).includes(unitType)) errors.unitType = 'يرجى اختيار نوع العقار';
 
-  const area = parsePositiveNumber(body?.area);
-  if (area == null || area > 100000) errors.area = 'المساحة يجب أن تكون رقمًا موجبًا';
+  const areaRaw = body?.area;
+  const areaEmpty = areaRaw === '' || areaRaw == null;
+  const area = areaEmpty ? null : parsePositiveNumber(areaRaw);
+  if (!areaEmpty && (area == null || area > 100000)) errors.area = 'المساحة يجب أن تكون رقمًا موجبًا';
 
   const rentAmount = parsePositiveNumber(body?.rentAmount);
   if (rentAmount == null || rentAmount > 100000000) errors.rentAmount = 'قيمة الإيجار يجب أن تكون أكبر من صفر';
 
-  const paymentMethod = trimStr(body?.paymentMethod, 30);
+  const paymentMethod = normalizePaymentMethod(body?.paymentMethod);
   if (!PAYMENT_METHODS.includes(paymentMethod)) errors.paymentMethod = 'يرجى اختيار طريقة الدفع';
 
   const contractDuration = trimStr(body?.contractDuration, 30);
@@ -364,15 +381,21 @@ function validateAndNormalize(rawBody) {
     if (depositAmount == null) errors.depositAmount = 'يرجى إدخال قيمة مبلغ الضمان';
   }
 
-  const submitterName = trimStr(body?.submitterName, 80);
-  if (submitterName.length < 2) errors.submitterName = 'يرجى إدخال اسم معبئ النموذج';
-
-  const submitterPhone = normalizeSaudiMobile(body?.submitterPhone);
-  if (!isValidSaudiMobile(submitterPhone)) errors.submitterPhone = 'رقم جوال معبئ النموذج غير صحيح';
-
   const submitterRelation = trimStr(body?.submitterRelation, 40);
   if (!SUBMITTER_RELATIONS.includes(submitterRelation)) {
     errors.submitterRelation = 'يرجى تحديد صفة معبئ النموذج';
+  }
+
+  const partyFills = submitterRelation === 'المؤجر' || submitterRelation === 'المستأجر';
+  let submitterName = trimStr(body?.submitterName, 80);
+  let submitterPhone = normalizeSaudiMobile(body?.submitterPhone);
+  if (submitterRelation === 'المؤجر' && !isValidSaudiMobile(submitterPhone)) submitterPhone = ownerPhone;
+  if (submitterRelation === 'المستأجر' && !isValidSaudiMobile(submitterPhone)) submitterPhone = tenantPhone;
+  if (partyFills) {
+    if (!isValidSaudiMobile(submitterPhone)) errors.submitterPhone = 'رقم جوال معبئ النموذج غير صحيح';
+  } else {
+    if (submitterName.length < 2) errors.submitterName = 'يرجى إدخال اسم معبئ النموذج';
+    if (!isValidSaudiMobile(submitterPhone)) errors.submitterPhone = 'رقم جوال معبئ النموذج غير صحيح';
   }
 
   if (!isDeclarationAccepted(body?.declarationAccepted)) {
@@ -469,6 +492,8 @@ module.exports = {
   RESIDENTIAL_UNITS,
   COMMERCIAL_UNITS,
   PROPERTY_TYPES,
+  RESIDENTIAL_PROPERTY_TYPES,
+  COMMERCIAL_PROPERTY_TYPES,
   FLOOR_NUMBERS,
   FURNISHED_OPTIONS,
   FLOORS,

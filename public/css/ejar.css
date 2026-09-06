@@ -2887,6 +2887,86 @@ body.ejar-wizard-open .ejar-sticky-bar {
   color: #fff;
 }
 
+.ejar-wizard__screen-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+  color: var(--navy, #1E2A38);
+}
+
+.ejar-wizard__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem 0.75rem;
+}
+
+.ejar-field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: var(--ejar-fw-bold);
+  font-size: 0.95rem;
+  color: var(--navy, #1E2A38);
+}
+
+.ejar-field__error {
+  margin: 0.35rem 0 0;
+  color: #9b1c1c;
+  font-size: 0.8rem;
+}
+
+.ejar-field.is-invalid .ejar-wizard__control,
+.ejar-field.is-invalid .ejar-choice {
+  box-shadow: 0 0 0 2px rgba(155, 28, 28, 0.18);
+}
+
+.ejar-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ejar-stepper__btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ejar-olive-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--navy, #1E2A38);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ejar-stepper__value {
+  text-align: center;
+  font-weight: 700;
+}
+
+.ejar-submitter-block {
+  padding: 0.85rem 0 0.25rem;
+}
+
+.ejar-submitter-block h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1.02rem;
+}
+
+.ejar-submitter-details {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .ejar-wizard__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ejar-field--wide {
+    grid-column: 1 / -1;
+  }
+}
+
 .ejar-wizard__resume {
   padding: 2.4rem 1.5rem 1.75rem;
   text-align: center;

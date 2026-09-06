@@ -98,6 +98,29 @@ const badArea = validateAndNormalize({ ...base, contractKind: 'residential', uni
 if (badArea.ok || !badArea.errors.area) fail('رفض المساحة غير الموجبة');
 else ok('يرفض المساحة غير الموجبة');
 
+const emptyOptional = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'استوديو',
+  propertyLocation: '',
+  streetName: '',
+  furnished: '',
+  area: '',
+});
+if (!emptyOptional.ok) fail('الحقول الاختيارية الفارغة: ' + JSON.stringify(emptyOptional.errors));
+else if (emptyOptional.data.area != null || emptyOptional.data.furnished || emptyOptional.data.streetName || emptyOptional.data.propertyLocation) {
+  fail('يجب أن تبقى الحقول الاختيارية فارغة دون قيم وهمية');
+} else ok('المساحة والتأثيث والشارع ووصف الموقع اختيارية');
+
+const commercialShop = validateAndNormalize({ ...base, contractKind: 'commercial', unitType: 'محل', paymentMethod: 'كل 3 أشهر' });
+if (!commercialShop.ok || commercialShop.data.unitType !== 'محل' || commercialShop.data.paymentMethod !== 'كل 3 أشهر') {
+  fail('نوع الوحدة التجارية وطريقة الدفع: ' + JSON.stringify(commercialShop.errors || commercialShop.data));
+} else ok('يقبل نوع محل ودفع كل 3 أشهر في التجاري');
+
+const quarterlyAlias = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', paymentMethod: 'ربع سنوي' });
+if (!quarterlyAlias.ok || quarterlyAlias.data.paymentMethod !== 'كل 3 أشهر') fail('تحويل ربع سنوي إلى كل 3 أشهر');
+else ok('ربع سنوي يُحفظ كـ كل 3 أشهر');
+
 const badPhone = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', ownerPhone: '12345' });
 if (badPhone.ok || !badPhone.errors.ownerPhone) fail('رفض جوال غير سعودي');
 else ok('يرفض رقم جوال غير سعودي');
@@ -113,9 +136,33 @@ const noSubmitter = validateAndNormalize({
   submitterPhone: '',
   submitterRelation: '',
 });
-if (noSubmitter.ok || !noSubmitter.errors.submitterName || !noSubmitter.errors.submitterPhone || !noSubmitter.errors.submitterRelation) {
-  fail('بيانات معبئ النموذج إلزامية');
-} else ok('يرفض الطلب بدون اسم وجوال وصفة معبئ النموذج');
+if (noSubmitter.ok || !noSubmitter.errors.submitterRelation) {
+  fail('صفة معبئ النموذج إلزامية');
+} else ok('يرفض الطلب بدون صفة معبئ النموذج');
+
+const tenantFills = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  submitterName: '',
+  submitterPhone: '',
+  submitterRelation: 'المستأجر',
+});
+if (!tenantFills.ok) fail('المستأجر المعبئ بدون اسم مستقل: ' + JSON.stringify(tenantFills.errors));
+else if (tenantFills.data.submitterPhone !== base.tenantPhone) fail('جوال المعبئ يجب أن يُؤخذ من المستأجر');
+else ok('المستأجر كمعبئ لا يحتاج اسمًا مستقلًا ويأخذ جواله');
+
+const agentNeedsName = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  submitterName: '',
+  submitterPhone: '',
+  submitterRelation: 'وكيل',
+});
+if (agentNeedsName.ok || !agentNeedsName.errors.submitterName || !agentNeedsName.errors.submitterPhone) {
+  fail('الوكيل يحتاج اسمًا وجوالًا');
+} else ok('الوكيل وابن/ابنة أحد الأطراف يحتاجان اسمًا وجوالًا');
 
 if (residential.data.submitterName !== 'خالد العتيبي' || residential.data.submitterPhone !== '0551234567' || residential.data.submitterRelation !== 'المستأجر') {
   fail('حفظ بيانات معبئ النموذج');
@@ -354,9 +401,15 @@ if (!/ejar-choice__card/.test(wizardJs) || !/ui: 'cards'/.test(wizardJs)) fail('
 else ok('نوع الوحدة وطريقة الدفع والضمان بطاقات اختيار');
 if (!/ejar-wizard-review__toggle/.test(wizardJs) || !/maskId/.test(wizardJs)) fail('مراجعة الجوال');
 else ok('المراجعة Accordion مع إخفاء جزء الهوية');
-if (!/submitterName/.test(wizardJs) || !/submitterPhone/.test(wizardJs) || !/submitterRelation/.test(wizardJs) || !/معبئ النموذج/.test(wizardJs)) {
+if (!/submitterName/.test(wizardJs) || !/submitterPhone/.test(wizardJs) || !/submitterRelation/.test(wizardJs) || !/من يقوم بتعبئة الطلب/.test(wizardJs)) {
   fail('حقول معبئ النموذج في المعالج');
-} else ok('نهاية النموذج تطلب اسم وجوال وصفة معبئ النموذج');
+} else ok('شاشة المراجعة تسأل من يقوم بتعبئة الطلب دون شاشة معبئ مستقلة للسكني والتجاري');
+if (!/isGroupedKind/.test(wizardJs) || !/getScreens/.test(wizardJs) || !/current \+ ' من ' \+ inputTotal/.test(wizardJs)) fail('شاشات السكني والتجاري المجمّعة');
+else ok('السكني والتجاري يستخدمان 5 شاشات إدخال + مراجعة');
+if (!/COMMERCIAL_PROPERTY_TYPES/.test(wizardJs) || !/محل/.test(wizardJs) || !/مكتب/.test(wizardJs)) fail('أنواع العقار التجارية');
+else ok('التجاري يعرض أنواع وحدات تجارية');
+if (!/ملحق/.test(wizardJs) || !/استوديو/.test(wizardJs)) fail('أنواع العقار السكنية الموسّعة');
+else ok('السكني يعرض ملحق واستوديو وأخرى');
 if (!/restoreDateModeForStep/.test(wizardJs) || !/dateModes/.test(wizardJs)) fail('حفظ نوع التقويم');
 else ok('الرجوع للتاريخ يستعيد نوع التقويم المختار');
 if (!/مؤسسة الهيف للخدمات العقارية/.test(html) || /إنشاء عقد عبر مكتب الهيف/.test(html)) fail('اسم مؤسسة الهيف في صفحة إيجار');
@@ -381,9 +434,9 @@ if (!/k === 'sublease'/.test(wizardJs) || !/إنشاء عقد بالباطن/.te
 else ok('المعالج يفتح نموذجًا مستقلًا لعقد بالباطن');
 if (!html.includes('data-ejar-contract="sublease"') || !html.includes('ابدأ عقد بالباطن')) fail('بطاقة عقد بالباطن');
 else ok('صفحة /ejar تحتوي بطاقة عقد بالباطن مستقلة');
-if (!/propertyLocation/.test(wizardJs) || !/propertyMapUrl/.test(wizardJs) || !/streetName/.test(wizardJs) || !/furnished/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs)) {
+if (!/propertyMapUrl/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs) || !/type: 'stepper'/.test(wizardJs)) {
   fail('حقول بيانات العقار في المعالج');
-} else ok('بيانات العقار تشمل الموقع والشارع والدور والتأثيث وتفاصيل الشقة ونوع العقار');
+} else ok('شاشة العقار المجمّعة تشمل النوع والوحدة والدور والرابط والمحتويات');
 if (!/بيانات العقار/.test(dashRequests) || !/propertyLocation/.test(dashRequests) || !/propertyMapUrl/.test(dashRequests) || !/furnished/.test(dashRequests)) {
   fail('عرض بيانات العقار في اللوحة');
 } else ok('لوحة التحكم تعرض بيانات العقار الجديدة');

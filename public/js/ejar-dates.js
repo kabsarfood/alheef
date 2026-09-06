@@ -243,10 +243,10 @@
     return line(iso);
   }
 
-  function radioHtml(mode, label, checked) {
+  function radioHtml(mode, label, checked, name) {
     return ''
       + '<label class="ejar-date-radio">'
-      + '  <input type="radio" name="ejar-date-mode" value="' + escapeHtml(mode) + '"' + (checked ? ' checked' : '') + '>'
+      + '  <input type="radio" name="' + escapeHtml(name || 'ejar-date-mode') + '" value="' + escapeHtml(mode) + '"' + (checked ? ' checked' : '') + '>'
       + '  <span>' + escapeHtml(label) + '</span>'
       + '</label>';
   }
@@ -263,17 +263,20 @@
     var minHijri = 1350;
     var yearSelected = hijri.year || '';
     var hint = !mode ? 'اختر نوع التاريخ' : (mode === 'hijri' ? 'التاريخ الهجري' : 'التاريخ الميلادي');
+    var hintId = 'ejar-date-chooser-hint-' + fieldKey;
+    var gregorianId = 'ejar-date-gregorian-' + fieldKey;
+    var radioName = 'ejar-date-mode-' + fieldKey;
 
     return ''
-      + '<div class="ejar-date-picker" data-max-iso="' + escapeHtml(maxIso) + '" data-date-mode="' + escapeHtml(mode) + '">'
+      + '<div class="ejar-date-picker" data-field-key="' + escapeHtml(fieldKey) + '" data-max-iso="' + escapeHtml(maxIso) + '" data-date-mode="' + escapeHtml(mode) + '">'
       + '  <div class="ejar-date-chooser">'
       + '    <div class="ejar-date-chooser__bar">'
-      + '      <p class="ejar-date-chooser__hint" id="ejar-date-chooser-hint">' + hint + '</p>'
+      + '      <p class="ejar-date-chooser__hint" id="' + hintId + '">' + hint + '</p>'
       + '      <button type="button" class="ejar-date-chooser__change"' + (mode ? '' : ' hidden') + '>تغيير نوع التاريخ</button>'
       + '    </div>'
-      + '    <div class="ejar-date-radios" role="radiogroup" aria-labelledby="ejar-date-chooser-hint"' + (mode ? ' hidden' : '') + '>'
-      + radioHtml('hijri', 'هجري', mode === 'hijri')
-      + radioHtml('gregorian', 'ميلادي', mode === 'gregorian')
+      + '    <div class="ejar-date-radios" role="radiogroup" aria-labelledby="' + hintId + '"' + (mode ? ' hidden' : '') + '>'
+      + radioHtml('hijri', 'هجري', mode === 'hijri', radioName)
+      + radioHtml('gregorian', 'ميلادي', mode === 'gregorian', radioName)
       + '    </div>'
       + '  </div>'
       + '  <div class="ejar-date-hijri" data-date-panel="hijri"' + (mode === 'hijri' ? '' : ' hidden') + '>'
@@ -281,12 +284,12 @@
       + '    <label class="ejar-date-hijri__item"><span>الشهر</span><select class="ejar-wizard__control" data-hijri="month" aria-label="الشهر الهجري">' + monthOptions(hijri.month) + '</select></label>'
       + '    <label class="ejar-date-hijri__item"><span>السنة</span><select class="ejar-wizard__control" data-hijri="year" aria-label="السنة الهجرية"><option value="">السنة</option>' + optionList(maxHijri, minHijri, yearSelected) + '</select></label>'
       + '  </div>'
-      + '  <label class="ejar-date-gregorian" data-date-panel="gregorian"' + (mode === 'gregorian' ? '' : ' hidden') + ' for="ejar-date-gregorian">'
+      + '  <label class="ejar-date-gregorian" data-date-panel="gregorian"' + (mode === 'gregorian' ? '' : ' hidden') + ' for="' + gregorianId + '">'
       + '    <span class="ejar-sr-only">التاريخ الميلادي</span>'
-      + '    <input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-date-gregorian" type="date" dir="ltr" lang="ar-SA" autocomplete="off" value="' + escapeHtml(iso) + '"' + (maxIso ? ' max="' + escapeHtml(maxIso) + '"' : '') + '>'
+      + '    <input class="ejar-wizard__control ejar-wizard__control--date" id="' + gregorianId + '" data-date-gregorian type="date" dir="ltr" lang="ar-SA" autocomplete="off" value="' + escapeHtml(iso) + '"' + (maxIso ? ' max="' + escapeHtml(maxIso) + '"' : '') + '>'
       + '  </label>'
-      + '  <input type="hidden" id="ejar-wizard-field" data-wizard-field="' + escapeHtml(fieldKey) + '" value="' + escapeHtml(iso) + '" required>'
-      + '  <div id="ejar-date-preview">' + html(iso) + '</div>'
+      + '  <input type="hidden" id="ejar-field-' + escapeHtml(fieldKey) + '" data-wizard-field="' + escapeHtml(fieldKey) + '" value="' + escapeHtml(iso) + '" required>'
+      + '  <div class="ejar-date-preview" id="ejar-date-preview-' + escapeHtml(fieldKey) + '">' + html(iso) + '</div>'
       + '</div>';
   }
 

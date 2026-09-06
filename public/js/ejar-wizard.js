@@ -3,7 +3,10 @@
 
   var DRAFT_KEY = 'ejar_wizard_draft';
   var PAYMENT_METHODS = ['شهري', 'ربع سنوي', 'نصف سنوي', 'سنوي'];
+  var GROUPED_PAYMENT_METHODS = ['شهري', 'كل 3 أشهر', 'نصف سنوي', 'سنوي'];
   var PROPERTY_TYPES = ['شقة', 'فيلا', 'عمارة', 'دور'];
+  var RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'عمارة', 'ملحق', 'استوديو', 'أخرى'];
+  var COMMERCIAL_PROPERTY_TYPES = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى'];
   var FURNISHED_OPTIONS = ['مؤثث', 'غير مؤثث'];
   var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var YES_NO = ['لا', 'نعم'];
@@ -28,6 +31,7 @@
   var dateMode = '';
   var dateModes = {};
   var stepIndex = 0;
+  var screenIndex = 0;
   var answers = {};
   var submitting = false;
   var deedFile = null;
@@ -169,6 +173,101 @@
     return steps;
   }
 
+  function isGroupedKind() {
+    return kind !== 'sublease';
+  }
+
+  function propertyTypesFor(k) {
+    return k === 'commercial' ? COMMERCIAL_PROPERTY_TYPES : RESIDENTIAL_PROPERTY_TYPES;
+  }
+
+  function getScreens(k) {
+    var unitTypes = propertyTypesFor(k);
+    return [
+      {
+        id: 'ownership',
+        title: 'بيانات الملكية',
+        short: 'الملكية',
+        fields: [
+          { key: 'deedNumber', label: 'رقم الصك', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
+          { key: 'deedDate', label: 'تاريخ الصك', type: 'date' },
+        ],
+      },
+      {
+        id: 'owner',
+        title: 'بيانات المؤجر',
+        short: 'المؤجر',
+        fields: [
+          { key: 'ownerId', label: 'رقم الهوية / الإقامة', type: 'nid' },
+          { key: 'ownerDob', label: 'تاريخ الميلاد', type: 'date' },
+          { key: 'ownerPhone', label: 'رقم الجوال', type: 'phone' },
+        ],
+      },
+      {
+        id: 'tenant',
+        title: 'بيانات المستأجر',
+        short: 'المستأجر',
+        fields: [
+          { key: 'tenantId', label: 'رقم الهوية / الإقامة', type: 'nid' },
+          { key: 'tenantDob', label: 'تاريخ الميلاد', type: 'date' },
+          { key: 'tenantPhone', label: 'رقم الجوال', type: 'phone' },
+        ],
+      },
+      {
+        id: 'unit',
+        title: 'العقار والوحدة',
+        short: 'العقار',
+        fields: [
+          { key: 'unitType', label: 'نوع العقار', type: 'select', ui: 'cards', options: unitTypes },
+          { key: 'unitNumber', label: 'رقم الوحدة / العقار', type: 'text', inputmode: 'text' },
+          { key: 'floor', label: 'الدور', type: 'select', options: rangeOptions(0, 10) },
+          { key: 'propertyMapUrl', label: 'رابط الموقع', type: 'url' },
+          { key: 'rooms', label: 'عدد الغرف', type: 'stepper', min: 1, max: 10 },
+          { key: 'bathrooms', label: 'عدد دورات المياه', type: 'stepper', min: 1, max: 5 },
+          { key: 'acs', label: 'عدد المكيفات', type: 'stepper', min: 0, max: 10 },
+          { key: 'kitchens', label: 'مطبخ', type: 'yesno' },
+          { key: 'majlis', label: 'مجلس', type: 'yesno' },
+        ],
+      },
+      {
+        id: 'finance',
+        title: 'تفاصيل العقد',
+        short: 'العقد',
+        fields: [
+          { key: 'rentAmount', label: 'قيمة الإيجار', type: 'number', suffix: 'ريال', min: 0 },
+          { key: 'startDate', label: 'تاريخ بداية العقد', type: 'date' },
+          {
+            key: 'contractDuration',
+            label: 'مدة العقد',
+            type: 'select',
+            ui: 'cards',
+            options: DURATIONS,
+            otherKey: 'contractDurationOther',
+            otherValue: 'مدة أخرى',
+            otherLabel: 'حدد المدة',
+          },
+          { key: 'paymentMethod', label: 'طريقة الدفع', type: 'select', ui: 'cards', options: GROUPED_PAYMENT_METHODS },
+          {
+            key: 'hasDeposit',
+            label: 'هل يوجد ضمان؟',
+            type: 'select',
+            ui: 'cards',
+            options: YES_NO,
+            extraKey: 'depositAmount',
+            extraValue: 'نعم',
+            extraLabel: 'مبلغ الضمان',
+            extraSuffix: 'ريال',
+          },
+        ],
+      },
+      { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة', type: 'review' },
+    ];
+  }
+
+  function currentScreen() {
+    return getScreens(kind)[screenIndex] || getScreens(kind)[0];
+  }
+
   function sectionMeta(id) {
     for (var i = 0; i < SECTIONS.length; i += 1) {
       if (SECTIONS[i].id === id) return SECTIONS[i];
@@ -226,7 +325,40 @@
       + '</ol>';
   }
 
+  function groupedProgressHtml() {
+    var screens = getScreens(kind);
+    var screen = screens[screenIndex] || {};
+    var inputTotal = screens.filter(function (s) { return s.type !== 'review'; }).length;
+    var isReview = screen.type === 'review';
+    var current = isReview ? inputTotal : screenIndex + 1;
+    var pct = isReview ? 100 : Math.round((current / inputTotal) * 100);
+    var stages = '<ol class="ejar-wizard__stages" aria-label="مراحل الطلب">'
+      + screens.map(function (s, i) {
+        var cls = 'ejar-wizard__stage';
+        if (i < screenIndex) cls += ' is-done';
+        if (i === screenIndex) cls += ' is-current';
+        return '<li class="' + cls + '"' + (i === screenIndex ? ' aria-current="step"' : '') + '>'
+          + '<span class="ejar-wizard__stage-label">' + escapeHtml(s.short) + '</span>'
+          + '<span class="ejar-wizard__stage-mark" aria-hidden="true">' + (i <= screenIndex ? '●' : '○') + '</span>'
+          + '</li>';
+      }).join('')
+      + '</ol>';
+    var mobileText = isReview
+      ? escapeHtml(screen.title)
+      : escapeHtml(screen.title) + ' — ' + current + ' من ' + inputTotal;
+    var desktopText = isReview
+      ? ''
+      : '<strong>' + escapeHtml(screen.title) + '</strong><span> ' + current + ' من ' + inputTotal + '</span>';
+    return '<div class="ejar-wizard__progress">'
+      + stages
+      + '<p class="ejar-wizard__progress-text ejar-wizard__progress-text--mobile" aria-live="polite">' + mobileText + '</p>'
+      + (isReview ? '' : '<div class="ejar-wizard__bar" aria-hidden="true"><div class="ejar-wizard__bar-fill" style="width:' + pct + '%"></div></div>')
+      + '</div>'
+      + (isReview ? '' : '<p class="ejar-wizard__progress-text ejar-wizard__progress-text--desktop" aria-live="polite">' + desktopText + '</p>');
+  }
+
   function progressHtml(steps, index) {
+    if (isGroupedKind()) return groupedProgressHtml();
     var stats = sectionProgress(steps, index);
     var pct = stats.isReview || !stats.total ? 100 : Math.round((stats.current / stats.total) * 100);
     var mobileText = stats.isReview
@@ -382,9 +514,10 @@
     if (!hasAnswers()) return;
     try {
       var payload = {
-        v: 1,
+        v: 2,
         kind: kind,
         stepIndex: stepIndex,
+        screenIndex: screenIndex,
         answers: answers,
         dateModes: dateModes,
         savedAt: new Date().toISOString(),
@@ -398,7 +531,7 @@
       var raw = localStorage.getItem(DRAFT_KEY) || sessionStorage.getItem(DRAFT_KEY);
       if (!raw) return null;
       var data = JSON.parse(raw);
-      if (!data || data.v !== 1 || !data.answers || typeof data.answers !== 'object') return null;
+      if (!data || (data.v !== 1 && data.v !== 2) || !data.answers || typeof data.answers !== 'object') return null;
       return data;
     } catch (_) {
       return null;
@@ -417,17 +550,35 @@
     try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) { /* noop */ }
   }
 
+  function screenIndexFromLegacyStep(k, idx) {
+    var steps = getSteps(k);
+    var step = steps[Math.max(0, Number(idx) || 0)] || {};
+    var map = { ownership: 0, owner: 1, tenant: 2, unit: 3, finance: 4, submitter: 5, review: 5 };
+    return map[step.section] != null ? map[step.section] : 0;
+  }
+
   function applyDraft(data) {
     kind = normalizeKind(data.kind);
     answers = data.answers || {};
     dateModes = data.dateModes && typeof data.dateModes === 'object' ? data.dateModes : {};
-    var max = getSteps(kind).length - 1;
-    stepIndex = Math.max(0, Math.min(Number(data.stepIndex) || 0, max));
+    var maxStep = getSteps(kind).length - 1;
+    stepIndex = Math.max(0, Math.min(Number(data.stepIndex) || 0, maxStep));
+    var maxScreen = getScreens(kind).length - 1;
+    if (isGroupedKind()) {
+      if (data.v === 2 && data.screenIndex != null) {
+        screenIndex = Math.max(0, Math.min(Number(data.screenIndex) || 0, maxScreen));
+      } else {
+        screenIndex = Math.max(0, Math.min(screenIndexFromLegacyStep(kind, data.stepIndex), maxScreen));
+      }
+    } else {
+      screenIndex = 0;
+    }
   }
 
   function resetMemory() {
     answers = {};
     stepIndex = 0;
+    screenIndex = 0;
     dateMode = '';
     dateModes = {};
     submitting = false;
@@ -574,7 +725,7 @@
   }
 
   function sanitizeUnitForKind() {
-    var options = PROPERTY_TYPES;
+    var options = isGroupedKind() ? propertyTypesFor(kind) : PROPERTY_TYPES;
     if (answers.unitType && options.indexOf(answers.unitType) === -1) {
       answers.unitType = '';
       answers.unitTypeOther = '';
@@ -586,7 +737,8 @@
     if (nextKind !== 'residential' && nextKind !== 'commercial') return;
     if (nextKind === kind) return;
     collectCurrent();
-    if (unitDataStarted() || stepIndex >= firstUnitStepIndex()) {
+    var pastUnit = isGroupedKind() ? screenIndex >= 3 : stepIndex >= firstUnitStepIndex();
+    if (unitDataStarted() || pastUnit) {
       if (!window.confirm('تغيير نوع العقد قد يمسح بيانات الوحدة غير المتوافقة. هل تريد المتابعة؟')) return;
     }
     kind = nextKind;
@@ -615,14 +767,14 @@
     return getSteps(kind)[stepIndex];
   }
 
-  function collectCurrent() {
-    var step = currentStep();
-    if (!step || !root) return;
-    if (step.type === 'review') {
-      var box = root.querySelector('#ejar-wizard-declaration');
-      answers.declarationAccepted = !!(box && box.checked);
-      return;
-    }
+  function readFieldValue(key) {
+    if (!root || !key) return answers[key];
+    var input = root.querySelector('[data-wizard-field="' + key + '"]');
+    return input ? input.value : answers[key];
+  }
+
+  function collectField(step) {
+    if (!step || !step.key) return;
     var input = root.querySelector('[data-wizard-field="' + step.key + '"]');
     if (input) answers[step.key] = input.value;
     if (step.otherKey) {
@@ -633,6 +785,52 @@
       var extra = root.querySelector('[data-wizard-field="' + step.extraKey + '"]');
       answers[step.extraKey] = extra ? extra.value.trim() : '';
     }
+  }
+
+  function collectReviewExtras() {
+    var box = root.querySelector('#ejar-wizard-declaration');
+    answers.declarationAccepted = !!(box && box.checked);
+    if (!isGroupedKind()) return;
+    var rel = root.querySelector('[data-wizard-field="submitterRelation"]');
+    if (rel) answers.submitterRelation = rel.value;
+    var name = root.querySelector('[data-wizard-field="submitterName"]');
+    if (name) answers.submitterName = name.value.trim();
+    var phone = root.querySelector('[data-wizard-field="submitterPhone"]');
+    if (phone) answers.submitterPhone = phone.value.trim();
+    syncSubmitterFromRelation();
+  }
+
+  function syncSubmitterFromRelation() {
+    if (answers.submitterRelation === 'المؤجر') {
+      answers.submitterPhone = answers.ownerPhone || answers.submitterPhone;
+    } else if (answers.submitterRelation === 'المستأجر') {
+      answers.submitterPhone = answers.tenantPhone || answers.submitterPhone;
+    }
+  }
+
+  function needsSubmitterDetails() {
+    return answers.submitterRelation === 'وكيل' || answers.submitterRelation === 'ابن/ابنة أحد الأطراف';
+  }
+
+  function collectCurrent() {
+    if (!root) return;
+    if (isGroupedKind()) {
+      var screen = currentScreen();
+      if (!screen) return;
+      if (screen.type === 'review') {
+        collectReviewExtras();
+        return;
+      }
+      (screen.fields || []).forEach(collectField);
+      return;
+    }
+    var step = currentStep();
+    if (!step) return;
+    if (step.type === 'review') {
+      collectReviewExtras();
+      return;
+    }
+    collectField(step);
   }
 
   function validateStep(step) {
@@ -650,11 +848,12 @@
       return '';
     }
     if (step.type === 'url') {
-      if (!isValidMapUrl(value)) return 'يرجى لصق رابط موقع العقار (اللكيشن) بشكل صحيح';
+      if (!isValidMapUrl(value)) return 'يرجى لصق رابط موقع العقار بشكل صحيح';
       return '';
     }
     if (step.type === 'date') {
-      if (!dateMode) return 'يرجى اختيار نوع التقويم أولاً (هجري أو ميلادي)';
+      var mode = dateModes[step.key] || dateMode;
+      if (!mode) return 'يرجى اختيار نوع التقويم أولاً (هجري أو ميلادي)';
       if (!isIsoDate(value)) return 'يرجى اختيار التاريخ';
       if (isPastLimitedDate(step.key) && value > todayIso()) {
         return isDobField(step.key) ? 'تاريخ الميلاد يجب أن يكون في الماضي' : 'يرجى اختيار تاريخ صحيح في الماضي';
@@ -663,6 +862,17 @@
     }
     if (step.type === 'number') {
       if (positiveNumber(value) == null) return step.key === 'area' ? 'المساحة يجب أن تكون رقمًا موجبًا' : 'القيمة يجب أن تكون أكبر من صفر';
+      return '';
+    }
+    if (step.type === 'stepper') {
+      var n = parseInt(value, 10);
+      if (!Number.isInteger(n) || n < step.min || n > step.max) {
+        return 'يرجى تحديد ' + (step.label || 'القيمة');
+      }
+      return '';
+    }
+    if (step.type === 'yesno') {
+      if (value !== '0' && value !== '1') return 'يرجى اختيار نعم أو لا';
       return '';
     }
     if (step.type === 'select') {
@@ -709,6 +919,21 @@
       : '';
   }
 
+  function restoreDateModeForScreen(screen) {
+    var dateField = (screen && screen.fields || []).filter(function (f) { return f.type === 'date'; })[0];
+    restoreDateModeForStep(dateField);
+  }
+
+  function normalizeAnswer(step) {
+    if (!step || !step.key) return;
+    if (step.type === 'nid') answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
+    if (step.type === 'url') answers[step.key] = normalizeMapUrl(answers[step.key]);
+    if (step.type === 'phone') answers[step.key] = normalizeSaudiMobile(answers[step.key]);
+    if (step.key === 'subleaseIdOrCr' || step.key === 'subleaseUnifiedNumber') {
+      answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
+    }
+  }
+
   function enterStep(index) {
     var steps = getSteps(kind);
     stepIndex = Math.max(0, Math.min(index, steps.length - 1));
@@ -717,26 +942,73 @@
     focusCurrent();
   }
 
+  function enterScreen(index) {
+    var screens = getScreens(kind);
+    screenIndex = Math.max(0, Math.min(index, screens.length - 1));
+    restoreDateModeForScreen(screens[screenIndex]);
+    render();
+    focusCurrent();
+  }
+
   function goTo(index) {
     collectCurrent();
     saveDraft();
-    enterStep(index);
+    if (isGroupedKind()) enterScreen(index);
+    else enterStep(index);
+  }
+
+  function validateReviewGrouped() {
+    var errors = [];
+    if (!SUBMITTER_RELATIONS.includes(answers.submitterRelation)) {
+      errors.push({ key: 'submitterRelation', message: 'يرجى تحديد من يقوم بتعبئة الطلب' });
+    } else if (needsSubmitterDetails()) {
+      if (String(answers.submitterName || '').trim().length < 2) {
+        errors.push({ key: 'submitterName', message: 'يرجى إدخال اسم معبئ النموذج' });
+      }
+      if (!isValidSaudiMobile(answers.submitterPhone)) {
+        errors.push({ key: 'submitterPhone', message: 'يرجى إدخال رقم جوال سعودي صحيح' });
+      }
+    }
+    if (!answers.declarationAccepted) {
+      errors.push({ key: 'declarationAccepted', message: 'يلزم الإقرار بصحة البيانات قبل الإرسال' });
+    }
+    return errors;
   }
 
   function next() {
     collectCurrent();
+    if (isGroupedKind()) {
+      var screen = currentScreen();
+      var errors = [];
+      if (screen.type === 'review') {
+        errors = validateReviewGrouped();
+      } else {
+        (screen.fields || []).forEach(function (field) {
+          var err = validateStep(field);
+          if (err) errors.push({ key: field.key, message: err });
+        });
+      }
+      if (errors.length) {
+        showFieldErrors(errors);
+        return;
+      }
+      (screen.fields || []).forEach(normalizeAnswer);
+      saveDraft();
+      var screens = getScreens(kind);
+      if (screenIndex >= screens.length - 1) {
+        submit();
+        return;
+      }
+      enterScreen(screenIndex + 1);
+      return;
+    }
     var step = currentStep();
     var err = validateStep(step);
     if (err) {
       showError(err);
       return;
     }
-    if (step.type === 'nid') answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
-    if (step.type === 'url') answers[step.key] = normalizeMapUrl(answers[step.key]);
-    if (step.type === 'phone') answers[step.key] = normalizeSaudiMobile(answers[step.key]);
-    if (step.key === 'subleaseIdOrCr' || step.key === 'subleaseUnifiedNumber') {
-      answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
-    }
+    normalizeAnswer(step);
     saveDraft();
     var steps = getSteps(kind);
     if (stepIndex >= steps.length - 1) {
@@ -749,8 +1021,53 @@
   function prev() {
     collectCurrent();
     saveDraft();
+    if (isGroupedKind()) {
+      if (screenIndex <= 0) return;
+      enterScreen(screenIndex - 1);
+      return;
+    }
     if (stepIndex <= 0) return;
     enterStep(stepIndex - 1);
+  }
+
+  function clearFieldErrors() {
+    if (!root) return;
+    root.querySelectorAll('.ejar-field__error').forEach(function (el) {
+      el.textContent = '';
+      el.hidden = true;
+    });
+    root.querySelectorAll('[aria-invalid="true"]').forEach(function (el) {
+      el.removeAttribute('aria-invalid');
+    });
+    root.querySelectorAll('.ejar-field.is-invalid').forEach(function (el) {
+      el.classList.remove('is-invalid');
+    });
+  }
+
+  function showFieldErrors(errors) {
+    clearFieldErrors();
+    var first = errors[0];
+    if (first) showError(first.message);
+    errors.forEach(function (item) {
+      var wrap = root.querySelector('.ejar-field[data-field="' + item.key + '"]');
+      if (!wrap) return;
+      wrap.classList.add('is-invalid');
+      var msg = wrap.querySelector('.ejar-field__error');
+      if (msg) {
+        msg.textContent = item.message;
+        msg.hidden = false;
+      }
+      var field = wrap.querySelector('[data-wizard-field]:not([type="hidden"]), [data-wizard-field]');
+      if (field) field.setAttribute('aria-invalid', 'true');
+    });
+    var firstWrap = first && root.querySelector('.ejar-field[data-field="' + first.key + '"]');
+    var firstField = firstWrap && firstWrap.querySelector('input:not([type="hidden"]), select, button.ejar-choice__card, .ejar-stepper__btn');
+    if (firstField && typeof firstField.focus === 'function' && first && first.key && !isDateField(first.key)) {
+      try { firstField.focus({ preventScroll: true }); } catch (_) { firstField.focus(); }
+    }
+    if (firstWrap && firstWrap.scrollIntoView) {
+      firstWrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 
   function showError(text) {
@@ -758,6 +1075,7 @@
     if (!el) return;
     el.textContent = text;
     el.hidden = false;
+    if (isGroupedKind()) return;
     var step = currentStep();
     if (step && step.type === 'date') return;
     var field = root.querySelector('[data-wizard-field]:not([type="hidden"])');
@@ -773,19 +1091,24 @@
       el.textContent = '';
       el.hidden = true;
     }
+    clearFieldErrors();
   }
 
-  function refreshDatePreview(iso) {
-    var preview = root && root.querySelector('#ejar-date-preview');
+  function refreshDatePreview(iso, picker) {
+    var preview = (picker || root) && (picker || root).querySelector('.ejar-date-preview, #ejar-date-preview');
     if (!preview) return;
     preview.innerHTML = dualDateHtml(iso);
   }
 
-  function clearDateValue() {
-    var picker = root && root.querySelector('.ejar-date-picker');
+  function pickerFieldKey(picker) {
+    return (picker && (picker.getAttribute('data-field-key') || (picker.querySelector('[data-wizard-field]') || {}).getAttribute && picker.querySelector('[data-wizard-field]').getAttribute('data-wizard-field'))) || '';
+  }
+
+  function clearDateValue(picker) {
+    picker = picker || (root && root.querySelector('.ejar-date-picker'));
     if (!picker) return;
-    var hidden = picker.querySelector('#ejar-wizard-field');
-    var gregorian = picker.querySelector('#ejar-date-gregorian');
+    var hidden = picker.querySelector('[data-wizard-field]');
+    var gregorian = picker.querySelector('[data-date-gregorian], #ejar-date-gregorian');
     var yearEl = picker.querySelector('[data-hijri="year"]');
     var monthEl = picker.querySelector('[data-hijri="month"]');
     var dayEl = picker.querySelector('[data-hijri="day"]');
@@ -798,32 +1121,32 @@
     if (yearEl) yearEl.value = '';
     if (monthEl) monthEl.value = '';
     if (dayEl) dayEl.value = '';
-    refreshDatePreview('');
+    refreshDatePreview('', picker);
   }
 
-  function applyDateMode(mode) {
+  function applyDateMode(mode, picker) {
+    picker = picker || (root && root.querySelector('.ejar-date-picker'));
+    if (!picker) return;
+    var key = pickerFieldKey(picker);
     var nextMode = mode === 'hijri' || mode === 'gregorian' ? mode : '';
-    var step = currentStep();
-    var stored = step && step.type === 'date' ? dateModes[step.key] : '';
+    var stored = key ? dateModes[key] : '';
     if (nextMode && stored && stored !== nextMode) {
-      clearDateValue();
+      clearDateValue(picker);
     }
     dateMode = nextMode;
-    if (step && step.type === 'date' && dateMode) {
-      dateModes[step.key] = dateMode;
+    if (key && dateMode) {
+      dateModes[key] = dateMode;
       saveDraft();
-    } else if (step && step.type === 'date') {
+    } else if (key) {
       saveDraft();
     }
-    var picker = root && root.querySelector('.ejar-date-picker');
-    if (!picker) return;
     picker.setAttribute('data-date-mode', dateMode);
     var hijri = picker.querySelector('[data-date-panel="hijri"]');
     var gregorian = picker.querySelector('[data-date-panel="gregorian"]');
     var hint = picker.querySelector('.ejar-date-chooser__hint');
     var changeBtn = picker.querySelector('.ejar-date-chooser__change');
     var radios = picker.querySelector('.ejar-date-radios');
-    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
+    picker.querySelectorAll('input[type="radio"]').forEach(function (input) {
       input.checked = !!(dateMode && input.value === dateMode);
     });
     if (radios) radios.hidden = !!dateMode;
@@ -837,17 +1160,20 @@
     }
   }
 
-  function revealDateTypeChooser() {
-    var picker = root && root.querySelector('.ejar-date-picker');
+  function revealDateTypeChooser(picker) {
+    picker = picker || (root && root.querySelector('.ejar-date-picker'));
     if (!picker) return;
+    var key = pickerFieldKey(picker);
+    if (key) dateModes[key] = '';
+    dateMode = '';
     var hijri = picker.querySelector('[data-date-panel="hijri"]');
     var gregorian = picker.querySelector('[data-date-panel="gregorian"]');
     var hint = picker.querySelector('.ejar-date-chooser__hint');
     var changeBtn = picker.querySelector('.ejar-date-chooser__change');
     var radios = picker.querySelector('.ejar-date-radios');
     picker.setAttribute('data-date-mode', '');
-    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
-      input.checked = !!(dateMode && input.value === dateMode);
+    picker.querySelectorAll('input[type="radio"]').forEach(function (input) {
+      input.checked = false;
     });
     if (radios) radios.hidden = false;
     if (hijri) hijri.hidden = true;
@@ -857,36 +1183,39 @@
   }
 
   function bindDateChooser() {
-    var picker = root && root.querySelector('.ejar-date-picker');
-    if (!picker) return;
-    picker.querySelectorAll('input[name="ejar-date-mode"]').forEach(function (input) {
-      function choose() {
-        if (!input.checked) return;
-        applyDateMode(input.value);
-        hideError();
-      }
-      input.addEventListener('change', choose);
-      input.addEventListener('click', choose);
-    });
-    var changeBtn = picker.querySelector('.ejar-date-chooser__change');
-    if (changeBtn) {
-      changeBtn.addEventListener('click', function () {
-        revealDateTypeChooser();
+    if (!root) return;
+    root.querySelectorAll('.ejar-date-picker').forEach(function (picker) {
+      picker.querySelectorAll('input[type="radio"]').forEach(function (input) {
+        function choose() {
+          if (!input.checked) return;
+          applyDateMode(input.value, picker);
+          hideError();
+        }
+        input.addEventListener('change', choose);
+        input.addEventListener('click', choose);
       });
-    }
-    applyDateMode(dateMode);
+      var changeBtn = picker.querySelector('.ejar-date-chooser__change');
+      if (changeBtn) {
+        changeBtn.addEventListener('click', function () {
+          revealDateTypeChooser(picker);
+        });
+      }
+      var key = pickerFieldKey(picker);
+      var mode = (key && dateModes[key]) || dateMode;
+      applyDateMode(mode, picker);
+    });
   }
 
   function bindDatePicker() {
-    var picker = root.querySelector('.ejar-date-picker');
     var Dates = window.EjarDates;
-    if (!picker || !Dates) return;
+    if (!root || !Dates) return;
+    root.querySelectorAll('.ejar-date-picker').forEach(function (picker) {
     var maxIso = picker.getAttribute('data-max-iso') || '';
-    var hidden = picker.querySelector('#ejar-wizard-field');
+    var hidden = picker.querySelector('[data-wizard-field]');
     var yearEl = picker.querySelector('[data-hijri="year"]');
     var monthEl = picker.querySelector('[data-hijri="month"]');
     var dayEl = picker.querySelector('[data-hijri="day"]');
-    var gregorian = picker.querySelector('#ejar-date-gregorian');
+    var gregorian = picker.querySelector('[data-date-gregorian], #ejar-date-gregorian');
 
     function setIso(iso) {
       if (maxIso && iso && iso > maxIso) iso = maxIso;
@@ -895,7 +1224,7 @@
         answers[hidden.getAttribute('data-wizard-field')] = hidden.value;
       }
       if (gregorian && gregorian.value !== (iso || '')) gregorian.value = iso || '';
-      refreshDatePreview(iso || '');
+      refreshDatePreview(iso || '', picker);
       saveDraft();
       hideError();
     }
@@ -930,6 +1259,7 @@
         Dates.fillHijriSelects(picker, gregorian.value);
       });
     }
+    });
   }
 
   function deedExt(file) {
@@ -1027,8 +1357,15 @@
   }
 
   function focusCurrent() {
-    var step = currentStep();
-    if (step && step.type === 'date') return;
+    if (isGroupedKind()) {
+      var screen = currentScreen();
+      if (screen && screen.type === 'review') return;
+      var firstDate = screen && (screen.fields || []).some(function (f) { return f.type === 'date'; });
+      if (firstDate) return;
+    } else {
+      var step = currentStep();
+      if (step && step.type === 'date') return;
+    }
     var field = root && root.querySelector('[data-wizard-field]:not([type="hidden"]), #ejar-wizard-declaration, .ejar-wizard__next');
     if (field && typeof field.focus === 'function') {
       try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
@@ -1046,18 +1383,22 @@
     return step.options || [];
   }
 
+  function fieldId(step) {
+    return 'ejar-field-' + step.key;
+  }
+
   function followHtml(step, value) {
     var extra = '';
     if (step.otherKey) {
       extra += '<div class="ejar-wizard__follow"' + (value === step.otherValue ? '' : ' hidden') + ' data-follow="' + step.otherKey + '">'
-        + '<label for="ejar-wizard-other">' + escapeHtml(step.otherLabel) + '</label>'
-        + '<input class="ejar-wizard__control" id="ejar-wizard-other" data-wizard-field="' + step.otherKey + '" type="text" value="' + escapeHtml(answers[step.otherKey] || '') + '">'
+        + '<label for="ejar-follow-' + step.otherKey + '">' + escapeHtml(step.otherLabel) + '</label>'
+        + '<input class="ejar-wizard__control" id="ejar-follow-' + step.otherKey + '" data-wizard-field="' + step.otherKey + '" type="text" value="' + escapeHtml(answers[step.otherKey] || '') + '">'
         + '</div>';
     }
     if (step.extraKey) {
       extra += '<div class="ejar-wizard__follow"' + (value === step.extraValue ? '' : ' hidden') + ' data-follow="' + step.extraKey + '">'
-        + '<label for="ejar-wizard-extra">' + escapeHtml(step.extraLabel) + '</label>'
-        + '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-wizard-extra" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>'
+        + '<label for="ejar-follow-' + step.extraKey + '">' + escapeHtml(step.extraLabel) + '</label>'
+        + '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-follow-' + step.extraKey + '" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>'
         + '</div>';
     }
     return extra;
@@ -1067,8 +1408,8 @@
     var value = answers[step.key] || '';
     var options = cardOptions(step);
     var countClass = options.length <= 2 ? 'ejar-choice--2' : (options.length <= 4 ? 'ejar-choice--4' : 'ejar-choice--grid');
-    return '<div class="ejar-choice ' + countClass + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
-      + '<input type="hidden" id="ejar-wizard-field" data-wizard-field="' + step.key + '" value="' + escapeHtml(value) + '">'
+    return '<div class="ejar-choice ' + countClass + '" data-choice-group="' + step.key + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
+      + '<input type="hidden" id="' + fieldId(step) + '" data-wizard-field="' + step.key + '" value="' + escapeHtml(value) + '">'
       + options.map(function (opt) {
         var selected = value === opt;
         return '<button type="button" class="ejar-choice__card' + (selected ? ' is-selected' : '') + '" data-choice="' + escapeHtml(opt) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">'
@@ -1079,40 +1420,75 @@
       + followHtml(step, value);
   }
 
+  function stepperHtml(step) {
+    var min = step.min;
+    var max = step.max;
+    var raw = answers[step.key];
+    var value = raw === '' || raw == null ? String(min) : String(raw);
+    if (answers[step.key] == null || answers[step.key] === '') answers[step.key] = value;
+    return '<div class="ejar-stepper" data-stepper="' + step.key + '">'
+      + '<button type="button" class="ejar-stepper__btn" data-stepper-dir="-1" aria-label="إنقاص">−</button>'
+      + '<input class="ejar-wizard__control ejar-stepper__value" id="' + fieldId(step) + '" data-wizard-field="' + step.key + '" type="text" inputmode="numeric" readonly value="' + escapeHtml(value) + '">'
+      + '<button type="button" class="ejar-stepper__btn" data-stepper-dir="1" aria-label="زيادة">+</button>'
+      + '</div>';
+  }
+
+  function yesNoHtml(step) {
+    var value = String(answers[step.key] == null ? '' : answers[step.key]);
+    return '<div class="ejar-choice ejar-choice--2" data-choice-group="' + step.key + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
+      + '<input type="hidden" id="' + fieldId(step) + '" data-wizard-field="' + step.key + '" value="' + escapeHtml(value) + '">'
+      + '<button type="button" class="ejar-choice__card' + (value === '1' ? ' is-selected' : '') + '" data-choice="1" aria-pressed="' + (value === '1' ? 'true' : 'false') + '">نعم</button>'
+      + '<button type="button" class="ejar-choice__card' + (value === '0' ? ' is-selected' : '') + '" data-choice="0" aria-pressed="' + (value === '0' ? 'true' : 'false') + '">لا</button>'
+      + '</div>';
+  }
+
   function inputHtml(step) {
     var value = answers[step.key] || '';
+    var id = fieldId(step);
+    if (step.type === 'stepper') return stepperHtml(step);
+    if (step.type === 'yesno') return yesNoHtml(step);
     if (step.type === 'select' && step.ui === 'cards') return cardsHtml(step);
     if (step.type === 'select') {
-      return '<select class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" required>'
+      return '<select class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" required>'
         + optionHtml(step.options, value) + '</select>'
         + followHtml(step, value);
     }
     if (step.type === 'date') {
       var max = isPastLimitedDate(step.key) ? todayIso() : '';
+      var mode = dateModes[step.key] || dateMode;
       if (window.EjarDates && typeof window.EjarDates.pickerHtml === 'function') {
         return window.EjarDates.pickerHtml({
           iso: value,
           maxIso: max,
           fieldKey: step.key,
-          mode: dateMode,
+          mode: mode,
         });
       }
-      return '<input class="ejar-wizard__control ejar-wizard__control--date" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="date" dir="ltr" value="' + escapeHtml(value) + '"' + (max ? ' max="' + max + '"' : '') + ' required>'
-        + '<div id="ejar-date-preview">' + dualDateHtml(value) + '</div>';
+      return '<input class="ejar-wizard__control ejar-wizard__control--date" id="' + id + '" data-wizard-field="' + step.key + '" type="date" dir="ltr" value="' + escapeHtml(value) + '"' + (max ? ' max="' + max + '"' : '') + ' required>'
+        + '<div class="ejar-date-preview">' + dualDateHtml(value) + '</div>';
     }
     if (step.type === 'url') {
-      return '<input class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="url" dir="ltr" inputmode="url" maxlength="800" placeholder="https://maps.app.goo.gl/..." autocomplete="off" value="' + escapeHtml(value) + '" required>';
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="url" dir="ltr" inputmode="url" maxlength="800" placeholder="https://maps.app.goo.gl/..." autocomplete="off" value="' + escapeHtml(value) + '" required>';
     }
     if (step.type === 'phone') {
-      return '<input class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(value) + '" required>';
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(value) + '" required>';
     }
     if (step.type === 'nid') {
-      return '<input class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="text" dir="ltr" inputmode="numeric" maxlength="10" placeholder="1xxxxxxxxx" autocomplete="off" value="' + escapeHtml(value) + '" required>';
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" dir="ltr" inputmode="numeric" maxlength="10" placeholder="1xxxxxxxxx" autocomplete="off" value="' + escapeHtml(value) + '" required>';
     }
     if (step.type === 'number') {
-      return '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(value) + '" required><span>' + escapeHtml(step.suffix || '') + '</span></div>';
+      return '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(value) + '" required><span>' + escapeHtml(step.suffix || '') + '</span></div>';
     }
-    return '<input class="ejar-wizard__control" id="ejar-wizard-field" data-wizard-field="' + step.key + '" type="text" inputmode="' + (step.inputmode || 'text') + '" autocomplete="off" value="' + escapeHtml(value) + '" required>';
+    return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" inputmode="' + (step.inputmode || 'text') + '" autocomplete="' + (step.autocomplete || 'off') + '" value="' + escapeHtml(value) + '" required>';
+  }
+
+  function fieldBlockHtml(step) {
+    var wide = step.type === 'date' || step.type === 'url' || step.ui === 'cards' || step.key === 'unitType';
+    return '<div class="ejar-field' + (wide ? ' ejar-field--wide' : '') + '" data-field="' + step.key + '">'
+      + '<label' + (step.type === 'date' ? '' : ' for="' + fieldId(step) + '"') + '>' + escapeHtml(step.label) + '</label>'
+      + inputHtml(step)
+      + '<p class="ejar-field__error" hidden></p>'
+      + '</div>';
   }
 
   function displayValue(key) {
@@ -1129,6 +1505,10 @@
     }
     if (key === 'area') return answers.area ? answers.area + ' م²' : '—';
     if (key === 'rentAmount') return answers.rentAmount ? answers.rentAmount + ' ريال' : '—';
+    if ((key === 'kitchens' || key === 'majlis') && isGroupedKind()) {
+      if (String(answers[key]) === '1') return 'نعم';
+      if (String(answers[key]) === '0') return 'لا';
+    }
     return answers[key] || '—';
   }
 
@@ -1145,6 +1525,13 @@
   }
 
   function firstStepOf(section) {
+    if (isGroupedKind()) {
+      var screens = getScreens(kind);
+      for (var s = 0; s < screens.length; s += 1) {
+        if (screens[s].id === section) return s;
+      }
+      return 0;
+    }
     var steps = getSteps(kind);
     for (var i = 0; i < steps.length; i += 1) {
       if (steps[i].section === section) return i;
@@ -1236,7 +1623,17 @@
       reviewText('تاريخ الميلاد', 'tenantDob'),
       reviewText('الجوال', 'tenantPhone'),
     ]))
-    + reviewSection('العقار', 'unit', [
+    + reviewSection('العقار', 'unit', isGroupedKind() ? [
+      reviewText('نوع العقار', 'unitType'),
+      reviewText('رقم الوحدة', 'unitNumber'),
+      reviewText('الدور', 'floor'),
+      reviewText('رابط الموقع', 'propertyMapUrl'),
+      reviewText('الغرف', 'rooms'),
+      reviewText('دورات المياه', 'bathrooms'),
+      reviewText('المكيفات', 'acs'),
+      reviewText('مطبخ', 'kitchens'),
+      reviewText('مجلس', 'majlis'),
+    ] : [
       reviewText('الموقع', 'propertyLocation'),
       reviewText('رابط الموقع (اللكيشن)', 'propertyMapUrl'),
       reviewText('الشارع', 'streetName'),
@@ -1258,16 +1655,48 @@
       reviewText('تاريخ البداية', 'startDate'),
       reviewText('مبلغ الضمان', 'hasDeposit'),
     ])
-    + reviewSection('معبئ النموذج', 'submitter', [
+    + (isGroupedKind() ? submitterOnReviewHtml() : reviewSection('معبئ النموذج', 'submitter', [
       reviewText('الاسم', 'submitterName'),
       reviewText('الجوال', 'submitterPhone'),
       reviewText('الصفة', 'submitterRelation'),
-    ])
+    ]))
     + deedUploadHtml()
+    + '<div class="ejar-field" data-field="declarationAccepted">'
     + '<label class="ejar-wizard__check">'
     + '<input type="checkbox" id="ejar-wizard-declaration"' + (answers.declarationAccepted ? ' checked' : '') + '>'
     + '<span>' + DECLARATION + '</span></label>'
+    + '<p class="ejar-field__error" hidden></p>'
+    + '</div>'
     + '<p class="ejar-wizard__disclaimer">' + DISCLAIMER + '</p>';
+  }
+
+  function submitterOnReviewHtml() {
+    var rel = answers.submitterRelation || '';
+    var details = rel === 'وكيل' || rel === 'ابن/ابنة أحد الأطراف';
+    return '<section class="ejar-wizard-review is-open ejar-submitter-block">'
+      + '<h3>من يقوم بتعبئة الطلب؟</h3>'
+      + '<div class="ejar-field" data-field="submitterRelation">'
+      + cardsHtml({
+        key: 'submitterRelation',
+        label: 'من يقوم بتعبئة الطلب؟',
+        type: 'select',
+        ui: 'cards',
+        options: ['المؤجر', 'المستأجر', 'وكيل', 'ابن/ابنة أحد الأطراف'],
+      })
+      + '<p class="ejar-field__error" hidden></p>'
+      + '</div>'
+      + '<div class="ejar-submitter-details"' + (details ? '' : ' hidden') + '>'
+      + '<div class="ejar-field" data-field="submitterName">'
+      + '<label for="ejar-field-submitterName">اسم المعبئ</label>'
+      + '<input class="ejar-wizard__control" id="ejar-field-submitterName" data-wizard-field="submitterName" type="text" value="' + escapeHtml(answers.submitterName || '') + '">'
+      + '<p class="ejar-field__error" hidden></p>'
+      + '</div>'
+      + '<div class="ejar-field" data-field="submitterPhone">'
+      + '<label for="ejar-field-submitterPhone">رقم الجوال</label>'
+      + '<input class="ejar-wizard__control" id="ejar-field-submitterPhone" data-wizard-field="submitterPhone" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" value="' + escapeHtml(answers.submitterPhone || '') + '">'
+      + '<p class="ejar-field__error" hidden></p>'
+      + '</div>'
+      + '</div></section>';
   }
 
   function deedUploadHtml() {
@@ -1335,16 +1764,28 @@
     });
   }
 
+  function groupedScreenHtml(screen) {
+    if (screen.type === 'review') return reviewHtml();
+    return '<div class="ejar-wizard__screen">'
+      + '<h3 class="ejar-wizard__screen-title">' + escapeHtml(screen.title) + '</h3>'
+      + '<div class="ejar-wizard__grid">'
+      + (screen.fields || []).map(fieldBlockHtml).join('')
+      + '</div></div>';
+  }
+
   function render() {
     var steps = getSteps(kind);
-    var step = steps[stepIndex];
-    var isReview = step.type === 'review';
-    var isFirst = stepIndex === 0;
-    var body = isReview
-      ? reviewHtml()
-      : '<div class="ejar-wizard__question">'
-        + '<label' + (step.type === 'date' ? '' : ' for="ejar-wizard-field"') + '>' + escapeHtml(step.label) + '</label>'
-        + inputHtml(step) + '</div>';
+    var step = steps[stepIndex] || { type: 'review' };
+    var screen = isGroupedKind() ? currentScreen() : null;
+    var isReview = isGroupedKind() ? screen.type === 'review' : step.type === 'review';
+    var isFirst = isGroupedKind() ? screenIndex === 0 : stepIndex === 0;
+    var body = isGroupedKind()
+      ? groupedScreenHtml(screen)
+      : (isReview
+        ? reviewHtml()
+        : '<div class="ejar-wizard__question">'
+          + '<label' + (step.type === 'date' ? '' : ' for="ejar-field-' + step.key + '"') + '>' + escapeHtml(step.label) + '</label>'
+          + inputHtml(step) + '</div>');
 
     ensureRoot().innerHTML = ''
       + '<div class="ejar-wizard__backdrop" tabindex="-1"></div>'
@@ -1377,29 +1818,71 @@
   }
 
   function bindChoiceCards() {
-    var hidden = root.querySelector('input#ejar-wizard-field[type="hidden"]');
-    if (!hidden) return;
-    root.querySelectorAll('.ejar-choice__card').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var value = btn.getAttribute('data-choice') || '';
-        hidden.value = value;
-        answers[hidden.getAttribute('data-wizard-field')] = value;
-        root.querySelectorAll('.ejar-choice__card').forEach(function (other) {
-          var on = other === btn;
-          other.classList.toggle('is-selected', on);
-          other.setAttribute('aria-pressed', on ? 'true' : 'false');
+    root.querySelectorAll('.ejar-choice').forEach(function (group) {
+      var hidden = group.querySelector('input[data-wizard-field][type="hidden"]');
+      if (!hidden) return;
+      group.querySelectorAll('.ejar-choice__card').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var value = btn.getAttribute('data-choice') || '';
+          hidden.value = value;
+          var key = hidden.getAttribute('data-wizard-field');
+          answers[key] = value;
+          group.querySelectorAll('.ejar-choice__card').forEach(function (other) {
+            var on = other === btn;
+            other.classList.toggle('is-selected', on);
+            other.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          var wrap = group.closest('.ejar-field') || group.parentElement;
+          if (wrap) {
+            var otherBox = wrap.querySelector('[data-follow]');
+            if (otherBox) {
+              var followKey = otherBox.getAttribute('data-follow');
+              var field = (isGroupedKind() ? (currentScreen().fields || []) : [currentStep()]).filter(function (f) {
+                return f && (f.otherKey === followKey || f.extraKey === followKey);
+              })[0];
+              if (field && field.otherKey === followKey) otherBox.hidden = value !== field.otherValue;
+              if (field && field.extraKey === followKey) otherBox.hidden = value !== field.extraValue;
+            }
+            wrap.querySelectorAll('[data-follow]').forEach(function (box) {
+              var fk = box.getAttribute('data-follow');
+              var conf = (isGroupedKind() ? (currentScreen().fields || []) : [currentStep()]).filter(function (f) {
+                return f && (f.otherKey === fk || f.extraKey === fk);
+              })[0];
+              if (!conf) return;
+              if (conf.otherKey === fk) box.hidden = value !== conf.otherValue;
+              if (conf.extraKey === fk) box.hidden = value !== conf.extraValue;
+            });
+          }
+          if (key === 'submitterRelation') {
+            var details = root.querySelector('.ejar-submitter-details');
+            if (details) details.hidden = !(value === 'وكيل' || value === 'ابن/ابنة أحد الأطراف');
+            syncSubmitterFromRelation();
+          }
+          hideError();
+          saveDraft();
         });
-        var step = currentStep();
-        if (step.otherKey) {
-          var box = root.querySelector('[data-follow="' + step.otherKey + '"]');
-          if (box) box.hidden = value !== step.otherValue;
-        }
-        if (step.extraKey) {
-          var extraBox = root.querySelector('[data-follow="' + step.extraKey + '"]');
-          if (extraBox) extraBox.hidden = value !== step.extraValue;
-        }
-        hideError();
-        saveDraft();
+      });
+    });
+  }
+
+  function bindSteppers() {
+    root.querySelectorAll('.ejar-stepper').forEach(function (el) {
+      var input = el.querySelector('[data-wizard-field]');
+      var key = input && input.getAttribute('data-wizard-field');
+      var field = ((currentScreen() && currentScreen().fields) || []).filter(function (f) { return f.key === key; })[0];
+      var min = field ? field.min : 0;
+      var max = field ? field.max : 10;
+      el.querySelectorAll('[data-stepper-dir]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var dir = parseInt(btn.getAttribute('data-stepper-dir'), 10) || 0;
+          var current = parseInt(input.value, 10);
+          if (!Number.isInteger(current)) current = min;
+          var nextVal = Math.max(min, Math.min(max, current + dir));
+          input.value = String(nextVal);
+          answers[key] = String(nextVal);
+          hideError();
+          saveDraft();
+        });
       });
     });
   }
@@ -1433,23 +1916,18 @@
         next();
       });
     }
-    var field = root.querySelector('#ejar-wizard-field');
-    if (field && field.type !== 'hidden') {
-      field.addEventListener('input', hideError);
-      field.addEventListener('change', function () {
+    root.querySelectorAll('[data-wizard-field]').forEach(function (field) {
+      if (field.type === 'hidden') return;
+      field.addEventListener('input', function () {
         answers[field.getAttribute('data-wizard-field')] = field.value;
-        var step = currentStep();
-        if (step.otherKey) {
-          var box = root.querySelector('[data-follow="' + step.otherKey + '"]');
-          if (box) box.hidden = field.value !== step.otherValue;
-        }
-        if (step.extraKey) {
-          var extraBox = root.querySelector('[data-follow="' + step.extraKey + '"]');
-          if (extraBox) extraBox.hidden = field.value !== step.extraValue;
-        }
+        hideError();
         saveDraft();
       });
-    }
+      field.addEventListener('change', function () {
+        answers[field.getAttribute('data-wizard-field')] = field.value;
+        saveDraft();
+      });
+    });
     var followInputs = root.querySelectorAll('[data-follow] [data-wizard-field]');
     followInputs.forEach(function (input) {
       input.addEventListener('input', function () {
@@ -1459,6 +1937,7 @@
       });
     });
     bindChoiceCards();
+    bindSteppers();
     bindDateChooser();
     bindDatePicker();
     bindDeedUpload();
@@ -1531,7 +2010,11 @@
       hasDeposit: answers.hasDeposit,
       depositAmount: answers.depositAmount,
       submitterName: answers.submitterName,
-      submitterPhone: answers.submitterPhone,
+      submitterPhone: (function () {
+        if (answers.submitterRelation === 'المؤجر') return answers.ownerPhone;
+        if (answers.submitterRelation === 'المستأجر') return answers.tenantPhone;
+        return answers.submitterPhone;
+      }()),
       submitterRelation: answers.submitterRelation,
       declarationAccepted: true,
       website: (root.querySelector('.ejar-hp') && root.querySelector('.ejar-hp').value) || '',
