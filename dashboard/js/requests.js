@@ -208,9 +208,15 @@ function renderRequestsPage(content, list, highlightId) {
       openReviewLink(btn.dataset.id, btn);
     });
   });
+  content.querySelectorAll('[data-delete-request]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteEjarRequest(btn.dataset.deleteRequest, btn);
+    });
+  });
   content.querySelectorAll('[data-open-request]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('.req-copy') || e.target.closest('[data-ejar-review-link]')) return;
+      if (e.target.closest('.req-copy') || e.target.closest('[data-ejar-review-link]') || e.target.closest('[data-delete-request]')) return;
       if (el.tagName === 'TR' && e.target.closest('button[data-open-request]')) return;
       e.stopPropagation();
       openRequestById(el.dataset.openRequest);
@@ -257,8 +263,11 @@ function renderEjarTable(rows) {
         <td data-label="تاريخ الطلب" dir="ltr">${escapeCell(formatDateTime(r.createdAt))}</td>
         <td data-label="الحالة">${escapeCell(statusLabel(r.status))}</td>
         <td data-label="إجراءات">
-          <button type="button" class="btn btn-primary btn-sm" data-open-request="${escapeCell(r.id)}">عرض</button>
-          <button type="button" class="btn btn-outline btn-sm" data-ejar-review-link data-id="${escapeCell(r.id)}">إرسال التقييم</button>
+          <div class="req-ejar-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-open-request="${escapeCell(r.id)}">عرض</button>
+            <button type="button" class="btn btn-outline btn-sm" data-ejar-review-link data-id="${escapeCell(r.id)}">إرسال التقييم</button>
+            <button type="button" class="btn btn-danger btn-sm" data-delete-request="${escapeCell(r.id)}">حذف</button>
+          </div>
         </td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
@@ -443,6 +452,32 @@ function bindCopy(btn) {
       showToast('تعذر النسخ', 'error');
     }
   });
+}
+
+async function deleteEjarRequest(requestId, btn) {
+  const row = findRequest(requestId);
+  const ref = row?.referenceNo || '';
+  if (!confirm(ref ? `حذف الطلب ${ref}؟ لا يمكن التراجع.` : 'حذف هذا الطلب؟ لا يمكن التراجع.')) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'جاري الحذف…';
+  try {
+    const data = await DashboardAPI.deleteRequest(requestId);
+    if (!data?.success) throw new Error('تعذر حذف الطلب');
+    requestsCache = requestsCache.filter((r) => !sameId(r.id, requestId));
+    closeRequestModal();
+    const content = typeof getPageContent === 'function' ? getPageContent() : document.querySelector('.app');
+    if (content?.querySelector('#table-wrap')) {
+      renderRequestsPage(content, requestsCache);
+    } else {
+      btn.closest('tr')?.remove();
+    }
+    showToast('تم حذف الطلب');
+  } catch (err) {
+    showToast(err.message || 'تعذر حذف الطلب', 'error');
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 async function openReviewLink(requestId, btn) {

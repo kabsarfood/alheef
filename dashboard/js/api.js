@@ -88,6 +88,10 @@ const DashboardAPI = {
     });
   },
 
+  deleteRequest(id) {
+    return this.request(`/requests/${id}`, { method: 'DELETE' });
+  },
+
   getSubscriptions() {
     return this.request('/subscriptions').then((d) => d.data || d);
   },

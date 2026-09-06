@@ -1957,6 +1957,20 @@ tr.table-row--highlight {
   }
 }
 
+.req-ejar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .req-ejar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 @media (max-width: 480px) {
   .admin-app .quick-actions {
     grid-template-columns: 1fr;
