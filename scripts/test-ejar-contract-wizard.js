@@ -106,11 +106,12 @@ const emptyOptional = validateAndNormalize({
   streetName: '',
   furnished: '',
   area: '',
+  propertyMapUrl: '',
 });
 if (!emptyOptional.ok) fail('الحقول الاختيارية الفارغة: ' + JSON.stringify(emptyOptional.errors));
-else if (emptyOptional.data.area != null || emptyOptional.data.furnished || emptyOptional.data.streetName || emptyOptional.data.propertyLocation) {
+else if (emptyOptional.data.area != null || emptyOptional.data.furnished || emptyOptional.data.streetName || emptyOptional.data.propertyLocation || emptyOptional.data.propertyMapUrl) {
   fail('يجب أن تبقى الحقول الاختيارية فارغة دون قيم وهمية');
-} else ok('المساحة والتأثيث والشارع ووصف الموقع اختيارية');
+} else ok('المساحة والتأثيث والشارع ووصف الموقع ورابط الخريطة اختيارية');
 
 const commercialShop = validateAndNormalize({ ...base, contractKind: 'commercial', unitType: 'محل', paymentMethod: 'كل 3 أشهر' });
 if (!commercialShop.ok || commercialShop.data.unitType !== 'محل' || commercialShop.data.paymentMethod !== 'كل 3 أشهر') {

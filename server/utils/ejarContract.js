@@ -321,7 +321,9 @@ function validateAndNormalize(rawBody) {
 
   const propertyLocation = trimStr(body?.propertyLocation, 80);
   const propertyMapUrl = normalizeMapUrl(body?.propertyMapUrl);
-  if (!isValidMapUrl(propertyMapUrl)) errors.propertyMapUrl = 'يرجى لصق رابط موقع العقار (اللكيشن)';
+  if (propertyMapUrl && !isValidMapUrl(propertyMapUrl)) {
+    errors.propertyMapUrl = 'يرجى لصق رابط موقع العقار (اللكيشن)';
+  }
 
   const streetName = trimStr(body?.streetName, 80);
 

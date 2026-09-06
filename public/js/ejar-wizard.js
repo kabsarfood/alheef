@@ -82,7 +82,7 @@
   function propertySteps() {
     return [
       { key: 'propertyLocation', section: 'unit', label: 'ما موقع العقار؟', type: 'text', inputmode: 'text' },
-      { key: 'propertyMapUrl', section: 'unit', label: 'الصق رابط موقع العقار (اللكيشن)', type: 'url' },
+      { key: 'propertyMapUrl', section: 'unit', label: 'رابط موقع العقار (اختياري)', type: 'url' },
       { key: 'streetName', section: 'unit', label: 'ما اسم الشارع؟', type: 'text', inputmode: 'text' },
       { key: 'floor', section: 'unit', label: 'ما رقم الدور؟', type: 'select', options: rangeOptions(0, 10) },
       { key: 'unitNumber', section: 'unit', label: 'ما رقم الوحدة؟', type: 'text', inputmode: 'text' },
@@ -221,7 +221,7 @@
           { key: 'unitType', label: 'نوع العقار', type: 'select', ui: 'cards', options: unitTypes },
           { key: 'unitNumber', label: 'رقم الوحدة / العقار', type: 'text', inputmode: 'text' },
           { key: 'floor', label: 'الدور', type: 'select', options: rangeOptions(0, 10) },
-          { key: 'propertyMapUrl', label: 'رابط الموقع', type: 'url' },
+          { key: 'propertyMapUrl', label: 'رابط الموقع (اختياري)', type: 'url' },
           { key: 'rooms', label: 'عدد الغرف', type: 'stepper', min: 1, max: 10 },
           { key: 'bathrooms', label: 'عدد دورات المياه', type: 'stepper', min: 1, max: 5 },
           { key: 'acs', label: 'عدد المكيفات', type: 'stepper', min: 0, max: 10 },
@@ -848,6 +848,7 @@
       return '';
     }
     if (step.type === 'url') {
+      if (!value) return '';
       if (!isValidMapUrl(value)) return 'يرجى لصق رابط موقع العقار بشكل صحيح';
       return '';
     }
@@ -1468,7 +1469,7 @@
         + '<div class="ejar-date-preview">' + dualDateHtml(value) + '</div>';
     }
     if (step.type === 'url') {
-      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="url" dir="ltr" inputmode="url" maxlength="800" placeholder="https://maps.app.goo.gl/..." autocomplete="off" value="' + escapeHtml(value) + '" required>';
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="url" dir="ltr" inputmode="url" maxlength="800" placeholder="https://maps.app.goo.gl/..." autocomplete="off" value="' + escapeHtml(value) + '">';
     }
     if (step.type === 'phone') {
       return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(value) + '" required>';
