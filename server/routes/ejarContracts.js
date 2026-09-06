@@ -6,7 +6,7 @@ const requestsRepo = require('../repositories/requestsRepo');
 const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestNotifications');
 const { notifyOfficeNewEjarContract } = require('../services/ejarWhatsAppHook');
 const { validateAndNormalize, flattenContractBody } = require('../utils/ejarContract');
-const { uploadFiles } = require('../services/storage');
+const { createDeedUploadSlot, publicUrlForDeedPath, uploadDeedFromFile } = require('../services/storage');
 
 const router = express.Router();
 const rateMap = new Map();
@@ -39,7 +39,7 @@ function isAllowedDeedUpload(file) {
 
 const deedUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: DEED_MAX_BYTES, files: 1, fields: 40, fieldSize: 256 * 1024 },
+  limits: { fileSize: DEED_MAX_BYTES, files: 1, fields: 4, fieldSize: 256 * 1024 },
   fileFilter(_req, file, cb) {
     if (!file || !String(file.originalname || '').trim()) return cb(null, false);
     if (isAllowedDeedUpload(file)) return cb(null, true);
@@ -75,26 +75,63 @@ function checkRateLimit(key, max = 5, windowMs = 15 * 60 * 1000) {
   return entry.count <= max;
 }
 
-function acceptUpload(req, res, next) {
-  const ct = String(req.headers['content-type'] || '').toLowerCase();
-  if (!ct.includes('multipart/form-data')) return next();
-  deedUpload.fields([{ name: 'deedImage', maxCount: 1 }])(req, res, (err) => {
+function normalizeDeedFile(req) {
+  const uploaded = req.files && req.files.deedImage;
+  req.file = Array.isArray(uploaded) ? uploaded[0] : uploaded || req.file;
+  if (req.file && !path.extname(req.file.originalname || '')) {
+    req.file.originalname = `deed${deedExtFromMime(req.file.mimetype) || '.jpg'}`;
+  }
+}
+
+async function resolveDeedUrl(body) {
+  const objectPath = String(body?.deedObjectPath || '').trim();
+  if (!objectPath) return '';
+  return publicUrlForDeedPath(objectPath);
+}
+
+router.post('/deed/prepare', requireDb, async (req, res) => {
+  try {
+    const name = String(req.body?.name || 'deed.jpg');
+    const type = String(req.body?.type || '');
+    const size = Number(req.body?.size) || 0;
+    if (size > DEED_MAX_BYTES) {
+      return res.status(400).json({ success: false, message: 'حجم المرفق كبير. الحد الأقصى 32 ميجا.' });
+    }
+    if (!isAllowedDeedUpload({ originalname: name, mimetype: type })) {
+      return res.status(400).json({ success: false, message: 'صيغة المرفق غير مدعومة. ارفع صورة أو ملف PDF.' });
+    }
+    const slot = await createDeedUploadSlot(name, type);
+    res.json({ success: true, ...slot });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || 'تعذر تجهيز رفع الملف' });
+  }
+});
+
+router.post('/deed', requireDb, (req, res) => {
+  deedUpload.single('deedImage')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
-        message: 'تعذر رفع مرفق الصك. استخدم صورة أو ملف PDF بحجم لا يتجاوز 32 ميجا.',
+        message: 'تعذر رفع المرفق. استخدم صورة أو PDF بحجم لا يتجاوز 32 ميجا.',
       });
     }
-    const uploaded = req.files && req.files.deedImage;
-    req.file = Array.isArray(uploaded) ? uploaded[0] : uploaded || req.file;
-    if (req.file && !path.extname(req.file.originalname || '')) {
-      req.file.originalname = `deed${deedExtFromMime(req.file.mimetype) || '.jpg'}`;
+    try {
+      normalizeDeedFile(req);
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'لم يُرفق ملف' });
+      }
+      const uploaded = await uploadDeedFromFile(req.file);
+      if (!uploaded.url && !uploaded.path) {
+        return res.status(500).json({ success: false, message: 'تعذر حفظ المرفق' });
+      }
+      res.json({ success: true, url: uploaded.url, path: uploaded.path });
+    } catch (uploadErr) {
+      res.status(500).json({ success: false, message: uploadErr.message || 'تعذر حفظ المرفق' });
     }
-    next();
   });
-}
+});
 
-router.post('/contracts', requireDb, acceptUpload, async (req, res) => {
+router.post('/contracts', requireDb, async (req, res) => {
   try {
     const body = flattenContractBody(req.body || {});
     if (String(body.website || '').trim()) {
@@ -119,11 +156,11 @@ router.post('/contracts', requireDb, acceptUpload, async (req, res) => {
     }
 
     let deedImageUrl = '';
-    if (req.file) {
-      const urls = await uploadFiles([req.file], 'ejar-deeds', { compress: false });
-      deedImageUrl = urls[0] || '';
-      if (!deedImageUrl) {
-        return res.status(500).json({ success: false, message: 'تعذر حفظ صورة الصك. يرجى المحاولة مرة أخرى.' });
+    try {
+      deedImageUrl = await resolveDeedUrl(body);
+    } catch (deedErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[ejar-contract] deed:', deedErr.message);
       }
     }
     const created = await requestsRepo.createEjarContract({

@@ -3381,6 +3381,16 @@ body.ejar-wizard-open .ejar-sticky-bar {
   color: var(--text-secondary, #5b6570);
 }
 
+.ejar-wizard__deed-note {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: #fff8e8;
+  border: 1px solid rgba(197, 164, 109, 0.45);
+  color: var(--navy);
+  font-size: 0.9rem;
+}
+
 .ejar-wizard__done {
   margin-top: 1.25rem;
   min-width: 180px;

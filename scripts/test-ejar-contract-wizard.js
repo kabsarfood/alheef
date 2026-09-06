@@ -397,16 +397,18 @@ if (!/under_review|ready_to_create|authenticated/.test(dashRequests)) fail('حا
 else ok('حالات متابعة العقد موجودة في لوحة التحكم');
 if (!/ejar-deed-file/.test(wizardJs) || !/deedUploadHtml/.test(wizardJs)) fail('رفع صورة الصك في آخر النموذج');
 else ok('آخر النموذج يتيح رفع صورة الصك اختياريًا');
-if (!/FormData/.test(wizardJs) || !/deedImage/.test(wizardJs)) fail('إرسال صورة الصك');
-else ok('الإرسال يرفق صورة الصك عند توفرها');
-if (!/application\/json/.test(wizardJs) || !/JSON\.stringify\(data\)/.test(wizardJs) || !/fd\.append\('payload'/.test(wizardJs)) {
+if (!/uploadDeed/.test(wizardJs) || !/\/api\/ejar\/deed/.test(wizardJs) || !/deedObjectPath/.test(wizardJs)) fail('رفع الصك منفصل عن إرسال الطلب');
+else ok('رفع المستند منفصل عن حفظ الطلب');
+if (!/application\/json/.test(wizardJs) || !/JSON\.stringify\(data\)/.test(wizardJs)) {
   fail('إرسال نوع العقد مع الطلب');
-} else ok('الإرسال يضم نوع العقد ضمن JSON أو حقل payload');
-if (!/multer/.test(apiContracts) || !/ejar-deeds/.test(apiContracts)) fail('API رفع صورة الصك');
-else ok('API يستقبل صورة الصك ويرفعها للتخزين');
-if (!/application\/pdf/.test(apiContracts) || !/32 \* 1024 \* 1024/.test(apiContracts) || !/compress: false/.test(apiContracts)) {
-  fail('API يقبل PDF وحجمًا أكبر دون ضغط الصك');
-} else ok('API يقبل صور وPDF حتى 32 ميجا دون ضغط المرفق');
+} else ok('الإرسال يحفظ الطلب كـ JSON دون إرفاق الملف معه');
+if (!/failed to fetch/i.test(wizardJs) || !/networkErrorMessage/.test(wizardJs)) fail('ترجمة خطأ Failed to fetch');
+else ok('خطأ Failed to fetch يُعرض بالعربية ولا يوقف الطلب');
+if (!/multer/.test(apiContracts) || !/deed\/prepare/.test(apiContracts) || !/deedObjectPath/.test(apiContracts)) fail('API رفع صورة الصك');
+else ok('API يرفع المستند في مسار مستقل ثم يربطه بالطلب');
+if (!/application\/pdf/.test(apiContracts) || !/32 \* 1024 \* 1024/.test(apiContracts)) {
+  fail('API يقبل PDF وحجمًا أكبر');
+} else ok('API يقبل صور وPDF حتى 32 ميجا');
 if (!/application\/pdf/.test(wizardJs) || !/DEED_MAX_MB = 32/.test(wizardJs)) fail('المعالج يقبل PDF وحجمًا أكبر');
 else ok('المعالج يقبل صور وPDF حتى 32 ميجا');
 if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests) || !/deedFileKind/.test(dashRequests)) fail('عرض صورة الصك في اللوحة');

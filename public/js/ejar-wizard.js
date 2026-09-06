@@ -1289,12 +1289,13 @@
       + '</div></section>';
   }
 
-  function successHtml(referenceNo) {
+  function successHtml(referenceNo, note) {
     return '<div class="ejar-wizard__success">'
       + '<div class="ejar-wizard__success-icon" aria-hidden="true">✓</div>'
       + '<h2>تم استلام طلبك بنجاح</h2>'
       + '<p class="ejar-wizard__ref">رقم الطلب: <strong dir="ltr">' + escapeHtml(referenceNo) + '</strong></p>'
       + '<p>سيقوم فريق مكتب الهيف للخدمات العقارية بمراجعة البيانات وإنشاء العقد عبر منصة إيجار، ثم استكمال إجراءات التوثيق مع الأطراف.</p>'
+      + (note ? '<p class="ejar-wizard__deed-note">' + escapeHtml(note) + '</p>' : '')
       + '<button type="button" class="btn btn-primary ejar-wizard__done">إغلاق</button>'
       + '</div>';
   }
@@ -1537,6 +1538,115 @@
     };
   }
 
+  function networkErrorMessage(err, fallback) {
+    var msg = err && err.message ? String(err.message) : '';
+    if (/failed to fetch|networkerror|load failed|internet connection|aborted|timeout/i.test(msg)) {
+      return fallback || 'تعذر الاتصال أثناء رفع الملف. أُرسل الطلب بدون المرفق إن أمكن.';
+    }
+    return msg || fallback || 'تعذر إرسال الطلب';
+  }
+
+  function fetchJson(url, options, timeoutMs) {
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (ctrl) ctrl.abort();
+    }, timeoutMs || 45000);
+    var opts = options || {};
+    if (ctrl) opts.signal = ctrl.signal;
+    return fetch(url, opts)
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        }).catch(function () {
+          throw new Error('تعذر قراءة رد الخادم');
+        });
+      })
+      .finally(function () {
+        clearTimeout(timer);
+      });
+  }
+
+  function prepareDeedFile(file) {
+    return new Promise(function (resolve) {
+      if (!file || isDeedPdf(file) || file.size < 900 * 1024 || !canPreviewDeedImage(file)) {
+        resolve(file);
+        return;
+      }
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        var max = 2000;
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        var scale = Math.min(1, max / Math.max(w, h));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function (blob) {
+          URL.revokeObjectURL(url);
+          if (!blob || blob.size >= file.size) {
+            resolve(file);
+            return;
+          }
+          var name = String(file.name || 'deed').replace(/\.[^.]+$/, '') + '.jpg';
+          resolve(new File([blob], name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  }
+
+  function uploadDeedSigned(file) {
+    return fetchJson('/api/ejar/deed/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: file.name || (isDeedPdf(file) ? 'deed.pdf' : 'deed.jpg'),
+        type: file.type || '',
+        size: file.size || 0,
+      }),
+    }, 20000).then(function (prepared) {
+      if (!prepared.ok || !prepared.data || !prepared.data.signedUrl) {
+        throw new Error((prepared.data && prepared.data.message) || 'تعذر تجهيز رفع الملف');
+      }
+      var headers = { 'Content-Type': file.type || 'application/octet-stream' };
+      if (prepared.data.token) headers.Authorization = 'Bearer ' + prepared.data.token;
+      return fetch(prepared.data.signedUrl, {
+        method: 'PUT',
+        headers: headers,
+        body: file,
+      }).then(function (res) {
+        if (!res.ok) throw new Error('تعذر رفع الملف مباشرة');
+        return { path: prepared.data.path || '', url: '' };
+      });
+    });
+  }
+
+  function uploadDeedViaServer(file) {
+    var fd = new FormData();
+    fd.append('deedImage', file, file.name || (isDeedPdf(file) ? 'deed.pdf' : 'deed.jpg'));
+    return fetchJson('/api/ejar/deed', { method: 'POST', body: fd }, 60000).then(function (result) {
+      if (!result.ok || !result.data || !result.data.success) {
+        throw new Error((result.data && result.data.message) || 'تعذر رفع المرفق');
+      }
+      return { path: result.data.path || '', url: result.data.url || '' };
+    });
+  }
+
+  function uploadDeed(file) {
+    return prepareDeedFile(file).then(function (ready) {
+      return uploadDeedSigned(ready).catch(function () {
+        return uploadDeedViaServer(ready);
+      });
+    });
+  }
+
   function submit() {
     if (submitting) return;
     submitting = true;
@@ -1546,51 +1656,45 @@
     btn.textContent = 'جاري الإرسال...';
     hideError();
     var data = payload();
-    var headers = {};
-    var body;
+    var deedNote = '';
+    var start = Promise.resolve();
     if (deedFile) {
-      var fd = new FormData();
-      fd.append('payload', JSON.stringify(data));
-      Object.keys(data).forEach(function (key) {
-        var val = data[key];
-        if (val == null || val === false) return;
-        fd.append(key, val === true ? 'true' : String(val));
+      btn.textContent = 'جاري رفع المستند...';
+      start = uploadDeed(deedFile).then(function (uploaded) {
+        if (uploaded && uploaded.path) data.deedObjectPath = uploaded.path;
+      }).catch(function () {
+        deedNote = 'تم حفظ الطلب. تعذر رفع مستند الصك الآن، ويمكن إرساله لاحقًا عبر واتساب.';
       });
-      fd.append('deedImage', deedFile, deedFile.name || (isDeedPdf(deedFile) ? 'deed.pdf' : 'deed.jpg'));
-      body = fd;
-    } else {
-      headers['Content-Type'] = 'application/json';
-      body = JSON.stringify(data);
     }
-    fetch('/api/ejar/contracts', {
-      method: 'POST',
-      headers: headers,
-      body: body,
-    })
-      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-      .then(function (result) {
-        if (result.data && result.data.success) {
-          resetForm();
-          showSuccess(result.data.referenceNo || result.data.requestId);
-          return;
-        }
-        throw new Error((result.data && result.data.message) || 'تعذر إرسال الطلب');
-      })
-      .catch(function (err) {
-        submitting = false;
-        btn.disabled = false;
-        btn.textContent = original;
-        showError(err.message || 'تعذر إرسال الطلب');
-      });
+    start.then(function () {
+      btn.textContent = 'جاري الإرسال...';
+      return fetchJson('/api/ejar/contracts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }, 30000);
+    }).then(function (result) {
+      if (result.data && result.data.success) {
+        resetForm();
+        showSuccess(result.data.referenceNo || result.data.requestId, deedNote);
+        return;
+      }
+      throw new Error((result.data && result.data.message) || 'تعذر إرسال الطلب');
+    }).catch(function (err) {
+      submitting = false;
+      btn.disabled = false;
+      btn.textContent = original;
+      showError(networkErrorMessage(err, 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.'));
+    });
   }
 
-  function showSuccess(referenceNo) {
+  function showSuccess(referenceNo, note) {
     submitting = false;
     ensureRoot().innerHTML = ''
       + '<div class="ejar-wizard__backdrop"></div>'
       + '<div class="ejar-wizard__panel ejar-wizard__panel--success" role="dialog" aria-modal="true" aria-labelledby="ejar-wizard-title">'
       + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
-      + successHtml(referenceNo)
+      + successHtml(referenceNo, note)
       + '</div>';
     root.querySelector('.ejar-wizard__done').addEventListener('click', function () {
       close();

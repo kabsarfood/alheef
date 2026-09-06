@@ -104,6 +104,27 @@ async function uploadBuffer(buffer, originalName, folder = 'assets', options = {
   return data.publicUrl;
 }
 
+async function uploadDeedFromFile(file) {
+  if (!file?.buffer?.length) return { url: '', path: '' };
+  if (!isEnabled()) throw new Error('Supabase غير متصل');
+  await ensureBuckets();
+  const name = file.originalname || 'deed.jpg';
+  const ext = safeDeedExt(name, file.mimetype);
+  const objectPath = `ejar-deeds/${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+  const bucket = resolveBucket('ejar-deeds');
+  const admin = getAdmin();
+  const { error } = await admin.storage.from(bucket).upload(objectPath, file.buffer, {
+    contentType: contentType(name) || file.mimetype || 'application/octet-stream',
+    upsert: false,
+  });
+  if (error) {
+    console.error('[Storage] deed upload:', error.message);
+    throw new Error('فشل رفع الملف');
+  }
+  const { data } = admin.storage.from(bucket).getPublicUrl(objectPath);
+  return { url: data.publicUrl || '', path: objectPath };
+}
+
 async function uploadFiles(files, folder, options = {}) {
   const urls = [];
   for (const file of files || []) {
@@ -114,10 +135,53 @@ async function uploadFiles(files, folder, options = {}) {
   return urls;
 }
 
+function safeDeedExt(originalName, mime) {
+  const ext = path.extname(originalName || '').toLowerCase();
+  if (MIME[ext] || ext === '.pdf') return ext;
+  if (mime === 'application/pdf') return '.pdf';
+  if (mime === 'image/png') return '.png';
+  if (mime === 'image/webp') return '.webp';
+  return '.jpg';
+}
+
+function isSafeDeedPath(objectPath) {
+  return /^ejar-deeds\/[A-Za-z0-9._-]+$/.test(String(objectPath || ''));
+}
+
+async function createDeedUploadSlot(originalName, mime) {
+  if (!isEnabled()) throw new Error('Supabase غير متصل');
+  await ensureBuckets();
+  const ext = safeDeedExt(originalName, mime);
+  const objectPath = `ejar-deeds/${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+  const bucket = resolveBucket('ejar-deeds');
+  const admin = getAdmin();
+  const { data, error } = await admin.storage.from(bucket).createSignedUploadUrl(objectPath);
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message || 'تعذر تجهيز رفع الملف');
+  }
+  return {
+    path: objectPath,
+    token: data.token || '',
+    signedUrl: data.signedUrl,
+    bucket,
+  };
+}
+
+async function publicUrlForDeedPath(objectPath) {
+  if (!isEnabled() || !isSafeDeedPath(objectPath)) return '';
+  const bucket = resolveBucket('ejar-deeds');
+  const { data } = getAdmin().storage.from(bucket).getPublicUrl(objectPath);
+  return data?.publicUrl || '';
+}
+
 module.exports = {
   BUCKETS,
   uploadBuffer,
   uploadFiles,
   ensureBuckets,
   resolveBucket,
+  createDeedUploadSlot,
+  publicUrlForDeedPath,
+  isSafeDeedPath,
+  uploadDeedFromFile,
 };
