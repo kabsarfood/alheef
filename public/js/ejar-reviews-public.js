@@ -10,11 +10,9 @@
   }
 
   function showReviews(data) {
-    const countEl = document.getElementById('ejar-reviews-count');
     const avgEl = document.getElementById('ejar-reviews-average');
     const list = document.getElementById('ejar-reviews-list');
 
-    if (countEl) countEl.textContent = data.count;
     if (avgEl) avgEl.textContent = data.average;
     if (list) list.innerHTML = (data.reviews || []).map(renderReview).join('');
 
