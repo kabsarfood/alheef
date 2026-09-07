@@ -122,6 +122,10 @@
       var target = document.getElementById('ejar-reviews');
       if (!target) return;
       e.preventDefault();
+      if (window.EjarReviewsPublic && typeof window.EjarReviewsPublic.open === 'function') {
+        window.EjarReviewsPublic.open();
+        return;
+      }
       target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
     });
   }

@@ -202,6 +202,7 @@ function renderRequestsPage(content, list, highlightId) {
   requestsCache = Array.isArray(list) ? list : [];
   const ejar = requestsCache.filter((r) => r.requestType === 'ejar_contract');
   const others = requestsCache.filter((r) => r.requestType !== 'ejar_contract');
+  content.querySelector('#table-wrap').classList.add('req-page');
   content.querySelector('#table-wrap').innerHTML = `
     <div class="req-page-head">
       <h3>الطلبات (${list.length})</h3>
@@ -258,22 +259,14 @@ function renderEjarTable(rows) {
   if (!rows.length) return '<p class="empty-state">لا توجد طلبات عقود إيجار</p>';
   return `<div class="table-wrap"><table class="table table--cards req-ejar-table">
     <thead><tr>
-      <th>رقم الطلب</th><th>سكني / تجاري</th><th>معبئ النموذج</th><th>جوال المالك</th><th>جوال المستأجر</th>
-      <th>قيمة الإيجار</th><th>طريقة الدفع</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراءات</th>
+      <th>رقم الطلب</th><th>النوع</th><th>قيمة الإيجار</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراءات</th>
     </tr></thead>
     <tbody>${rows.map((r) => {
       const p = parseMessage(r.message);
-      const ownerPhone = p.ownerPhone || r.customerPhone || '—';
-      const tenantPhone = p.tenantPhone || '—';
-      const rent = p.rentAmount != null ? `${p.rentAmount} ريال` : '—';
       return `<tr data-request-id="${escapeCell(r.id)}" data-open-request="${escapeCell(r.id)}">
         <td data-label="رقم الطلب" dir="ltr">${escapeCell(r.referenceNo || p.referenceNo || '—')}</td>
         <td data-label="النوع">${escapeCell(ejarKindLabel(p))}</td>
-        <td data-label="معبئ النموذج">${escapeCell(p.submitterName || r.customerName || '—')}${p.submitterRelation ? ` — ${escapeCell(p.submitterRelation)}` : ''}</td>
-        <td data-label="جوال المالك">${valueWithCopy(ownerPhone)}</td>
-        <td data-label="جوال المستأجر">${valueWithCopy(tenantPhone)}</td>
         <td data-label="قيمة الإيجار">${valueWithCopy(p.rentAmount != null ? String(p.rentAmount) : '')}</td>
-        <td data-label="طريقة الدفع">${escapeCell(p.paymentMethod || '—')}</td>
         <td data-label="تاريخ الطلب" dir="ltr">${escapeCell(formatDateTime(r.createdAt))}</td>
         <td data-label="الحالة">${escapeCell(statusLabel(r.status))}</td>
         <td data-label="إجراءات">

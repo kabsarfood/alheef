@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/css/main.css?v=22">
   <link rel="stylesheet" href="/css/mobile.css?v=24">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=80">
+  <link rel="stylesheet" href="/css/ejar.css?v=81">
 </head>
 <body class="ejar-page">
 
@@ -309,13 +309,19 @@
       </div>
     </section>
 
-    <section class="ejar-section" id="ejar-reviews" hidden aria-hidden="true">
+    <section class="ejar-section ejar-reviews-section" id="ejar-reviews" hidden aria-hidden="true">
       <div class="ejar-container">
-        <header class="ejar-section__header">
-          <h2 class="ejar-section__title">تجارب عملائنا</h2>
-          <p class="ejar-section__subtitle">متوسط <span id="ejar-reviews-average"></span> نجوم</p>
-        </header>
-        <div class="ejar-reviews-grid" id="ejar-reviews-list"></div>
+        <details class="ejar-reviews-drop" id="ejar-reviews-drop">
+          <summary class="ejar-reviews-drop__summary">
+            <span class="ejar-reviews-drop__copy">
+              <h2 class="ejar-reviews-drop__title">تجارب عملائنا</h2>
+              <span class="ejar-reviews-drop__meta">متوسط <span id="ejar-reviews-average"></span> نجوم</span>
+            </span>
+          </summary>
+          <div class="ejar-reviews-drop__body">
+            <div class="ejar-reviews-grid" id="ejar-reviews-list"></div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -513,7 +519,7 @@
   <script src="/js/ejar.js?v=14" defer></script>
   <script src="/js/ejar-dates.js?v=8" defer></script>
   <script src="/js/ejar-wizard.js?v=39" defer></script>
-  <script src="/js/ejar-reviews-public.js?v=6" defer></script>
-  <script src="/js/ejar-proof.js?v=2" defer></script>
+  <script src="/js/ejar-reviews-public.js?v=7" defer></script>
+  <script src="/js/ejar-proof.js?v=3" defer></script>
 </body>
 </html>

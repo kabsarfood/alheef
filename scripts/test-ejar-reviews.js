@@ -29,6 +29,16 @@ async function run() {
     fail('نموذج التقييم يُركَّز عند الفتح');
   } else ok('نموذج التقييم يُستخرج من الرابط ويُركَّز في الشاشة');
 
+  const ejarHtml = fs.readFileSync(path.join(__dirname, '../public/ejar.html'), 'utf8');
+  if (!/<details class="ejar-reviews-drop"/.test(ejarHtml) || !/تجارب عملائنا/.test(ejarHtml)) {
+    fail('تجارب عملائنا قائمة منسدلة في صفحة العقود');
+  } else ok('تجارب عملائنا قائمة منسدلة في صفحة العقود');
+
+  const publicJs = fs.readFileSync(path.join(__dirname, '../public/js/ejar-reviews-public.js'), 'utf8');
+  if (!/PREVIEW_LIMIT = 3/.test(publicJs) || !/slice\(0, PREVIEW_LIMIT\)/.test(publicJs)) {
+    fail('القائمة المنسدلة تعرض بعض التقييمات فقط');
+  } else ok('القائمة المنسدلة تعرض بعض التقييمات فقط');
+
   const swJs = fs.readFileSync(path.join(__dirname, '../public/sw.js'), 'utf8');
   if (!/isReviewPath/.test(swJs) || !/ejar-review.html/.test(swJs)) fail('مسار التقييم لا يسقط للصفحة الرئيسية');
   else ok('Service Worker لا يستبدل صفحة التقييم بالرئيسية');

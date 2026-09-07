@@ -2069,10 +2069,82 @@
 }
 
 /* ─── Public reviews section ─── */
+.ejar-section.ejar-reviews-section {
+  padding-block: 1.15rem;
+  scroll-margin-top: calc(var(--header-h, 64px) + 12px);
+}
+
+.ejar-reviews-drop {
+  max-width: 820px;
+  margin: 0 auto;
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.ejar-reviews-drop[open] {
+  border-color: var(--ejar-olive-border);
+}
+
+.ejar-reviews-drop__summary {
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 52px;
+}
+
+.ejar-reviews-drop__summary::-webkit-details-marker,
+.ejar-reviews-drop__summary::marker {
+  display: none;
+  content: none;
+}
+
+.ejar-reviews-drop__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  text-align: right;
+}
+
+.ejar-reviews-drop__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: var(--ejar-fw-bold);
+  color: var(--navy);
+  line-height: 1.4;
+}
+
+.ejar-reviews-drop__meta {
+  font-size: 0.82rem;
+  font-weight: var(--ejar-fw-normal);
+  color: var(--text-muted);
+}
+
+.ejar-reviews-drop__summary::after {
+  content: '+';
+  font-size: 1.25rem;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.ejar-reviews-drop[open] .ejar-reviews-drop__summary::after {
+  content: '−';
+}
+
+.ejar-reviews-drop__body {
+  padding: 0 1rem 1rem;
+}
+
 .ejar-reviews-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .ejar-review-item {
@@ -2238,6 +2310,7 @@
 .ejar-purpose,
 .ejar-page .form-card,
 .ejar-faq__item,
+.ejar-reviews-drop,
 .ejar-review-item,
 .ejar-proof-card,
 .ejar-contact-btn,
@@ -2256,6 +2329,7 @@
   .ejar-purpose:hover,
   .ejar-page .form-card:hover,
   .ejar-faq__item:hover,
+  .ejar-reviews-drop:hover,
   .ejar-review-item:hover,
   .ejar-proof-card:hover,
   .ejar-contact-btn:hover,
@@ -2269,7 +2343,8 @@
     border-color: var(--ejar-olive);
   }
 
-  .ejar-faq__item[open]:hover {
+  .ejar-faq__item[open]:hover,
+  .ejar-reviews-drop[open]:hover {
     border-color: var(--gold);
   }
 
@@ -2284,6 +2359,7 @@
 .ejar-purpose:active,
 .ejar-page .form-card:active,
 .ejar-faq__item:active,
+.ejar-reviews-drop:active,
 .ejar-review-item:active,
 .ejar-proof-card:active,
 .ejar-contact-btn:active,
@@ -2304,6 +2380,7 @@
   .ejar-purpose,
   .ejar-page .form-card,
   .ejar-faq__item,
+  .ejar-reviews-drop,
   .ejar-review-item,
   .ejar-proof-card,
   .ejar-contact-btn,
@@ -2317,6 +2394,7 @@
   .ejar-purpose:hover,
   .ejar-page .form-card:hover,
   .ejar-faq__item:hover,
+  .ejar-reviews-drop:hover,
   .ejar-review-item:hover,
   .ejar-proof-card:hover,
   .ejar-contact-btn:hover,
@@ -2327,6 +2405,7 @@
   .ejar-purpose:active,
   .ejar-page .form-card:active,
   .ejar-faq__item:active,
+  .ejar-reviews-drop:active,
   .ejar-review-item:active,
   .ejar-proof-card:active,
   .ejar-contact-btn:active,
@@ -2488,6 +2567,10 @@
 @media (min-width: 1280px) {
   .ejar-section {
     padding-block: clamp(2.5rem, 3.5vw, 3.25rem);
+  }
+
+  .ejar-section.ejar-reviews-section {
+    padding-block: 1.15rem;
   }
 
   .ejar-form-layout {
@@ -4150,6 +4233,7 @@ select.ejar-wizard__control {
 .ejar-step,
 .ejar-purpose,
 .ejar-faq__item,
+.ejar-reviews-drop,
 .ejar-proof-card,
 .ejar-review-item,
 .ejar-page .form-card {

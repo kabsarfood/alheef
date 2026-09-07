@@ -1,31 +1,40 @@
 (function () {
+  const PREVIEW_LIMIT = 3;
   const section = document.getElementById('ejar-reviews');
+  const drop = document.getElementById('ejar-reviews-drop');
   const jumpBtn = document.getElementById('ejar-reviews-jump');
   if (!section) return;
 
   function hideReviews() {
     section.hidden = true;
     section.setAttribute('aria-hidden', 'true');
+    if (drop) drop.open = false;
     if (jumpBtn) jumpBtn.hidden = true;
+  }
+
+  function openReviews() {
+    if (section.hidden) return;
+    if (drop) drop.open = true;
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function showReviews(data) {
     const avgEl = document.getElementById('ejar-reviews-average');
     const list = document.getElementById('ejar-reviews-list');
+    const reviews = (data.reviews || []).slice(0, PREVIEW_LIMIT);
 
     if (avgEl) avgEl.textContent = data.average;
-    if (list) list.innerHTML = (data.reviews || []).map(renderReview).join('');
+    if (list) list.innerHTML = reviews.map(renderReview).join('');
 
     section.hidden = false;
     section.setAttribute('aria-hidden', 'false');
+    if (drop) drop.open = false;
 
     if (jumpBtn) {
       jumpBtn.hidden = false;
       if (!jumpBtn.dataset.bound) {
         jumpBtn.dataset.bound = '1';
-        jumpBtn.addEventListener('click', () => {
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+        jumpBtn.addEventListener('click', openReviews);
       }
     }
   }
@@ -49,6 +58,9 @@
       }
 
       showReviews(data);
+      if (window.location.hash === '#ejar-reviews') {
+        window.setTimeout(openReviews, 80);
+      }
     })
     .catch(hideReviews);
 
@@ -69,4 +81,6 @@
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
+
+  window.EjarReviewsPublic = { open: openReviews };
 })();

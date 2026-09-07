@@ -1706,11 +1706,17 @@ tr.table-row--highlight {
   }
 }
 
+.req-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
 .req-page-head h3 { margin-bottom: 0.35rem; }
-.req-section { margin-top: 1.5rem; }
+.req-section { margin-top: 0; }
 .req-section h4 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
+  margin: 0 0 0.85rem;
+  font-size: 1.02rem;
   color: var(--text-primary);
 }
 .req-copy-wrap {
@@ -1719,51 +1725,122 @@ tr.table-row--highlight {
   gap: 0.35rem;
   flex-wrap: wrap;
 }
-.req-copy { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
-.req-detail { max-width: 640px; }
+.req-copy { padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+
+.req-ejar-table th,
+.req-ejar-table td {
+  padding: 1rem 1.05rem;
+  vertical-align: middle;
+}
+
+.req-ejar-table td[data-label="رقم الطلب"],
+.req-ejar-table td[data-label="تاريخ الطلب"] {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.req-ejar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.req-detail {
+  max-width: min(960px, calc(100vw - 3rem));
+  width: 100%;
+  max-height: min(92vh, 920px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.req-detail .modal__header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.req-detail__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.6rem;
+}
+
 .req-detail__meta {
   margin: 0 0 1rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
+
 .req-detail__status {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-.req-status-select {
-  min-height: 38px;
-  padding: 0.35rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-family: inherit;
-}
-.req-detail__section {
-  margin-bottom: 1rem;
-  padding: 0.85rem 0.95rem;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 1.15rem;
+  padding: 0.9rem 1.05rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
-.req-detail__section h4 {
-  margin: 0 0 0.65rem;
-  font-size: 0.95rem;
+
+.req-status-select {
+  min-height: 40px;
+  min-width: 12rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
 }
+
+.req-detail__section {
+  margin-bottom: 1rem;
+  padding: 1.05rem 1.15rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.req-detail__section h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.98rem;
+}
+
 .req-detail__row {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.28rem 0;
-  font-size: 0.9rem;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  font-size: 0.92rem;
+  border-bottom: 1px solid rgba(30, 42, 56, 0.06);
 }
-.req-detail__label { color: var(--text-secondary); }
-.req-detail__value { text-align: start; }
+
+.req-detail__row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.req-detail__label {
+  color: var(--text-secondary);
+  flex: 0 0 9.5rem;
+}
+
+.req-detail__value {
+  text-align: start;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .req-detail__row--stack {
   flex-direction: column;
   align-items: stretch;
 }
+
 .req-date-wrap {
   display: grid;
   gap: 0.45rem;
@@ -1807,6 +1884,105 @@ tr.table-row--highlight {
   font-weight: 700;
 }
 
+@media (min-width: 900px) {
+  .req-detail__section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1.5rem;
+  }
+
+  .req-detail__section h4,
+  .req-detail__row--stack {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1099px) {
+  .req-page .table-wrap:has(.table--cards) {
+    overflow: visible;
+  }
+
+  .req-page .table.table--cards {
+    display: block;
+    border: none;
+  }
+
+  .req-page .table.table--cards thead {
+    display: none;
+  }
+
+  .req-page .table.table--cards tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .req-page .table.table--cards tr {
+    display: block;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.15rem 1.1rem;
+    box-shadow: var(--shadow);
+  }
+
+  .req-page .table.table--cards tr:hover td {
+    background: transparent;
+  }
+
+  .req-page .table.table--cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border: none;
+    white-space: normal;
+    font-size: 0.92rem;
+  }
+
+  .req-page .table.table--cards td:not(:last-child) {
+    border-bottom: 1px solid rgba(30, 42, 56, 0.06);
+  }
+
+  .req-page .table.table--cards td::before {
+    content: attr(data-label);
+    font-weight: var(--fw-subheading);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .req-page .table.table--cards td[data-label="رقم الطلب"] {
+    font-weight: 800;
+    font-size: 1.05rem;
+    padding-top: 0;
+  }
+
+  .req-page .table.table--cards td[data-label="إجراءات"] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .req-page .table.table--cards td[data-label="إجراءات"]::before {
+    display: none;
+  }
+
+  .req-page .req-ejar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .req-page .req-ejar-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 768px) {
   .modal:has(.req-detail) {
     padding: 0;
@@ -1821,19 +1997,12 @@ tr.table-row--highlight {
     max-height: 100svh;
     margin: 0;
     border-radius: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
     transform: none;
   }
 
   .req-detail .modal__header {
-    flex-shrink: 0;
-    margin: 0;
     padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--white);
     gap: 0.65rem;
   }
 
@@ -1851,10 +2020,6 @@ tr.table-row--highlight {
   }
 
   .req-detail__scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     padding: 1rem 1rem calc(1.35rem + env(safe-area-inset-bottom, 0px));
   }
 
@@ -1867,11 +2032,6 @@ tr.table-row--highlight {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.45rem;
-    margin-bottom: 1rem;
-    padding: 0.85rem 0.9rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg);
   }
 
   .req-detail__status label {
@@ -1886,7 +2046,8 @@ tr.table-row--highlight {
   }
 
   .req-detail__section {
-    padding: 0.9rem;
+    display: block;
+    padding: 0.95rem;
   }
 
   .req-detail__row {
@@ -1894,23 +2055,15 @@ tr.table-row--highlight {
     align-items: stretch;
     gap: 0.22rem;
     padding: 0.62rem 0;
-    border-bottom: 1px solid rgba(30, 42, 56, 0.06);
-  }
-
-  .req-detail__row:last-child {
-    border-bottom: 0;
-    padding-bottom: 0;
   }
 
   .req-detail__label {
+    flex: none;
     font-size: 0.75rem;
   }
 
   .req-detail__value {
-    font-weight: 600;
     line-height: 1.7;
-    overflow-wrap: anywhere;
-    word-break: break-word;
   }
 
   .req-copy-wrap {
@@ -1924,50 +2077,6 @@ tr.table-row--highlight {
 
   .req-deed__img {
     max-height: 220px;
-  }
-
-  .req-ejar-table.table--cards tr {
-    padding: 0.9rem 1rem 1rem;
-  }
-
-  .req-ejar-table.table--cards td[data-label="رقم الطلب"] {
-    font-weight: 800;
-    font-size: 1.05rem;
-    padding-top: 0;
-  }
-
-  .req-ejar-table.table--cards td[data-label="إجراء"],
-  .req-ejar-table.table--cards td[data-label="إجراءات"] {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  .req-ejar-table.table--cards td[data-label="إجراء"]::before,
-  .req-ejar-table.table--cards td[data-label="إجراءات"]::before {
-    display: none;
-  }
-
-  .req-ejar-table.table--cards td[data-label="إجراء"] .btn,
-  .req-ejar-table.table--cards td[data-label="إجراءات"] .btn {
-    width: 100%;
-    min-height: 44px;
-  }
-}
-
-.req-ejar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-@media (max-width: 900px) {
-  .req-ejar-actions {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 
