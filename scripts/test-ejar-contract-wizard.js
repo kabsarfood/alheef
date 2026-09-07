@@ -527,6 +527,8 @@ if (!/localStorage\.setItem\(DRAFT_KEY/.test(wizardJs) || !/لديك طلب غي
 else ok('المسودة تُحفظ محليًا مع شاشة المتابعة');
 if (!/visualViewport/.test(wizardJs) || !/--ejar-vv-height/.test(wizardJs)) fail('visualViewport للوحة المفاتيح');
 else ok('شريط التالي يلتزم بـ visualViewport');
+if (!/field.tagName === 'SELECT'/.test(wizardJs) || !/first.type === 'select'/.test(wizardJs)) fail('منع فتح قائمة نوع الوحدة تلقائيًا');
+else ok('الانتقال لبيانات العقار لا يفتح قائمة نوع الوحدة تلقائيًا');
 if (!/min-width: 560px/.test(wizardCss) || !/data-screen="ownership"/.test(wizardCss) || !/minmax\(0, 28\.5rem\)/.test(wizardCss)) fail('تنسيق بطاقة الملكية');
 else ok('رقم الصك في وسط أعلى بطاقة الملكية والتاريخ تحته على كل الشاشات');
 if (!/key: 'hasDeposit'[\s\S]*?extraInput: 'meter'/.test(wizardJs) || !/extraRequired: true/.test(wizardJs) || !/extraSuffix: 'ريال'/.test(wizardJs)) fail('حفظ مبلغ الضمان');

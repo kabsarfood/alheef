@@ -1590,16 +1590,18 @@
     if (isGroupedKind()) {
       var screen = currentScreen();
       if (screen && screen.type === 'review') return;
-      var firstDate = screenFields(screen).some(function (f) { return f.type === 'date'; });
-      if (firstDate) return;
+      var fields = screenFields(screen);
+      if (fields.some(function (f) { return f.type === 'date'; })) return;
+      var first = fields[0];
+      if (first && first.type === 'select') return;
     } else {
       var step = currentStep();
-      if (step && step.type === 'date') return;
+      if (step && (step.type === 'date' || step.type === 'select')) return;
     }
     var field = root && root.querySelector('[data-wizard-field]:not([type="hidden"]), #ejar-wizard-declaration, .ejar-wizard__next');
-    if (field && typeof field.focus === 'function') {
-      try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
-    }
+    if (!field || typeof field.focus !== 'function') return;
+    if (field.tagName === 'SELECT') return;
+    try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
   }
 
   function optionHtml(options, selected) {
