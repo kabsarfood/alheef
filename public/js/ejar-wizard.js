@@ -5,11 +5,29 @@
   var PAYMENT_METHODS = ['شهري', 'ربع سنوي', 'نصف سنوي', 'سنوي'];
   var GROUPED_PAYMENT_METHODS = ['شهري', 'كل 3 أشهر', 'نصف سنوي', 'سنوي'];
   var PROPERTY_TYPES = ['شقة', 'فيلا', 'عمارة', 'دور'];
-  var RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'عمارة', 'ملحق', 'استوديو', 'أخرى'];
+  var RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'ملحق', 'استديو', 'دوبلكس'];
   var COMMERCIAL_PROPERTY_TYPES = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى'];
-  var FURNISHED_OPTIONS = ['مؤثث', 'غير مؤثث'];
-  var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var YES_NO = ['لا', 'نعم'];
+  var FLOOR_OPTIONS = [
+    { value: '0', label: 'الأرضي (0)' },
+    { value: '1', label: 'الأول (1)' },
+    { value: '2', label: 'الثاني (2)' },
+    { value: '3', label: 'الثالث (3)' },
+    { value: '4', label: 'الرابع (4)' },
+    { value: '5', label: 'الخامس (5)' },
+    { value: '6', label: 'السادس (6)' },
+    { value: '7', label: 'السابع (7)' },
+    { value: '8', label: 'الثامن (8)' },
+    { value: '9', label: 'التاسع (9)' },
+    { value: '10', label: 'العاشر (10)' },
+  ];
+  var ELECTRICITY_TYPE_OPTIONS = ['عداد مستقل', 'عداد مشترك', 'لا يوجد'];
+  var WATER_UTILITY_OPTIONS = ['عداد مستقل', 'عداد مشترك', 'خزان مستقل', 'خزان مشترك'];
+  var WATER_METER_OPTIONS = ['عداد مياه مستقل', 'عداد مياه مشترك'];
+  var WATER_TANK_OPTIONS = ['خزان مستقل', 'خزان مشترك'];
+  var METER_HINT = 'اختياري — يُفضّل تسجيل الرقم إن توفر لتسهيل إنشاء العقد عبر منصة إيجار.';
+  var METER_NUMBER_VALUES = ['عداد مستقل', 'عداد مشترك'];
+  var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var SUBMITTER_RELATIONS = ['المستأجر', 'المؤجر', 'ابن/ابنة أحد الأطراف', 'وكيل'];
   var TRUST = '🔒 لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
   var DECLARATION = 'أقر بصحة البيانات المدخلة وأطلب من مكتب الهيف للخدمات العقارية إعداد عقد الإيجار عبر منصة إيجار وإرساله للأطراف للتوثيق.';
@@ -81,18 +99,23 @@
 
   function propertySteps() {
     return [
-      { key: 'propertyLocation', section: 'unit', label: 'ما موقع العقار؟', type: 'text', inputmode: 'text' },
-      { key: 'propertyMapUrl', section: 'unit', label: 'رابط موقع العقار (اختياري)', type: 'url' },
-      { key: 'streetName', section: 'unit', label: 'ما اسم الشارع؟', type: 'text', inputmode: 'text' },
+      { key: 'city', section: 'unit', label: 'ما المدينة؟', type: 'text', inputmode: 'text', optional: true },
+      { key: 'district', section: 'unit', label: 'ما الحي؟', type: 'text', inputmode: 'text', optional: true },
+      { key: 'propertyMapUrl', section: 'unit', label: 'رابط موقع العقار (اختياري)', type: 'url', optional: true },
+      { key: 'streetName', section: 'unit', label: 'ما اسم الشارع؟', type: 'text', inputmode: 'text', optional: true },
       { key: 'floor', section: 'unit', label: 'ما رقم الدور؟', type: 'select', options: rangeOptions(0, 10) },
       { key: 'unitNumber', section: 'unit', label: 'ما رقم الوحدة؟', type: 'text', inputmode: 'text' },
-      { key: 'furnished', section: 'unit', label: 'هل العقار مؤثث؟', type: 'select', ui: 'cards', options: FURNISHED_OPTIONS },
+      { key: 'electricityMeter', section: 'unit', label: 'ما رقم عداد الكهرباء؟', type: 'text', inputmode: 'numeric', optional: true, hint: METER_HINT },
+      { key: 'waterMeter', section: 'unit', label: 'عداد المياه', type: 'select', options: WATER_METER_OPTIONS },
+      { key: 'waterMeterNumber', section: 'unit', label: 'ما رقم عداد المياه؟', type: 'text', inputmode: 'numeric', optional: true, hint: METER_HINT },
+      { key: 'waterTank', section: 'unit', label: 'الخزان', type: 'select', options: WATER_TANK_OPTIONS },
+      { key: 'furnished', section: 'unit', label: 'هل العقار مؤثث؟', type: 'select', options: YES_NO, extraKey: 'furnitureDetails', extraValue: 'نعم', extraLabel: 'اكتب تفاصيل الأثاث', extraInput: 'textarea' },
       { key: 'rooms', section: 'unit', label: 'كم عدد الغرف؟', type: 'select', options: rangeOptions(1, 10) },
       { key: 'bathrooms', section: 'unit', label: 'كم عدد دورات المياه؟', type: 'select', options: rangeOptions(1, 5) },
       { key: 'acs', section: 'unit', label: 'كم عدد المكيفات؟', type: 'select', options: rangeOptions(0, 10) },
       { key: 'majlis', section: 'unit', label: 'كم عدد المجالس؟', type: 'select', options: rangeOptions(0, 10) },
       { key: 'kitchens', section: 'unit', label: 'كم عدد المطابخ؟', type: 'select', options: rangeOptions(0, 10) },
-      { key: 'unitType', section: 'unit', label: 'ما نوع العقار؟', type: 'select', ui: 'cards', options: PROPERTY_TYPES },
+      { key: 'unitType', section: 'unit', label: 'ما نوع العقار؟', type: 'select', options: PROPERTY_TYPES },
       { key: 'area', section: 'unit', label: 'ما مساحة الوحدة؟', type: 'number', suffix: 'م²', min: 0 },
     ];
   }
@@ -134,7 +157,7 @@
     steps.push.apply(steps, propertySteps());
     steps.push(
       { key: 'rentAmount', section: 'finance', label: 'ما قيمة الإيجار؟', type: 'number', suffix: 'ريال', min: 0 },
-      { key: 'paymentMethod', section: 'finance', label: 'طريقة الدفع', type: 'select', ui: 'cards', options: PAYMENT_METHODS },
+      { key: 'paymentMethod', section: 'finance', label: 'طريقة الدفع', type: 'select', options: PAYMENT_METHODS },
       {
         key: 'contractDuration',
         section: 'finance',
@@ -151,12 +174,16 @@
         section: 'finance',
         label: 'هل يوجد مبلغ ضمان/تأمين؟',
         type: 'select',
-        ui: 'cards',
-        options: YES_NO,
+        options: ['نعم', 'لا'],
         extraKey: 'depositAmount',
         extraValue: 'نعم',
+        extraValues: ['نعم'],
         extraLabel: 'ما قيمة مبلغ الضمان؟',
         extraSuffix: 'ريال',
+        extraInput: 'meter',
+        extraInputMode: 'decimal',
+        extraRequired: true,
+        extraError: 'يرجى إدخال قيمة مبلغ الضمان',
       },
       { key: 'submitterName', section: 'submitter', label: 'ما اسم معبئ النموذج التعاقدي؟', type: 'text', inputmode: 'text' },
       { key: 'submitterPhone', section: 'submitter', label: 'ما رقم جوال معبئ النموذج؟', type: 'phone' },
@@ -165,7 +192,6 @@
         section: 'submitter',
         label: 'ما صفتك بالنسبة لهذا العقد؟',
         type: 'select',
-        ui: 'cards',
         options: SUBMITTER_RELATIONS,
       },
       { key: 'review', section: 'review', type: 'review' }
@@ -174,94 +200,249 @@
   }
 
   function isGroupedKind() {
-    return kind !== 'sublease';
+    return true;
+  }
+
+  function screenFields(screen) {
+    var out = [];
+    ((screen && screen.fields) || []).forEach(function (f) {
+      if (f && f.group) out.push.apply(out, f.fields || []);
+      else if (f) out.push(f);
+    });
+    return out;
+  }
+
+  function optionValue(opt) {
+    if (opt && typeof opt === 'object') return String(opt.value);
+    return String(opt);
+  }
+
+  function optionLabel(opt) {
+    if (opt && typeof opt === 'object') return String(opt.label);
+    return String(opt);
+  }
+
+  function extraShouldShow(step, value) {
+    if (!step || !step.extraKey) return false;
+    if (step.extraValues && step.extraValues.length) return step.extraValues.indexOf(value) !== -1;
+    return value === step.extraValue;
+  }
+
+  function meterLockKey(extraKey) {
+    return extraKey + 'Locked';
+  }
+
+  function isMeterLocked(extraKey) {
+    return answers[meterLockKey(extraKey)] === true;
+  }
+
+  function setMeterLocked(extraKey, locked) {
+    answers[meterLockKey(extraKey)] = !!locked;
+  }
+
+  function meterDigits(value) {
+    return String(value || '').replace(/\s/g, '');
+  }
+
+  function findFollowConfig(followKey) {
+    var fields = isGroupedKind() ? screenFields(currentScreen()) : [currentStep()];
+    return fields.filter(function (f) {
+      return f && (f.otherKey === followKey || f.extraKey === followKey);
+    })[0];
+  }
+
+  function floorLabel(value) {
+    var v = String(value == null ? '' : value);
+    for (var i = 0; i < FLOOR_OPTIONS.length; i += 1) {
+      if (FLOOR_OPTIONS[i].value === v) return FLOOR_OPTIONS[i].label;
+    }
+    return v || '—';
+  }
+
+  function mapWaterFromUtility(utility) {
+    if (utility === 'عداد مستقل') return { waterMeter: 'عداد مياه مستقل', waterTank: '' };
+    if (utility === 'عداد مشترك') return { waterMeter: 'عداد مياه مشترك', waterTank: '' };
+    if (utility === 'خزان مستقل') return { waterMeter: '', waterTank: 'خزان مستقل' };
+    if (utility === 'خزان مشترك') return { waterMeter: '', waterTank: 'خزان مشترك' };
+    return { waterMeter: answers.waterMeter || '', waterTank: answers.waterTank || '' };
   }
 
   function propertyTypesFor(k) {
     return k === 'commercial' ? COMMERCIAL_PROPERTY_TYPES : RESIDENTIAL_PROPERTY_TYPES;
   }
 
-  function getScreens(k) {
+  function unitScreen(k) {
     var unitTypes = propertyTypesFor(k);
-    return [
+    return {
+      id: 'unit',
+      title: 'بيانات العقار',
+      short: 'العقار',
+      compact: true,
+      fields: [
+        { key: 'unitType', label: 'نوع الوحدة', type: 'select', options: unitTypes },
+        { key: 'floor', label: 'الدور', type: 'select', options: FLOOR_OPTIONS },
+        { key: 'unitNumber', label: 'رقم الوحدة', type: 'text', inputmode: 'numeric' },
+        { key: 'area', label: 'المساحة', type: 'number', suffix: 'م²', min: 0 },
+        { key: 'city', label: 'المدينة', type: 'text', inputmode: 'text', optional: true },
+        { key: 'district', label: 'الحي', type: 'text', inputmode: 'text', optional: true },
+        { key: 'streetName', label: 'الشارع', type: 'text', inputmode: 'text', optional: true, wide: true },
+        { key: 'propertyMapUrl', label: 'رابط الموقع (اللكيشن)', type: 'url', optional: true },
+        {
+          key: 'electricityType',
+          label: 'عداد الكهرباء',
+          type: 'select',
+          options: ELECTRICITY_TYPE_OPTIONS,
+          extraKey: 'electricityMeter',
+          extraValues: METER_NUMBER_VALUES,
+          extraLabel: 'رقم اشتراك / عداد الكهرباء',
+          extraInput: 'meter',
+          wide: true,
+        },
+        {
+          key: 'waterUtility',
+          label: 'المياه',
+          type: 'select',
+          options: WATER_UTILITY_OPTIONS,
+          extraKey: 'waterMeterNumber',
+          extraValues: METER_NUMBER_VALUES,
+          extraLabel: 'رقم اشتراك المياه',
+          extraInput: 'meter',
+          wide: true,
+        },
+        {
+          group: 'details',
+          title: 'تفاصيل الوحدة',
+          fields: [
+            { key: 'rooms', label: 'غرف النوم', type: 'select', options: rangeOptions(1, 8) },
+            { key: 'kitchens', label: 'المطابخ', type: 'select', options: rangeOptions(0, 5) },
+            { key: 'livingRooms', label: 'الصالات', type: 'select', options: rangeOptions(0, 5) },
+            { key: 'majlis', label: 'المجالس', type: 'select', options: rangeOptions(0, 5) },
+            { key: 'acs', label: 'المكيفات', type: 'select', options: rangeOptions(0, 10) },
+            { key: 'builtInKitchen', label: 'مطبخ راكب', type: 'select', options: ['نعم', 'لا'] },
+          ],
+        },
+      ],
+    };
+  }
+
+  function financeScreen() {
+    return {
+      id: 'finance',
+      title: 'تفاصيل العقد',
+      short: 'العقد',
+      compact: true,
+      fields: [
+        { key: 'rentAmount', label: 'قيمة الإيجار', type: 'number', suffix: 'ريال', min: 0 },
+        { key: 'paymentMethod', label: 'طريقة الدفع', type: 'select', options: GROUPED_PAYMENT_METHODS },
+        {
+          key: 'contractDuration',
+          label: 'مدة العقد',
+          type: 'select',
+          options: DURATIONS,
+          otherKey: 'contractDurationOther',
+          otherValue: 'مدة أخرى',
+          otherLabel: 'حدد المدة',
+          wide: true,
+        },
+        {
+          key: 'hasDeposit',
+          label: 'هل يوجد ضمان؟',
+          type: 'select',
+          options: ['نعم', 'لا'],
+          extraKey: 'depositAmount',
+          extraValue: 'نعم',
+          extraValues: ['نعم'],
+          extraLabel: 'مبلغ الضمان',
+          extraSuffix: 'ريال',
+          extraInput: 'meter',
+          extraInputMode: 'decimal',
+          extraRequired: true,
+          extraError: 'يرجى إدخال قيمة مبلغ الضمان',
+          wide: true,
+        },
+        { key: 'startDate', label: 'تاريخ بداية العقد', type: 'date', wide: true },
+      ],
+    };
+  }
+
+  function getScreens(k) {
+    var screens = [
       {
         id: 'ownership',
         title: 'بيانات الملكية',
         short: 'الملكية',
+        compact: true,
         fields: [
           { key: 'deedNumber', label: 'رقم الصك', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
           { key: 'deedDate', label: 'تاريخ الصك', type: 'date' },
         ],
       },
-      {
-        id: 'owner',
-        title: 'بيانات المؤجر',
-        short: 'المؤجر',
-        fields: [
-          { key: 'ownerId', label: 'رقم الهوية / الإقامة', type: 'nid' },
-          { key: 'ownerDob', label: 'تاريخ الميلاد', type: 'date' },
-          { key: 'ownerPhone', label: 'رقم الجوال', type: 'phone' },
-        ],
-      },
-      {
+    ];
+    if (k === 'sublease') {
+      screens.push(
+        {
+          id: 'sublease',
+          title: 'عقد بالباطن',
+          short: 'الباطن',
+          compact: true,
+          fields: [
+            { key: 'subleaseTenantName', label: 'اسم المستأجر', type: 'text', inputmode: 'text' },
+            { key: 'subleaseIdOrCr', label: 'رقم البطاقة أو المنشأة', type: 'text', inputmode: 'numeric' },
+            { key: 'subleaseIdOrCrDate', label: 'تاريخ السجل أو البطاقة', type: 'date', wide: true },
+            { key: 'subleaseUnifiedNumber', label: 'الرقم الموحد', type: 'text', inputmode: 'numeric' },
+            { key: 'subleasePoaNumber', label: 'رقم الوكالة', type: 'text' },
+            {
+              group: 'rep',
+              title: 'الممثل',
+              fields: [
+                { key: 'subleaseRepName', label: 'اسم الممثل', type: 'text', inputmode: 'text' },
+                { key: 'subleaseRepId', label: 'رقم بطاقة الممثل', type: 'nid' },
+                { key: 'subleaseRepDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
+                { key: 'subleaseRepPhone', label: 'رقم الجوال', type: 'phone' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'subtenant',
+          title: 'المستأجر من الباطن',
+          short: 'من الباطن',
+          compact: true,
+          fields: [
+            { key: 'subtenantName', label: 'الاسم', type: 'text', inputmode: 'text' },
+            { key: 'subtenantId', label: 'رقم البطاقة', type: 'nid' },
+            { key: 'subtenantDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
+            { key: 'subtenantPhone', label: 'رقم الجوال', type: 'phone' },
+          ],
+        }
+      );
+    }
+    screens.push({
+      id: 'owner',
+      title: 'بيانات المؤجر',
+      short: 'المؤجر',
+      compact: true,
+      fields: [
+        { key: 'ownerId', label: 'رقم الهوية / الإقامة', type: 'nid' },
+        { key: 'ownerPhone', label: 'رقم الجوال', type: 'phone' },
+        { key: 'ownerDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
+      ],
+    });
+    if (k !== 'sublease') {
+      screens.push({
         id: 'tenant',
         title: 'بيانات المستأجر',
         short: 'المستأجر',
+        compact: true,
         fields: [
           { key: 'tenantId', label: 'رقم الهوية / الإقامة', type: 'nid' },
-          { key: 'tenantDob', label: 'تاريخ الميلاد', type: 'date' },
           { key: 'tenantPhone', label: 'رقم الجوال', type: 'phone' },
+          { key: 'tenantDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
         ],
-      },
-      {
-        id: 'unit',
-        title: 'العقار والوحدة',
-        short: 'العقار',
-        fields: [
-          { key: 'unitType', label: 'نوع العقار', type: 'select', ui: 'cards', options: unitTypes },
-          { key: 'unitNumber', label: 'رقم الوحدة / العقار', type: 'text', inputmode: 'text' },
-          { key: 'floor', label: 'الدور', type: 'select', options: rangeOptions(0, 10) },
-          { key: 'propertyMapUrl', label: 'رابط الموقع (اختياري)', type: 'url' },
-          { key: 'rooms', label: 'عدد الغرف', type: 'stepper', min: 1, max: 10 },
-          { key: 'bathrooms', label: 'عدد دورات المياه', type: 'stepper', min: 1, max: 5 },
-          { key: 'acs', label: 'عدد المكيفات', type: 'stepper', min: 0, max: 10 },
-          { key: 'kitchens', label: 'مطبخ', type: 'yesno' },
-          { key: 'majlis', label: 'مجلس', type: 'yesno' },
-        ],
-      },
-      {
-        id: 'finance',
-        title: 'تفاصيل العقد',
-        short: 'العقد',
-        fields: [
-          { key: 'rentAmount', label: 'قيمة الإيجار', type: 'number', suffix: 'ريال', min: 0 },
-          { key: 'startDate', label: 'تاريخ بداية العقد', type: 'date' },
-          {
-            key: 'contractDuration',
-            label: 'مدة العقد',
-            type: 'select',
-            ui: 'cards',
-            options: DURATIONS,
-            otherKey: 'contractDurationOther',
-            otherValue: 'مدة أخرى',
-            otherLabel: 'حدد المدة',
-          },
-          { key: 'paymentMethod', label: 'طريقة الدفع', type: 'select', ui: 'cards', options: GROUPED_PAYMENT_METHODS },
-          {
-            key: 'hasDeposit',
-            label: 'هل يوجد ضمان؟',
-            type: 'select',
-            ui: 'cards',
-            options: YES_NO,
-            extraKey: 'depositAmount',
-            extraValue: 'نعم',
-            extraLabel: 'مبلغ الضمان',
-            extraSuffix: 'ريال',
-          },
-        ],
-      },
-      { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة', type: 'review' },
-    ];
+      });
+    }
+    screens.push(unitScreen(k), financeScreen(), { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة', type: 'review' });
+    return screens;
   }
 
   function currentScreen() {
@@ -495,9 +676,11 @@
   }
 
   function unitDataStarted() {
-    return !!(answers.unitType || answers.floor || answers.unitNumber || answers.area
-      || answers.propertyLocation || answers.propertyMapUrl || answers.streetName || answers.furnished
-      || answers.rooms || answers.bathrooms || answers.acs || answers.majlis || answers.kitchens
+    return !!(answers.unitType || answers.floor || answers.unitNumber || answers.electricityMeter || answers.electricityType
+      || answers.waterMeterNumber || answers.waterMeter || answers.waterTank || answers.waterUtility || answers.area
+      || answers.city || answers.district || answers.propertyLocation || answers.propertyMapUrl || answers.streetName || answers.furnished
+      || answers.furnitureDetails || answers.rooms || answers.bathrooms || answers.acs || answers.majlis || answers.kitchens
+      || answers.livingRooms || answers.builtInKitchen
       || answers.rentAmount || answers.paymentMethod || answers.contractDuration
       || answers.startDate || answers.hasDeposit);
   }
@@ -699,6 +882,30 @@
     resetMemory();
     openedFromHome = !!(options && options.fromHome);
     resumePendingKind = normalizeKind(nextKind);
+    var previewId = options && options.screen;
+    if (previewId) {
+      kind = resumePendingKind;
+      screenIndex = 0;
+      if (isGroupedKind()) {
+        var screens = getScreens(kind);
+        for (var i = 0; i < screens.length; i += 1) {
+          if (screens[i].id === previewId) {
+            screenIndex = i;
+            break;
+          }
+        }
+      }
+      if (previewId === 'unit' && options.previewMeters) {
+        answers.electricityType = 'عداد مستقل';
+        answers.waterUtility = 'عداد مستقل';
+      }
+      if (previewId === 'finance' && options.previewDeposit) {
+        answers.hasDeposit = 'نعم';
+      }
+      render();
+      showShell();
+      return;
+    }
     var draft = readDraft();
     if (draftHasAnswers(draft) && normalizeKind(draft.kind) === resumePendingKind) {
       renderResume(draft);
@@ -821,7 +1028,7 @@
         collectReviewExtras();
         return;
       }
-      (screen.fields || []).forEach(collectField);
+      screenFields(screen).forEach(collectField);
       return;
     }
     var step = currentStep();
@@ -877,20 +1084,38 @@
       return '';
     }
     if (step.type === 'select') {
-      if (!step.options.includes(value)) return 'يرجى اختيار قيمة';
+      var allowed = (step.options || []).map(optionValue);
+      if (allowed.indexOf(value) === -1) return 'يرجى اختيار قيمة';
       if (step.otherValue && value === step.otherValue && !String(answers[step.otherKey] || '').trim()) {
         return step.otherLabel || 'يرجى تعبئة الحقل الإضافي';
       }
-      if (step.extraValue && value === step.extraValue && positiveNumber(answers[step.extraKey]) == null) {
-        return 'يرجى إدخال قيمة مبلغ الضمان';
+      if (extraShouldShow(step, value)) {
+        var extraVal = String(answers[step.extraKey] || '').trim();
+        if (step.extraInput === 'meter') {
+          if (step.extraRequired && positiveNumber(extraVal) == null) {
+            return step.extraError || 'يرجى إدخال قيمة مبلغ الضمان';
+          }
+          return '';
+        }
+        if (step.extraInput === 'textarea' || step.extraInput === 'text') {
+          if (!extraVal) return step.extraError || 'يرجى كتابة تفاصيل الأثاث';
+        } else if (positiveNumber(extraVal) == null) {
+          return 'يرجى إدخال قيمة مبلغ الضمان';
+        }
       }
       return '';
     }
-    if (!value) return 'هذا الحقل مطلوب';
+    if (!value) {
+      if (step.optional || step.key === 'electricityMeter' || step.key === 'waterMeterNumber') return '';
+      return 'هذا الحقل مطلوب';
+    }
     if (step.key === 'deedNumber' && value.length < 4) return 'يرجى إدخال رقم الصك';
     if (step.key === 'submitterName' && value.length < 2) return 'يرجى إدخال اسم معبئ النموذج';
-    if ((step.key === 'propertyLocation' || step.key === 'streetName') && value.length < 2) {
-      return step.key === 'streetName' ? 'يرجى إدخال اسم الشارع' : 'يرجى إدخال موقع العقار';
+    if (step.key === 'city' || step.key === 'district') return '';
+    if (step.key === 'electricityMeter' || step.key === 'waterMeterNumber') return '';
+    if (step.key === 'streetName') {
+      if (value.length < 2) return 'يرجى إدخال اسم الشارع';
+      return '';
     }
     if (step.key === 'subleaseTenantName' && value.length < 2) return 'يرجى إدخال اسم المستأجر';
     if (step.key === 'subleaseIdOrCr' && !isValidIdOrEstablishment(value)) {
@@ -921,7 +1146,7 @@
   }
 
   function restoreDateModeForScreen(screen) {
-    var dateField = (screen && screen.fields || []).filter(function (f) { return f.type === 'date'; })[0];
+    var dateField = screenFields(screen).filter(function (f) { return f.type === 'date'; })[0];
     restoreDateModeForStep(dateField);
   }
 
@@ -932,6 +1157,9 @@
     if (step.type === 'phone') answers[step.key] = normalizeSaudiMobile(answers[step.key]);
     if (step.key === 'subleaseIdOrCr' || step.key === 'subleaseUnifiedNumber') {
       answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
+    }
+    if (step.key === 'electricityMeter' || step.key === 'waterMeterNumber') {
+      answers[step.key] = String(answers[step.key] || '').replace(/\s/g, '');
     }
   }
 
@@ -984,7 +1212,7 @@
       if (screen.type === 'review') {
         errors = validateReviewGrouped();
       } else {
-        (screen.fields || []).forEach(function (field) {
+        screenFields(screen).forEach(function (field) {
           var err = validateStep(field);
           if (err) errors.push({ key: field.key, message: err });
         });
@@ -993,7 +1221,8 @@
         showFieldErrors(errors);
         return;
       }
-      (screen.fields || []).forEach(normalizeAnswer);
+      screenFields(screen).forEach(normalizeAnswer);
+      lockOpenMeters(screen);
       saveDraft();
       var screens = getScreens(kind);
       if (screenIndex >= screens.length - 1) {
@@ -1361,7 +1590,7 @@
     if (isGroupedKind()) {
       var screen = currentScreen();
       if (screen && screen.type === 'review') return;
-      var firstDate = screen && (screen.fields || []).some(function (f) { return f.type === 'date'; });
+      var firstDate = screenFields(screen).some(function (f) { return f.type === 'date'; });
       if (firstDate) return;
     } else {
       var step = currentStep();
@@ -1374,14 +1603,78 @@
   }
 
   function optionHtml(options, selected) {
+    var current = String(selected == null ? '' : selected);
     return '<option value="">اختر</option>' + options.map(function (opt) {
-      return '<option value="' + escapeHtml(opt) + '"' + (selected === opt ? ' selected' : '') + '>' + escapeHtml(opt) + '</option>';
+      var val = optionValue(opt);
+      return '<option value="' + escapeHtml(val) + '"' + (current === val ? ' selected' : '') + '>' + escapeHtml(optionLabel(opt)) + '</option>';
     }).join('');
   }
 
   function cardOptions(step) {
     if (step.key === 'hasDeposit') return ['نعم', 'لا'];
     return step.options || [];
+  }
+
+  function lockOpenMeters(screen) {
+    screenFields(screen).forEach(function (field) {
+      if (!field || field.extraInput !== 'meter' || !field.extraKey) return;
+      if (!extraShouldShow(field, answers[field.key])) return;
+      var input = root && root.querySelector('[data-wizard-field="' + field.extraKey + '"]');
+      if (input) answers[field.extraKey] = meterDigits(input.value);
+      setMeterLocked(field.extraKey, true);
+    });
+  }
+
+  function syncMeterRow(row, conf, typeValue) {
+    if (!row || !conf || !conf.extraKey) return;
+    var extraKey = conf.extraKey;
+    var edit = row.querySelector('[data-follow="' + extraKey + '"]');
+    var saved = row.querySelector('[data-meter-saved="' + extraKey + '"]');
+    var num = saved && saved.querySelector('[data-meter-num]');
+    var input = edit && edit.querySelector('[data-wizard-field="' + extraKey + '"]');
+    var needs = extraShouldShow(conf, typeValue);
+    var val = meterDigits(input ? input.value : answers[extraKey]);
+    answers[extraKey] = val;
+    if (input && input.value !== val) input.value = val;
+    if (!needs) {
+      if (edit) edit.hidden = true;
+      if (saved) saved.hidden = true;
+      return;
+    }
+    if (isMeterLocked(extraKey)) {
+      if (edit) edit.hidden = true;
+      if (saved) {
+        saved.hidden = !val;
+        if (num) num.textContent = val;
+      }
+      return;
+    }
+    if (saved) saved.hidden = true;
+    if (edit) edit.hidden = false;
+  }
+
+  function meterBlockHtml(step, value, selectHtml) {
+    var extraKey = step.extraKey;
+    var extraVal = meterDigits(answers[extraKey]);
+    var needs = extraShouldShow(step, value);
+    var locked = needs && isMeterLocked(extraKey);
+    var editing = needs && !locked;
+    var suffix = step.extraSuffix
+      ? '<span class="ejar-meter__unit">' + escapeHtml(step.extraSuffix) + '</span>'
+      : '';
+    var mode = step.extraInputMode || 'numeric';
+    return '<div class="ejar-meter" data-meter="' + extraKey + '" data-meter-suffix="' + escapeHtml(step.extraSuffix || '') + '">'
+      + selectHtml
+      + '<div class="ejar-meter__edit" data-follow="' + extraKey + '"' + (editing ? '' : ' hidden') + '>'
+      + '<input class="ejar-wizard__control" id="ejar-follow-' + extraKey + '" data-wizard-field="' + extraKey + '" type="text" dir="ltr" inputmode="' + mode + '" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="" aria-label="' + escapeHtml(step.extraLabel || 'رقم العداد') + '" value="' + escapeHtml(extraVal) + '">'
+      + suffix
+      + '<button type="button" class="ejar-meter__save" data-meter-save="' + extraKey + '">حفظ</button>'
+      + '</div>'
+      + '<div class="ejar-meter__saved" data-meter-saved="' + extraKey + '"' + (locked && extraVal ? '' : ' hidden') + '>'
+      + '<span dir="ltr" data-meter-num>' + escapeHtml(extraVal) + '</span>'
+      + suffix
+      + '<button type="button" class="ejar-meter__edit-btn" data-meter-edit="' + extraKey + '">تعديل</button>'
+      + '</div></div>';
   }
 
   function fieldId(step) {
@@ -1396,17 +1689,25 @@
         + '<input class="ejar-wizard__control" id="ejar-follow-' + step.otherKey + '" data-wizard-field="' + step.otherKey + '" type="text" value="' + escapeHtml(answers[step.otherKey] || '') + '">'
         + '</div>';
     }
-    if (step.extraKey) {
-      extra += '<div class="ejar-wizard__follow"' + (value === step.extraValue ? '' : ' hidden') + ' data-follow="' + step.extraKey + '">'
-        + '<label for="ejar-follow-' + step.extraKey + '">' + escapeHtml(step.extraLabel) + '</label>'
-        + '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-follow-' + step.extraKey + '" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>'
-        + '</div>';
+    if (step.extraKey && step.extraInput !== 'meter') {
+      extra += '<div class="ejar-wizard__follow"' + (extraShouldShow(step, value) ? '' : ' hidden') + ' data-follow="' + step.extraKey + '">'
+        + '<label for="ejar-follow-' + step.extraKey + '">' + escapeHtml(step.extraLabel) + '</label>';
+      if (step.extraInput === 'textarea' || step.extraInput === 'text') {
+        extra += '<textarea class="ejar-wizard__control" id="ejar-follow-' + step.extraKey + '" data-wizard-field="' + step.extraKey + '" rows="3" maxlength="500">' + escapeHtml(answers[step.extraKey] || '') + '</textarea>';
+      } else {
+        extra += '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="ejar-follow-' + step.extraKey + '" data-wizard-field="' + step.extraKey + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(answers[step.extraKey] || '') + '"><span>' + escapeHtml(step.extraSuffix || '') + '</span></div>';
+      }
+      extra += '</div>';
     }
     return extra;
   }
 
   function cardsHtml(step) {
     var value = answers[step.key] || '';
+    if (step.key === 'furnished') {
+      if (value === 'مؤثث') value = 'نعم';
+      if (value === 'غير مؤثث') value = 'لا';
+    }
     var options = cardOptions(step);
     var countClass = options.length <= 2 ? 'ejar-choice--2' : (options.length <= 4 ? 'ejar-choice--4' : 'ejar-choice--grid');
     return '<div class="ejar-choice ' + countClass + '" data-choice-group="' + step.key + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
@@ -1450,9 +1751,10 @@
     if (step.type === 'yesno') return yesNoHtml(step);
     if (step.type === 'select' && step.ui === 'cards') return cardsHtml(step);
     if (step.type === 'select') {
-      return '<select class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" required>'
-        + optionHtml(step.options, value) + '</select>'
-        + followHtml(step, value);
+      var selectEl = '<select class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" required>'
+        + optionHtml(step.options, value) + '</select>';
+      if (step.extraInput === 'meter') return meterBlockHtml(step, value, selectEl);
+      return selectEl + followHtml(step, value);
     }
     if (step.type === 'date') {
       var max = isPastLimitedDate(step.key) ? todayIso() : '';
@@ -1480,22 +1782,50 @@
     if (step.type === 'number') {
       return '<div class="ejar-wizard__affix"><input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="number" inputmode="decimal" min="1" step="any" value="' + escapeHtml(value) + '" required><span>' + escapeHtml(step.suffix || '') + '</span></div>';
     }
-    return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" inputmode="' + (step.inputmode || 'text') + '" autocomplete="' + (step.autocomplete || 'off') + '" value="' + escapeHtml(value) + '" required>';
+    if (step.key === 'electricityMeter' || step.key === 'waterMeterNumber') {
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" dir="ltr" inputmode="numeric" maxlength="20" autocomplete="off" value="' + escapeHtml(value) + '">';
+    }
+    return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" inputmode="' + (step.inputmode || 'text') + '" autocomplete="' + (step.autocomplete || 'off') + '" value="' + escapeHtml(value) + '"' + (step.optional ? '' : ' required') + '>';
   }
 
   function fieldBlockHtml(step) {
-    var wide = step.type === 'date' || step.type === 'url' || step.ui === 'cards' || step.key === 'unitType';
+    var wide = step.wide || step.type === 'url' || step.ui === 'cards';
     return '<div class="ejar-field' + (wide ? ' ejar-field--wide' : '') + '" data-field="' + step.key + '">'
-      + '<label' + (step.type === 'date' ? '' : ' for="' + fieldId(step) + '"') + '>' + escapeHtml(step.label) + '</label>'
+      + '<label' + (step.type === 'date' ? '' : ' for="' + fieldId(step) + '"') + '>' + escapeHtml(step.label) + (step.optional ? ' <small>(اختياري)</small>' : '') + '</label>'
       + inputHtml(step)
+      + (step.hint ? '<p class="ejar-field__hint">' + escapeHtml(step.hint) + '</p>' : '')
       + '<p class="ejar-field__error" hidden></p>'
       + '</div>';
   }
 
   function displayValue(key) {
-    if (key === 'unitType') return answers.unitType || '—';
-    if (key === 'floor') return answers.floor === '' || answers.floor == null ? '—' : String(answers.floor);
-    if (key === 'furnished') return answers.furnished || '—';
+    if (key === 'electricityMeter' || key === 'waterMeterNumber') {
+      return answers[key] ? answers[key] : 'لم يُسجَّل — يُفضّل إضافته إن توفر';
+    }
+    if (key === 'electricityType') {
+      var elec = answers.electricityType || '';
+      if (!elec) return '—';
+      if (elec === 'لا يوجد') return elec;
+      return answers.electricityMeter ? elec + ' — ' + answers.electricityMeter : elec;
+    }
+    if (key === 'waterUtility') {
+      var water = answers.waterUtility || '';
+      if (!water) return answers.waterMeter || answers.waterTank || '—';
+      if ((water === 'عداد مستقل' || water === 'عداد مشترك') && answers.waterMeterNumber) {
+        return water + ' — ' + answers.waterMeterNumber;
+      }
+      return water;
+    }
+    if (key === 'floor') return floorLabel(answers.floor);
+    if (key === 'builtInKitchen') return answers.builtInKitchen || '—';
+    if (key === 'furnished') {
+      var furnished = answers.furnished;
+      if (furnished === 'نعم' || furnished === 'مؤثث') {
+        return answers.furnitureDetails ? 'مؤثث — ' + answers.furnitureDetails : 'مؤثث';
+      }
+      if (furnished === 'لا' || furnished === 'غير مؤثث') return 'غير مؤثث';
+      return '—';
+    }
     if (key === 'contractDuration') {
       if (answers.contractDuration === 'مدة أخرى' && answers.contractDurationOther) return answers.contractDurationOther;
       return answers.contractDuration || '—';
@@ -1506,10 +1836,6 @@
     }
     if (key === 'area') return answers.area ? answers.area + ' م²' : '—';
     if (key === 'rentAmount') return answers.rentAmount ? answers.rentAmount + ' ريال' : '—';
-    if ((key === 'kitchens' || key === 'majlis') && isGroupedKind()) {
-      if (String(answers[key]) === '1') return 'نعم';
-      if (String(answers[key]) === '0') return 'لا';
-    }
     return answers[key] || '—';
   }
 
@@ -1625,21 +1951,33 @@
       reviewText('الجوال', 'tenantPhone'),
     ]))
     + reviewSection('العقار', 'unit', isGroupedKind() ? [
-      reviewText('نوع العقار', 'unitType'),
-      reviewText('رقم الوحدة', 'unitNumber'),
+      reviewText('نوع الوحدة', 'unitType'),
       reviewText('الدور', 'floor'),
-      reviewText('رابط الموقع', 'propertyMapUrl'),
-      reviewText('الغرف', 'rooms'),
-      reviewText('دورات المياه', 'bathrooms'),
+      reviewText('رقم الوحدة', 'unitNumber'),
+      reviewText('المساحة', 'area'),
+      reviewText('المدينة', 'city'),
+      reviewText('الحي', 'district'),
+      reviewText('الشارع', 'streetName'),
+      reviewText('رابط الموقع (اللكيشن)', 'propertyMapUrl'),
+      reviewText('عداد الكهرباء', 'electricityType'),
+      reviewText('المياه', 'waterUtility'),
+      reviewText('غرف النوم', 'rooms'),
+      reviewText('المطابخ', 'kitchens'),
+      reviewText('الصالات', 'livingRooms'),
+      reviewText('المجالس', 'majlis'),
       reviewText('المكيفات', 'acs'),
-      reviewText('مطبخ', 'kitchens'),
-      reviewText('مجلس', 'majlis'),
+      reviewText('مطبخ راكب', 'builtInKitchen'),
     ] : [
-      reviewText('الموقع', 'propertyLocation'),
+      reviewText('المدينة', 'city'),
+      reviewText('الحي', 'district'),
       reviewText('رابط الموقع (اللكيشن)', 'propertyMapUrl'),
       reviewText('الشارع', 'streetName'),
       reviewText('الدور', 'floor'),
       reviewText('رقم الوحدة', 'unitNumber'),
+      reviewText('رقم عداد الكهرباء', 'electricityMeter'),
+      reviewText('عداد المياه', 'waterMeter'),
+      reviewText('رقم عداد المياه', 'waterMeterNumber'),
+      reviewText('الخزان', 'waterTank'),
       reviewText('التأثيث', 'furnished'),
       reviewText('الغرف', 'rooms'),
       reviewText('دورات المياه', 'bathrooms'),
@@ -1676,17 +2014,16 @@
     var details = rel === 'وكيل' || rel === 'ابن/ابنة أحد الأطراف';
     return '<section class="ejar-wizard-review is-open ejar-submitter-block">'
       + '<h3>من يقوم بتعبئة الطلب؟</h3>'
-      + '<div class="ejar-field" data-field="submitterRelation">'
-      + cardsHtml({
-        key: 'submitterRelation',
-        label: 'من يقوم بتعبئة الطلب؟',
-        type: 'select',
-        ui: 'cards',
-        options: ['المؤجر', 'المستأجر', 'وكيل', 'ابن/ابنة أحد الأطراف'],
-      })
+      + '<div class="ejar-wizard__grid ejar-wizard__grid--compact">'
+      + '<div class="ejar-field ejar-field--wide" data-field="submitterRelation">'
+      + '<label for="ejar-field-submitterRelation">صفتك بالنسبة للعقد</label>'
+      + '<select class="ejar-wizard__control" id="ejar-field-submitterRelation" data-wizard-field="submitterRelation" required>'
+      + optionHtml(['المؤجر', 'المستأجر', 'وكيل', 'ابن/ابنة أحد الأطراف'], rel)
+      + '</select>'
       + '<p class="ejar-field__error" hidden></p>'
       + '</div>'
-      + '<div class="ejar-submitter-details"' + (details ? '' : ' hidden') + '>'
+      + '<div class="ejar-submitter-details ejar-field--wide"' + (details ? '' : ' hidden') + '>'
+      + '<div class="ejar-submitter-details__grid">'
       + '<div class="ejar-field" data-field="submitterName">'
       + '<label for="ejar-field-submitterName">اسم المعبئ</label>'
       + '<input class="ejar-wizard__control" id="ejar-field-submitterName" data-wizard-field="submitterName" type="text" value="' + escapeHtml(answers.submitterName || '') + '">'
@@ -1696,8 +2033,7 @@
       + '<label for="ejar-field-submitterPhone">رقم الجوال</label>'
       + '<input class="ejar-wizard__control" id="ejar-field-submitterPhone" data-wizard-field="submitterPhone" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" value="' + escapeHtml(answers.submitterPhone || '') + '">'
       + '<p class="ejar-field__error" hidden></p>'
-      + '</div>'
-      + '</div></section>';
+      + '</div></div></div></div></section>';
   }
 
   function deedUploadHtml() {
@@ -1765,12 +2101,23 @@
     });
   }
 
+  function detailsGroupHtml(group) {
+    return '<div class="ejar-details ejar-field--wide" data-group="' + escapeHtml(group.group || '') + '">'
+      + '<h4 class="ejar-details__title">' + escapeHtml(group.title || '') + '</h4>'
+      + '<div class="ejar-details__grid">'
+      + (group.fields || []).map(fieldBlockHtml).join('')
+      + '</div></div>';
+  }
+
   function groupedScreenHtml(screen) {
     if (screen.type === 'review') return reviewHtml();
     return '<div class="ejar-wizard__screen">'
       + '<h3 class="ejar-wizard__screen-title">' + escapeHtml(screen.title) + '</h3>'
-      + '<div class="ejar-wizard__grid">'
-      + (screen.fields || []).map(fieldBlockHtml).join('')
+      + '<div class="ejar-wizard__grid' + (screen.compact ? ' ejar-wizard__grid--compact' : '') + '" data-screen="' + escapeHtml(screen.id || '') + '">'
+      + (screen.fields || []).map(function (item) {
+        if (item && item.group) return detailsGroupHtml(item);
+        return fieldBlockHtml(item);
+      }).join('')
       + '</div></div>';
   }
 
@@ -1818,6 +2165,88 @@
     syncVisualViewport();
   }
 
+  function bindFollowSelects() {
+    root.querySelectorAll('select[data-wizard-field]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var value = sel.value;
+        var key = sel.getAttribute('data-wizard-field');
+        answers[key] = value;
+        var wrap = sel.closest('.ejar-field');
+        if (wrap) {
+          wrap.querySelectorAll('[data-follow]').forEach(function (box) {
+            var fk = box.getAttribute('data-follow');
+            var conf = findFollowConfig(fk);
+            if (!conf) return;
+            if (conf.otherKey === fk) box.hidden = value !== conf.otherValue;
+            if (conf.extraKey === fk && conf.extraInput === 'meter') {
+              var row = wrap.querySelector('[data-meter="' + fk + '"]') || wrap;
+              if (extraShouldShow(conf, value) && isMeterLocked(fk) && !meterDigits(answers[fk] || (row.querySelector('[data-wizard-field="' + fk + '"]') || {}).value)) {
+                setMeterLocked(fk, false);
+              }
+              syncMeterRow(row, conf, value);
+              return;
+            }
+            if (conf.extraKey === fk) box.hidden = !extraShouldShow(conf, value);
+          });
+        }
+        if (key === 'submitterRelation') {
+          var details = root.querySelector('.ejar-submitter-details');
+          if (details) details.hidden = !(value === 'وكيل' || value === 'ابن/ابنة أحد الأطراف');
+          syncSubmitterFromRelation();
+        }
+        hideError();
+        saveDraft();
+      });
+    });
+  }
+
+  function bindMeterActions() {
+    root.querySelectorAll('[data-meter-save]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var extraKey = btn.getAttribute('data-meter-save');
+        var row = btn.closest('[data-meter]');
+        var input = row && row.querySelector('[data-wizard-field="' + extraKey + '"]');
+        var val = meterDigits(input ? input.value : answers[extraKey]);
+        var conf = findFollowConfig(extraKey);
+        if (input) input.value = val;
+        answers[extraKey] = val;
+        if (conf && conf.extraRequired && positiveNumber(val) == null) {
+          showError(conf.extraError || 'يرجى إدخال قيمة مبلغ الضمان');
+          return;
+        }
+        setMeterLocked(extraKey, true);
+        var typeInput = row && row.querySelector('select[data-wizard-field]');
+        syncMeterRow(row, conf, typeInput ? typeInput.value : (conf && answers[conf.key]));
+        hideError();
+        saveDraft();
+      });
+    });
+    root.querySelectorAll('[data-meter-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var extraKey = btn.getAttribute('data-meter-edit');
+        setMeterLocked(extraKey, false);
+        var row = btn.closest('[data-meter]');
+        var conf = findFollowConfig(extraKey);
+        var typeInput = row && row.querySelector('select[data-wizard-field]');
+        syncMeterRow(row, conf, typeInput ? typeInput.value : (conf && answers[conf.key]));
+        var input = row && row.querySelector('[data-wizard-field="' + extraKey + '"]');
+        if (input && typeof input.focus === 'function') {
+          try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+        }
+        saveDraft();
+      });
+    });
+    root.querySelectorAll('.ejar-meter__edit [data-wizard-field]').forEach(function (input) {
+      input.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var row = input.closest('[data-meter]');
+        var save = row && row.querySelector('[data-meter-save]');
+        if (save) save.click();
+      });
+    });
+  }
+
   function bindChoiceCards() {
     root.querySelectorAll('.ejar-choice').forEach(function (group) {
       var hidden = group.querySelector('input[data-wizard-field][type="hidden"]');
@@ -1835,23 +2264,12 @@
           });
           var wrap = group.closest('.ejar-field') || group.parentElement;
           if (wrap) {
-            var otherBox = wrap.querySelector('[data-follow]');
-            if (otherBox) {
-              var followKey = otherBox.getAttribute('data-follow');
-              var field = (isGroupedKind() ? (currentScreen().fields || []) : [currentStep()]).filter(function (f) {
-                return f && (f.otherKey === followKey || f.extraKey === followKey);
-              })[0];
-              if (field && field.otherKey === followKey) otherBox.hidden = value !== field.otherValue;
-              if (field && field.extraKey === followKey) otherBox.hidden = value !== field.extraValue;
-            }
             wrap.querySelectorAll('[data-follow]').forEach(function (box) {
               var fk = box.getAttribute('data-follow');
-              var conf = (isGroupedKind() ? (currentScreen().fields || []) : [currentStep()]).filter(function (f) {
-                return f && (f.otherKey === fk || f.extraKey === fk);
-              })[0];
+              var conf = findFollowConfig(fk);
               if (!conf) return;
               if (conf.otherKey === fk) box.hidden = value !== conf.otherValue;
-              if (conf.extraKey === fk) box.hidden = value !== conf.extraValue;
+              if (conf.extraKey === fk) box.hidden = !extraShouldShow(conf, value);
             });
           }
           if (key === 'submitterRelation') {
@@ -1870,7 +2288,7 @@
     root.querySelectorAll('.ejar-stepper').forEach(function (el) {
       var input = el.querySelector('[data-wizard-field]');
       var key = input && input.getAttribute('data-wizard-field');
-      var field = ((currentScreen() && currentScreen().fields) || []).filter(function (f) { return f.key === key; })[0];
+      var field = screenFields(currentScreen()).filter(function (f) { return f.key === key; })[0];
       var min = field ? field.min : 0;
       var max = field ? field.max : 10;
       el.querySelectorAll('[data-stepper-dir]').forEach(function (btn) {
@@ -1938,6 +2356,8 @@
       });
     });
     bindChoiceCards();
+    bindFollowSelects();
+    bindMeterActions();
     bindSteppers();
     bindDateChooser();
     bindDatePicker();
@@ -1990,17 +2410,34 @@
       tenantId: sublease ? answers.subtenantId : answers.tenantId,
       tenantDob: sublease ? answers.subtenantDob : answers.tenantDob,
       tenantPhone: sublease ? answers.subtenantPhone : answers.tenantPhone,
-      propertyLocation: answers.propertyLocation,
+      city: answers.city,
+      district: answers.district,
+      propertyLocation: answers.propertyLocation || [answers.district, answers.city].filter(Boolean).join('، '),
       propertyMapUrl: answers.propertyMapUrl,
       streetName: answers.streetName,
       floor: answers.floor,
       unitNumber: answers.unitNumber,
-      furnished: answers.furnished,
+      electricityType: answers.electricityType || '',
+      electricityMeter: answers.electricityType === 'لا يوجد' ? '' : answers.electricityMeter,
+      waterUtility: answers.waterUtility || '',
+      waterMeter: mapWaterFromUtility(answers.waterUtility).waterMeter,
+      waterMeterNumber: (answers.waterUtility === 'عداد مستقل' || answers.waterUtility === 'عداد مشترك' || !answers.waterUtility)
+        ? answers.waterMeterNumber
+        : '',
+      waterTank: mapWaterFromUtility(answers.waterUtility).waterTank,
+      furnished: (function () {
+        if (answers.furnished === 'نعم' || answers.furnished === 'مؤثث') return 'مؤثث';
+        if (answers.furnished === 'لا' || answers.furnished === 'غير مؤثث') return 'غير مؤثث';
+        return answers.furnished;
+      }()),
+      furnitureDetails: (answers.furnished === 'نعم' || answers.furnished === 'مؤثث') ? answers.furnitureDetails : '',
       rooms: answers.rooms,
       bathrooms: answers.bathrooms,
+      livingRooms: answers.livingRooms,
       acs: answers.acs,
       majlis: answers.majlis,
       kitchens: answers.kitchens,
+      builtInKitchen: answers.builtInKitchen,
       unitType: answers.unitType,
       area: answers.area,
       rentAmount: answers.rentAmount,
@@ -2187,4 +2624,19 @@
   }
 
   window.EjarWizard = { open: open, close: close };
+
+  try {
+    var previewScreen = new URLSearchParams(window.location.search).get('ejarPreview');
+    if (previewScreen === 'unit' || previewScreen === 'finance' || previewScreen === 'ownership' || previewScreen === 'owner' || previewScreen === 'tenant' || previewScreen === 'review') {
+      var bootPreview = function () {
+        open('residential', {
+          screen: previewScreen,
+          previewMeters: previewScreen === 'unit',
+          previewDeposit: previewScreen === 'finance',
+        });
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootPreview);
+      else bootPreview();
+    }
+  } catch (_) { /* noop */ }
 })();

@@ -2897,6 +2897,9 @@ body.ejar-wizard-open .ejar-sticky-bar {
   font-size: 0.98rem;
   font-weight: var(--ejar-fw-bold);
   cursor: pointer;
+  white-space: normal;
+  text-wrap: balance;
+  line-height: 1.35;
 }
 
 .ejar-choice__card.is-selected {
@@ -2917,12 +2920,265 @@ body.ejar-wizard-open .ejar-sticky-bar {
   gap: 0.85rem 0.75rem;
 }
 
+.ejar-wizard__grid--compact {
+  gap: 0.55rem 0.65rem;
+}
+
+.ejar-wizard__grid--compact > .ejar-field,
+.ejar-details__grid .ejar-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ejar-details {
+  grid-column: 1 / -1;
+  margin-top: 0.1rem;
+  padding: 0.7rem 0.75rem 0.6rem;
+  border: 1px solid var(--ejar-olive-border);
+  border-radius: 14px;
+  background: #f7f5ee;
+}
+
+.ejar-details__title {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  font-weight: var(--ejar-fw-bold);
+  color: var(--navy, #1E2A38);
+}
+
+.ejar-details__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem 0.65rem;
+}
+
+.ejar-details .ejar-field label,
+.ejar-wizard__grid--compact > .ejar-field label {
+  margin-bottom: 0.28rem;
+  font-size: 0.86rem;
+  text-align: start;
+  min-height: 2.35em;
+  display: flex;
+  align-items: flex-end;
+  line-height: 1.25;
+}
+
+.ejar-wizard__grid--compact select.ejar-wizard__control,
+.ejar-details select.ejar-wizard__control,
+.ejar-wizard__grid--compact .ejar-wizard__control {
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+}
+
+select.ejar-wizard__control {
+  min-height: 44px;
+}
+
+.ejar-wizard__grid--compact .ejar-wizard__follow {
+  margin-top: 0.45rem;
+}
+
+.ejar-meter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.ejar-meter > select {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+.ejar-meter__edit {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: stretch;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ejar-meter__edit[hidden],
+.ejar-meter__saved[hidden] {
+  display: none !important;
+}
+
+.ejar-meter__edit .ejar-wizard__control {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.ejar-meter__edit .ejar-wizard__control::placeholder {
+  color: transparent;
+}
+
+.ejar-meter__save {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 4.5rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ejar-olive);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ejar-meter__save:hover,
+.ejar-meter__save:focus {
+  filter: brightness(0.96);
+}
+
+.ejar-meter__unit {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.7rem;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--ejar-olive-soft);
+  color: var(--ejar-olive);
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ejar-meter__saved .ejar-meter__unit {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.ejar-meter__saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border-radius: 12px;
+  background: var(--ejar-olive-soft);
+  color: var(--navy, #1E2A38);
+  white-space: nowrap;
+}
+
+.ejar-meter__saved span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ejar-meter__edit-btn {
+  border: 0;
+  background: transparent;
+  color: var(--ejar-olive);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 0.2rem;
+}
+
+@media (max-width: 559px) {
+  .ejar-meter > select {
+    flex: 1 1 100%;
+  }
+
+  .ejar-meter__edit,
+  .ejar-meter__saved {
+    flex: 1 1 100%;
+  }
+
+  .ejar-wizard__grid--compact > .ejar-field label,
+  .ejar-details .ejar-field label {
+    min-height: 0;
+  }
+}
+
+.ejar-wizard__screen:has(.ejar-wizard__grid--compact) .ejar-wizard__screen-title {
+  margin-bottom: 0.55rem;
+  font-size: 1rem;
+}
+
+@supports (grid-template-rows: subgrid) {
+  .ejar-wizard__grid--compact,
+  .ejar-details__grid {
+    grid-auto-rows: auto;
+  }
+
+  .ejar-wizard__grid--compact > .ejar-field:not(.ejar-field--wide),
+  .ejar-details__grid > .ejar-field {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 2;
+  }
+}
+
+@media (min-width: 560px) {
+  .ejar-wizard__grid--compact,
+  .ejar-details__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ejar-wizard__grid--compact > .ejar-field--wide,
+  .ejar-wizard__grid--compact > .ejar-details {
+    grid-column: 1 / -1;
+  }
+}
+
+.ejar-wizard__grid--compact[data-screen="ownership"] {
+  grid-template-columns: minmax(0, 28.5rem);
+  justify-content: center;
+  justify-items: stretch;
+  gap: 0.85rem;
+}
+
+.ejar-wizard__grid--compact[data-screen="ownership"] > .ejar-field {
+  width: 100%;
+  max-width: 28.5rem;
+}
+
+.ejar-wizard__grid--compact[data-screen="ownership"] > .ejar-field label {
+  min-height: 0;
+  justify-content: center;
+  text-align: center;
+}
+
+.ejar-wizard__grid--compact[data-screen="ownership"] .ejar-date-radios {
+  max-width: none;
+}
+
 .ejar-field label {
   display: block;
   margin-bottom: 0.4rem;
   font-weight: var(--ejar-fw-bold);
   font-size: 0.95rem;
   color: var(--navy, #1E2A38);
+}
+
+.ejar-field label small {
+  font-weight: var(--ejar-fw-medium);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.ejar-field__hint {
+  margin: 0.4rem 0 0;
+  color: #8a6b32;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  background: rgba(197, 164, 109, 0.12);
+  border: 1px solid rgba(197, 164, 109, 0.28);
+  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
 }
 
 .ejar-field__error {
@@ -2970,9 +3226,24 @@ body.ejar-wizard-open .ejar-sticky-bar {
 }
 
 .ejar-submitter-details {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.ejar-submitter-details[hidden] {
+  display: none !important;
+}
+
+.ejar-submitter-details__grid {
   display: grid;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+  grid-template-columns: 1fr;
+  gap: 0.55rem 0.65rem;
+}
+
+@media (min-width: 380px) {
+  .ejar-submitter-details__grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (min-width: 768px) {
@@ -3052,6 +3323,13 @@ body.ejar-wizard-open .ejar-sticky-bar {
 
 .ejar-wizard__follow {
   margin-top: 0.9rem;
+}
+
+.ejar-wizard__follow textarea.ejar-wizard__control {
+  min-height: 5.6rem;
+  resize: vertical;
+  line-height: 1.65;
+  padding: 0.7rem 0.8rem;
 }
 
 .ejar-wizard__error {
@@ -3398,12 +3676,100 @@ body.ejar-wizard-open .ejar-sticky-bar {
   font-size: 1rem;
 }
 
-@media (max-width: 520px) {
-  .ejar-date-hijri {
+.ejar-wizard__grid--compact .ejar-date-picker,
+.ejar-details .ejar-date-picker {
+  gap: 0.45rem;
+}
+
+.ejar-wizard__grid--compact .ejar-date-chooser,
+.ejar-details .ejar-date-chooser {
+  gap: 0.45rem;
+  padding: 0;
+}
+
+.ejar-wizard__grid--compact .ejar-date-chooser__hint,
+.ejar-details .ejar-date-chooser__hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ejar-wizard__grid--compact .ejar-date-chooser__bar:not(:has(.ejar-date-chooser__change:not([hidden]))),
+.ejar-details .ejar-date-chooser__bar:not(:has(.ejar-date-chooser__change:not([hidden]))) {
+  display: none;
+}
+
+.ejar-wizard__grid--compact .ejar-date-radios,
+.ejar-details .ejar-date-radios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 28.5rem;
+}
+
+.ejar-wizard__grid--compact .ejar-date-radio,
+.ejar-details .ejar-date-radio {
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--ejar-olive-border);
+  border-radius: 12px;
+  background: #fbfaf6;
+  box-sizing: border-box;
+}
+
+.ejar-wizard__grid--compact .ejar-date-radio:has(input:checked),
+.ejar-details .ejar-date-radio:has(input:checked) {
+  border-color: var(--ejar-olive);
+  background: var(--ejar-olive-soft);
+}
+
+.ejar-wizard__grid--compact .ejar-date-hijri .ejar-wizard__control,
+.ejar-wizard__grid--compact .ejar-date-gregorian .ejar-wizard__control--date,
+.ejar-details .ejar-date-hijri .ejar-wizard__control,
+.ejar-details .ejar-date-gregorian .ejar-wizard__control--date,
+.ejar-wizard__grid--compact > .ejar-field[data-field="deedNumber"] .ejar-wizard__control {
+  min-height: 44px;
+  height: 44px;
+  padding: 0.55rem 0.7rem;
+  box-sizing: border-box;
+}
+
+.ejar-wizard .ejar-wizard__grid--compact input.ejar-wizard__control,
+.ejar-wizard .ejar-wizard__grid--compact select.ejar-wizard__control,
+.ejar-wizard .ejar-details input.ejar-wizard__control,
+.ejar-wizard .ejar-details select.ejar-wizard__control {
+  min-height: 44px;
+  height: 44px;
+  padding: 0.45rem 0.7rem;
+  box-sizing: border-box;
+}
+
+.ejar-wizard .ejar-wizard__grid--compact .ejar-date-radio,
+.ejar-wizard .ejar-details .ejar-date-radio {
+  min-height: 44px;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 559px) {
+  .ejar-date-hijri,
+  .ejar-wizard__grid--compact .ejar-date-hijri,
+  .ejar-details .ejar-date-hijri {
     grid-template-columns: 1fr 1fr;
   }
 
-  .ejar-date-hijri__item:last-child {
+  .ejar-date-hijri__item:last-child,
+  .ejar-wizard__grid--compact .ejar-date-hijri__item:last-child,
+  .ejar-details .ejar-date-hijri__item:last-child {
     grid-column: 1 / -1;
   }
 }

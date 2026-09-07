@@ -45,11 +45,18 @@ const base = {
   tenantDob: '1992-08-20',
   tenantPhone: '0500001111',
   propertyLocation: 'حي النرجس، الرياض',
+  city: 'الرياض',
+  district: 'النرجس',
   propertyMapUrl: 'https://maps.app.goo.gl/alheefLocation',
   streetName: 'طريق الملك سلمان',
   floor: '1',
   unitNumber: '12',
+  electricityMeter: '1234567890',
+  waterMeter: 'عداد مياه مستقل',
+  waterMeterNumber: '987654321',
+  waterTank: 'خزان مستقل',
   furnished: 'مؤثث',
+  furnitureDetails: 'مطبخ وغرف نوم',
   rooms: 3,
   bathrooms: 2,
   acs: 3,
@@ -98,20 +105,141 @@ const badArea = validateAndNormalize({ ...base, contractKind: 'residential', uni
 if (badArea.ok || !badArea.errors.area) fail('رفض المساحة غير الموجبة');
 else ok('يرفض المساحة غير الموجبة');
 
+const missingArea = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', area: '' });
+if (missingArea.ok || !missingArea.errors.area) fail('رفض الطلب بدون مساحة');
+else ok('المساحة مطلوبة ولا يُرسل الطلب بدونها');
+
+const missingMeter = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', electricityMeter: '', waterMeterNumber: '' });
+if (!missingMeter.ok) fail('أرقام العدادات اختيارية: ' + JSON.stringify(missingMeter.errors));
+else if (missingMeter.data.electricityMeter || missingMeter.data.waterMeterNumber) fail('يجب أن تبقى أرقام العدادات فارغة إن لم تُكتب');
+else ok('رقم عداد الكهرباء وعداد المياه اختياريان مع التنبيه');
+
+const missingWater = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', waterMeter: '', waterTank: '', waterUtility: '' });
+if (missingWater.ok || !missingWater.errors.waterUtility) fail('رفض الطلب بدون اختيار نوع المياه');
+else ok('نوع المياه مطلوب (عداد أو خزان)');
+
+const waterUtilityMeter = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  waterUtility: 'عداد مستقل',
+  waterMeter: '',
+  waterTank: 'خزان مشترك',
+  waterMeterNumber: '111222',
+});
+if (!waterUtilityMeter.ok || waterUtilityMeter.data.waterMeter !== 'عداد مياه مستقل' || waterUtilityMeter.data.waterTank || waterUtilityMeter.data.waterMeterNumber !== '111222') {
+  fail('تحويل المياه من قائمة واحدة إلى عداد: ' + JSON.stringify(waterUtilityMeter.errors || waterUtilityMeter.data));
+} else ok('عداد مستقل يحفظ نوع العداد ورقم الاشتراك ويمسح الخزان');
+
+const waterUtilityTank = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  waterUtility: 'خزان مشترك',
+  waterMeter: 'عداد مياه مستقل',
+  waterMeterNumber: 'يجب أن يُمسح',
+  waterTank: '',
+});
+if (!waterUtilityTank.ok || waterUtilityTank.data.waterTank !== 'خزان مشترك' || waterUtilityTank.data.waterMeter || waterUtilityTank.data.waterMeterNumber) {
+  fail('خزان المياه يمسح رقم الاشتراك: ' + JSON.stringify(waterUtilityTank.errors || waterUtilityTank.data));
+} else ok('خزان مشترك لا يحفظ رقم اشتراك المياه');
+
+const noElectricity = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  electricityType: 'لا يوجد',
+  electricityMeter: '999',
+});
+if (!noElectricity.ok || noElectricity.data.electricityType !== 'لا يوجد' || noElectricity.data.electricityMeter) {
+  fail('مسح رقم الكهرباء عند لا يوجد: ' + JSON.stringify(noElectricity.errors || noElectricity.data));
+} else ok('لا يوجد عداد كهرباء يمسح رقم الاشتراك');
+
+const studioDuplex = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'استديو' });
+const duplexOk = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'دوبلكس' });
+if (!studioDuplex.ok || studioDuplex.data.unitType !== 'استديو' || !duplexOk.ok || duplexOk.data.unitType !== 'دوبلكس') {
+  fail('قبول استديو ودوبلكس: ' + JSON.stringify(studioDuplex.errors || duplexOk.errors));
+} else ok('يقبل نوع الوحدة استديو ودوبلكس');
+
+const compactDetails = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  livingRooms: 2,
+  builtInKitchen: 'نعم',
+  bathrooms: '',
+  city: '',
+  district: '',
+});
+if (!compactDetails.ok || compactDetails.data.livingRooms !== 2 || compactDetails.data.builtInKitchen !== 'نعم' || compactDetails.data.bathrooms != null) {
+  fail('حفظ الصالات ومطبخ راكب: ' + JSON.stringify(compactDetails.errors || compactDetails.data));
+} else ok('يحفظ عدد الصالات ومطبخ راكب دون إلزام بدورات المياه');
+
 const emptyOptional = validateAndNormalize({
   ...base,
   contractKind: 'residential',
   unitType: 'استوديو',
   propertyLocation: '',
   streetName: '',
-  furnished: '',
-  area: '',
+  furnished: 'غير مؤثث',
+  furnitureDetails: '',
   propertyMapUrl: '',
 });
 if (!emptyOptional.ok) fail('الحقول الاختيارية الفارغة: ' + JSON.stringify(emptyOptional.errors));
-else if (emptyOptional.data.area != null || emptyOptional.data.furnished || emptyOptional.data.streetName || emptyOptional.data.propertyLocation || emptyOptional.data.propertyMapUrl) {
+else if (emptyOptional.data.streetName || emptyOptional.data.propertyMapUrl || emptyOptional.data.furnitureDetails) {
   fail('يجب أن تبقى الحقول الاختيارية فارغة دون قيم وهمية');
-} else ok('المساحة والتأثيث والشارع ووصف الموقع ورابط الخريطة اختيارية');
+} else if (emptyOptional.data.furnished !== 'غير مؤثث') {
+  fail('غير المؤثث يجب أن يُحفظ بدون تفاصيل أثاث');
+} else if (emptyOptional.data.area !== 140) {
+  fail('يجب حفظ المساحة');
+} else ok('الشارع ورابط الخريطة والمدينة والحي اختيارية في الطلب الجديد، والمساحة تُحفظ');
+
+const yesFurnished = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  furnished: 'نعم',
+  furnitureDetails: 'ثلاجة وغسالة وكنب',
+});
+if (!yesFurnished.ok || yesFurnished.data.furnished !== 'مؤثث' || yesFurnished.data.furnitureDetails !== 'ثلاجة وغسالة وكنب') {
+  fail('حفظ تفاصيل الأثاث عند نعم: ' + JSON.stringify(yesFurnished.errors || yesFurnished.data));
+} else ok('اختيار نعم يحفظ العقار مؤثثًا مع تفاصيل الأثاث');
+
+const furnishedNoDetails = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  furnished: 'نعم',
+  furnitureDetails: '',
+});
+if (furnishedNoDetails.ok || !furnishedNoDetails.errors.furnitureDetails) fail('رفض مؤثث بدون تفاصيل الأثاث');
+else ok('عند اختيار مؤثث يلزم كتابة تفاصيل الأثاث');
+
+const unfurnishedClearsDetails = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  furnished: 'لا',
+  furnitureDetails: 'يجب ألا تُحفظ',
+});
+if (!unfurnishedClearsDetails.ok || unfurnishedClearsDetails.data.furnished !== 'غير مؤثث' || unfurnishedClearsDetails.data.furnitureDetails) {
+  fail('مسح تفاصيل الأثاث لغير المؤثث');
+} else ok('اختيار لا يحفظ غير مؤثث بدون تفاصيل أثاث');
+
+const freeTextPlace = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  city: 'جدة',
+  district: 'السلامة',
+});
+if (!freeTextPlace.ok || freeTextPlace.data.city !== 'جدة' || freeTextPlace.data.district !== 'السلامة') {
+  fail('قبول المدينة والحي كنص حر: ' + JSON.stringify(freeTextPlace.errors || freeTextPlace.data));
+} else ok('المدينة والحي تُقبل كما تُكتب دون قائمة جاهزة');
+
+const missingCity = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', city: '', district: '' });
+if (!missingCity.ok || missingCity.data.city || missingCity.data.district) fail('المدينة والحي اختياريان في الطلب الجديد: ' + JSON.stringify(missingCity.errors || missingCity.data));
+else ok('المدينة والحي اختياريان ولا يُرفض الطلب بدونهما');
 
 const commercialShop = validateAndNormalize({ ...base, contractKind: 'commercial', unitType: 'محل', paymentMethod: 'كل 3 أشهر' });
 if (!commercialShop.ok || commercialShop.data.unitType !== 'محل' || commercialShop.data.paymentMethod !== 'كل 3 أشهر') {
@@ -322,7 +450,7 @@ const badFloor = validateAndNormalize({
 if (badFloor.ok || !badFloor.errors.floor) fail('رفض الدور خارج المدى');
 else ok('يرفض رقم دور أكبر من 10');
 
-if (residential.data.propertyLocation !== 'حي النرجس، الرياض' || residential.data.propertyMapUrl !== 'https://maps.app.goo.gl/alheefLocation' || residential.data.furnished !== 'مؤثث' || residential.data.rooms !== 3 || residential.data.bathrooms !== 2) {
+if (residential.data.city !== 'الرياض' || residential.data.district !== 'النرجس' || residential.data.area !== 140 || residential.data.electricityMeter !== '1234567890' || residential.data.propertyMapUrl !== 'https://maps.app.goo.gl/alheefLocation' || residential.data.furnished !== 'مؤثث' || residential.data.furnitureDetails !== 'مطبخ وغرف نوم' || residential.data.rooms !== 3 || residential.data.bathrooms !== 2) {
   fail('حفظ بيانات العقار');
 } else ok('يُحفظ موقع العقار ورابط اللكيشن والتأثيث وعدد الغرف ودورات المياه');
 
@@ -357,6 +485,7 @@ ok('Hook إشعار المكتب يجهّز النص دون إرسال وهمي'
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'public', 'ejar.html'), 'utf8');
 const wizardJs = fs.readFileSync(path.join(root, 'public', 'js', 'ejar-wizard.js'), 'utf8');
+const wizardCss = fs.readFileSync(path.join(root, 'public', 'css', 'ejar.css'), 'utf8');
 const ejarJs = fs.readFileSync(path.join(root, 'public', 'js', 'ejar.js'), 'utf8');
 const apiContracts = fs.readFileSync(path.join(root, 'server', 'routes', 'ejarContracts.js'), 'utf8');
 const dashRequests = fs.readFileSync(path.join(root, 'dashboard', 'js', 'requests.js'), 'utf8');
@@ -398,8 +527,10 @@ if (!/localStorage\.setItem\(DRAFT_KEY/.test(wizardJs) || !/لديك طلب غي
 else ok('المسودة تُحفظ محليًا مع شاشة المتابعة');
 if (!/visualViewport/.test(wizardJs) || !/--ejar-vv-height/.test(wizardJs)) fail('visualViewport للوحة المفاتيح');
 else ok('شريط التالي يلتزم بـ visualViewport');
-if (!/ejar-choice__card/.test(wizardJs) || !/ui: 'cards'/.test(wizardJs)) fail('بطاقات الاختيار');
-else ok('نوع الوحدة وطريقة الدفع والضمان بطاقات اختيار');
+if (!/min-width: 560px/.test(wizardCss) || !/data-screen="ownership"/.test(wizardCss) || !/minmax\(0, 28\.5rem\)/.test(wizardCss)) fail('تنسيق بطاقة الملكية');
+else ok('رقم الصك في وسط أعلى بطاقة الملكية والتاريخ تحته على كل الشاشات');
+if (!/key: 'hasDeposit'[\s\S]*?extraInput: 'meter'/.test(wizardJs) || !/extraRequired: true/.test(wizardJs) || !/extraSuffix: 'ريال'/.test(wizardJs)) fail('حفظ مبلغ الضمان');
+else ok('الضمان عند نعم يظهر رقم المبلغ مع حفظ مثل عداد الكهرباء والمياه');
 if (!/ejar-wizard-review__toggle/.test(wizardJs) || !/maskId/.test(wizardJs)) fail('مراجعة الجوال');
 else ok('المراجعة Accordion مع إخفاء جزء الهوية');
 if (!/submitterName/.test(wizardJs) || !/submitterPhone/.test(wizardJs) || !/submitterRelation/.test(wizardJs) || !/من يقوم بتعبئة الطلب/.test(wizardJs)) {
@@ -407,10 +538,12 @@ if (!/submitterName/.test(wizardJs) || !/submitterPhone/.test(wizardJs) || !/sub
 } else ok('شاشة المراجعة تسأل من يقوم بتعبئة الطلب دون شاشة معبئ مستقلة للسكني والتجاري');
 if (!/isGroupedKind/.test(wizardJs) || !/getScreens/.test(wizardJs) || !/current \+ ' من ' \+ inputTotal/.test(wizardJs)) fail('شاشات السكني والتجاري المجمّعة');
 else ok('السكني والتجاري يستخدمان 5 شاشات إدخال + مراجعة');
+if (!/function unitScreen/.test(wizardJs) || !/function financeScreen/.test(wizardJs) || !/id: 'sublease'/.test(wizardJs) || !/id: 'subtenant'/.test(wizardJs)) fail('شاشات عقد بالباطن المجمّعة');
+else ok('عقد بالباطن يستخدم شاشات مجمّعة بنفس أسلوب بيانات العقار');
 if (!/COMMERCIAL_PROPERTY_TYPES/.test(wizardJs) || !/محل/.test(wizardJs) || !/مكتب/.test(wizardJs)) fail('أنواع العقار التجارية');
 else ok('التجاري يعرض أنواع وحدات تجارية');
-if (!/ملحق/.test(wizardJs) || !/استوديو/.test(wizardJs)) fail('أنواع العقار السكنية الموسّعة');
-else ok('السكني يعرض ملحق واستوديو وأخرى');
+if (!/ملحق/.test(wizardJs) || !/استديو/.test(wizardJs) || !/دوبلكس/.test(wizardJs)) fail('أنواع العقار السكنية الموسّعة');
+else ok('السكني يعرض ملحق واستديو ودوبلكس');
 if (!/restoreDateModeForStep/.test(wizardJs) || !/dateModes/.test(wizardJs)) fail('حفظ نوع التقويم');
 else ok('الرجوع للتاريخ يستعيد نوع التقويم المختار');
 if (!/مؤسسة الهيف للخدمات العقارية/.test(html) || /إنشاء عقد عبر مكتب الهيف/.test(html)) fail('اسم مؤسسة الهيف في صفحة إيجار');
@@ -421,10 +554,10 @@ if (!/لديك استفسار قبل إنشاء العقد/.test(html) || !/اس
 else ok('النموذج السفلي للاستفسار عبر واتساب');
 ['ownership', 'owner', 'tenant', 'unit', 'finance', 'submitter'].forEach((id) => {
   const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
-  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 13, finance: 5, submitter: 3 }[id];
+  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 18, finance: 5, submitter: 3 }[id];
   if (n !== expected) fail('عدد أسئلة ' + id + ': ' + n);
 });
-ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، عقار 13، مالية 5، معبئ 3');
+ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، عقار 18، مالية 5، معبئ 3');
 if ((wizardJs.match(/section: 'sublease'/g) || []).length !== 9) fail('أسئلة عقد بالباطن');
 else ok('نموذج عقد بالباطن يضيف 9 أسئلة للمستأجر الأصلي والممثل');
 if ((wizardJs.match(/section: 'subtenant'/g) || []).length !== 4) fail('أسئلة المستأجر من الباطن');
@@ -435,12 +568,12 @@ if (!/k === 'sublease'/.test(wizardJs) || !/إنشاء عقد بالباطن/.te
 else ok('المعالج يفتح نموذجًا مستقلًا لعقد بالباطن');
 if (!html.includes('data-ejar-contract="sublease"') || !html.includes('ابدأ عقد بالباطن')) fail('بطاقة عقد بالباطن');
 else ok('صفحة /ejar تحتوي بطاقة عقد بالباطن مستقلة');
-if (!/propertyMapUrl/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs) || !/type: 'stepper'/.test(wizardJs)) {
+if (!/label: 'المدينة'/.test(wizardJs) || !/label: 'الحي'/.test(wizardJs) || !/label: 'الشارع'/.test(wizardJs) || !/رابط الموقع \(اللكيشن\)/.test(wizardJs) || !/propertyMapUrl/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs) || !/label: 'المساحة'/.test(wizardJs) || !/electricityMeter/.test(wizardJs) || !/رقم اشتراك \/ عداد الكهرباء/.test(wizardJs) || !/waterMeterNumber/.test(wizardJs) || !/electricityType/.test(wizardJs) || !/waterUtility/.test(wizardJs) || !/livingRooms/.test(wizardJs) || !/builtInKitchen/.test(wizardJs) || !/تفاصيل الوحدة/.test(wizardJs) || !/ejar-details/.test(wizardJs) || !/FLOOR_OPTIONS/.test(wizardJs) || !/data-meter-save/.test(wizardJs) || !/ejar-meter__save/.test(wizardJs)) {
   fail('حقول بيانات العقار في المعالج');
-} else ok('شاشة العقار المجمّعة تشمل النوع والوحدة والدور والرابط والمحتويات');
-if (!/بيانات العقار/.test(dashRequests) || !/propertyLocation/.test(dashRequests) || !/propertyMapUrl/.test(dashRequests) || !/furnished/.test(dashRequests)) {
+} else ok('شاشة العقار تعرض المدينة والحي والشارع ورابط اللكيشن اختياريًا مع حفظ رقم العداد');
+if (!/بيانات العقار/.test(dashRequests) || !/p\.electricityType/.test(dashRequests) || !/p\.waterUtility/.test(dashRequests) || !/p\.livingRooms/.test(dashRequests) || !/p\.builtInKitchen/.test(dashRequests) || !/electricityMeter/.test(dashRequests) || !/waterMeter/.test(dashRequests) || !/waterMeterNumber/.test(dashRequests) || !/waterTank/.test(dashRequests)) {
   fail('عرض بيانات العقار في اللوحة');
-} else ok('لوحة التحكم تعرض بيانات العقار الجديدة');
+} else ok('لوحة التحكم تعرض بيانات العقار الجديدة مع الحقول السابقة');
 if (!/checkRateLimit/.test(apiContracts)) fail('Rate limiting');
 else ok('Rate limiting على API إنشاء العقد');
 if (!/notifyOfficeNewEjarContract/.test(apiContracts)) fail('Hook واتساب غير مستدعى');

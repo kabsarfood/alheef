@@ -150,7 +150,21 @@ function displayUnit(payload) {
 
 function displayFloor(payload) {
   if (payload.floor === '' || payload.floor == null) return '—';
-  return String(payload.floor);
+  var labels = {
+    0: 'الأرضي (0)',
+    1: 'الأول (1)',
+    2: 'الثاني (2)',
+    3: 'الثالث (3)',
+    4: 'الرابع (4)',
+    5: 'الخامس (5)',
+    6: 'السادس (6)',
+    7: 'السابع (7)',
+    8: 'الثامن (8)',
+    9: 'التاسع (9)',
+    10: 'العاشر (10)',
+  };
+  var key = String(payload.floor);
+  return labels[key] || key;
 }
 
 function displayDuration(payload) {
@@ -348,19 +362,30 @@ function openRequestModal(row) {
         rowItem('الجوال', p.tenantPhone, { copy: true }),
       ]),
       sectionBlock('بيانات العقار', [
+        rowItem('نوع الوحدة', displayUnit(p)),
+        rowItem('الدور', displayFloor(p)),
+        rowItem('رقم الوحدة', p.unitNumber, { copy: true }),
+        rowItem('المساحة', p.area != null ? `${p.area} م²` : '—'),
+        rowItem('عداد الكهرباء', p.electricityType || '—'),
+        rowItem('رقم عداد الكهرباء', p.electricityMeter || '—', { copy: true }),
+        rowItem('المياه', p.waterUtility || p.waterMeter || p.waterTank || '—'),
+        rowItem('عداد المياه', p.waterMeter || '—'),
+        rowItem('رقم عداد المياه', p.waterMeterNumber || '—', { copy: true }),
+        rowItem('الخزان', p.waterTank || '—'),
+        rowItem('غرف النوم', p.rooms != null ? String(p.rooms) : '—'),
+        rowItem('المطابخ', p.kitchens != null ? String(p.kitchens) : '—'),
+        rowItem('الصالات', p.livingRooms != null ? String(p.livingRooms) : '—'),
+        rowItem('المجالس', p.majlis != null ? String(p.majlis) : '—'),
+        rowItem('المكيفات', p.acs != null ? String(p.acs) : '—'),
+        rowItem('مطبخ راكب', p.builtInKitchen || '—'),
+        rowItem('المدينة', p.city || '—'),
+        rowItem('الحي', p.district || '—'),
         rowItem('الموقع', p.propertyLocation || '—'),
         rowItem('رابط الموقع (اللكيشن)', p.propertyMapUrl, { copy: true }),
         rowItem('الشارع', p.streetName || '—'),
-        rowItem('الدور', displayFloor(p)),
-        rowItem('رقم الوحدة', p.unitNumber, { copy: true }),
         rowItem('التأثيث', p.furnished || '—'),
-        rowItem('الغرف', p.rooms != null ? String(p.rooms) : '—'),
+        rowItem('تفاصيل الأثاث', p.furnished === 'مؤثث' ? (p.furnitureDetails || '—') : '—'),
         rowItem('دورات المياه', p.bathrooms != null ? String(p.bathrooms) : '—'),
-        rowItem('المكيفات', p.acs != null ? String(p.acs) : '—'),
-        rowItem('المجالس', p.majlis != null ? String(p.majlis) : '—'),
-        rowItem('المطابخ', p.kitchens != null ? String(p.kitchens) : '—'),
-        rowItem('نوع العقار', displayUnit(p)),
-        rowItem('المساحة', p.area != null ? `${p.area} م²` : '—'),
       ]),
       sectionBlock('تفاصيل العقد', [
         rowItem('قيمة الإيجار', p.rentAmount != null ? String(p.rentAmount) : '', { copy: true }),

@@ -11,10 +11,27 @@ const PAYMENT_METHOD_ALIASES = { 'ربع سنوي': 'كل 3 أشهر' };
 const RESIDENTIAL_UNITS = ['شقة', 'فيلا'];
 const COMMERCIAL_UNITS = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى', 'وحدة تجارية أخرى'];
 const PROPERTY_TYPES = ['شقة', 'فيلا', 'عمارة', 'دور'];
-const RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'عمارة', 'ملحق', 'استوديو', 'أخرى'];
+const RESIDENTIAL_PROPERTY_TYPES = ['شقة', 'فيلا', 'دور', 'عمارة', 'ملحق', 'استديو', 'استوديو', 'دوبلكس', 'أخرى'];
 const COMMERCIAL_PROPERTY_TYPES = ['محل', 'مكتب', 'معرض', 'مستودع', 'ورشة', 'عمارة تجارية', 'مجمع تجاري', 'أخرى'];
 const FLOOR_NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+const FLOOR_LABELS = {
+  0: 'الأرضي (0)',
+  1: 'الأول (1)',
+  2: 'الثاني (2)',
+  3: 'الثالث (3)',
+  4: 'الرابع (4)',
+  5: 'الخامس (5)',
+  6: 'السادس (6)',
+  7: 'السابع (7)',
+  8: 'الثامن (8)',
+  9: 'التاسع (9)',
+  10: 'العاشر (10)',
+};
 const FURNISHED_OPTIONS = ['مؤثث', 'غير مؤثث'];
+const WATER_METER_OPTIONS = ['عداد مياه مستقل', 'عداد مياه مشترك'];
+const WATER_TANK_OPTIONS = ['خزان مستقل', 'خزان مشترك'];
+const ELECTRICITY_TYPE_OPTIONS = ['عداد مستقل', 'عداد مشترك', 'لا يوجد'];
+const WATER_UTILITY_OPTIONS = ['عداد مستقل', 'عداد مشترك', 'خزان مستقل', 'خزان مشترك'];
 const FLOORS = ['أرضي', 'أول', 'ثاني', 'ثالث', 'رابع', 'خامس', 'أعلى', 'أخرى'];
 const DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
 const YES_NO = ['لا', 'نعم'];
@@ -123,6 +140,21 @@ function parsePositiveNumber(value, { integer = false } = {}) {
   if (!Number.isFinite(n) || n <= 0) return null;
   if (integer && !Number.isInteger(n)) return null;
   return n;
+}
+
+function mapWaterFromUtility(utility) {
+  if (utility === 'عداد مستقل') return { waterMeter: 'عداد مياه مستقل', waterTank: '' };
+  if (utility === 'عداد مشترك') return { waterMeter: 'عداد مياه مشترك', waterTank: '' };
+  if (utility === 'خزان مستقل') return { waterMeter: '', waterTank: 'خزان مستقل' };
+  if (utility === 'خزان مشترك') return { waterMeter: '', waterTank: 'خزان مشترك' };
+  return null;
+}
+
+function normalizeFurnished(input) {
+  const s = trimStr(input, 20);
+  if (s === 'نعم' || s === 'مؤثث') return 'مؤثث';
+  if (s === 'لا' || s === 'غير مؤثث') return 'غير مؤثث';
+  return s;
 }
 
 function trimStr(value, max) {
@@ -319,7 +351,11 @@ function validateAndNormalize(rawBody) {
   if (!isPastDate(tenantDob)) errors.tenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر';
   if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
 
-  const propertyLocation = trimStr(body?.propertyLocation, 80);
+  const city = trimStr(body?.city, 80);
+  const district = trimStr(body?.district, 80);
+  const propertyLocation = trimStr(body?.propertyLocation, 80)
+    || (city && district ? `${district}، ${city}` : city || district);
+
   const propertyMapUrl = normalizeMapUrl(body?.propertyMapUrl);
   if (propertyMapUrl && !isValidMapUrl(propertyMapUrl)) {
     errors.propertyMapUrl = 'يرجى لصق رابط موقع العقار (اللكيشن)';
@@ -333,14 +369,55 @@ function validateAndNormalize(rawBody) {
   const unitNumber = trimStr(body?.unitNumber, 30);
   if (!unitNumber) errors.unitNumber = 'يرجى إدخال رقم الوحدة';
 
-  const furnished = trimStr(body?.furnished, 20);
+  const electricityType = trimStr(body?.electricityType, 40);
+  if (electricityType && !ELECTRICITY_TYPE_OPTIONS.includes(electricityType)) {
+    errors.electricityType = 'يرجى اختيار نوع عداد الكهرباء';
+  }
+  let electricityMeter = trimStr(String(body?.electricityMeter || '').replace(/\s/g, ''), 20);
+  if (electricityType === 'لا يوجد') electricityMeter = '';
+
+  const waterUtility = trimStr(body?.waterUtility, 40);
+  let waterMeter = trimStr(body?.waterMeter, 40);
+  let waterTank = trimStr(body?.waterTank, 40);
+  let waterMeterNumber = trimStr(String(body?.waterMeterNumber || '').replace(/\s/g, ''), 20);
+  const mappedWater = mapWaterFromUtility(waterUtility);
+  if (mappedWater) {
+    waterMeter = mappedWater.waterMeter;
+    waterTank = mappedWater.waterTank;
+    if (!waterMeter) waterMeterNumber = '';
+  } else {
+    const hasMeter = WATER_METER_OPTIONS.includes(waterMeter);
+    const hasTank = WATER_TANK_OPTIONS.includes(waterTank);
+    if (waterMeter && !hasMeter) errors.waterMeter = 'يرجى اختيار نوع عداد المياه';
+    if (waterTank && !hasTank) errors.waterTank = 'يرجى اختيار نوع الخزان';
+    if (!hasMeter && !hasTank) errors.waterUtility = 'يرجى اختيار نوع المياه';
+    if (!hasMeter) waterMeterNumber = waterMeterNumber;
+  }
+
+  const furnishedRaw = trimStr(body?.furnished, 20);
+  const furnished = furnishedRaw ? normalizeFurnished(furnishedRaw) : '';
   if (furnished && !FURNISHED_OPTIONS.includes(furnished)) errors.furnished = 'يرجى تحديد إذا كان العقار مؤثثًا';
+  let furnitureDetails = trimStr(body?.furnitureDetails, 500);
+  if (furnished === 'مؤثث') {
+    if (!furnitureDetails) errors.furnitureDetails = 'يرجى كتابة تفاصيل الأثاث';
+  } else {
+    furnitureDetails = '';
+  }
 
   const rooms = parseIntInRange(body?.rooms, 1, 10);
   if (rooms == null) errors.rooms = 'عدد الغرف يجب أن يكون من 1 إلى 10';
 
-  const bathrooms = parseIntInRange(body?.bathrooms, 1, 5);
-  if (bathrooms == null) errors.bathrooms = 'عدد دورات المياه يجب أن يكون من 1 إلى 5';
+  let bathrooms = null;
+  if (body?.bathrooms !== '' && body?.bathrooms != null) {
+    bathrooms = parseIntInRange(body.bathrooms, 1, 5);
+    if (bathrooms == null) errors.bathrooms = 'عدد دورات المياه يجب أن يكون من 1 إلى 5';
+  }
+
+  let livingRooms = null;
+  if (body?.livingRooms !== '' && body?.livingRooms != null) {
+    livingRooms = parseIntInRange(body.livingRooms, 0, 5);
+    if (livingRooms == null) errors.livingRooms = 'عدد الصالات يجب أن يكون من 0 إلى 5';
+  }
 
   const acs = parseIntInRange(body?.acs, 0, 10);
   if (acs == null) errors.acs = 'عدد المكيفات يجب أن يكون من 0 إلى 10';
@@ -351,13 +428,16 @@ function validateAndNormalize(rawBody) {
   const kitchens = parseIntInRange(body?.kitchens, 0, 10);
   if (kitchens == null) errors.kitchens = 'عدد المطابخ يجب أن يكون من 0 إلى 10';
 
+  const builtInKitchen = trimStr(body?.builtInKitchen, 10);
+  if (builtInKitchen && !YES_NO.includes(builtInKitchen)) {
+    errors.builtInKitchen = 'يرجى تحديد وجود مطبخ راكب';
+  }
+
   const unitType = trimStr(body?.unitType, 40);
   if (!allowedUnitTypes(contractKind).includes(unitType)) errors.unitType = 'يرجى اختيار نوع العقار';
 
-  const areaRaw = body?.area;
-  const areaEmpty = areaRaw === '' || areaRaw == null;
-  const area = areaEmpty ? null : parsePositiveNumber(areaRaw);
-  if (!areaEmpty && (area == null || area > 100000)) errors.area = 'المساحة يجب أن تكون رقمًا موجبًا';
+  const area = parsePositiveNumber(body?.area);
+  if (area == null || area > 100000) errors.area = 'المساحة مطلوبة ويجب أن تكون رقمًا موجبًا';
 
   const rentAmount = parsePositiveNumber(body?.rentAmount);
   if (rentAmount == null || rentAmount > 100000000) errors.rentAmount = 'قيمة الإيجار يجب أن تكون أكبر من صفر';
@@ -433,17 +513,28 @@ function validateAndNormalize(rawBody) {
     tenantId,
     tenantDob,
     tenantPhone,
+    city,
+    district,
     propertyLocation,
     propertyMapUrl,
     streetName,
     floor,
     unitNumber,
+    electricityType,
+    electricityMeter,
+    waterUtility,
+    waterMeter,
+    waterMeterNumber,
+    waterTank,
     furnished,
+    furnitureDetails,
     rooms,
     bathrooms,
+    livingRooms,
     acs,
     majlis,
     kitchens,
+    builtInKitchen,
     unitType,
     area,
     rentAmount,
@@ -468,7 +559,8 @@ function displayUnitType(data) {
 
 function displayFloor(data) {
   if (data.floor === '' || data.floor == null) return '—';
-  return String(data.floor);
+  const key = String(data.floor);
+  return FLOOR_LABELS[key] || key;
 }
 
 function displayDuration(data) {
