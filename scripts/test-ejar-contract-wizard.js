@@ -508,6 +508,14 @@ if (!/id="hero-btn-ejar"/.test(homeHtml) || !/إنشاء عقد إيجار/.test
 } else ok('زر الصفحة الرئيسية «إنشاء عقد إيجار» مربوط بصفحة إيجار');
 if (!/ejar-wizard__close/.test(wizardJs) || !/requestClose/.test(wizardJs)) fail('زر إغلاق المعالج');
 else ok('زر × يغلق نموذج إنشاء العقد');
+if (!/data-intro-start/.test(wizardJs) || !/أهلًا بكم في خدمة إنشاء العقود الإلكترونية/.test(wizardJs) || !/فهمت، ابدأ تعبئة النموذج/.test(wizardJs)) {
+  fail('رسالة الترحيب عند فتح النموذج');
+} else ok('رسالة ترحيب تظهر مرة واحدة عند فتح نموذج العقد');
+if (!/introPending/.test(wizardJs) || !/dismissIntro/.test(wizardJs) || !/attachIntro/.test(wizardJs)) {
+  fail('الترحيب لا يُعاد مع السابق/التالي');
+} else ok('الترحيب لا يتكرر أثناء التنقل بين الخطوات');
+if (!/ejar-wizard__intro/.test(wizardCss) || !/has-intro/.test(wizardCss)) fail('تنسيق نافذة الترحيب');
+else ok('تنسيق نافذة الترحيب متناسق مع صفحة إيجار');
 if (!/عقد سكني/.test(wizardJs) || !/عقد تجاري/.test(wizardJs) || !/ejar-wizard__kind/.test(wizardJs)) fail('اختيار نوع العقد أعلى النموذج');
 else ok('أعلى النموذج يحتوي اختيار عقد سكني وعقد تجاري');
 if (!/إرسال طلب إنشاء العقد/.test(wizardJs)) fail('نص زر الإرسال');
@@ -573,7 +581,7 @@ else ok('صفحة /ejar تحتوي بطاقة عقد بالباطن مستقلة
 if (!/label: 'المدينة'/.test(wizardJs) || !/label: 'الحي'/.test(wizardJs) || !/label: 'الشارع'/.test(wizardJs) || !/رابط الموقع \(اللكيشن\)/.test(wizardJs) || !/propertyMapUrl/.test(wizardJs) || !/bathrooms/.test(wizardJs) || !/عمارة/.test(wizardJs) || !/label: 'المساحة'/.test(wizardJs) || !/electricityMeter/.test(wizardJs) || !/رقم اشتراك \/ عداد الكهرباء/.test(wizardJs) || !/waterMeterNumber/.test(wizardJs) || !/electricityType/.test(wizardJs) || !/waterUtility/.test(wizardJs) || !/livingRooms/.test(wizardJs) || !/builtInKitchen/.test(wizardJs) || !/تفاصيل الوحدة/.test(wizardJs) || !/ejar-details/.test(wizardJs) || !/FLOOR_OPTIONS/.test(wizardJs) || !/data-meter-save/.test(wizardJs) || !/ejar-meter__save/.test(wizardJs)) {
   fail('حقول بيانات العقار في المعالج');
 } else ok('شاشة العقار تعرض المدينة والحي والشارع ورابط اللكيشن اختياريًا مع حفظ رقم العداد');
-if (!/بيانات العقار/.test(dashRequests) || !/p\.electricityType/.test(dashRequests) || !/p\.waterUtility/.test(dashRequests) || !/p\.livingRooms/.test(dashRequests) || !/p\.builtInKitchen/.test(dashRequests) || !/electricityMeter/.test(dashRequests) || !/waterMeter/.test(dashRequests) || !/waterMeterNumber/.test(dashRequests) || !/waterTank/.test(dashRequests)) {
+if (!/موقع العقار/.test(dashRequests) || !/مرافق الوحدة/.test(dashRequests) || !/p\.electricityType/.test(dashRequests) || !/p\.waterUtility/.test(dashRequests) || !/p\.livingRooms/.test(dashRequests) || !/p\.builtInKitchen/.test(dashRequests) || !/electricityMeter/.test(dashRequests) || !/waterMeter/.test(dashRequests) || !/waterMeterNumber/.test(dashRequests) || !/waterTank/.test(dashRequests)) {
   fail('عرض بيانات العقار في اللوحة');
 } else ok('لوحة التحكم تعرض بيانات العقار الجديدة مع الحقول السابقة');
 if (!/checkRateLimit/.test(apiContracts)) fail('Rate limiting');

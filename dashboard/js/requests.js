@@ -294,18 +294,23 @@ function renderOtherTable(rows) {
     </tr>`).join('')}</tbody></table></div>`;
 }
 
-function rowItem(label, value, { copy = false, html = false, stack = false } = {}) {
+function rowItem(label, value, { copy = false, html = false, wide = false } = {}) {
   const inner = html
     ? value
     : (copy ? valueWithCopy(value) : `<span>${escapeCell(value || '—')}</span>`);
-  return `<div class="req-detail__row${stack ? ' req-detail__row--stack' : ''}">
+  return `<div class="req-detail__row${wide ? ' req-detail__row--wide' : ''}">
     <span class="req-detail__label">${escapeCell(label)}</span>
     <span class="req-detail__value">${inner}</span>
   </div>`;
 }
 
 function sectionBlock(title, rows) {
-  return `<section class="req-detail__section"><h4>${escapeCell(title)}</h4>${rows.join('')}</section>`;
+  const filled = (rows || []).filter(Boolean);
+  if (!filled.length) return '';
+  return `<section class="req-detail__section">
+    <h4>${escapeCell(title)}</h4>
+    <div class="req-detail__grid">${filled.join('')}</div>
+  </section>`;
 }
 
 function statusSelect(current) {
@@ -325,7 +330,7 @@ function openRequestModal(row) {
       sectionBlock('بيانات الملكية', [
         rowItem('رقم الصك', p.deedNumber, { copy: true }),
         rowItem('تاريخ الصك', dateFieldHtml(p.deedDate), { html: true }),
-        rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true, stack: true }),
+        rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true, wide: true }),
       ]),
       (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? sectionBlock('عقد بالباطن', [
         rowItem('اسم المستأجر', p.subleaseTenantName),
@@ -354,11 +359,22 @@ function openRequestModal(row) {
         rowItem('تاريخ الميلاد', dateFieldHtml(p.tenantDob), { html: true }),
         rowItem('الجوال', p.tenantPhone, { copy: true }),
       ]),
-      sectionBlock('بيانات العقار', [
+      sectionBlock('الوحدة', [
         rowItem('نوع الوحدة', displayUnit(p)),
         rowItem('الدور', displayFloor(p)),
         rowItem('رقم الوحدة', p.unitNumber, { copy: true }),
         rowItem('المساحة', p.area != null ? `${p.area} م²` : '—'),
+        rowItem('التأثيث', p.furnished || '—'),
+        p.furnished === 'مؤثث' ? rowItem('تفاصيل الأثاث', p.furnitureDetails || '—', { wide: true }) : '',
+      ]),
+      sectionBlock('موقع العقار', [
+        rowItem('المدينة', p.city || '—'),
+        rowItem('الحي', p.district || '—'),
+        rowItem('الشارع', p.streetName || '—'),
+        rowItem('الموقع', p.propertyLocation || '—', { wide: Boolean(p.propertyLocation) }),
+        rowItem('رابط الموقع (اللكيشن)', p.propertyMapUrl, { copy: true, wide: Boolean(p.propertyMapUrl) }),
+      ]),
+      sectionBlock('مرافق الوحدة', [
         rowItem('عداد الكهرباء', p.electricityType || '—'),
         rowItem('رقم عداد الكهرباء', p.electricityMeter || '—', { copy: true }),
         rowItem('المياه', p.waterUtility || p.waterMeter || p.waterTank || '—'),
@@ -371,13 +387,6 @@ function openRequestModal(row) {
         rowItem('المجالس', p.majlis != null ? String(p.majlis) : '—'),
         rowItem('المكيفات', p.acs != null ? String(p.acs) : '—'),
         rowItem('مطبخ راكب', p.builtInKitchen || '—'),
-        rowItem('المدينة', p.city || '—'),
-        rowItem('الحي', p.district || '—'),
-        rowItem('الموقع', p.propertyLocation || '—'),
-        rowItem('رابط الموقع (اللكيشن)', p.propertyMapUrl, { copy: true }),
-        rowItem('الشارع', p.streetName || '—'),
-        rowItem('التأثيث', p.furnished || '—'),
-        rowItem('تفاصيل الأثاث', p.furnished === 'مؤثث' ? (p.furnitureDetails || '—') : '—'),
         rowItem('دورات المياه', p.bathrooms != null ? String(p.bathrooms) : '—'),
       ]),
       sectionBlock('تفاصيل العقد', [

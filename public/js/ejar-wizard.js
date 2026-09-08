@@ -58,6 +58,7 @@
   var DEED_MAX_BYTES = DEED_MAX_MB * 1024 * 1024;
   var DEED_ACCEPT = 'image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif';
   var openedFromHome = false;
+  var introPending = false;
   var resumePendingKind = 'residential';
   var viewportBound = false;
   var onViewportChange = null;
@@ -875,11 +876,60 @@
     el.hidden = false;
     el.classList.add('is-open');
     bindViewport();
+    if (introPending) {
+      attachIntro();
+      return;
+    }
+    window.setTimeout(focusCurrent, 40);
+  }
+
+  function introHtml() {
+    return '<div class="ejar-wizard__intro" role="dialog" aria-modal="true" aria-labelledby="ejar-wizard-intro-title">'
+      + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
+      + '<div class="ejar-wizard__intro-scroll">'
+      + '<div class="ejar-wizard__intro-icon" aria-hidden="true">'
+      + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.15" fill="currentColor"/></svg>'
+      + '</div>'
+      + '<h2 id="ejar-wizard-intro-title">أهلًا بكم في خدمة إنشاء العقود الإلكترونية</h2>'
+      + '<p>نرجو عند تعبئة النموذج التأكد من إدخال الأرقام والتواريخ كما وردت في الوثائق الرسمية دون تغيير، مثل رقم الهوية، رقم الصك، وتواريخ الميلاد.</p>'
+      + '<p>كما نرجو إضافة موقع العقار بدقة عبر رابط الموقع من خرائط Google؛ لتسهيل مراجعة بيانات الوحدة وإتمام الطلب بشكل صحيح.</p>'
+      + '<p class="ejar-wizard__intro-note">يرجى مراجعة البيانات قبل الإرسال، لأن البيانات غير المطابقة قد تؤخر تنفيذ العقد.</p>'
+      + '</div>'
+      + '<div class="ejar-wizard__intro-actions">'
+      + '<button type="button" class="btn btn-primary" data-intro-start>فهمت، ابدأ تعبئة النموذج</button>'
+      + '</div></div>';
+  }
+
+  function attachIntro() {
+    if (!introPending || !root) return;
+    if (!root.querySelector('.ejar-wizard__intro')) {
+      root.insertAdjacentHTML('beforeend', introHtml());
+    }
+    root.classList.add('has-intro');
+    var startBtn = root.querySelector('[data-intro-start]');
+    if (startBtn && !startBtn.dataset.bound) {
+      startBtn.dataset.bound = '1';
+      startBtn.addEventListener('click', dismissIntro);
+    }
+    window.setTimeout(function () {
+      try { startBtn && startBtn.focus({ preventScroll: true }); } catch (_) {
+        if (startBtn) startBtn.focus();
+      }
+    }, 40);
+  }
+
+  function dismissIntro() {
+    introPending = false;
+    if (!root) return;
+    var intro = root.querySelector('.ejar-wizard__intro');
+    if (intro) intro.remove();
+    root.classList.remove('has-intro');
     window.setTimeout(focusCurrent, 40);
   }
 
   function open(nextKind, options) {
     resetMemory();
+    introPending = !(options && options.screen);
     openedFromHome = !!(options && options.fromHome);
     resumePendingKind = normalizeKind(nextKind);
     var previewId = options && options.screen;
@@ -956,12 +1006,14 @@
   }
 
   function close() {
+    introPending = false;
     if (hasAnswers() && !root.querySelector('.ejar-wizard__success')) saveDraft();
     resetMemory();
     unbindViewport();
     if (!root) return;
     root.hidden = true;
     root.classList.remove('is-open');
+    root.classList.remove('has-intro');
     document.body.classList.remove('ejar-wizard-open');
     if (openedFromHome) {
       openedFromHome = false;
@@ -1587,6 +1639,7 @@
   }
 
   function focusCurrent() {
+    if (introPending) return;
     if (isGroupedKind()) {
       var screen = currentScreen();
       if (screen && screen.type === 'review') return;
@@ -2101,6 +2154,7 @@
       e.preventDefault();
       close();
     });
+    if (introPending) attachIntro();
   }
 
   function detailsGroupHtml(group) {
@@ -2165,6 +2219,7 @@
 
     bindRendered();
     syncVisualViewport();
+    if (introPending) attachIntro();
   }
 
   function bindFollowSelects() {
