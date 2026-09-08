@@ -168,8 +168,16 @@ function sendPrivateOffersPage(req, res) {
 /** العروض الخاصة — قبل static لضمان عدم إعادة التوجيه للصفحة الرئيسية */
 app.get(PRIVATE_PAGE_RE, (req, res) => sendPrivateOffersPage(req, res));
 
+function sendDashboardLoginPage(req, res) {
+  const loginPath = path.join(dashboardDir, 'login.html');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  return res.sendFile(loginPath);
+}
+
 if (fs.existsSync(dashboardDir)) {
-  app.use('/dashboard', express.static(dashboardDir));
+  app.get(['/dashboard', '/dashboard/'], sendDashboardLoginPage);
+  app.use('/dashboard', express.static(dashboardDir, { index: false }));
   console.log('  static /dashboard ✓');
 }
 
@@ -196,7 +204,7 @@ app.get('/health/ready', async (_req, res) => {
     uptime: process.uptime(),
     supabase,
     site: 'https://www.alheef.website',
-    dashboard: '/dashboard/login.html',
+    dashboard: '/dashboard/',
   });
 });
 
@@ -244,6 +252,8 @@ function sendDashboardPage(res, requestPath) {
     if (safe && safe.endsWith('.html')) {
       fileName = safe;
     }
+  } else {
+    fileName = 'login.html';
   }
 
   const filePath = path.resolve(base, fileName);

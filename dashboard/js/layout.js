@@ -3,7 +3,7 @@
  */
 const NAV_ITEMS = [
   { section: 'الرئيسية', items: [
-    { href: '/dashboard/', icon: '◈', label: 'لوحة التحكم', page: 'index' },
+    { href: '/dashboard/index.html', icon: '◈', label: 'لوحة التحكم', page: 'index' },
   ]},
   { section: 'الإدارة', items: [
     { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة عقار', page: 'add-property' },
@@ -64,7 +64,7 @@ async function initLayout(activePage, pageTitle) {
   app.innerHTML = [
     '<aside class="sidebar" id="sidebar">',
     '  <div class="sidebar__brand">',
-    '    <a href="/dashboard/" class="sidebar__logo">',
+    '    <a href="/dashboard/index.html" class="sidebar__logo">',
     '      <img src="/assets/app-icon.png?v=6" alt="الهيف العقارية" class="sidebar__logo-icon" width="44" height="44">',
     '      <div class="sidebar__logo-text"><strong>الهيف العقارية</strong><span>لوحة التحكم</span></div>',
     '    </a>',

@@ -1,14 +1,16 @@
 function loginRedirect() {
   const params = new URLSearchParams(location.search);
   const ret = params.get('return');
-  if (ret && ret.startsWith('/') && !ret.startsWith('//')) return ret;
-  return '/dashboard/';
+  if (ret && ret.startsWith('/') && !ret.startsWith('//') && ret !== '/dashboard' && ret !== '/dashboard/') {
+    return ret;
+  }
+  return Auth.HOME_PATH || '/dashboard/index.html';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const ok = await Auth.verify();
   if (ok) {
-    window.location.href = loginRedirect();
+      window.location.replace(loginRedirect());
     return;
   }
 
@@ -38,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       Auth.setSession(data.token, data.phone);
-      window.location.href = loginRedirect();
+      window.location.replace(loginRedirect());
     } catch (err) {
       errorEl.textContent = err.message || 'كلمة المرور غير صحيحة';
       errorEl.hidden = false;

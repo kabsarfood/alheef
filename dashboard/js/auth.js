@@ -4,7 +4,8 @@
 const Auth = {
   TOKEN_KEY: 'alheef_admin_token',
   PHONE_KEY: 'alheef_admin_phone',
-  LOGIN_PATH: '/dashboard/login.html',
+  LOGIN_PATH: '/dashboard/',
+  HOME_PATH: '/dashboard/index.html',
 
   getToken() {
     return localStorage.getItem(this.TOKEN_KEY);
@@ -31,7 +32,8 @@ const Auth = {
   },
 
   isLoginPage() {
-    return window.location.pathname.includes('login.html');
+    const path = String(window.location.pathname || '').replace(/\/+$/, '') || '/';
+    return path === '/dashboard' || path.endsWith('/login.html');
   },
 
   authHeaders(extra = {}) {
@@ -64,8 +66,14 @@ const Auth = {
     if (this.isLoginPage()) {
       const ok = await this.verify();
       if (ok) {
-        window.location.href = '/dashboard/';
+        window.location.replace(this.HOME_PATH);
       }
+      return false;
+    }
+
+    if (!this.getToken()) {
+      this.clearToken();
+      window.location.replace(this.LOGIN_PATH);
       return false;
     }
 
@@ -81,6 +89,10 @@ const Auth = {
 
   logout() {
     this.clearToken();
-    window.location.href = this.LOGIN_PATH;
+    window.location.replace(this.LOGIN_PATH);
   },
 };
+
+if (!Auth.isLoginPage() && String(window.location.pathname || '').startsWith('/dashboard') && !Auth.getToken()) {
+  window.location.replace(Auth.LOGIN_PATH);
+}
