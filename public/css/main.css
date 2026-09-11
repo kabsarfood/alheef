@@ -25,7 +25,9 @@
   --radius: 10px;
   --radius-lg: 14px;
   --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  --header-h: 88px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --header-bar-h: 88px;
+  --header-h: calc(var(--header-bar-h) + var(--safe-top));
   --ejar-ticker-h: 2.45rem;
   --logo-header-scale: 1.25;
   --font: 'Cairo', sans-serif;
@@ -51,6 +53,15 @@
   --fs-caption: 0.75rem;
   --max-w: 1280px;
   --section-pad: clamp(4rem, 8vw, 7rem);
+}
+
+/* تطبيق الآيفون: أنزل الهيدر تحت الشريط العلوي وأيقونة الخيارات */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    :root {
+      --safe-top: max(env(safe-area-inset-top, 0px), 48px);
+    }
+  }
 }
 
 *, *::before, *::after {
@@ -228,6 +239,7 @@ ul { list-style: none; }
   right: 0;
   z-index: 1000;
   height: var(--header-h);
+  padding-top: var(--safe-top);
   background: rgba(250, 249, 247, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -244,7 +256,8 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100%;
+  height: var(--header-bar-h);
+  min-height: var(--header-bar-h);
 }
 
 .logo {

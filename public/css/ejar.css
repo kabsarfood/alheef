@@ -3293,26 +3293,38 @@ select.ejar-wizard__control {
   }
 }
 
-.ejar-wizard__grid--compact[data-screen="ownership"] {
+.ejar-wizard__grid--compact[data-screen="ownership"]:not([data-layout="property"]) {
   grid-template-columns: minmax(0, 28.5rem);
   justify-content: center;
   justify-items: stretch;
   gap: 0.85rem;
 }
 
-.ejar-wizard__grid--compact[data-screen="ownership"] > .ejar-field {
+.ejar-wizard__grid--compact[data-screen="ownership"]:not([data-layout="property"]) > .ejar-field {
   width: 100%;
   max-width: 28.5rem;
 }
 
-.ejar-wizard__grid--compact[data-screen="ownership"] > .ejar-field label {
+.ejar-wizard__grid--compact[data-screen="ownership"]:not([data-layout="property"]) > .ejar-field label {
   min-height: 0;
   justify-content: center;
   text-align: center;
 }
 
-.ejar-wizard__grid--compact[data-screen="ownership"] .ejar-date-radios {
+.ejar-wizard__grid--compact[data-screen="ownership"]:not([data-layout="property"]) .ejar-date-radios {
   max-width: none;
+}
+
+.ejar-wizard__grid--compact[data-screen="tenant"] > .ejar-field[data-field="tenantKind"] label,
+.ejar-wizard__grid--compact[data-screen="sublease"] > .ejar-field[data-field="subleaseKind"] label,
+.ejar-wizard__grid--compact[data-screen="subtenant"] > .ejar-field[data-field="subtenantKind"] label {
+  min-height: 0;
+}
+
+.ejar-wizard__grid--compact[data-screen="tenant"] > .ejar-field[data-field="tenantKind"] .ejar-choice__card,
+.ejar-wizard__grid--compact[data-screen="sublease"] > .ejar-field[data-field="subleaseKind"] .ejar-choice__card,
+.ejar-wizard__grid--compact[data-screen="subtenant"] > .ejar-field[data-field="subtenantKind"] .ejar-choice__card {
+  min-height: 46px;
 }
 
 .ejar-field label {
@@ -3341,9 +3353,7 @@ select.ejar-wizard__control {
 }
 
 .ejar-field__error {
-  margin: 0.35rem 0 0;
-  color: #9b1c1c;
-  font-size: 0.8rem;
+  display: none;
 }
 
 .ejar-field.is-invalid .ejar-wizard__control,

@@ -16,6 +16,32 @@ const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestN
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
+const JOIN_RATE_MAX = 5;
+const JOIN_RATE_WINDOW_MS = 15 * 60 * 1000;
+const JOIN_BODY_MAX_CHARS = 8000;
+const joinRateMap = new Map();
+
+function joinClientKey(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+function checkJoinRateLimit(key) {
+  const now = Date.now();
+  let entry = joinRateMap.get(key);
+  if (!entry || now > entry.reset) {
+    entry = { count: 0, reset: now + JOIN_RATE_WINDOW_MS };
+  }
+  entry.count += 1;
+  joinRateMap.set(key, entry);
+  if (joinRateMap.size > 5000) {
+    for (const [k, v] of joinRateMap) {
+      if (now > v.reset) joinRateMap.delete(k);
+    }
+  }
+  return entry.count <= JOIN_RATE_MAX;
+}
+
 function mapJoinRequest(r) {
   return {
     id: r.id,
@@ -37,7 +63,22 @@ function mapJoinRequest(r) {
 /** عام — طلب الانضمام */
 router.post('/join', requireDb, async (req, res) => {
   try {
-    const row = await marketerJoinRepo.createRequest(req.body);
+    if (!checkJoinRateLimit(`join:${joinClientKey(req)}`)) {
+      return res.status(429).json({
+        success: false,
+        message: 'محاولات كثيرة — حاول لاحقاً',
+      });
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (JSON.stringify(body).length > JOIN_BODY_MAX_CHARS) {
+      return res.status(400).json({ success: false, message: 'تعذر إرسال الطلب' });
+    }
+    if (body.website || body.honeypot || body.companyUrl) {
+      return res.status(400).json({ success: false, message: 'تعذر إرسال الطلب' });
+    }
+
+    const row = await marketerJoinRepo.createRequest(body);
     const request = mapJoinRequest(row);
     notifyAdminsNewCustomerRequest({
       id: request.id,

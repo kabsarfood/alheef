@@ -20,6 +20,21 @@ function optionalAuth(req, _res, next) {
   next();
 }
 
+/** الدور يُشتق من التوكن فقط — قيمة body.role تُتجاهل دائماً */
+function roleFromAuth(auth) {
+  if (auth?.role === 'admin') return 'admin';
+  if (auth?.role === 'marketer') return 'marketer';
+  return 'client';
+}
+
+function toPublicSubscribeResult(row, role) {
+  return {
+    success: true,
+    role,
+    id: row?.id || null,
+  };
+}
+
 router.get('/vapid-public-key', (_req, res) => {
   const publicKey = pushNotifications.getPublicKey();
   if (!publicKey) {
@@ -30,26 +45,14 @@ router.get('/vapid-public-key', (_req, res) => {
 
 router.post('/subscribe', requireDb, optionalAuth, async (req, res) => {
   try {
-    const { subscription, role, clientKey, email, preferences, offersEnabled, privateOffersEnabled, privateSlug } = req.body || {};
+    const { subscription, clientKey, email, preferences, offersEnabled, privateOffersEnabled, privateSlug } = req.body || {};
     if (!subscription || !subscription.endpoint) {
       return res.status(400).json({ success: false, message: 'اشتراك غير صالح' });
     }
 
-    let resolvedRole = role || 'client';
-    let userId = null;
-    let marketerId = null;
-
-    if (req.auth) {
-      resolvedRole = req.auth.role;
-      userId = req.auth.userId || req.auth.role;
-      marketerId = req.auth.marketerId || null;
-    } else if (!['admin', 'marketer', 'client'].includes(resolvedRole)) {
-      resolvedRole = 'client';
-    }
-
-    if (resolvedRole === 'client' && !offersEnabled) {
-      /* اشتراك عميل بدون موافقة إشعارات العروض */
-    }
+    const resolvedRole = roleFromAuth(req.auth);
+    const userId = req.auth?.userId || null;
+    const marketerId = resolvedRole === 'marketer' ? (req.auth?.marketerId || null) : null;
 
     const mergedPreferences = {
       ...(preferences && typeof preferences === 'object' ? preferences : {}),
@@ -68,7 +71,7 @@ router.post('/subscribe', requireDb, optionalAuth, async (req, res) => {
       privateOffersEnabled: !!privateOffersEnabled,
     });
 
-    res.json({ success: true, subscription: row });
+    res.json(toPublicSubscribeResult(row, resolvedRole));
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

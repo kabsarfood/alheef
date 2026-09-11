@@ -92,6 +92,12 @@ function isValidUnifiedNumber(input) {
   return /^\d{7,15}$/.test(s);
 }
 
+function resolvePartyKind(value) {
+  const s = String(value || '').trim();
+  if (s === 'شركة' || s === 'مستأجر شركة') return 'شركة';
+  return 'فرد';
+}
+
 function normalizeMapUrl(input) {
   let s = String(input || '').trim();
   if (!s) return '';
@@ -272,62 +278,75 @@ function validateAndNormalize(rawBody) {
   const isSublease = contractKind === 'sublease';
   const contractingStatus = isSublease ? 'عقد بالباطن' : '';
 
+  let subleaseKind = '';
   let subleaseTenantName = '';
   let subleaseIdOrCr = '';
   let subleaseIdOrCrDate = '';
+  let subleasePhone = '';
   let subleaseUnifiedNumber = '';
   let subleaseRepName = '';
   let subleaseRepId = '';
   let subleaseRepDob = '';
   let subleaseRepPhone = '';
   let subleasePoaNumber = '';
+  let subtenantKind = '';
   let subtenantName = '';
   let subtenantId = '';
   let subtenantDob = '';
   let subtenantPhone = '';
+  let subtenantUnifiedNumber = '';
+  let subtenantRepId = '';
+  let subtenantRepPhone = '';
+  let subtenantRepDob = '';
   if (isSublease) {
-    subleaseTenantName = trimStr(body?.subleaseTenantName, 80);
-    if (subleaseTenantName.length < 2) errors.subleaseTenantName = 'يرجى إدخال اسم المستأجر';
-
-    subleaseIdOrCr = String(body?.subleaseIdOrCr || '').replace(/\D/g, '');
-    if (!isValidIdOrEstablishment(subleaseIdOrCr)) {
-      errors.subleaseIdOrCr = 'رقم البطاقة أو المنشأة غير صحيح';
+    subleaseKind = resolvePartyKind(body?.subleaseKind);
+    subleasePhone = normalizeSaudiMobile(body?.subleasePhone);
+    if (subleaseKind === 'شركة') {
+      subleaseUnifiedNumber = String(body?.subleaseUnifiedNumber || '').replace(/\D/g, '');
+      if (!isValidUnifiedNumber(subleaseUnifiedNumber)) {
+        errors.subleaseUnifiedNumber = 'الرقم الموحد غير صحيح';
+      }
+      if (!isValidSaudiMobile(subleasePhone)) errors.subleasePhone = 'رقم جوال المستأجر غير صحيح';
+      subleaseRepId = String(body?.subleaseRepId || '').replace(/\D/g, '');
+      if (!isValidSaudiId(subleaseRepId)) errors.subleaseRepId = 'رقم بطاقة الممثل غير صحيح';
+      subleaseRepPhone = normalizeSaudiMobile(body?.subleaseRepPhone);
+      if (!isValidSaudiMobile(subleaseRepPhone)) errors.subleaseRepPhone = 'رقم جوال الممثل غير صحيح';
+      subleaseRepDob = trimStr(body?.subleaseRepDob, 10);
+      if (!isPastDate(subleaseRepDob)) errors.subleaseRepDob = 'يرجى إدخال تاريخ ميلاد الممثل';
+    } else {
+      subleaseIdOrCr = String(body?.subleaseIdOrCr || '').replace(/\D/g, '');
+      if (!isValidSaudiId(subleaseIdOrCr)) errors.subleaseIdOrCr = 'رقم هوية المستأجر غير صحيح';
+      subleaseIdOrCrDate = trimStr(body?.subleaseIdOrCrDate, 10);
+      if (!isPastDate(subleaseIdOrCrDate)) errors.subleaseIdOrCrDate = 'يرجى إدخال تاريخ ميلاد المستأجر';
+      if (!isValidSaudiMobile(subleasePhone)) errors.subleasePhone = 'رقم جوال المستأجر غير صحيح';
     }
 
-    subleaseIdOrCrDate = trimStr(body?.subleaseIdOrCrDate, 10);
-    if (!isPastDate(subleaseIdOrCrDate)) errors.subleaseIdOrCrDate = 'يرجى إدخال تاريخ السجل أو البطاقة';
-
-    subleaseUnifiedNumber = String(body?.subleaseUnifiedNumber || '').replace(/\D/g, '');
-    if (!isValidUnifiedNumber(subleaseUnifiedNumber)) {
-      errors.subleaseUnifiedNumber = 'الرقم الموحد غير صحيح';
-    }
-
-    subleaseRepName = trimStr(body?.subleaseRepName, 80);
-    if (subleaseRepName.length < 2) errors.subleaseRepName = 'يرجى إدخال اسم الممثل';
-
-    subleaseRepId = String(body?.subleaseRepId || '').replace(/\D/g, '');
-    if (!isValidSaudiId(subleaseRepId)) errors.subleaseRepId = 'رقم بطاقة الممثل غير صحيح';
-
-    subleaseRepDob = trimStr(body?.subleaseRepDob, 10);
-    if (!isPastDate(subleaseRepDob)) errors.subleaseRepDob = 'يرجى إدخال تاريخ ميلاد الممثل';
-
-    subleaseRepPhone = normalizeSaudiMobile(body?.subleaseRepPhone);
-    if (!isValidSaudiMobile(subleaseRepPhone)) errors.subleaseRepPhone = 'رقم جوال الممثل غير صحيح';
-
-    subleasePoaNumber = trimStr(body?.subleasePoaNumber, 40);
-    if (subleasePoaNumber.length < 2) errors.subleasePoaNumber = 'يرجى إدخال رقم الوكالة';
-
-    subtenantName = trimStr(body?.subtenantName, 80);
-    if (subtenantName.length < 2) errors.subtenantName = 'يرجى إدخال اسم المستأجر من الباطن';
-
-    subtenantId = String(body?.subtenantId || '').replace(/\D/g, '');
-    if (!isValidSaudiId(subtenantId)) errors.subtenantId = 'رقم بطاقة المستأجر من الباطن غير صحيح';
-
-    subtenantDob = trimStr(body?.subtenantDob, 10);
-    if (!isPastDate(subtenantDob)) errors.subtenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر من الباطن';
-
+    subtenantKind = resolvePartyKind(body?.subtenantKind);
     subtenantPhone = normalizeSaudiMobile(body?.subtenantPhone);
-    if (!isValidSaudiMobile(subtenantPhone)) errors.subtenantPhone = 'رقم جوال المستأجر من الباطن غير صحيح';
+    if (subtenantKind === 'شركة') {
+      subtenantUnifiedNumber = String(body?.subtenantUnifiedNumber || '').replace(/\D/g, '');
+      if (!isValidUnifiedNumber(subtenantUnifiedNumber)) {
+        errors.subtenantUnifiedNumber = 'الرقم الموحد للمستأجر من الباطن غير صحيح';
+      }
+      if (!isValidSaudiMobile(subtenantPhone)) errors.subtenantPhone = 'رقم جوال المستأجر من الباطن غير صحيح';
+      subtenantRepId = String(body?.subtenantRepId || '').replace(/\D/g, '');
+      if (!isValidSaudiId(subtenantRepId)) errors.subtenantRepId = 'رقم بطاقة ممثل المستأجر من الباطن غير صحيح';
+      subtenantRepPhone = normalizeSaudiMobile(body?.subtenantRepPhone);
+      if (!isValidSaudiMobile(subtenantRepPhone)) errors.subtenantRepPhone = 'رقم جوال ممثل المستأجر من الباطن غير صحيح';
+      subtenantRepDob = trimStr(body?.subtenantRepDob, 10);
+      if (!isPastDate(subtenantRepDob)) errors.subtenantRepDob = 'يرجى إدخال تاريخ ميلاد ممثل المستأجر من الباطن';
+    } else {
+      subtenantName = trimStr(body?.subtenantName, 80);
+      if (subtenantName.length < 2) errors.subtenantName = 'يرجى إدخال اسم المستأجر من الباطن';
+
+      subtenantId = String(body?.subtenantId || '').replace(/\D/g, '');
+      if (!isValidSaudiId(subtenantId)) errors.subtenantId = 'رقم بطاقة المستأجر من الباطن غير صحيح';
+
+      subtenantDob = trimStr(body?.subtenantDob, 10);
+      if (!isPastDate(subtenantDob)) errors.subtenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر من الباطن';
+
+      if (!isValidSaudiMobile(subtenantPhone)) errors.subtenantPhone = 'رقم جوال المستأجر من الباطن غير صحيح';
+    }
   }
 
   const ownerId = String(body?.ownerId || '').replace(/\D/g, '');
@@ -339,17 +358,52 @@ function validateAndNormalize(rawBody) {
   const ownerPhone = normalizeSaudiMobile(body?.ownerPhone);
   if (!isValidSaudiMobile(ownerPhone)) errors.ownerPhone = 'رقم جوال المالك غير صحيح';
 
+  let tenantKind = isSublease ? subtenantKind : resolvePartyKind(body?.tenantKind);
   let tenantId = String(body?.tenantId || '').replace(/\D/g, '');
   let tenantDob = trimStr(body?.tenantDob, 10);
   let tenantPhone = normalizeSaudiMobile(body?.tenantPhone);
+  let tenantUnifiedNumber = String(body?.tenantUnifiedNumber || '').replace(/\D/g, '');
+  let tenantRepId = String(body?.tenantRepId || '').replace(/\D/g, '');
+  let tenantRepPhone = normalizeSaudiMobile(body?.tenantRepPhone);
+  let tenantRepDob = trimStr(body?.tenantRepDob, 10);
   if (isSublease) {
-    if (!isValidSaudiId(tenantId)) tenantId = subtenantId;
-    if (!isPastDate(tenantDob)) tenantDob = subtenantDob;
-    if (!isValidSaudiMobile(tenantPhone)) tenantPhone = subtenantPhone;
+    tenantKind = subtenantKind;
+    tenantPhone = subtenantPhone;
+    if (tenantKind === 'شركة') {
+      tenantUnifiedNumber = subtenantUnifiedNumber;
+      tenantRepId = subtenantRepId;
+      tenantRepPhone = subtenantRepPhone;
+      tenantRepDob = subtenantRepDob;
+      tenantId = '';
+      tenantDob = '';
+    } else {
+      tenantUnifiedNumber = '';
+      tenantRepId = '';
+      tenantRepPhone = '';
+      tenantRepDob = '';
+      if (!isValidSaudiId(tenantId)) tenantId = subtenantId;
+      if (!isPastDate(tenantDob)) tenantDob = subtenantDob;
+    }
   }
-  if (!isValidSaudiId(tenantId)) errors.tenantId = 'رقم هوية المستأجر غير صحيح';
-  if (!isPastDate(tenantDob)) errors.tenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر';
-  if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
+  if (tenantKind === 'شركة') {
+    if (!isSublease) {
+      if (!isValidUnifiedNumber(tenantUnifiedNumber)) errors.tenantUnifiedNumber = 'الرقم الموحد للمستأجر غير صحيح';
+      if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
+      if (!isValidSaudiId(tenantRepId)) errors.tenantRepId = 'رقم بطاقة ممثل المستأجر غير صحيح';
+      if (!isValidSaudiMobile(tenantRepPhone)) errors.tenantRepPhone = 'رقم جوال ممثل المستأجر غير صحيح';
+      if (!isPastDate(tenantRepDob)) errors.tenantRepDob = 'يرجى إدخال تاريخ ميلاد ممثل المستأجر';
+    }
+    tenantId = '';
+    tenantDob = '';
+  } else {
+    tenantUnifiedNumber = '';
+    tenantRepId = '';
+    tenantRepPhone = '';
+    tenantRepDob = '';
+    if (!isValidSaudiId(tenantId)) errors.tenantId = 'رقم هوية المستأجر غير صحيح';
+    if (!isPastDate(tenantDob)) errors.tenantDob = 'يرجى إدخال تاريخ ميلاد المستأجر';
+    if (!isValidSaudiMobile(tenantPhone)) errors.tenantPhone = 'رقم جوال المستأجر غير صحيح';
+  }
 
   const city = trimStr(body?.city, 80);
   const district = trimStr(body?.district, 80);
@@ -494,25 +548,37 @@ function validateAndNormalize(rawBody) {
     deedNumber,
     deedDate,
     contractingStatus,
+    subleaseKind,
     subleaseTenantName,
     subleaseIdOrCr,
     subleaseIdOrCrDate,
+    subleasePhone,
     subleaseUnifiedNumber,
     subleaseRepName,
     subleaseRepId,
     subleaseRepDob,
     subleaseRepPhone,
     subleasePoaNumber,
+    subtenantKind,
     subtenantName,
     subtenantId,
     subtenantDob,
     subtenantPhone,
+    subtenantUnifiedNumber,
+    subtenantRepId,
+    subtenantRepPhone,
+    subtenantRepDob,
     ownerId,
     ownerDob,
     ownerPhone,
+    tenantKind,
     tenantId,
     tenantDob,
     tenantPhone,
+    tenantUnifiedNumber,
+    tenantRepId,
+    tenantRepPhone,
+    tenantRepDob,
     city,
     district,
     propertyLocation,

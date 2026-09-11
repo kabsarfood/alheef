@@ -35,13 +35,16 @@ async function createRequest(body) {
   const email = normalizeEmail(body.email);
   const password = String(body.password || '');
   const confirmPassword = String(body.confirmPassword || body.confirm_password || '');
+  const fullName = String(body.fullName || body.full_name || '').trim();
+  const nationalId = String(body.nationalId || body.national_id || '').trim();
+  const falLicense = String(body.falLicense || body.fal_license || '').trim();
 
   const row = {
-    full_name: String(body.fullName || body.full_name || '').trim(),
+    full_name: fullName,
     phone,
     email,
-    national_id: String(body.nationalId || body.national_id || '').trim(),
-    fal_license: String(body.falLicense || body.fal_license || '').trim(),
+    national_id: nationalId,
+    fal_license: falLicense,
     marketing_zone: body.marketingZone || body.marketing_zone,
     status: 'pending',
     updated_at: new Date().toISOString(),
@@ -50,9 +53,13 @@ async function createRequest(body) {
   if (!row.full_name || !phone || !email || !row.national_id || !row.fal_license) {
     throw new Error('أكمل جميع الحقول المطلوبة');
   }
+  if (fullName.length > 120 || nationalId.length > 20 || falLicense.length > 40 || String(email).length > 120) {
+    throw new Error('أكمل جميع الحقول المطلوبة');
+  }
   if (!isValidEmail(email)) throw new Error('أدخل بريداً إلكترونياً صالحاً');
   if (!validateZone(row.marketing_zone)) throw new Error('اختر نطاق التسويق');
   if (!password || password.length < 6) throw new Error('كلمة المرور 6 أحرف على الأقل');
+  if (password.length > 200) throw new Error('كلمة المرور 6 أحرف على الأقل');
   if (password !== confirmPassword) throw new Error('كلمتا المرور غير متطابقتين');
 
   await assertUniqueContact({ phone, email });

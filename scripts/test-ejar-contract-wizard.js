@@ -328,38 +328,32 @@ const incompleteSublease = validateAndNormalize({
 });
 if (
   incompleteSublease.ok
-  || !incompleteSublease.errors.subleaseTenantName
   || !incompleteSublease.errors.subleaseIdOrCr
   || !incompleteSublease.errors.subleaseIdOrCrDate
-  || !incompleteSublease.errors.subleaseUnifiedNumber
-  || !incompleteSublease.errors.subleaseRepName
-  || !incompleteSublease.errors.subleaseRepId
-  || !incompleteSublease.errors.subleaseRepDob
-  || !incompleteSublease.errors.subleaseRepPhone
-  || !incompleteSublease.errors.subleasePoaNumber
+  || !incompleteSublease.errors.subleasePhone
   || !incompleteSublease.errors.subtenantName
   || !incompleteSublease.errors.subtenantId
   || !incompleteSublease.errors.subtenantDob
   || !incompleteSublease.errors.subtenantPhone
 ) {
   fail('حقول عقد بالباطن إلزامية');
-} else ok('يرفض عقد بالباطن بدون بيانات المستأجر والممثل والمستأجر من الباطن');
+} else ok('يرفض عقد بالباطن بدون بيانات المستأجر والمستأجر من الباطن');
 
 const subleaseRepId = makeSaudiId('1');
 const subtenantId = makeSaudiId('2');
+const originalTenantCompany = {
+  subleaseKind: 'شركة',
+  subleasePhone: '0559876543',
+  subleaseUnifiedNumber: '7009876543',
+  subleaseRepId,
+  subleaseRepDob: '1985-04-15',
+  subleaseRepPhone: '0554445566',
+};
 const completeSublease = validateAndNormalize({
   ...base,
   contractKind: 'sublease',
   unitType: 'شقة',
-  subleaseTenantName: 'شركة النور للتجارة',
-  subleaseIdOrCr: '7001234567',
-  subleaseIdOrCrDate: '2018-06-01',
-  subleaseUnifiedNumber: '7009876543',
-  subleaseRepName: 'أحمد النور',
-  subleaseRepId,
-  subleaseRepDob: '1985-04-15',
-  subleaseRepPhone: '0559876543',
-  subleasePoaNumber: '4412345678',
+  ...originalTenantCompany,
   subtenantName: 'سامي الدوسري',
   subtenantId,
   subtenantDob: '1994-02-10',
@@ -367,15 +361,15 @@ const completeSublease = validateAndNormalize({
 });
 if (!completeSublease.ok) fail('Validation عقد بالباطن: ' + JSON.stringify(completeSublease.errors));
 else if (
-  completeSublease.data.subleaseTenantName !== 'شركة النور للتجارة'
-  || completeSublease.data.subleaseIdOrCr !== '7001234567'
-  || completeSublease.data.subleaseIdOrCrDate !== '2018-06-01'
+  completeSublease.data.subleaseKind !== 'شركة'
+  || completeSublease.data.subleasePhone !== '0559876543'
   || completeSublease.data.subleaseUnifiedNumber !== '7009876543'
-  || completeSublease.data.subleaseRepName !== 'أحمد النور'
   || completeSublease.data.subleaseRepId !== subleaseRepId
   || completeSublease.data.subleaseRepDob !== '1985-04-15'
-  || completeSublease.data.subleaseRepPhone !== '0559876543'
-  || completeSublease.data.subleasePoaNumber !== '4412345678'
+  || completeSublease.data.subleaseRepPhone !== '0554445566'
+  || completeSublease.data.subleaseTenantName
+  || completeSublease.data.subleaseIdOrCr
+  || completeSublease.data.subleasePoaNumber
   || completeSublease.data.subtenantName !== 'سامي الدوسري'
   || completeSublease.data.subtenantId !== subtenantId
   || completeSublease.data.subtenantDob !== '1994-02-10'
@@ -385,6 +379,111 @@ else if (
 } else if (completeSublease.data.contractKind !== 'sublease' || completeSublease.data.contractType !== 'عقد بالباطن') {
   fail('نوع عقد بالباطن');
 } else ok('يُحفظ عقد بالباطن وبيانات المستأجر من الباطن كنموذج مستقل');
+
+const originalTenantIndividual = validateAndNormalize({
+  ...base,
+  contractKind: 'sublease',
+  unitType: 'شقة',
+  subleaseKind: 'فرد',
+  subleaseIdOrCr: tenantId,
+  subleaseIdOrCrDate: '1990-05-05',
+  subleasePhone: '0553332211',
+  subleaseUnifiedNumber: '7009876543',
+  subleaseRepId,
+  subtenantName: 'سامي الدوسري',
+  subtenantId,
+  subtenantDob: '1994-02-10',
+  subtenantPhone: '0551112233',
+});
+if (!originalTenantIndividual.ok) fail('Validation مستأجر أصلي فرد: ' + JSON.stringify(originalTenantIndividual.errors));
+else if (
+  originalTenantIndividual.data.subleaseKind !== 'فرد'
+  || originalTenantIndividual.data.subleaseIdOrCr !== tenantId
+  || originalTenantIndividual.data.subleasePhone !== '0553332211'
+  || originalTenantIndividual.data.subleaseUnifiedNumber
+  || originalTenantIndividual.data.subleaseRepId
+) {
+  fail('حفظ مستأجر أصلي كفرد');
+} else ok('عقد بالباطن يقبل مستأجرًا أصليًا كفرد أو شركة');
+
+if (residential.data.tenantKind !== 'فرد') fail('المستأجر الافتراضي يجب أن يكون فردًا');
+else ok('المستأجر الفرد هو الافتراضي في العقود السكنية');
+
+const incompleteCompanyTenant = validateAndNormalize({
+  ...base,
+  contractKind: 'residential',
+  unitType: 'شقة',
+  tenantKind: 'شركة',
+  tenantId: '',
+  tenantDob: '',
+});
+if (
+  incompleteCompanyTenant.ok
+  || !incompleteCompanyTenant.errors.tenantUnifiedNumber
+  || !incompleteCompanyTenant.errors.tenantRepId
+  || !incompleteCompanyTenant.errors.tenantRepPhone
+  || !incompleteCompanyTenant.errors.tenantRepDob
+  || incompleteCompanyTenant.errors.tenantId
+) {
+  fail('مستأجر الشركة بدون بيانات الممثل: ' + JSON.stringify(incompleteCompanyTenant.errors));
+} else ok('مستأجر الشركة يتطلب الرقم الموحد والجوال وبيانات الممثل');
+
+const companyTenant = validateAndNormalize({
+  ...base,
+  contractKind: 'commercial',
+  unitType: 'محل',
+  tenantKind: 'شركة',
+  tenantId: 'should-clear',
+  tenantDob: '1992-08-20',
+  tenantPhone: '0500001111',
+  tenantUnifiedNumber: '7001234567',
+  tenantRepId: tenantId,
+  tenantRepPhone: '0550003333',
+  tenantRepDob: '1990-01-01',
+});
+if (!companyTenant.ok) fail('Validation مستأجر شركة: ' + JSON.stringify(companyTenant.errors));
+else if (
+  companyTenant.data.tenantKind !== 'شركة'
+  || companyTenant.data.tenantUnifiedNumber !== '7001234567'
+  || companyTenant.data.tenantPhone !== '0500001111'
+  || companyTenant.data.tenantRepId !== tenantId
+  || companyTenant.data.tenantRepPhone !== '0550003333'
+  || companyTenant.data.tenantRepDob !== '1990-01-01'
+  || companyTenant.data.tenantId
+  || companyTenant.data.tenantDob
+) {
+  fail('حفظ بيانات مستأجر الشركة');
+} else ok('يُحفظ مستأجر الشركة بالرقم الموحد وبيانات الممثل دون هوية فرد');
+
+const companySubtenant = validateAndNormalize({
+  ...base,
+  contractKind: 'sublease',
+  unitType: 'شقة',
+  ...originalTenantCompany,
+  subtenantKind: 'شركة',
+  subtenantName: 'يجب ألا يُحفظ',
+  subtenantId: '',
+  subtenantDob: '',
+  subtenantPhone: '0551112233',
+  subtenantUnifiedNumber: '7005551234',
+  subtenantRepId: tenantId,
+  subtenantRepPhone: '0552223344',
+  subtenantRepDob: '1991-07-07',
+});
+if (!companySubtenant.ok) fail('Validation مستأجر من الباطن شركة: ' + JSON.stringify(companySubtenant.errors));
+else if (
+  companySubtenant.data.subtenantKind !== 'شركة'
+  || companySubtenant.data.tenantKind !== 'شركة'
+  || companySubtenant.data.subtenantUnifiedNumber !== '7005551234'
+  || companySubtenant.data.tenantUnifiedNumber !== '7005551234'
+  || companySubtenant.data.subtenantRepId !== tenantId
+  || companySubtenant.data.tenantRepId !== tenantId
+  || companySubtenant.data.subtenantName
+  || companySubtenant.data.subtenantId
+  || companySubtenant.data.tenantId
+) {
+  fail('حفظ مستأجر من الباطن كشركة');
+} else ok('عقد بالباطن يقبل مستأجرًا من الباطن كشركة مع ممثل');
 
 const noDecl = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', declarationAccepted: false });
 if (noDecl.ok) fail('الإقرار إلزامي');
@@ -516,6 +615,8 @@ if (!/introPending/.test(wizardJs) || !/dismissIntro/.test(wizardJs) || !/attach
 } else ok('الترحيب لا يتكرر أثناء التنقل بين الخطوات');
 if (!/ejar-wizard__intro/.test(wizardCss) || !/has-intro/.test(wizardCss)) fail('تنسيق نافذة الترحيب');
 else ok('تنسيق نافذة الترحيب متناسق مع صفحة إيجار');
+if (/msg\.textContent = item\.message/.test(wizardJs)) fail('رسالة الخطأ ما زالت داخل حقل الرقم');
+else ok('خطأ رقم الهوية يظهر أعلى البطاقة فقط وليس داخل الحقل');
 if (!/عقد سكني/.test(wizardJs) || !/عقد تجاري/.test(wizardJs) || !/ejar-wizard__kind/.test(wizardJs)) fail('اختيار نوع العقد أعلى النموذج');
 else ok('أعلى النموذج يحتوي اختيار عقد سكني وعقد تجاري');
 if (!/إرسال طلب إنشاء العقد/.test(wizardJs)) fail('نص زر الإرسال');
@@ -564,14 +665,20 @@ if (!/لديك استفسار قبل إنشاء العقد/.test(html) || !/اس
 else ok('النموذج السفلي للاستفسار عبر واتساب');
 ['ownership', 'owner', 'tenant', 'unit', 'finance', 'submitter'].forEach((id) => {
   const n = (wizardJs.match(new RegExp("section: '" + id + "'", 'g')) || []).length;
-  const expected = { ownership: 2, owner: 3, tenant: 3, unit: 18, finance: 5, submitter: 3 }[id];
+  const expected = { ownership: 2, owner: 3, tenant: 8, unit: 18, finance: 5, submitter: 3 }[id];
   if (n !== expected) fail('عدد أسئلة ' + id + ': ' + n);
 });
-ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 3، عقار 18، مالية 5، معبئ 3');
-if ((wizardJs.match(/section: 'sublease'/g) || []).length !== 9) fail('أسئلة عقد بالباطن');
-else ok('نموذج عقد بالباطن يضيف 9 أسئلة للمستأجر الأصلي والممثل');
-if ((wizardJs.match(/section: 'subtenant'/g) || []).length !== 4) fail('أسئلة المستأجر من الباطن');
-else ok('نموذج عقد بالباطن يضيف 4 أسئلة للمستأجر من الباطن');
+ok('عدد أسئلة الأقسام: ملكية 2، مؤجر 3، مستأجر 8، عقار 18، مالية 5، معبئ 3');
+if ((wizardJs.match(/section: 'sublease'/g) || []).length !== 8) fail('أسئلة عقد بالباطن');
+else ok('نموذج عقد بالباطن يضيف 8 أسئلة للمستأجر الأصلي مع خيار الشركة');
+if ((wizardJs.match(/section: 'subtenant'/g) || []).length !== 9) fail('أسئلة المستأجر من الباطن');
+else ok('نموذج عقد بالباطن يضيف 9 أسئلة للمستأجر من الباطن مع خيار الشركة');
+if (!/sublease-screen-order: ownership, owner, sublease, subtenant, unit, finance, review/.test(wizardJs) || !/title: 'بيانات العقار'/.test(wizardJs) || !/title: 'تفاصيل العقار'/.test(wizardJs)) {
+  fail('ترتيب شاشات عقد بالباطن');
+} else ok('عقد بالباطن: العقار ثم المؤجر ثم المستأجر ثم بالباطن ثم التفاصيل');
+if (!/tenantKind/.test(wizardJs) || !/مستأجر شركة/.test(wizardJs) || !/tenantUnifiedNumber/.test(wizardJs) || !/tenantRepId/.test(wizardJs) || !/companyPartyFields/.test(wizardJs)) {
+  fail('خيار مستأجر شركة في المعالج');
+} else ok('شاشة المستأجر تتيح التحويل بين فرد وشركة');
 if (/ما حالة التعاقد/.test(wizardJs)) fail('حالة التعاقد ما زالت في العقود القديمة');
 else ok('العقود السكنية والتجارية بدون سؤال حالة التعاقد');
 if (!/k === 'sublease'/.test(wizardJs) || !/إنشاء عقد بالباطن/.test(wizardJs)) fail('نموذج عقد بالباطن في المعالج');
@@ -612,9 +719,15 @@ if (!/deedImageHtml/.test(dashRequests) || !/deedImageUrl/.test(dashRequests) ||
 else ok('لوحة التحكم تعرض صورة الصك أو ملف PDF في تفاصيل الطلب');
 if (!/submitterName/.test(dashRequests) || !/معبئ النموذج التعاقدي/.test(dashRequests)) fail('عرض معبئ النموذج في اللوحة');
 else ok('لوحة التحكم تعرض اسم وجوال وصفة معبئ النموذج');
-if (!/subleaseTenantName/.test(dashRequests) || !/subleasePoaNumber/.test(dashRequests) || !/subtenantName/.test(dashRequests) || !/المستأجر من الباطن/.test(dashRequests) || !/عقد بالباطن/.test(dashRequests)) {
+if (!/subleaseKind/.test(wizardJs) || !/subleasePhone/.test(wizardJs) || !/companyPartyFields\('sublease'\)/.test(wizardJs)) {
+  fail('خيار مستأجر شركة/فرد في عقد بالباطن');
+} else ok('شاشة المستأجر الأصلي في عقد بالباطن تتيح التحويل بين فرد وشركة');
+if (!/subleaseTenantName/.test(dashRequests) || !/subleasePoaNumber/.test(dashRequests) || !/subtenantName/.test(dashRequests) || !/بيانات المستأجر بالباطن/.test(dashRequests) || !/عقد بالباطن/.test(dashRequests) || !/subleaseKind/.test(dashRequests) || !/subleasePhone/.test(dashRequests)) {
   fail('عرض عقد بالباطن في اللوحة');
 } else ok('لوحة التحكم تعرض بيانات عقد بالباطن والمستأجر من الباطن');
+if (!/tenantUnifiedNumber/.test(dashRequests) || !/tenantRepId/.test(dashRequests) || !/مستأجر شركة/.test(dashRequests) || !/subtenantUnifiedNumber/.test(dashRequests)) {
+  fail('عرض مستأجر الشركة في اللوحة');
+} else ok('لوحة التحكم تعرض بيانات مستأجر الشركة والممثل');
 
 const datesJs = fs.readFileSync(path.join(root, 'public', 'js', 'ejar-dates.js'), 'utf8');
 if (!/islamic-umalqura/.test(datesJs)) fail('تقويم أم القرى');

@@ -14,6 +14,7 @@ const PRIVATE_CLIENT_FIELDS_MIGRATION = path.join(__dirname, '..', '..', 'supaba
 const EJAR_REVIEWS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '012_ejar_reviews.sql');
 const PAGE_SESSIONS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '013_site_visit_page_sessions.sql');
 const EJAR_CONTRACTS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '014_ejar_contract_requests.sql');
+const RLS_LOCKDOWN_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '015_rls_server_only_lockdown.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -134,8 +135,76 @@ async function isEjarContractSchemaReady() {
   return !error;
 }
 
+const RLS_LOCKDOWN_TABLES = [
+  'marketers',
+  'marketer_password_reset_tokens',
+  'site_visit_sessions',
+  'private_client_access',
+  'ejar_review_tokens',
+  'push_subscriptions',
+  'private_offers_settings',
+  'site_visit_stats',
+  'ejar_reviews',
+  'marketer_join_requests',
+];
+
+async function isRlsLockdownReady() {
+  const cfg = getConnectionConfig();
+  if (!cfg) return true;
+  let pg;
+  try {
+    pg = require('pg');
+  } catch {
+    return true;
+  }
+  const client = new pg.Client(cfg);
+  try {
+    await client.connect();
+    const rls = await client.query(
+      `SELECT COUNT(*)::int AS n
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public'
+         AND c.relname = ANY($1)
+         AND c.relrowsecurity = true`,
+      [RLS_LOCKDOWN_TABLES]
+    );
+    if ((rls.rows[0]?.n || 0) < RLS_LOCKDOWN_TABLES.length) return false;
+
+    const openPol = await client.query(
+      `SELECT COUNT(*)::int AS n
+       FROM pg_policies
+       WHERE schemaname = 'public'
+         AND tablename = 'marketer_join_requests'
+         AND (qual = 'true' OR with_check = 'true')`
+    );
+    if ((openPol.rows[0]?.n || 0) > 0) return false;
+
+    const fns = await client.query(
+      `SELECT COUNT(*)::int AS n
+       FROM pg_proc p
+       JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public'
+         AND (
+           (p.proname = 'slugify' AND pg_get_function_identity_arguments(p.oid) = 'input text')
+           OR (p.proname = 'set_updated_at' AND pg_get_function_identity_arguments(p.oid) = '')
+         )
+         AND p.proconfig IS NOT NULL
+         AND EXISTS (
+           SELECT 1 FROM unnest(p.proconfig) cfg
+           WHERE cfg LIKE 'search_path=%'
+         )`
+    );
+    return (fns.rows[0]?.n || 0) >= 2;
+  } catch {
+    return false;
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
+  }
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews, siteVisitPageSessions, ejarContracts] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews, siteVisitPageSessions, ejarContracts, rlsLockdown] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
@@ -148,7 +217,9 @@ async function getSchemaStatus() {
     isEjarReviewsSchemaReady(),
     isSiteVisitPageSessionsReady(),
     isEjarContractSchemaReady(),
+    isRlsLockdownReady(),
   ]);
+  const tablesReady = marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews && siteVisitPageSessions && ejarContracts;
   return {
     marketer,
     notifications,
@@ -162,7 +233,8 @@ async function getSchemaStatus() {
     ejarReviews,
     siteVisitPageSessions,
     ejarContracts,
-    allReady: marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews && siteVisitPageSessions && ejarContracts,
+    rlsLockdown,
+    allReady: tablesReady && rlsLockdown,
   };
 }
 
@@ -264,6 +336,10 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, EJAR_CONTRACTS_MIGRATION, '014_ejar_contracts');
       applied.push('014_ejar_contract_requests');
     }
+    if (!status.rlsLockdown) {
+      await runSqlFile(client, RLS_LOCKDOWN_MIGRATION, '015_rls_server_only_lockdown');
+      applied.push('015_rls_server_only_lockdown');
+    }
 
     if (applied.length) await reloadPostgrestSchema(client);
 
@@ -332,4 +408,5 @@ module.exports = {
   isPrivateClientRequestFieldsReady,
   getSchemaStatus,
   getConnectionConfig,
+  isRlsLockdownReady,
 };

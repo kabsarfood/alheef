@@ -6,7 +6,7 @@
 /* ─── Touch & performance base ─── */
 @media (max-width: 768px) {
   :root {
-    --header-h: 68px;
+    --header-bar-h: 68px;
     --section-pad: clamp(3.25rem, 10vw, 4.5rem);
     --lh-body: 1.8;
     --lh-heading: 1.4;
@@ -18,7 +18,7 @@
   }
 
   .header {
-    padding-top: env(safe-area-inset-top, 0);
+    padding-top: var(--safe-top);
     z-index: 1001;
     overflow: visible;
     /* backdrop-filter يحبس position:fixed للقائمة داخل الهيدر — يظهر الضباب فقط */
@@ -839,7 +839,7 @@
 /* ─── iPhone standard ~390px ─── */
 @media (max-width: 390px) {
   :root {
-    --header-h: 64px;
+    --header-bar-h: 64px;
   }
 
   .container {
@@ -927,7 +927,7 @@
 /* ─── Tablet / iPad (769–1099): hamburger + 2-col content ─── */
 @media (min-width: 769px) and (max-width: 1099px) {
   :root {
-    --header-h: 76px;
+    --header-bar-h: 76px;
     --ejar-ticker-h: 2.6rem;
     --section-pad: clamp(3.5rem, 6vw, 5.25rem);
   }
@@ -937,7 +937,7 @@
   }
 
   .header {
-    padding-top: env(safe-area-inset-top, 0);
+    padding-top: var(--safe-top);
     z-index: 1001;
     overflow: visible;
     backdrop-filter: none;

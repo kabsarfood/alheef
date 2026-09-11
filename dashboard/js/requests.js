@@ -326,40 +326,71 @@ function openRequestModal(row) {
   const wizard = row.requestType === 'ejar_contract' && isEjarWizard(p);
   let body = '';
   if (wizard) {
+    const isSubleaseReq = p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن';
+    const originalTenantSection = !isSubleaseReq ? '' : sectionBlock('بيانات المستأجر', p.subleaseKind === 'شركة' ? [
+      rowItem('النوع', 'مستأجر شركة'),
+      rowItem('الرقم الموحد', p.subleaseUnifiedNumber, { copy: true }),
+      rowItem('الجوال', p.subleasePhone, { copy: true }),
+      rowItem('رقم بطاقة الممثل', p.subleaseRepId, { copy: true }),
+      rowItem('جوال الممثل', p.subleaseRepPhone, { copy: true }),
+      rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.subleaseRepDob), { html: true }),
+    ] : p.subleaseKind === 'فرد' ? [
+      rowItem('النوع', 'مستأجر فرد'),
+      rowItem('رقم الهوية', p.subleaseIdOrCr, { copy: true }),
+      rowItem('تاريخ الميلاد', dateFieldHtml(p.subleaseIdOrCrDate), { html: true }),
+      rowItem('الجوال', p.subleasePhone, { copy: true }),
+    ] : [
+      rowItem('اسم المستأجر', p.subleaseTenantName),
+      rowItem('رقم البطاقة أو المنشأة', p.subleaseIdOrCr, { copy: true }),
+      rowItem('تاريخ السجل أو البطاقة', dateFieldHtml(p.subleaseIdOrCrDate), { html: true }),
+      rowItem('الرقم الموحد', p.subleaseUnifiedNumber, { copy: true }),
+      rowItem('اسم الممثل', p.subleaseRepName),
+      rowItem('رقم بطاقة الممثل', p.subleaseRepId, { copy: true }),
+      rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.subleaseRepDob), { html: true }),
+      rowItem('الجوال', p.subleaseRepPhone, { copy: true }),
+      rowItem('رقم الوكالة', p.subleasePoaNumber, { copy: true }),
+    ]);
+    const subtenantSection = !isSubleaseReq ? '' : sectionBlock('بيانات المستأجر بالباطن', p.subtenantKind === 'شركة' ? [
+      rowItem('النوع', 'مستأجر شركة'),
+      rowItem('الرقم الموحد', p.subtenantUnifiedNumber, { copy: true }),
+      rowItem('الجوال', p.subtenantPhone, { copy: true }),
+      rowItem('رقم بطاقة الممثل', p.subtenantRepId, { copy: true }),
+      rowItem('جوال الممثل', p.subtenantRepPhone, { copy: true }),
+      rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.subtenantRepDob), { html: true }),
+    ] : [
+      rowItem('النوع', p.subtenantKind === 'فرد' ? 'مستأجر فرد' : (p.subtenantKind || 'مستأجر فرد')),
+      rowItem('الاسم', p.subtenantName),
+      rowItem('رقم البطاقة', p.subtenantId, { copy: true }),
+      rowItem('تاريخ الميلاد', dateFieldHtml(p.subtenantDob), { html: true }),
+      rowItem('الجوال', p.subtenantPhone, { copy: true }),
+    ]);
     body = [
-      sectionBlock('بيانات الملكية', [
+      sectionBlock(isSubleaseReq ? 'بيانات العقار' : 'بيانات الملكية', [
         rowItem('رقم الصك', p.deedNumber, { copy: true }),
         rowItem('تاريخ الصك', dateFieldHtml(p.deedDate), { html: true }),
         rowItem('صورة الصك', deedImageHtml(p.deedImageUrl), { html: true, wide: true }),
       ]),
-      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? sectionBlock('عقد بالباطن', [
-        rowItem('اسم المستأجر', p.subleaseTenantName),
-        rowItem('رقم البطاقة أو المنشأة', p.subleaseIdOrCr, { copy: true }),
-        rowItem('تاريخ السجل أو البطاقة', dateFieldHtml(p.subleaseIdOrCrDate), { html: true }),
-        rowItem('الرقم الموحد', p.subleaseUnifiedNumber, { copy: true }),
-        rowItem('اسم الممثل', p.subleaseRepName),
-        rowItem('رقم بطاقة الممثل', p.subleaseRepId, { copy: true }),
-        rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.subleaseRepDob), { html: true }),
-        rowItem('الجوال', p.subleaseRepPhone, { copy: true }),
-        rowItem('رقم الوكالة', p.subleasePoaNumber, { copy: true }),
-      ]) : '',
-      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? sectionBlock('المستأجر من الباطن', [
-        rowItem('الاسم', p.subtenantName),
-        rowItem('رقم البطاقة', p.subtenantId, { copy: true }),
-        rowItem('تاريخ الميلاد', dateFieldHtml(p.subtenantDob), { html: true }),
-        rowItem('الجوال', p.subtenantPhone, { copy: true }),
-      ]) : '',
-      sectionBlock('بيانات المالك', [
+      sectionBlock(isSubleaseReq ? 'بيانات المؤجر' : 'بيانات المالك', [
         rowItem('رقم الهوية', p.ownerId, { copy: true }),
         rowItem('تاريخ الميلاد', dateFieldHtml(p.ownerDob), { html: true }),
         rowItem('الجوال', p.ownerPhone, { copy: true }),
       ]),
-      (p.contractKind === 'sublease' || p.contractingStatus === 'عقد بالباطن') ? '' : sectionBlock('بيانات المستأجر', [
+      originalTenantSection,
+      subtenantSection,
+      isSubleaseReq ? '' : sectionBlock('بيانات المستأجر', p.tenantKind === 'شركة' ? [
+        rowItem('النوع', 'مستأجر شركة'),
+        rowItem('الرقم الموحد', p.tenantUnifiedNumber, { copy: true }),
+        rowItem('الجوال', p.tenantPhone, { copy: true }),
+        rowItem('رقم بطاقة الممثل', p.tenantRepId, { copy: true }),
+        rowItem('جوال الممثل', p.tenantRepPhone, { copy: true }),
+        rowItem('تاريخ ميلاد الممثل', dateFieldHtml(p.tenantRepDob), { html: true }),
+      ] : [
+        rowItem('النوع', p.tenantKind === 'شركة' ? 'مستأجر شركة' : 'مستأجر فرد'),
         rowItem('رقم الهوية', p.tenantId, { copy: true }),
         rowItem('تاريخ الميلاد', dateFieldHtml(p.tenantDob), { html: true }),
         rowItem('الجوال', p.tenantPhone, { copy: true }),
       ]),
-      sectionBlock('الوحدة', [
+      sectionBlock(isSubleaseReq ? 'تفاصيل العقار' : 'الوحدة', [
         rowItem('نوع الوحدة', displayUnit(p)),
         rowItem('الدور', displayFloor(p)),
         rowItem('رقم الوحدة', p.unitNumber, { copy: true }),

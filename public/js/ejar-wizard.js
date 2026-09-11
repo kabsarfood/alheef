@@ -29,14 +29,20 @@
   var METER_NUMBER_VALUES = ['عداد مستقل', 'عداد مشترك'];
   var DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة أخرى'];
   var SUBMITTER_RELATIONS = ['المستأجر', 'المؤجر', 'ابن/ابنة أحد الأطراف', 'وكيل'];
+  var TENANT_KIND_INDIVIDUAL = 'فرد';
+  var TENANT_KIND_COMPANY = 'شركة';
+  var TENANT_KIND_OPTIONS = [
+    { value: 'فرد', label: 'مستأجر فرد' },
+    { value: 'شركة', label: 'مستأجر شركة' },
+  ];
   var TRUST = '🔒 لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
   var DECLARATION = 'أقر بصحة البيانات المدخلة وأطلب من مكتب الهيف للخدمات العقارية إعداد عقد الإيجار عبر منصة إيجار وإرساله للأطراف للتوثيق.';
   var DISCLAIMER = 'مكتب الهيف للخدمات العقارية وسيط عقاري مرخص، وهذه الخدمة ليست الموقع الرسمي لمنصة إيجار.';
   var SECTIONS = [
     { id: 'ownership', title: 'بيانات الملكية', short: 'الملكية' },
-    { id: 'sublease', title: 'عقد بالباطن', short: 'الباطن' },
-    { id: 'subtenant', title: 'المستأجر من الباطن', short: 'من الباطن' },
     { id: 'owner', title: 'بيانات المؤجر', short: 'المؤجر' },
+    { id: 'sublease', title: 'بيانات المستأجر', short: 'المستأجر' },
+    { id: 'subtenant', title: 'بيانات المستأجر بالباطن', short: 'بالباطن' },
     { id: 'tenant', title: 'بيانات المستأجر', short: 'المستأجر' },
     { id: 'unit', title: 'بيانات العقار', short: 'العقار' },
     { id: 'finance', title: 'تفاصيل العقد', short: 'العقد' },
@@ -121,41 +127,90 @@
     ];
   }
 
+  function isCompanyParty(kindKey) {
+    return answers[kindKey] === TENANT_KIND_COMPANY;
+  }
+
+  function ensurePartyKind(kindKey) {
+    if (answers[kindKey] !== TENANT_KIND_COMPANY) answers[kindKey] = TENANT_KIND_INDIVIDUAL;
+    return answers[kindKey];
+  }
+
+  function tenantKindField(key) {
+    return {
+      key: key,
+      label: 'نوع المستأجر',
+      type: 'select',
+      ui: 'cards',
+      options: TENANT_KIND_OPTIONS,
+      wide: true,
+    };
+  }
+
+  function companyPartyFields(prefix) {
+    return [
+      tenantKindField(prefix + 'Kind'),
+      { key: prefix + 'UnifiedNumber', label: 'الرقم الموحد', type: 'text', inputmode: 'numeric' },
+      { key: prefix + 'Phone', label: 'رقم الجوال', type: 'phone' },
+      {
+        group: prefix + 'Rep',
+        title: 'الممثل',
+        fields: [
+          { key: prefix + 'RepId', label: 'رقم البطاقة أو الإقامة', type: 'nid' },
+          { key: prefix + 'RepPhone', label: 'رقم الجوال', type: 'phone' },
+          { key: prefix + 'RepDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
+        ],
+      },
+    ];
+  }
+
   function getSteps(k) {
     var steps = [
       { key: 'deedNumber', section: 'ownership', label: 'ما رقم الصك؟', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
       { key: 'deedDate', section: 'ownership', label: 'ما تاريخ الصك؟', type: 'date' },
     ];
-    if (k === 'sublease') {
-      steps.push(
-        { key: 'subleaseTenantName', section: 'sublease', label: 'ما اسم المستأجر؟', type: 'text', inputmode: 'text' },
-        { key: 'subleaseIdOrCr', section: 'sublease', label: 'ما رقم البطاقة أو المنشأة؟', type: 'text', inputmode: 'numeric' },
-        { key: 'subleaseIdOrCrDate', section: 'sublease', label: 'ما تاريخ السجل أو البطاقة؟', type: 'date' },
-        { key: 'subleaseUnifiedNumber', section: 'sublease', label: 'ما الرقم الموحد؟', type: 'text', inputmode: 'numeric' },
-        { key: 'subleaseRepName', section: 'sublease', label: 'ما اسم الممثل؟', type: 'text', inputmode: 'text' },
-        { key: 'subleaseRepId', section: 'sublease', label: 'ما رقم بطاقة الممثل؟', type: 'nid' },
-        { key: 'subleaseRepDob', section: 'sublease', label: 'ما تاريخ ميلاد الممثل؟', type: 'date' },
-        { key: 'subleaseRepPhone', section: 'sublease', label: 'ما رقم جوال الممثل؟', type: 'phone' },
-        { key: 'subleasePoaNumber', section: 'sublease', label: 'ما رقم الوكالة؟', type: 'text', inputmode: 'text' },
-        { key: 'subtenantName', section: 'subtenant', label: 'ما اسم المستأجر من الباطن؟', type: 'text', inputmode: 'text' },
-        { key: 'subtenantId', section: 'subtenant', label: 'ما رقم بطاقة المستأجر من الباطن؟', type: 'nid' },
-        { key: 'subtenantDob', section: 'subtenant', label: 'ما تاريخ ميلاد المستأجر من الباطن؟', type: 'date' },
-        { key: 'subtenantPhone', section: 'subtenant', label: 'ما رقم جوال المستأجر من الباطن؟', type: 'phone' }
-      );
-    }
-    steps.push(
+    var ownerSteps = [
       { key: 'ownerId', section: 'owner', label: 'ما رقم هوية المالك؟', type: 'nid' },
       { key: 'ownerDob', section: 'owner', label: 'ما تاريخ ميلاد المالك؟', type: 'date' },
       { key: 'ownerPhone', section: 'owner', label: 'ما رقم جوال المالك؟', type: 'phone' }
-    );
-    if (k !== 'sublease') {
+    ];
+    var subleasePartySteps = [
+      { key: 'subleaseKind', section: 'sublease', label: 'ما نوع المستأجر؟', type: 'select', options: TENANT_KIND_OPTIONS },
+      { key: 'subleaseIdOrCr', section: 'sublease', label: 'ما رقم هوية المستأجر؟', type: 'nid' },
+      { key: 'subleaseIdOrCrDate', section: 'sublease', label: 'ما تاريخ ميلاد المستأجر؟', type: 'date' },
+      { key: 'subleasePhone', section: 'sublease', label: 'ما رقم جوال المستأجر؟', type: 'phone' },
+      { key: 'subleaseUnifiedNumber', section: 'sublease', label: 'ما الرقم الموحد؟', type: 'text', inputmode: 'numeric' },
+      { key: 'subleaseRepId', section: 'sublease', label: 'ما رقم بطاقة الممثل؟', type: 'nid' },
+      { key: 'subleaseRepDob', section: 'sublease', label: 'ما تاريخ ميلاد الممثل؟', type: 'date' },
+      { key: 'subleaseRepPhone', section: 'sublease', label: 'ما رقم جوال الممثل؟', type: 'phone' },
+      { key: 'subtenantKind', section: 'subtenant', label: 'ما نوع المستأجر من الباطن؟', type: 'select', options: TENANT_KIND_OPTIONS },
+      { key: 'subtenantName', section: 'subtenant', label: 'ما اسم المستأجر من الباطن؟', type: 'text', inputmode: 'text' },
+      { key: 'subtenantId', section: 'subtenant', label: 'ما رقم بطاقة المستأجر من الباطن؟', type: 'nid' },
+      { key: 'subtenantDob', section: 'subtenant', label: 'ما تاريخ ميلاد المستأجر من الباطن؟', type: 'date' },
+      { key: 'subtenantPhone', section: 'subtenant', label: 'ما رقم جوال المستأجر من الباطن؟', type: 'phone' },
+      { key: 'subtenantUnifiedNumber', section: 'subtenant', label: 'ما الرقم الموحد للمستأجر من الباطن؟', type: 'text', inputmode: 'numeric' },
+      { key: 'subtenantRepId', section: 'subtenant', label: 'ما رقم بطاقة ممثل المستأجر من الباطن؟', type: 'nid' },
+      { key: 'subtenantRepPhone', section: 'subtenant', label: 'ما رقم جوال ممثل المستأجر من الباطن؟', type: 'phone' },
+      { key: 'subtenantRepDob', section: 'subtenant', label: 'ما تاريخ ميلاد ممثل المستأجر من الباطن؟', type: 'date' }
+    ];
+    if (k === 'sublease') {
+      steps.push.apply(steps, ownerSteps);
+      steps.push.apply(steps, subleasePartySteps);
+      steps.push.apply(steps, propertySteps());
+    } else {
+      steps.push.apply(steps, ownerSteps);
       steps.push(
+        { key: 'tenantKind', section: 'tenant', label: 'ما نوع المستأجر؟', type: 'select', options: TENANT_KIND_OPTIONS },
         { key: 'tenantId', section: 'tenant', label: 'ما رقم هوية المستأجر؟', type: 'nid' },
         { key: 'tenantDob', section: 'tenant', label: 'ما تاريخ ميلاد المستأجر؟', type: 'date' },
-        { key: 'tenantPhone', section: 'tenant', label: 'ما رقم جوال المستأجر؟', type: 'phone' }
+        { key: 'tenantPhone', section: 'tenant', label: 'ما رقم جوال المستأجر؟', type: 'phone' },
+        { key: 'tenantUnifiedNumber', section: 'tenant', label: 'ما الرقم الموحد للمستأجر؟', type: 'text', inputmode: 'numeric' },
+        { key: 'tenantRepId', section: 'tenant', label: 'ما رقم بطاقة ممثل المستأجر؟', type: 'nid' },
+        { key: 'tenantRepPhone', section: 'tenant', label: 'ما رقم جوال ممثل المستأجر؟', type: 'phone' },
+        { key: 'tenantRepDob', section: 'tenant', label: 'ما تاريخ ميلاد ممثل المستأجر؟', type: 'date' }
       );
+      steps.push.apply(steps, propertySteps());
     }
-    steps.push.apply(steps, propertySteps());
     steps.push(
       { key: 'rentAmount', section: 'finance', label: 'ما قيمة الإيجار؟', type: 'number', suffix: 'ريال', min: 0 },
       { key: 'paymentMethod', section: 'finance', label: 'طريقة الدفع', type: 'select', options: PAYMENT_METHODS },
@@ -272,57 +327,75 @@
     return k === 'commercial' ? COMMERCIAL_PROPERTY_TYPES : RESIDENTIAL_PROPERTY_TYPES;
   }
 
-  function unitScreen(k) {
+  function unitIdentityFields(k) {
     var unitTypes = propertyTypesFor(k);
+    return [
+      { key: 'unitType', label: 'نوع الوحدة', type: 'select', options: unitTypes },
+      { key: 'floor', label: 'الدور', type: 'select', options: FLOOR_OPTIONS },
+      { key: 'unitNumber', label: 'رقم الوحدة', type: 'text', inputmode: 'numeric' },
+      { key: 'area', label: 'المساحة', type: 'number', suffix: 'م²', min: 0 },
+      { key: 'city', label: 'المدينة', type: 'text', inputmode: 'text', optional: true },
+      { key: 'district', label: 'الحي', type: 'text', inputmode: 'text', optional: true },
+      { key: 'streetName', label: 'الشارع', type: 'text', inputmode: 'text', optional: true, wide: true },
+      { key: 'propertyMapUrl', label: 'رابط الموقع (اللكيشن)', type: 'url', optional: true },
+    ];
+  }
+
+  function unitDetailFields() {
+    return [
+      {
+        key: 'electricityType',
+        label: 'عداد الكهرباء',
+        type: 'select',
+        options: ELECTRICITY_TYPE_OPTIONS,
+        extraKey: 'electricityMeter',
+        extraValues: METER_NUMBER_VALUES,
+        extraLabel: 'رقم اشتراك / عداد الكهرباء',
+        extraInput: 'meter',
+        wide: true,
+      },
+      {
+        key: 'waterUtility',
+        label: 'المياه',
+        type: 'select',
+        options: WATER_UTILITY_OPTIONS,
+        extraKey: 'waterMeterNumber',
+        extraValues: METER_NUMBER_VALUES,
+        extraLabel: 'رقم اشتراك المياه',
+        extraInput: 'meter',
+        wide: true,
+      },
+      {
+        group: 'details',
+        title: 'تفاصيل الوحدة',
+        fields: [
+          { key: 'rooms', label: 'غرف النوم', type: 'select', options: rangeOptions(1, 8) },
+          { key: 'kitchens', label: 'المطابخ', type: 'select', options: rangeOptions(0, 5) },
+          { key: 'livingRooms', label: 'الصالات', type: 'select', options: rangeOptions(0, 5) },
+          { key: 'majlis', label: 'المجالس', type: 'select', options: rangeOptions(0, 5) },
+          { key: 'acs', label: 'المكيفات', type: 'select', options: rangeOptions(0, 10) },
+          { key: 'builtInKitchen', label: 'مطبخ راكب', type: 'select', options: ['نعم', 'لا'] },
+        ],
+      },
+    ];
+  }
+
+  function unitScreen(k) {
+    if (k === 'sublease') {
+      return {
+        id: 'unit',
+        title: 'تفاصيل العقار',
+        short: 'التفاصيل',
+        compact: true,
+        fields: unitDetailFields(),
+      };
+    }
     return {
       id: 'unit',
       title: 'بيانات العقار',
       short: 'العقار',
       compact: true,
-      fields: [
-        { key: 'unitType', label: 'نوع الوحدة', type: 'select', options: unitTypes },
-        { key: 'floor', label: 'الدور', type: 'select', options: FLOOR_OPTIONS },
-        { key: 'unitNumber', label: 'رقم الوحدة', type: 'text', inputmode: 'numeric' },
-        { key: 'area', label: 'المساحة', type: 'number', suffix: 'م²', min: 0 },
-        { key: 'city', label: 'المدينة', type: 'text', inputmode: 'text', optional: true },
-        { key: 'district', label: 'الحي', type: 'text', inputmode: 'text', optional: true },
-        { key: 'streetName', label: 'الشارع', type: 'text', inputmode: 'text', optional: true, wide: true },
-        { key: 'propertyMapUrl', label: 'رابط الموقع (اللكيشن)', type: 'url', optional: true },
-        {
-          key: 'electricityType',
-          label: 'عداد الكهرباء',
-          type: 'select',
-          options: ELECTRICITY_TYPE_OPTIONS,
-          extraKey: 'electricityMeter',
-          extraValues: METER_NUMBER_VALUES,
-          extraLabel: 'رقم اشتراك / عداد الكهرباء',
-          extraInput: 'meter',
-          wide: true,
-        },
-        {
-          key: 'waterUtility',
-          label: 'المياه',
-          type: 'select',
-          options: WATER_UTILITY_OPTIONS,
-          extraKey: 'waterMeterNumber',
-          extraValues: METER_NUMBER_VALUES,
-          extraLabel: 'رقم اشتراك المياه',
-          extraInput: 'meter',
-          wide: true,
-        },
-        {
-          group: 'details',
-          title: 'تفاصيل الوحدة',
-          fields: [
-            { key: 'rooms', label: 'غرف النوم', type: 'select', options: rangeOptions(1, 8) },
-            { key: 'kitchens', label: 'المطابخ', type: 'select', options: rangeOptions(0, 5) },
-            { key: 'livingRooms', label: 'الصالات', type: 'select', options: rangeOptions(0, 5) },
-            { key: 'majlis', label: 'المجالس', type: 'select', options: rangeOptions(0, 5) },
-            { key: 'acs', label: 'المكيفات', type: 'select', options: rangeOptions(0, 10) },
-            { key: 'builtInKitchen', label: 'مطبخ راكب', type: 'select', options: ['نعم', 'لا'] },
-          ],
-        },
-      ],
+      fields: unitIdentityFields(k).concat(unitDetailFields()),
     };
   }
 
@@ -366,59 +439,35 @@
     };
   }
 
-  function getScreens(k) {
-    var screens = [
-      {
-        id: 'ownership',
-        title: 'بيانات الملكية',
-        short: 'الملكية',
-        compact: true,
-        fields: [
-          { key: 'deedNumber', label: 'رقم الصك', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
-          { key: 'deedDate', label: 'تاريخ الصك', type: 'date' },
-        ],
-      },
+  function deedFields() {
+    return [
+      { key: 'deedNumber', label: 'رقم الصك', type: 'text', inputmode: 'numeric', autocomplete: 'off' },
+      { key: 'deedDate', label: 'تاريخ الصك', type: 'date' },
     ];
+  }
+
+  function ownershipScreen(k) {
     if (k === 'sublease') {
-      screens.push(
-        {
-          id: 'sublease',
-          title: 'عقد بالباطن',
-          short: 'الباطن',
-          compact: true,
-          fields: [
-            { key: 'subleaseTenantName', label: 'اسم المستأجر', type: 'text', inputmode: 'text' },
-            { key: 'subleaseIdOrCr', label: 'رقم البطاقة أو المنشأة', type: 'text', inputmode: 'numeric' },
-            { key: 'subleaseIdOrCrDate', label: 'تاريخ السجل أو البطاقة', type: 'date', wide: true },
-            { key: 'subleaseUnifiedNumber', label: 'الرقم الموحد', type: 'text', inputmode: 'numeric' },
-            { key: 'subleasePoaNumber', label: 'رقم الوكالة', type: 'text' },
-            {
-              group: 'rep',
-              title: 'الممثل',
-              fields: [
-                { key: 'subleaseRepName', label: 'اسم الممثل', type: 'text', inputmode: 'text' },
-                { key: 'subleaseRepId', label: 'رقم بطاقة الممثل', type: 'nid' },
-                { key: 'subleaseRepDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
-                { key: 'subleaseRepPhone', label: 'رقم الجوال', type: 'phone' },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'subtenant',
-          title: 'المستأجر من الباطن',
-          short: 'من الباطن',
-          compact: true,
-          fields: [
-            { key: 'subtenantName', label: 'الاسم', type: 'text', inputmode: 'text' },
-            { key: 'subtenantId', label: 'رقم البطاقة', type: 'nid' },
-            { key: 'subtenantDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
-            { key: 'subtenantPhone', label: 'رقم الجوال', type: 'phone' },
-          ],
-        }
-      );
+      return {
+        id: 'ownership',
+        title: 'بيانات العقار',
+        short: 'العقار',
+        compact: true,
+        layout: 'property',
+        fields: deedFields().concat(unitIdentityFields(k)),
+      };
     }
-    screens.push({
+    return {
+      id: 'ownership',
+      title: 'بيانات الملكية',
+      short: 'الملكية',
+      compact: true,
+      fields: deedFields(),
+    };
+  }
+
+  function ownerScreen() {
+    return {
       id: 'owner',
       title: 'بيانات المؤجر',
       short: 'المؤجر',
@@ -428,22 +477,92 @@
         { key: 'ownerPhone', label: 'رقم الجوال', type: 'phone' },
         { key: 'ownerDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
       ],
-    });
-    if (k !== 'sublease') {
-      screens.push({
-        id: 'tenant',
-        title: 'بيانات المستأجر',
-        short: 'المستأجر',
-        compact: true,
-        fields: [
+    };
+  }
+
+  function tenantScreen() {
+    return {
+      id: 'tenant',
+      title: 'بيانات المستأجر',
+      short: 'المستأجر',
+      compact: true,
+      fields: isCompanyParty('tenantKind')
+        ? companyPartyFields('tenant')
+        : [
+          tenantKindField('tenantKind'),
           { key: 'tenantId', label: 'رقم الهوية / الإقامة', type: 'nid' },
           { key: 'tenantPhone', label: 'رقم الجوال', type: 'phone' },
           { key: 'tenantDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
         ],
-      });
+    };
+  }
+
+  function originalTenantScreen() {
+    return {
+      id: 'sublease',
+      title: 'بيانات المستأجر',
+      short: 'المستأجر',
+      compact: true,
+      fields: isCompanyParty('subleaseKind')
+        ? companyPartyFields('sublease')
+        : [
+          tenantKindField('subleaseKind'),
+          { key: 'subleaseIdOrCr', label: 'رقم الهوية / الإقامة', type: 'nid' },
+          { key: 'subleasePhone', label: 'رقم الجوال', type: 'phone' },
+          { key: 'subleaseIdOrCrDate', label: 'تاريخ الميلاد', type: 'date', wide: true },
+        ],
+    };
+  }
+
+  function subtenantScreen() {
+    return {
+      id: 'subtenant',
+      title: 'بيانات المستأجر بالباطن',
+      short: 'بالباطن',
+      compact: true,
+      fields: isCompanyParty('subtenantKind')
+        ? companyPartyFields('subtenant')
+        : [
+          tenantKindField('subtenantKind'),
+          { key: 'subtenantName', label: 'الاسم', type: 'text', inputmode: 'text' },
+          { key: 'subtenantId', label: 'رقم البطاقة', type: 'nid' },
+          { key: 'subtenantPhone', label: 'رقم الجوال', type: 'phone' },
+          { key: 'subtenantDob', label: 'تاريخ الميلاد', type: 'date', wide: true },
+        ],
+    };
+  }
+
+  function reviewScreen() {
+    return { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة', type: 'review' };
+  }
+
+  function getScreens(k) {
+    if (k === 'sublease') {
+      ensurePartyKind('subleaseKind');
+      ensurePartyKind('subtenantKind');
+    } else {
+      ensurePartyKind('tenantKind');
     }
-    screens.push(unitScreen(k), financeScreen(), { id: 'review', title: 'مراجعة الطلب', short: 'المراجعة', type: 'review' });
-    return screens;
+    if (k === 'sublease') {
+      /* sublease-screen-order: ownership, owner, sublease, subtenant, unit, finance, review */
+      return [
+        ownershipScreen(k),
+        ownerScreen(),
+        originalTenantScreen(),
+        subtenantScreen(),
+        unitScreen(k),
+        financeScreen(),
+        reviewScreen(),
+      ];
+    }
+    return [
+      ownershipScreen(k),
+      ownerScreen(),
+      tenantScreen(),
+      unitScreen(k),
+      financeScreen(),
+      reviewScreen(),
+    ];
   }
 
   function currentScreen() {
@@ -609,7 +728,8 @@
   }
 
   function isDobField(key) {
-    return key === 'ownerDob' || key === 'tenantDob' || key === 'subleaseRepDob' || key === 'subtenantDob';
+    return key === 'ownerDob' || key === 'tenantDob' || key === 'tenantRepDob'
+      || key === 'subleaseIdOrCrDate' || key === 'subleaseRepDob' || key === 'subtenantDob' || key === 'subtenantRepDob';
   }
 
   function isPastLimitedDate(key) {
@@ -621,22 +741,30 @@
   }
 
   function clearSubleaseAnswers() {
+    answers.subleaseKind = '';
     answers.subleaseTenantName = '';
     answers.subleaseIdOrCr = '';
     answers.subleaseIdOrCrDate = '';
+    answers.subleasePhone = '';
     answers.subleaseUnifiedNumber = '';
     answers.subleaseRepName = '';
     answers.subleaseRepId = '';
     answers.subleaseRepDob = '';
     answers.subleaseRepPhone = '';
     answers.subleasePoaNumber = '';
+    answers.subtenantKind = '';
     answers.subtenantName = '';
     answers.subtenantId = '';
     answers.subtenantDob = '';
     answers.subtenantPhone = '';
+    answers.subtenantUnifiedNumber = '';
+    answers.subtenantRepId = '';
+    answers.subtenantRepPhone = '';
+    answers.subtenantRepDob = '';
     delete dateModes.subleaseRepDob;
     delete dateModes.subleaseIdOrCrDate;
     delete dateModes.subtenantDob;
+    delete dateModes.subtenantRepDob;
   }
 
   function syncSubleaseAnswers() {
@@ -737,7 +865,9 @@
   function screenIndexFromLegacyStep(k, idx) {
     var steps = getSteps(k);
     var step = steps[Math.max(0, Number(idx) || 0)] || {};
-    var map = { ownership: 0, owner: 1, tenant: 2, unit: 3, finance: 4, submitter: 5, review: 5 };
+    var map = k === 'sublease'
+      ? { ownership: 0, owner: 1, sublease: 2, subtenant: 3, unit: 4, finance: 5, submitter: 6, review: 6 }
+      : { ownership: 0, owner: 1, tenant: 2, unit: 3, finance: 4, submitter: 5, review: 5 };
     return map[step.section] != null ? map[step.section] : 0;
   }
 
@@ -1173,7 +1303,7 @@
     if (step.key === 'subleaseIdOrCr' && !isValidIdOrEstablishment(value)) {
       return 'يرجى إدخال رقم بطاقة أو منشأة صحيح';
     }
-    if (step.key === 'subleaseUnifiedNumber' && !isValidUnifiedNumber(value)) {
+    if ((step.key === 'subleaseUnifiedNumber' || step.key === 'tenantUnifiedNumber' || step.key === 'subtenantUnifiedNumber') && !isValidUnifiedNumber(value)) {
       return 'يرجى إدخال الرقم الموحد بشكل صحيح';
     }
     if (step.key === 'subleaseRepName' && value.length < 2) return 'يرجى إدخال اسم الممثل';
@@ -1207,7 +1337,8 @@
     if (step.type === 'nid') answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
     if (step.type === 'url') answers[step.key] = normalizeMapUrl(answers[step.key]);
     if (step.type === 'phone') answers[step.key] = normalizeSaudiMobile(answers[step.key]);
-    if (step.key === 'subleaseIdOrCr' || step.key === 'subleaseUnifiedNumber') {
+    if (step.key === 'subleaseIdOrCr' || step.key === 'subleaseUnifiedNumber'
+      || step.key === 'tenantUnifiedNumber' || step.key === 'subtenantUnifiedNumber') {
       answers[step.key] = String(answers[step.key] || '').replace(/\D/g, '');
     }
     if (step.key === 'electricityMeter' || step.key === 'waterMeterNumber') {
@@ -1334,11 +1465,6 @@
       var wrap = root.querySelector('.ejar-field[data-field="' + item.key + '"]');
       if (!wrap) return;
       wrap.classList.add('is-invalid');
-      var msg = wrap.querySelector('.ejar-field__error');
-      if (msg) {
-        msg.textContent = item.message;
-        msg.hidden = false;
-      }
       var field = wrap.querySelector('[data-wizard-field]:not([type="hidden"]), [data-wizard-field]');
       if (field) field.setAttribute('aria-invalid', 'true');
     });
@@ -1768,9 +1894,10 @@
     return '<div class="ejar-choice ' + countClass + '" data-choice-group="' + step.key + '" role="group" aria-label="' + escapeHtml(step.label) + '">'
       + '<input type="hidden" id="' + fieldId(step) + '" data-wizard-field="' + step.key + '" value="' + escapeHtml(value) + '">'
       + options.map(function (opt) {
-        var selected = value === opt;
-        return '<button type="button" class="ejar-choice__card' + (selected ? ' is-selected' : '') + '" data-choice="' + escapeHtml(opt) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">'
-          + escapeHtml(opt)
+        var optVal = optionValue(opt);
+        var selected = value === optVal;
+        return '<button type="button" class="ejar-choice__card' + (selected ? ' is-selected' : '') + '" data-choice="' + escapeHtml(optVal) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">'
+          + escapeHtml(optionLabel(opt))
           + '</button>';
       }).join('')
       + '</div>'
@@ -1854,6 +1981,9 @@
   }
 
   function displayValue(key) {
+    if (key === 'tenantKind' || key === 'subtenantKind' || key === 'subleaseKind') {
+      return answers[key] === TENANT_KIND_COMPANY ? 'مستأجر شركة' : 'مستأجر فرد';
+    }
     if (key === 'electricityMeter' || key === 'waterMeterNumber') {
       return answers[key] ? answers[key] : 'لم يُسجَّل — يُفضّل إضافته إن توفر';
     }
@@ -1902,8 +2032,8 @@
   }
 
   function isDateField(key) {
-    return key === 'deedDate' || key === 'ownerDob' || key === 'tenantDob' || key === 'startDate'
-      || key === 'subleaseRepDob' || key === 'subleaseIdOrCrDate' || key === 'subtenantDob';
+    return key === 'deedDate' || key === 'ownerDob' || key === 'tenantDob' || key === 'tenantRepDob' || key === 'startDate'
+      || key === 'subleaseRepDob' || key === 'subleaseIdOrCrDate' || key === 'subtenantDob' || key === 'subtenantRepDob';
   }
 
   function firstStepOf(section) {
@@ -1936,7 +2066,7 @@
   }
 
   function reviewText(label, key) {
-    if (key === 'ownerId' || key === 'tenantId' || key === 'subleaseRepId' || key === 'subtenantId') {
+    if (key === 'ownerId' || key === 'tenantId' || key === 'tenantRepId' || key === 'subleaseIdOrCr' || key === 'subleaseRepId' || key === 'subtenantId' || key === 'subtenantRepId') {
       return {
         label: label,
         html: true,
@@ -1950,14 +2080,15 @@
         value: answers[key] ? '<span dir="ltr">' + escapeHtml(answers[key]) + '</span>' : '—',
       };
     }
-    if (key === 'subleaseIdOrCr' || key === 'subleasePoaNumber' || key === 'subleaseUnifiedNumber') {
+    if (key === 'subleasePoaNumber' || key === 'subleaseUnifiedNumber'
+      || key === 'tenantUnifiedNumber' || key === 'subtenantUnifiedNumber') {
       return {
         label: label,
         html: true,
         value: answers[key] ? '<span dir="ltr">' + escapeHtml(answers[key]) + '</span>' : '—',
       };
     }
-    if (key === 'ownerPhone' || key === 'tenantPhone' || key === 'submitterPhone' || key === 'subleaseRepPhone' || key === 'subtenantPhone') {
+    if (key === 'ownerPhone' || key === 'tenantPhone' || key === 'tenantRepPhone' || key === 'submitterPhone' || key === 'subleasePhone' || key === 'subleaseRepPhone' || key === 'subtenantPhone' || key === 'subtenantRepPhone') {
       return {
         label: label,
         html: true,
@@ -1975,37 +2106,31 @@
   }
 
   function reviewHtml() {
-    return reviewSection('الملكية', 'ownership', [
+    var ownershipReview = reviewSection(isSublease() ? 'بيانات العقار' : 'الملكية', 'ownership', isSublease() ? [
       reviewText('رقم الصك', 'deedNumber'),
       reviewText('تاريخ الصك', 'deedDate'),
-    ])
-    + (isSublease() ? reviewSection('عقد بالباطن', 'sublease', [
-      reviewText('اسم المستأجر', 'subleaseTenantName'),
-      reviewText('رقم البطاقة أو المنشأة', 'subleaseIdOrCr'),
-      reviewText('تاريخ السجل أو البطاقة', 'subleaseIdOrCrDate'),
-      reviewText('الرقم الموحد', 'subleaseUnifiedNumber'),
-      reviewText('اسم الممثل', 'subleaseRepName'),
-      reviewText('رقم بطاقة الممثل', 'subleaseRepId'),
-      reviewText('تاريخ ميلاد الممثل', 'subleaseRepDob'),
-      reviewText('جوال الممثل', 'subleaseRepPhone'),
-      reviewText('رقم الوكالة', 'subleasePoaNumber'),
-    ]) + reviewSection('المستأجر من الباطن', 'subtenant', [
-      reviewText('الاسم', 'subtenantName'),
-      reviewText('رقم البطاقة', 'subtenantId'),
-      reviewText('تاريخ الميلاد', 'subtenantDob'),
-      reviewText('الجوال', 'subtenantPhone'),
-    ]) : '')
-    + reviewSection('المؤجر', 'owner', [
-      reviewText('رقم الهوية', 'ownerId'),
-      reviewText('تاريخ الميلاد', 'ownerDob'),
-      reviewText('الجوال', 'ownerPhone'),
-    ])
-    + (isSublease() ? '' : reviewSection('المستأجر', 'tenant', [
-      reviewText('رقم الهوية', 'tenantId'),
-      reviewText('تاريخ الميلاد', 'tenantDob'),
-      reviewText('الجوال', 'tenantPhone'),
-    ]))
-    + reviewSection('العقار', 'unit', isGroupedKind() ? [
+      reviewText('نوع الوحدة', 'unitType'),
+      reviewText('الدور', 'floor'),
+      reviewText('رقم الوحدة', 'unitNumber'),
+      reviewText('المساحة', 'area'),
+      reviewText('المدينة', 'city'),
+      reviewText('الحي', 'district'),
+      reviewText('الشارع', 'streetName'),
+      reviewText('رابط الموقع (اللكيشن)', 'propertyMapUrl'),
+    ] : [
+      reviewText('رقم الصك', 'deedNumber'),
+      reviewText('تاريخ الصك', 'deedDate'),
+    ]);
+    var unitReview = reviewSection(isSublease() ? 'تفاصيل العقار' : 'العقار', 'unit', isSublease() ? [
+      reviewText('عداد الكهرباء', 'electricityType'),
+      reviewText('المياه', 'waterUtility'),
+      reviewText('غرف النوم', 'rooms'),
+      reviewText('المطابخ', 'kitchens'),
+      reviewText('الصالات', 'livingRooms'),
+      reviewText('المجالس', 'majlis'),
+      reviewText('المكيفات', 'acs'),
+      reviewText('مطبخ راكب', 'builtInKitchen'),
+    ] : isGroupedKind() ? [
       reviewText('نوع الوحدة', 'unitType'),
       reviewText('الدور', 'floor'),
       reviewText('رقم الوحدة', 'unitNumber'),
@@ -2041,14 +2166,65 @@
       reviewText('المطابخ', 'kitchens'),
       reviewText('نوع العقار', 'unitType'),
       reviewText('المساحة', 'area'),
-    ])
-    + reviewSection('تفاصيل العقد', 'finance', [
+    ]);
+    var ownerReview = reviewSection('المؤجر', 'owner', [
+      reviewText('رقم الهوية', 'ownerId'),
+      reviewText('تاريخ الميلاد', 'ownerDob'),
+      reviewText('الجوال', 'ownerPhone'),
+    ]);
+    var originalTenantReview = isSublease() ? reviewSection('بيانات المستأجر', 'sublease', isCompanyParty('subleaseKind') ? [
+      reviewText('نوع المستأجر', 'subleaseKind'),
+      reviewText('الرقم الموحد', 'subleaseUnifiedNumber'),
+      reviewText('الجوال', 'subleasePhone'),
+      reviewText('رقم بطاقة الممثل', 'subleaseRepId'),
+      reviewText('جوال الممثل', 'subleaseRepPhone'),
+      reviewText('تاريخ ميلاد الممثل', 'subleaseRepDob'),
+    ] : [
+      reviewText('نوع المستأجر', 'subleaseKind'),
+      reviewText('رقم الهوية', 'subleaseIdOrCr'),
+      reviewText('تاريخ الميلاد', 'subleaseIdOrCrDate'),
+      reviewText('الجوال', 'subleasePhone'),
+    ]) : '';
+    var subtenantReview = isSublease() ? reviewSection('بيانات المستأجر بالباطن', 'subtenant', isCompanyParty('subtenantKind') ? [
+      reviewText('نوع المستأجر', 'subtenantKind'),
+      reviewText('الرقم الموحد', 'subtenantUnifiedNumber'),
+      reviewText('الجوال', 'subtenantPhone'),
+      reviewText('رقم بطاقة الممثل', 'subtenantRepId'),
+      reviewText('جوال الممثل', 'subtenantRepPhone'),
+      reviewText('تاريخ ميلاد الممثل', 'subtenantRepDob'),
+    ] : [
+      reviewText('نوع المستأجر', 'subtenantKind'),
+      reviewText('الاسم', 'subtenantName'),
+      reviewText('رقم البطاقة', 'subtenantId'),
+      reviewText('تاريخ الميلاد', 'subtenantDob'),
+      reviewText('الجوال', 'subtenantPhone'),
+    ]) : '';
+    var tenantReview = isSublease() ? '' : reviewSection('المستأجر', 'tenant', isCompanyParty('tenantKind') ? [
+      reviewText('نوع المستأجر', 'tenantKind'),
+      reviewText('الرقم الموحد', 'tenantUnifiedNumber'),
+      reviewText('الجوال', 'tenantPhone'),
+      reviewText('رقم بطاقة الممثل', 'tenantRepId'),
+      reviewText('جوال الممثل', 'tenantRepPhone'),
+      reviewText('تاريخ ميلاد الممثل', 'tenantRepDob'),
+    ] : [
+      reviewText('نوع المستأجر', 'tenantKind'),
+      reviewText('رقم الهوية', 'tenantId'),
+      reviewText('تاريخ الميلاد', 'tenantDob'),
+      reviewText('الجوال', 'tenantPhone'),
+    ]);
+    var financeReview = reviewSection('تفاصيل العقد', 'finance', [
       reviewText('قيمة الإيجار', 'rentAmount'),
       reviewText('طريقة الدفع', 'paymentMethod'),
       reviewText('مدة العقد', 'contractDuration'),
       reviewText('تاريخ البداية', 'startDate'),
       reviewText('مبلغ الضمان', 'hasDeposit'),
-    ])
+    ]);
+    var partiesAndUnit = isSublease()
+      ? (ownerReview + originalTenantReview + subtenantReview + unitReview)
+      : (ownerReview + tenantReview + unitReview);
+    return ownershipReview
+    + partiesAndUnit
+    + financeReview
     + (isGroupedKind() ? submitterOnReviewHtml() : reviewSection('معبئ النموذج', 'submitter', [
       reviewText('الاسم', 'submitterName'),
       reviewText('الجوال', 'submitterPhone'),
@@ -2169,7 +2345,7 @@
     if (screen.type === 'review') return reviewHtml();
     return '<div class="ejar-wizard__screen">'
       + '<h3 class="ejar-wizard__screen-title">' + escapeHtml(screen.title) + '</h3>'
-      + '<div class="ejar-wizard__grid' + (screen.compact ? ' ejar-wizard__grid--compact' : '') + '" data-screen="' + escapeHtml(screen.id || '') + '">'
+      + '<div class="ejar-wizard__grid' + (screen.compact ? ' ejar-wizard__grid--compact' : '') + '" data-screen="' + escapeHtml(screen.id || '') + '"' + (screen.layout ? ' data-layout="' + escapeHtml(screen.layout) + '"' : '') + '>'
       + (screen.fields || []).map(function (item) {
         if (item && item.group) return detailsGroupHtml(item);
         return fieldBlockHtml(item);
@@ -2334,6 +2510,12 @@
             if (details) details.hidden = !(value === 'وكيل' || value === 'ابن/ابنة أحد الأطراف');
             syncSubmitterFromRelation();
           }
+          if (key === 'tenantKind' || key === 'subtenantKind' || key === 'subleaseKind') {
+            hideError();
+            saveDraft();
+            render();
+            return;
+          }
           hideError();
           saveDraft();
         });
@@ -2441,6 +2623,10 @@
   function payload() {
     var k = normalizeKind(kind);
     var sublease = k === 'sublease';
+    var company = sublease ? isCompanyParty('subtenantKind') : isCompanyParty('tenantKind');
+    var partyKind = company ? TENANT_KIND_COMPANY : TENANT_KIND_INDIVIDUAL;
+    var originalCompany = sublease && isCompanyParty('subleaseKind');
+    var originalKind = sublease ? (originalCompany ? TENANT_KIND_COMPANY : TENANT_KIND_INDIVIDUAL) : '';
     return {
       contractKind: k,
       contractType: k === 'sublease' ? 'عقد بالباطن' : (k === 'commercial' ? 'تجاري' : 'سكني'),
@@ -2448,25 +2634,37 @@
       deedNumber: answers.deedNumber,
       deedDate: answers.deedDate,
       contractingStatus: sublease ? 'عقد بالباطن' : '',
-      subleaseTenantName: sublease ? answers.subleaseTenantName : '',
-      subleaseIdOrCr: sublease ? answers.subleaseIdOrCr : '',
-      subleaseIdOrCrDate: sublease ? answers.subleaseIdOrCrDate : '',
-      subleaseUnifiedNumber: sublease ? answers.subleaseUnifiedNumber : '',
-      subleaseRepName: sublease ? answers.subleaseRepName : '',
-      subleaseRepId: sublease ? answers.subleaseRepId : '',
-      subleaseRepDob: sublease ? answers.subleaseRepDob : '',
-      subleaseRepPhone: sublease ? answers.subleaseRepPhone : '',
-      subleasePoaNumber: sublease ? answers.subleasePoaNumber : '',
-      subtenantName: sublease ? answers.subtenantName : '',
-      subtenantId: sublease ? answers.subtenantId : '',
-      subtenantDob: sublease ? answers.subtenantDob : '',
+      subleaseKind: originalKind,
+      subleaseTenantName: '',
+      subleaseIdOrCr: sublease && !originalCompany ? answers.subleaseIdOrCr : '',
+      subleaseIdOrCrDate: sublease && !originalCompany ? answers.subleaseIdOrCrDate : '',
+      subleasePhone: sublease ? answers.subleasePhone : '',
+      subleaseUnifiedNumber: sublease && originalCompany ? answers.subleaseUnifiedNumber : '',
+      subleaseRepName: '',
+      subleaseRepId: sublease && originalCompany ? answers.subleaseRepId : '',
+      subleaseRepDob: sublease && originalCompany ? answers.subleaseRepDob : '',
+      subleaseRepPhone: sublease && originalCompany ? answers.subleaseRepPhone : '',
+      subleasePoaNumber: '',
+      subtenantKind: sublease ? partyKind : '',
+      subtenantName: sublease && !company ? answers.subtenantName : '',
+      subtenantId: sublease && !company ? answers.subtenantId : '',
+      subtenantDob: sublease && !company ? answers.subtenantDob : '',
       subtenantPhone: sublease ? answers.subtenantPhone : '',
+      subtenantUnifiedNumber: sublease && company ? answers.subtenantUnifiedNumber : '',
+      subtenantRepId: sublease && company ? answers.subtenantRepId : '',
+      subtenantRepPhone: sublease && company ? answers.subtenantRepPhone : '',
+      subtenantRepDob: sublease && company ? answers.subtenantRepDob : '',
       ownerId: answers.ownerId,
       ownerDob: answers.ownerDob,
       ownerPhone: answers.ownerPhone,
-      tenantId: sublease ? answers.subtenantId : answers.tenantId,
-      tenantDob: sublease ? answers.subtenantDob : answers.tenantDob,
+      tenantKind: partyKind,
+      tenantId: company ? '' : (sublease ? answers.subtenantId : answers.tenantId),
+      tenantDob: company ? '' : (sublease ? answers.subtenantDob : answers.tenantDob),
       tenantPhone: sublease ? answers.subtenantPhone : answers.tenantPhone,
+      tenantUnifiedNumber: company ? (sublease ? answers.subtenantUnifiedNumber : answers.tenantUnifiedNumber) : '',
+      tenantRepId: company ? (sublease ? answers.subtenantRepId : answers.tenantRepId) : '',
+      tenantRepPhone: company ? (sublease ? answers.subtenantRepPhone : answers.tenantRepPhone) : '',
+      tenantRepDob: company ? (sublease ? answers.subtenantRepDob : answers.tenantRepDob) : '',
       city: answers.city,
       district: answers.district,
       propertyLocation: answers.propertyLocation || [answers.district, answers.city].filter(Boolean).join('، '),

@@ -38,7 +38,8 @@
 }
 
 .map-page .header__inner {
-  height: 100%;
+  height: var(--header-bar-h);
+  min-height: var(--header-bar-h);
   align-items: center;
 }
 
