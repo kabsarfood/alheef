@@ -88,3 +88,21 @@
 .login-card__back:hover {
   color: var(--gold);
 }
+
+.login-otp-hint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.login-otp-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.login-otp-actions .btn {
+  flex: 1;
+}

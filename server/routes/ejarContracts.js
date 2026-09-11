@@ -5,7 +5,12 @@ const { isEnabled } = require('../lib/supabase');
 const requestsRepo = require('../repositories/requestsRepo');
 const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestNotifications');
 const { notifyOfficeNewEjarContract } = require('../services/ejarWhatsAppHook');
-const { validateAndNormalize, flattenContractBody } = require('../utils/ejarContract');
+const ejarOtp = require('../services/ejarOtpService');
+const {
+  validateAndNormalize,
+  flattenContractBody,
+  applyVerifiedContractIdentity,
+} = require('../utils/ejarContract');
 const { createDeedUploadSlot, publicUrlForDeedPath, uploadDeedFromFile } = require('../services/storage');
 
 const router = express.Router();
@@ -89,6 +94,97 @@ async function resolveDeedUrl(body) {
   return publicUrlForDeedPath(objectPath);
 }
 
+function requestMeta(req) {
+  return {
+    ip: clientKey(req),
+    userAgent: String(req.headers['user-agent'] || '').slice(0, 300),
+  };
+}
+
+function otpStatus(reason) {
+  if (reason === 'rate_limited' || reason === 'cooldown') return 429;
+  if (reason === 'not_configured') return 503;
+  if (reason === 'send_failed') return 502;
+  if (reason === 'bad_phone' || reason === 'bad_role' || reason === 'bad_code') return 400;
+  if (reason === 'expired' || reason === 'locked' || reason === 'invalid') return 400;
+  if (reason === 'missing' || reason === 'not_verified') return 403;
+  return 400;
+}
+
+router.post('/otp/send', (req, res) => {
+  const ip = clientKey(req);
+  if (!checkRateLimit(`ejar-otp-send:${ip}`, 8, 15 * 60 * 1000)) {
+    return res.status(429).json({ success: false, message: ejarOtp.errorMessage('rate_limited') });
+  }
+  const { phone, role } = req.body || {};
+  return ejarOtp.sendOtp({ phone, role, ...requestMeta(req) }).then((sent) => {
+    if (!sent.ok) {
+      return res.status(otpStatus(sent.reason)).json({
+        success: false,
+        message: ejarOtp.errorMessage(sent.reason),
+        retryAfter: sent.cooldownSec || undefined,
+      });
+    }
+    res.json({
+      success: true,
+      verificationId: sent.verificationId,
+      cooldownSec: sent.cooldownSec,
+      expiresInSec: sent.expiresInSec,
+    });
+  }).catch(() => {
+    res.status(500).json({ success: false, message: 'تعذر إرسال رمز التحقق' });
+  });
+});
+
+router.post('/otp/resend', (req, res) => {
+  const ip = clientKey(req);
+  if (!checkRateLimit(`ejar-otp-resend:${ip}`, 8, 15 * 60 * 1000)) {
+    return res.status(429).json({ success: false, message: ejarOtp.errorMessage('rate_limited') });
+  }
+  const verificationId = String(req.body?.verificationId || '');
+  return ejarOtp.resendOtp(verificationId).then((sent) => {
+    if (!sent.ok) {
+      return res.status(otpStatus(sent.reason)).json({
+        success: false,
+        message: ejarOtp.errorMessage(sent.reason),
+        retryAfter: sent.cooldownSec || undefined,
+      });
+    }
+    res.json({
+      success: true,
+      verificationId: sent.verificationId,
+      cooldownSec: sent.cooldownSec,
+      expiresInSec: sent.expiresInSec,
+    });
+  }).catch(() => {
+    res.status(500).json({ success: false, message: 'تعذر إعادة إرسال رمز التحقق' });
+  });
+});
+
+router.post('/otp/verify', (req, res) => {
+  const ip = clientKey(req);
+  if (!checkRateLimit(`ejar-otp-verify:${ip}`, 20, 15 * 60 * 1000)) {
+    return res.status(429).json({ success: false, message: ejarOtp.errorMessage('rate_limited') });
+  }
+  const verificationId = String(req.body?.verificationId || '');
+  const code = String(req.body?.code || '');
+  const result = ejarOtp.verifyOtp(verificationId, code);
+  if (!result.ok) {
+    return res.status(otpStatus(result.reason)).json({
+      success: false,
+      message: ejarOtp.errorMessage(result.reason),
+      attemptsLeft: result.attemptsLeft,
+    });
+  }
+  res.json({
+    success: true,
+    verificationId: result.session.id,
+    phone: result.session.phone,
+    role: result.session.role,
+    message: 'تم التحقق من رقم الجوال بنجاح',
+  });
+});
+
 router.post('/deed/prepare', requireDb, async (req, res) => {
   try {
     const name = String(req.body?.name || 'deed.jpg');
@@ -146,6 +242,16 @@ router.post('/contracts', requireDb, async (req, res) => {
       });
     }
 
+    const checked = ejarOtp.requireVerifiedSession(body.verificationId);
+    if (!checked.ok) {
+      return res.status(403).json({
+        success: false,
+        code: 'otp_required',
+        message: ejarOtp.errorMessage(checked.reason),
+      });
+    }
+    applyVerifiedContractIdentity(body, checked.session);
+
     const result = validateAndNormalize(body);
     if (!result.ok) {
       return res.status(400).json({
@@ -167,6 +273,7 @@ router.post('/contracts', requireDb, async (req, res) => {
       ...result.data,
       deedImageUrl,
     });
+    ejarOtp.markConsumed(checked.session.id, created.id);
     await notifyAdminsNewCustomerRequest(created);
     notifyOfficeNewEjarContract(created).catch(() => {});
 

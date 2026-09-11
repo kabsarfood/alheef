@@ -25,8 +25,10 @@ router.use(requireAdmin);
 // ─── حالة النظام / Supabase ───
 router.get('/system-status', async (_req, res) => {
   const { ping, getStatus } = require('../lib/supabase');
+  const { getConnectionState, isConfigured } = require('../services/evolutionWhatsAppOtp');
   const status = getStatus();
   const db = await ping();
+  const evolution = await getConnectionState();
   res.json({
     supabase: {
       configured: status.configured,
@@ -34,6 +36,11 @@ router.get('/system-status', async (_req, res) => {
       url: status.url,
       reason: db.reason || null,
       hint: db.hint || null,
+    },
+    evolutionOtp: {
+      configured: isConfigured(),
+      connected: Boolean(evolution.ok && evolution.state),
+      state: evolution.state || null,
     },
   });
 });

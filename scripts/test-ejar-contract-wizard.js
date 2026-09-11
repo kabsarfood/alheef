@@ -615,6 +615,8 @@ if (!/introPending/.test(wizardJs) || !/dismissIntro/.test(wizardJs) || !/attach
 } else ok('الترحيب لا يتكرر أثناء التنقل بين الخطوات');
 if (!/ejar-wizard__intro/.test(wizardCss) || !/has-intro/.test(wizardCss)) fail('تنسيق نافذة الترحيب');
 else ok('تنسيق نافذة الترحيب متناسق مع صفحة إيجار');
+if (!/ejar-wizard__verify/.test(wizardCss) || !/has-verify/.test(wizardCss) || !/blur\(/.test(wizardCss)) fail('تنسيق شاشة التحقق');
+else ok('النموذج يظهر ضبابياً حتى اكتمال التحقق');
 if (/msg\.textContent = item\.message/.test(wizardJs)) fail('رسالة الخطأ ما زالت داخل حقل الرقم');
 else ok('خطأ رقم الهوية يظهر أعلى البطاقة فقط وليس داخل الحقل');
 if (!/عقد سكني/.test(wizardJs) || !/عقد تجاري/.test(wizardJs) || !/ejar-wizard__kind/.test(wizardJs)) fail('اختيار نوع العقد أعلى النموذج');
@@ -624,8 +626,17 @@ else ok('زر الإرسال يستخدم «إرسال طلب إنشاء الع�
 if (/إرسال العقد للتوثيق/.test(wizardJs)) fail('عبارة توثيق مبكرة');
 else ok('لا تُستخدم عبارة إرسال العقد للتوثيق');
 var wizardWithoutTrust = wizardJs.replace(/لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ\./, '');
-if (/كلمة المرور|نفاذ|OTP|otp/.test(wizardWithoutTrust)) fail('الحقول الحساسة ممنوعة');
-else ok('لا يُطلب OTP أو نفاذ أو كلمة مرور إيجار');
+if (/نفاذ/.test(wizardWithoutTrust) || /كلمة مرور منصة إيجار/.test(wizardWithoutTrust)) fail('الحقول الحساسة لمنصة إيجار ممنوعة');
+else ok('لا يُطلب نفاذ أو كلمة مرور منصة إيجار');
+if (!/التحقق من مقدم الطلب/.test(wizardJs) || !/إرسال رمز التحقق عبر واتساب/.test(wizardJs) || !/\/api\/ejar\/otp\//.test(wizardJs)) {
+  fail('بوابة تحقق واتساب');
+} else ok('نموذج العقد يبدأ بالتحقق من مقدم الطلب عبر واتساب');
+if (/EVOLUTION_API_KEY/.test(wizardJs) || /EVOLUTION_API_KEY/.test(html) || /EVOLUTION_API_KEY/.test(wizardCss) || /EVOLUTION_API_KEY/.test(ejarJs)) {
+  fail('مفتاح Evolution في الواجهة');
+} else ok('مفتاح Evolution غير موجود في HTML/JS');
+if (!/requireVerifiedSession/.test(apiContracts) || !/otp_required/.test(apiContracts) || !/applyVerifiedContractIdentity/.test(apiContracts)) {
+  fail('الواجهة الخلفية لا تفرض جلسة التحقق');
+} else ok('إنشاء العقد مرفوض بدون جلسة تحقق ناجحة');
 if (/الخطوة /.test(wizardJs)) fail('لا يُعرض عداد الخطوات الكلي');
 else ok('لا يظهر «الخطوة 1 من 18»');
 if (!/السؤال /.test(wizardJs) || !/sectionProgress/.test(wizardJs)) fail('عداد السؤال داخل القسم');

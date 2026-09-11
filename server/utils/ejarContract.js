@@ -37,6 +37,12 @@ const DURATIONS = ['3 أشهر', '6 أشهر', 'سنة', 'سنتان', 'مدة �
 const YES_NO = ['لا', 'نعم'];
 const SUBMITTER_RELATIONS = ['المستأجر', 'المؤجر', 'ابن/ابنة أحد الأطراف', 'وكيل'];
 const CONTRACTING_STATUSES = ['مؤجر ومستأجر', 'عقد بالباطن'];
+const OTP_ROLES = ['landlord', 'tenant', 'broker'];
+const OTP_ROLE_TO_RELATION = {
+  landlord: 'المؤجر',
+  tenant: 'المستأجر',
+  broker: 'وكيل',
+};
 
 const STATUS_LABELS = {
   new: 'جديد',
@@ -261,6 +267,36 @@ function isDeclarationAccepted(value) {
   if (value === true || value === 1) return true;
   const s = String(value || '').trim().toLowerCase();
   return s === 'true' || s === 'on' || s === '1' || s === 'yes';
+}
+
+function applyVerifiedContractIdentity(body, session) {
+  const out = body && typeof body === 'object' ? body : {};
+  const phone = normalizeSaudiMobile(session?.phone);
+  const role = String(session?.role || '');
+  if (!isValidSaudiMobile(phone) || !OTP_ROLES.includes(role)) return out;
+
+  if (role === 'landlord') {
+    out.ownerPhone = phone;
+    out.submitterRelation = OTP_ROLE_TO_RELATION.landlord;
+    out.submitterPhone = phone;
+  } else if (role === 'tenant') {
+    out.tenantPhone = phone;
+    out.subtenantPhone = phone;
+    out.submitterRelation = OTP_ROLE_TO_RELATION.tenant;
+    out.submitterPhone = phone;
+  } else if (role === 'broker') {
+    out.submitterRelation = OTP_ROLE_TO_RELATION.broker;
+    out.submitterPhone = phone;
+  }
+
+  out.verified_phone = phone;
+  out.verified_role = role;
+  out.verified_channel = 'whatsapp';
+  out.verified_at = session.verifiedAt || new Date().toISOString();
+  out.verification_id = session.id;
+  out.ip_address = session.ip || '';
+  out.user_agent = session.userAgent || '';
+  return out;
 }
 
 function validateAndNormalize(rawBody) {
@@ -614,6 +650,13 @@ function validateAndNormalize(rawBody) {
     submitterPhone,
     submitterRelation,
     declarationAccepted: true,
+    verified_phone: isValidSaudiMobile(body?.verified_phone) ? normalizeSaudiMobile(body.verified_phone) : '',
+    verified_role: OTP_ROLES.includes(String(body?.verified_role || '')) ? String(body.verified_role) : '',
+    verified_channel: String(body?.verified_channel || '') === 'whatsapp' ? 'whatsapp' : '',
+    verified_at: trimStr(body?.verified_at, 40),
+    verification_id: trimStr(body?.verification_id, 80),
+    ip_address: trimStr(body?.ip_address, 80),
+    user_agent: trimStr(body?.user_agent, 300),
   };
 
   return { ok: Object.keys(errors).length === 0, errors, data };
@@ -676,6 +719,9 @@ module.exports = {
   parsePayload,
   isWizardPayload,
   flattenContractBody,
+  applyVerifiedContractIdentity,
+  OTP_ROLES,
+  OTP_ROLE_TO_RELATION,
   resolveContractKind,
   contractKindFromPayload,
   validateAndNormalize,

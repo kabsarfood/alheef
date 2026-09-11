@@ -433,6 +433,13 @@ function openRequestModal(row) {
         rowItem('الجوال', p.submitterPhone || row.customerPhone, { copy: true }),
         rowItem('الصفة', p.submitterRelation),
       ]),
+      p.verification_id || p.verified_phone ? sectionBlock('التحقق من الجوال', [
+        rowItem('الجوال الموثق', p.verified_phone, { copy: true }),
+        rowItem('الصفة', p.verified_role === 'landlord' ? 'مؤجر' : (p.verified_role === 'tenant' ? 'مستأجر' : (p.verified_role === 'broker' ? 'وسيط' : p.verified_role))),
+        rowItem('القناة', p.verified_channel === 'whatsapp' ? 'واتساب' : (p.verified_channel || '—')),
+        rowItem('وقت التحقق', p.verified_at || '—'),
+        rowItem('معرف التحقق', p.verification_id, { copy: true }),
+      ]) : '',
     ].join('');
   } else {
     body = sectionBlock('تفاصيل الطلب', [

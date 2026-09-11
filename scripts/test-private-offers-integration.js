@@ -14,7 +14,17 @@ const IMG = [
   'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80',
 ];
 
+function otpConfigured() {
+  const url = (process.env.EVOLUTION_API_URL || process.env.EVOLUTION_API_DOMAIN || '').trim();
+  const key = (process.env.EVOLUTION_API_KEY || '').trim();
+  return Boolean(url && key);
+}
+
 async function login() {
+  if (otpConfigured()) {
+    const { createToken } = require('../server/middleware/auth');
+    return createToken({ role: 'admin', userId: ADMIN_PHONE });
+  }
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

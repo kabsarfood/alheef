@@ -68,6 +68,18 @@
   var resumePendingKind = 'residential';
   var viewportBound = false;
   var onViewportChange = null;
+  var VERIFY_STORE_KEY = 'ejar_phone_verify';
+  var VERIFY_ROLES = [
+    { id: 'landlord', label: 'أنا المؤجر' },
+    { id: 'tenant', label: 'أنا المستأجر' },
+    { id: 'broker', label: 'أنا وسيط' },
+  ];
+  var skipVerify = false;
+  var verifyPending = false;
+  var verification = null;
+  var pendingDraft = null;
+  var otpUi = { step: 'form', sending: false, verifying: false, cooldownUntil: 0, verificationId: '', error: '' };
+  var otpTimer = null;
 
   function prices() {
     return {
@@ -1010,6 +1022,10 @@
       attachIntro();
       return;
     }
+    if (verifyPending) {
+      attachVerify();
+      return;
+    }
     window.setTimeout(focusCurrent, 40);
   }
 
@@ -1054,15 +1070,384 @@
     var intro = root.querySelector('.ejar-wizard__intro');
     if (intro) intro.remove();
     root.classList.remove('has-intro');
+    if (verifyPending) {
+      attachVerify();
+      return;
+    }
     window.setTimeout(focusCurrent, 40);
+  }
+
+  function roleLabel(role) {
+    if (role === 'landlord') return 'المؤجر';
+    if (role === 'tenant') return 'المستأجر';
+    if (role === 'broker') return 'وسيط';
+    return '';
+  }
+
+  function readStoredVerification() {
+    try {
+      var raw = sessionStorage.getItem(VERIFY_STORE_KEY);
+      var data = raw ? JSON.parse(raw) : null;
+      if (data && data.id && data.phone && data.role) return data;
+    } catch (_) { /* noop */ }
+    return null;
+  }
+
+  function storeVerification(session) {
+    verification = session;
+    try {
+      sessionStorage.setItem(VERIFY_STORE_KEY, JSON.stringify(session));
+    } catch (_) { /* noop */ }
+  }
+
+  function clearStoredVerification() {
+    verification = null;
+    otpUi = { step: 'form', sending: false, verifying: false, cooldownUntil: 0, verificationId: '', error: '' };
+    try { sessionStorage.removeItem(VERIFY_STORE_KEY); } catch (_) { /* noop */ }
+  }
+
+  function applyVerifiedIdentity(session) {
+    if (!session || !session.phone || !session.role) return;
+    var phone = session.phone;
+    if (session.role === 'landlord') {
+      answers.ownerPhone = phone;
+      answers.submitterRelation = 'المؤجر';
+      answers.submitterPhone = phone;
+    } else if (session.role === 'tenant') {
+      answers.tenantPhone = phone;
+      answers.tenantRepPhone = phone;
+      answers.subtenantPhone = phone;
+      answers.subtenantRepPhone = phone;
+      answers.submitterRelation = 'المستأجر';
+      answers.submitterPhone = phone;
+    } else if (session.role === 'broker') {
+      answers.submitterRelation = 'وكيل';
+      answers.submitterPhone = phone;
+    }
+  }
+
+  function isLockedPhoneField(key) {
+    if (!verification || !verification.role) return false;
+    if (verification.role === 'landlord') return key === 'ownerPhone' || key === 'submitterPhone';
+    if (verification.role === 'tenant') {
+      return key === 'tenantPhone' || key === 'tenantRepPhone'
+        || key === 'subtenantPhone' || key === 'subtenantRepPhone'
+        || key === 'submitterPhone';
+    }
+    if (verification.role === 'broker') return key === 'submitterPhone';
+    return false;
+  }
+
+  function lockedAttr(key) {
+    if (!isLockedPhoneField(key)) return '';
+    return ' readonly aria-readonly="true" data-locked="1"';
+  }
+
+  function stopOtpTimer() {
+    if (otpTimer) {
+      window.clearInterval(otpTimer);
+      otpTimer = null;
+    }
+  }
+
+  function cooldownLeft() {
+    return Math.max(0, Math.ceil((otpUi.cooldownUntil - Date.now()) / 1000));
+  }
+
+  function syncVerifyLock() {
+    if (!root) return;
+    var panel = root.querySelector('.ejar-wizard__panel');
+    if (verifyPending && !introPending) {
+      root.classList.add('has-verify');
+      if (panel) {
+        panel.setAttribute('inert', '');
+        panel.setAttribute('aria-hidden', 'true');
+      }
+    } else {
+      root.classList.remove('has-verify');
+      if (panel) {
+        panel.removeAttribute('inert');
+        panel.removeAttribute('aria-hidden');
+      }
+    }
+  }
+
+  function verifyErrorHtml() {
+    if (!otpUi.error) return '';
+    return '<p class="ejar-wizard__verify-error" role="alert">' + escapeHtml(otpUi.error) + '</p>';
+  }
+
+  function verifyHtml() {
+    var selected = (otpUi.role || (verification && verification.role) || '');
+    var phone = otpUi.phone || (verification && verification.phone) || '';
+    var left = cooldownLeft();
+    var roles = VERIFY_ROLES.map(function (item) {
+      var on = selected === item.id;
+      return '<label class="ejar-wizard__verify-role' + (on ? ' is-selected' : '') + '">'
+        + '<input type="radio" name="ejar-verify-role" value="' + item.id + '"' + (on ? ' checked' : '') + '>'
+        + '<span>' + escapeHtml(item.label) + '</span>'
+        + '</label>';
+    }).join('');
+
+    var codeBlock = '';
+    if (otpUi.step === 'code' || otpUi.step === 'done') {
+      codeBlock = '<div class="ejar-wizard__verify-otp">'
+        + '<label for="ejar-verify-code">رمز التحقق</label>'
+        + '<input class="ejar-wizard__control" id="ejar-verify-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" dir="ltr" placeholder="------">'
+        + '<button type="button" class="btn btn-primary" data-verify-confirm' + (otpUi.verifying ? ' disabled' : '') + '>'
+        + (otpUi.verifying ? 'جاري التحقق...' : 'تأكيد الرمز')
+        + '</button>'
+        + '<button type="button" class="btn btn-outline" data-verify-resend' + (left > 0 || otpUi.sending ? ' disabled' : '') + '>'
+        + (left > 0 ? ('إعادة الإرسال خلال ' + left + ' ث') : 'إعادة إرسال رمز التحقق')
+        + '</button>'
+        + '</div>';
+    }
+
+    var success = otpUi.step === 'done'
+      ? '<p class="ejar-wizard__verify-ok" role="status">✓ تم التحقق من رقم الجوال بنجاح</p>'
+      : '';
+
+    return '<div class="ejar-wizard__verify" role="dialog" aria-modal="true" aria-labelledby="ejar-verify-title">'
+      + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
+      + '<div class="ejar-wizard__verify-scroll">'
+      + '<h2 id="ejar-verify-title">التحقق من مقدم الطلب</h2>'
+      + '<p class="ejar-wizard__verify-lead">اختر صفتك وأدخل رقم الجوال لاستلام رمز التحقق عبر واتساب.</p>'
+      + '<fieldset class="ejar-wizard__verify-roles"><legend>الصفة</legend>' + roles + '</fieldset>'
+      + '<label class="ejar-wizard__verify-phone" for="ejar-verify-phone">رقم الجوال</label>'
+      + '<input class="ejar-wizard__control" id="ejar-verify-phone" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(phone) + '">'
+      + '<button type="button" class="btn btn-gold" data-verify-send' + (otpUi.sending || otpUi.step === 'done' ? ' disabled' : '') + '>'
+      + (otpUi.sending ? 'جاري الإرسال...' : 'إرسال رمز التحقق عبر واتساب')
+      + '</button>'
+      + codeBlock
+      + success
+      + verifyErrorHtml()
+      + '</div></div>';
+  }
+
+  function bindVerify() {
+    if (!root) return;
+    var box = root.querySelector('.ejar-wizard__verify');
+    if (!box || box.dataset.bound) return;
+    box.dataset.bound = '1';
+    box.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.name === 'ejar-verify-role') {
+        otpUi.role = t.value;
+        box.querySelectorAll('.ejar-wizard__verify-role').forEach(function (el) {
+          el.classList.toggle('is-selected', el.contains(t) && t.checked);
+        });
+      }
+    });
+    var sendBtn = box.querySelector('[data-verify-send]');
+    if (sendBtn) sendBtn.addEventListener('click', sendVerifyOtp);
+    var confirmBtn = box.querySelector('[data-verify-confirm]');
+    if (confirmBtn) confirmBtn.addEventListener('click', confirmVerifyOtp);
+    var resendBtn = box.querySelector('[data-verify-resend]');
+    if (resendBtn) resendBtn.addEventListener('click', resendVerifyOtp);
+    var codeInput = box.querySelector('#ejar-verify-code');
+    if (codeInput) {
+      codeInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmVerifyOtp();
+        }
+      });
+    }
+  }
+
+  function attachVerify() {
+    if (!verifyPending || !root || introPending) {
+      syncVerifyLock();
+      return;
+    }
+    var existing = root.querySelector('.ejar-wizard__verify');
+    if (existing) existing.remove();
+    root.insertAdjacentHTML('beforeend', verifyHtml());
+    syncVerifyLock();
+    bindVerify();
+    var focusEl = root.querySelector(otpUi.step === 'code' ? '#ejar-verify-code' : '#ejar-verify-phone');
+    window.setTimeout(function () {
+      try { focusEl && focusEl.focus({ preventScroll: true }); } catch (_) {
+        if (focusEl) focusEl.focus();
+      }
+    }, 40);
+    startOtpTimer();
+  }
+
+  function startOtpTimer() {
+    stopOtpTimer();
+    if (!verifyPending || cooldownLeft() <= 0) return;
+    otpTimer = window.setInterval(function () {
+      if (cooldownLeft() <= 0) {
+        stopOtpTimer();
+        if (verifyPending) attachVerify();
+        return;
+      }
+      var btn = root && root.querySelector('[data-verify-resend]');
+      if (btn) {
+        var left = cooldownLeft();
+        btn.disabled = left > 0;
+        btn.textContent = left > 0 ? ('إعادة الإرسال خلال ' + left + ' ث') : 'إعادة إرسال رمز التحقق';
+      }
+    }, 1000);
+  }
+
+  function verifyPhoneFromUi() {
+    var input = root && root.querySelector('#ejar-verify-phone');
+    otpUi.phone = input ? String(input.value || '').trim() : '';
+    var checked = root && root.querySelector('input[name="ejar-verify-role"]:checked');
+    otpUi.role = checked ? checked.value : (otpUi.role || '');
+    return otpUi;
+  }
+
+  function sendVerifyOtp() {
+    if (otpUi.sending) return;
+    verifyPhoneFromUi();
+    otpUi.error = '';
+    if (!otpUi.role) {
+      otpUi.error = 'يرجى اختيار الصفة';
+      attachVerify();
+      return;
+    }
+    if (!isValidSaudiMobile(otpUi.phone)) {
+      otpUi.error = 'يرجى إدخال رقم جوال سعودي صحيح';
+      attachVerify();
+      return;
+    }
+    otpUi.sending = true;
+    attachVerify();
+    fetchJson('/api/ejar/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: otpUi.phone, role: otpUi.role }),
+    }, 20000).then(function (result) {
+      otpUi.sending = false;
+      if (result.data && result.data.success) {
+        otpUi.step = 'code';
+        otpUi.verificationId = result.data.verificationId;
+        otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
+        otpUi.error = '';
+        attachVerify();
+        return;
+      }
+      otpUi.error = (result.data && result.data.message) || 'تعذر إرسال رمز التحقق عبر واتساب';
+      attachVerify();
+    }).catch(function (err) {
+      otpUi.sending = false;
+      otpUi.error = networkErrorMessage(err, 'تعذر إرسال رمز التحقق عبر واتساب');
+      attachVerify();
+    });
+  }
+
+  function resendVerifyOtp() {
+    if (otpUi.sending || cooldownLeft() > 0 || !otpUi.verificationId) return;
+    otpUi.sending = true;
+    otpUi.error = '';
+    attachVerify();
+    fetchJson('/api/ejar/otp/resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verificationId: otpUi.verificationId }),
+    }, 20000).then(function (result) {
+      otpUi.sending = false;
+      if (result.data && result.data.success) {
+        otpUi.verificationId = result.data.verificationId || otpUi.verificationId;
+        otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
+        otpUi.error = '';
+        attachVerify();
+        return;
+      }
+      if (result.data && result.data.retryAfter) {
+        otpUi.cooldownUntil = Date.now() + (Number(result.data.retryAfter) * 1000);
+      }
+      otpUi.error = (result.data && result.data.message) || 'تعذر إعادة الإرسال';
+      attachVerify();
+    }).catch(function (err) {
+      otpUi.sending = false;
+      otpUi.error = networkErrorMessage(err, 'تعذر إعادة إرسال رمز التحقق');
+      attachVerify();
+    });
+  }
+
+  function confirmVerifyOtp() {
+    if (otpUi.verifying || !otpUi.verificationId) return;
+    var input = root && root.querySelector('#ejar-verify-code');
+    var code = input ? String(input.value || '').replace(/\D/g, '') : '';
+    otpUi.error = '';
+    if (!/^\d{6}$/.test(code)) {
+      otpUi.error = 'يرجى إدخال رمز التحقق المكوّن من 6 أرقام';
+      attachVerify();
+      return;
+    }
+    otpUi.verifying = true;
+    attachVerify();
+    fetchJson('/api/ejar/otp/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verificationId: otpUi.verificationId, code: code }),
+    }, 15000).then(function (result) {
+      otpUi.verifying = false;
+      if (result.data && result.data.success) {
+        storeVerification({
+          id: result.data.verificationId,
+          phone: result.data.phone,
+          role: result.data.role,
+        });
+        applyVerifiedIdentity(verification);
+        otpUi.step = 'done';
+        otpUi.error = '';
+        attachVerify();
+        window.setTimeout(function () {
+          unlockAfterVerify();
+        }, 700);
+        return;
+      }
+      otpUi.error = (result.data && result.data.message) || 'رمز التحقق غير صحيح';
+      attachVerify();
+    }).catch(function (err) {
+      otpUi.verifying = false;
+      otpUi.error = networkErrorMessage(err, 'تعذر التحقق من الرمز');
+      attachVerify();
+    });
+  }
+
+  function unlockAfterVerify() {
+    verifyPending = false;
+    stopOtpTimer();
+    var box = root && root.querySelector('.ejar-wizard__verify');
+    if (box) box.remove();
+    syncVerifyLock();
+    if (pendingDraft && draftHasAnswers(pendingDraft)) {
+      var draft = pendingDraft;
+      pendingDraft = null;
+      renderResume(draft);
+      return;
+    }
+    pendingDraft = null;
+    render();
+    window.setTimeout(focusCurrent, 40);
+  }
+
+  function requireVerifyAgain(message) {
+    clearStoredVerification();
+    verifyPending = !skipVerify;
+    otpUi.error = message || 'يلزم التحقق من رقم الجوال مرة أخرى';
+    otpUi.step = 'form';
+    render();
   }
 
   function open(nextKind, options) {
     resetMemory();
+    skipVerify = !!(options && options.screen);
+    verification = skipVerify ? null : readStoredVerification();
+    if (verification) applyVerifiedIdentity(verification);
+    verifyPending = !skipVerify && !verification;
+    otpUi = { step: 'form', sending: false, verifying: false, cooldownUntil: 0, verificationId: '', error: '', role: verification && verification.role, phone: verification && verification.phone };
     introPending = !(options && options.screen);
     openedFromHome = !!(options && options.fromHome);
     resumePendingKind = normalizeKind(nextKind);
     var previewId = options && options.screen;
+    pendingDraft = null;
     if (previewId) {
       kind = resumePendingKind;
       screenIndex = 0;
@@ -1088,9 +1473,13 @@
     }
     var draft = readDraft();
     if (draftHasAnswers(draft) && normalizeKind(draft.kind) === resumePendingKind) {
-      renderResume(draft);
-      showShell();
-      return;
+      if (!verifyPending) {
+        pendingDraft = null;
+        renderResume(draft);
+        showShell();
+        return;
+      }
+      pendingDraft = draft;
     }
     kind = resumePendingKind;
     render();
@@ -1099,6 +1488,7 @@
 
   function continueDraft(draft) {
     applyDraft(draft);
+    if (verification) applyVerifiedIdentity(verification);
     render();
     showShell();
   }
@@ -1107,6 +1497,7 @@
     clearDraft();
     resetMemory();
     kind = resumePendingKind;
+    if (verification) applyVerifiedIdentity(verification);
     render();
     window.setTimeout(focusCurrent, 40);
   }
@@ -1130,6 +1521,7 @@
     }
     kind = nextKind;
     sanitizeUnitForKind();
+    if (verification) applyVerifiedIdentity(verification);
     saveDraft();
     render();
     focusCurrent();
@@ -1137,6 +1529,7 @@
 
   function close() {
     introPending = false;
+    stopOtpTimer();
     if (hasAnswers() && !root.querySelector('.ejar-wizard__success')) saveDraft();
     resetMemory();
     unbindViewport();
@@ -1144,6 +1537,7 @@
     root.hidden = true;
     root.classList.remove('is-open');
     root.classList.remove('has-intro');
+    root.classList.remove('has-verify');
     document.body.classList.remove('ejar-wizard-open');
     if (openedFromHome) {
       openedFromHome = false;
@@ -1164,6 +1558,7 @@
 
   function collectField(step) {
     if (!step || !step.key) return;
+    if (isLockedPhoneField(step.key)) return;
     var input = root.querySelector('[data-wizard-field="' + step.key + '"]');
     if (input) answers[step.key] = input.value;
     if (step.otherKey) {
@@ -1181,12 +1576,13 @@
     answers.declarationAccepted = !!(box && box.checked);
     if (!isGroupedKind()) return;
     var rel = root.querySelector('[data-wizard-field="submitterRelation"]');
-    if (rel) answers.submitterRelation = rel.value;
+    if (rel && !(verification && verification.role)) answers.submitterRelation = rel.value;
     var name = root.querySelector('[data-wizard-field="submitterName"]');
     if (name) answers.submitterName = name.value.trim();
     var phone = root.querySelector('[data-wizard-field="submitterPhone"]');
-    if (phone) answers.submitterPhone = phone.value.trim();
-    syncSubmitterFromRelation();
+    if (phone && !isLockedPhoneField('submitterPhone')) answers.submitterPhone = phone.value.trim();
+    if (verification) applyVerifiedIdentity(verification);
+    else syncSubmitterFromRelation();
   }
 
   function syncSubmitterFromRelation() {
@@ -1388,6 +1784,7 @@
   }
 
   function next() {
+    if (verifyPending) return;
     collectCurrent();
     if (isGroupedKind()) {
       var screen = currentScreen();
@@ -1956,7 +2353,7 @@
       return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="url" dir="ltr" inputmode="url" maxlength="800" placeholder="https://maps.app.goo.gl/..." autocomplete="off" value="' + escapeHtml(value) + '">';
     }
     if (step.type === 'phone') {
-      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(value) + '" required>';
+      return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="tel" dir="ltr" inputmode="tel" maxlength="14" placeholder="05xxxxxxxx" autocomplete="tel" value="' + escapeHtml(value) + '" required' + lockedAttr(step.key) + '>';
     }
     if (step.type === 'nid') {
       return '<input class="ejar-wizard__control" id="' + id + '" data-wizard-field="' + step.key + '" type="text" dir="ltr" inputmode="numeric" maxlength="10" placeholder="1xxxxxxxxx" autocomplete="off" value="' + escapeHtml(value) + '" required>';
@@ -2242,6 +2639,31 @@
 
   function submitterOnReviewHtml() {
     var rel = answers.submitterRelation || '';
+    var verifiedRole = verification && verification.role;
+    if (verifiedRole === 'landlord' || verifiedRole === 'tenant') {
+      return '<section class="ejar-wizard-review is-open ejar-submitter-block">'
+        + '<h3>من يقوم بتعبئة الطلب؟</h3>'
+        + '<p class="ejar-wizard__verify-note">تم التحقق من رقم الجوال بصفتك: ' + escapeHtml(roleLabel(verifiedRole)) + '</p>'
+        + '<input type="hidden" data-wizard-field="submitterRelation" value="' + escapeHtml(rel) + '">'
+        + '</section>';
+    }
+    if (verifiedRole === 'broker') {
+      return '<section class="ejar-wizard-review is-open ejar-submitter-block">'
+        + '<h3>من يقوم بتعبئة الطلب؟</h3>'
+        + '<p class="ejar-wizard__verify-note">تم التحقق من رقم الجوال بصفتك: وسيط</p>'
+        + '<input type="hidden" data-wizard-field="submitterRelation" value="وكيل">'
+        + '<div class="ejar-wizard__grid ejar-wizard__grid--compact">'
+        + '<div class="ejar-field" data-field="submitterName">'
+        + '<label for="ejar-field-submitterName">اسم الوسيط</label>'
+        + '<input class="ejar-wizard__control" id="ejar-field-submitterName" data-wizard-field="submitterName" type="text" value="' + escapeHtml(answers.submitterName || '') + '" required>'
+        + '<p class="ejar-field__error" hidden></p>'
+        + '</div>'
+        + '<div class="ejar-field" data-field="submitterPhone">'
+        + '<label for="ejar-field-submitterPhone">رقم الجوال</label>'
+        + '<input class="ejar-wizard__control" id="ejar-field-submitterPhone" data-wizard-field="submitterPhone" type="tel" dir="ltr" value="' + escapeHtml(answers.submitterPhone || '') + '"' + lockedAttr('submitterPhone') + '>'
+        + '<p class="ejar-field__error" hidden></p>'
+        + '</div></div></section>';
+    }
     var details = rel === 'وكيل' || rel === 'ابن/ابنة أحد الأطراف';
     return '<section class="ejar-wizard-review is-open ejar-submitter-block">'
       + '<h3>من يقوم بتعبئة الطلب؟</h3>'
@@ -2331,6 +2753,8 @@
       close();
     });
     if (introPending) attachIntro();
+    else if (verifyPending) attachVerify();
+    else syncVerifyLock();
   }
 
   function detailsGroupHtml(group) {
@@ -2396,6 +2820,8 @@
     bindRendered();
     syncVisualViewport();
     if (introPending) attachIntro();
+    else if (verifyPending) attachVerify();
+    else syncVerifyLock();
   }
 
   function bindFollowSelects() {
@@ -2709,6 +3135,7 @@
         return answers.submitterPhone;
       }()),
       submitterRelation: answers.submitterRelation,
+      verificationId: verification && verification.id ? verification.id : '',
       declarationAccepted: true,
       website: (root.querySelector('.ejar-hp') && root.querySelector('.ejar-hp').value) || '',
     };
@@ -2825,6 +3252,10 @@
 
   function submit() {
     if (submitting) return;
+    if (verifyPending || !verification || !verification.id) {
+      requireVerifyAgain('يلزم التحقق من رقم الجوال عبر واتساب قبل إرسال الطلب');
+      return;
+    }
     submitting = true;
     var btn = root.querySelector('.ejar-wizard__next');
     var original = btn.textContent;
@@ -2851,8 +3282,16 @@
       }, 30000);
     }).then(function (result) {
       if (result.data && result.data.success) {
+        clearStoredVerification();
         resetForm();
         showSuccess(result.data.referenceNo || result.data.requestId, deedNote);
+        return;
+      }
+      if (result.status === 403 || (result.data && result.data.code === 'otp_required')) {
+        submitting = false;
+        btn.disabled = false;
+        btn.textContent = original;
+        requireVerifyAgain((result.data && result.data.message) || 'يلزم التحقق من رقم الجوال عبر واتساب');
         return;
       }
       throw new Error((result.data && result.data.message) || 'تعذر إرسال الطلب');

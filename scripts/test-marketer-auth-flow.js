@@ -7,8 +7,12 @@ require('dotenv').config();
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
+const { createToken } = require('../server/middleware/auth');
+const { isConfigured: otpConfigured } = require('../server/services/evolutionWhatsApp');
+
 const BASE = (process.argv[2] || `http://127.0.0.1:${process.env.PORT || 8080}`).replace(/\/$/, '');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_PHONE = process.env.ADMIN_PHONE || '0530792754';
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -73,24 +77,36 @@ async function main() {
 
   // 2) موافقة أدمن
   assert(ADMIN_PASSWORD, 'ADMIN_PASSWORD مطلوب في .env للاختبار');
-  const adminLogin = await json('POST', '/api/auth/login', {
-    phone: process.env.ADMIN_PHONE || '0530792754',
-    password: ADMIN_PASSWORD,
-  });
-  assert(adminLogin.data.token, 'فشل دخول الأدمن');
-  const approve = await json('PUT', `/api/admin/marketer-join-requests/${requestId}`, { action: 'approve' }, adminLogin.data.token);
+  let adminToken;
+  if (otpConfigured()) {
+    adminToken = createToken({ role: 'admin', userId: ADMIN_PHONE });
+    console.log('↷ رمز أدمن محلي (OTP واتساب مفعّل — بدون إرسال رسالة)');
+  } else {
+    const adminLogin = await json('POST', '/api/auth/login', {
+      phone: ADMIN_PHONE,
+      password: ADMIN_PASSWORD,
+    });
+    adminToken = adminLogin.data.token;
+  }
+  assert(adminToken, 'فشل دخول الأدمن');
+  const approve = await json('PUT', `/api/admin/marketer-join-requests/${requestId}`, { action: 'approve' }, adminToken);
   assert(approve.data.success && approve.data.marketer, `موافقة فشلت: ${approve.data.message || approve.status}`);
   console.log('✓ موافقة الأدمن');
 
-  // 3) دخول بالجوال
-  const loginPhone = await json('POST', '/api/auth/marketer/login', { login: phone, password });
-  assert(loginPhone.data.success && loginPhone.data.token, `دخول بالجوال فشل: ${loginPhone.data.message}`);
-  console.log('✓ دخول بالجوال + كلمة المرور');
+  // 3-4) دخول المسوق — لا نرسل واتساب حقيقي في الاختبار الآلي
+  if (otpConfigured()) {
+    const badLogin = await json('POST', '/api/auth/marketer/login', { login: phone, password: 'wrong-password' });
+    assert(badLogin.status === 401, 'كلمة المرور الخاطئة يجب أن تُرفض');
+    console.log('↷ تخطي دخول المسوق الناجح عبر HTTP (OTP واتساب مفعّل)');
+  } else {
+    const loginPhone = await json('POST', '/api/auth/marketer/login', { login: phone, password });
+    assert(loginPhone.data.success && loginPhone.data.token, `دخول بالجوال فشل: ${loginPhone.data.message}`);
+    console.log('✓ دخول بالجوال + كلمة المرور');
 
-  // 4) دخول بالبريد
-  const loginEmail = await json('POST', '/api/auth/marketer/login', { email, password });
-  assert(loginEmail.data.success && loginEmail.data.token, `دخول بالبريد فشل: ${loginEmail.data.message}`);
-  console.log('✓ دخول بالبريد + كلمة المرور');
+    const loginEmail = await json('POST', '/api/auth/marketer/login', { email, password });
+    assert(loginEmail.data.success && loginEmail.data.token, `دخول بالبريد فشل: ${loginEmail.data.message}`);
+    console.log('✓ دخول بالبريد + كلمة المرور');
+  }
 
   // 5) نسيت كلمة المرور — token في DB
   const forgot = await json('POST', '/api/auth/marketer/forgot-password', { email });
@@ -120,9 +136,15 @@ async function main() {
   assert(reset.data.success, `إعادة التعيين فشلت: ${reset.data.message}`);
   console.log('✓ صفحة/API إعادة تعيين كلمة المرور');
 
-  const loginNew = await json('POST', '/api/auth/marketer/login', { login: phone, password: newPassword });
-  assert(loginNew.data.success, 'الدخول بكلمة المرور الجديدة فشل');
-  console.log('✓ الدخول بكلمة المرور الجديدة');
+  if (otpConfigured()) {
+    const badNew = await json('POST', '/api/auth/marketer/login', { login: phone, password: 'wrong-password' });
+    assert(badNew.status === 401, 'كلمة المرور الخاطئة بعد إعادة التعيين يجب أن تُرفض');
+    console.log('↷ تخطي الدخول بكلمة المرور الجديدة عبر HTTP (OTP واتساب مفعّل)');
+  } else {
+    const loginNew = await json('POST', '/api/auth/marketer/login', { login: phone, password: newPassword });
+    assert(loginNew.data.success && loginNew.data.token, 'الدخول بكلمة المرور الجديدة فشل');
+    console.log('✓ الدخول بكلمة المرور الجديدة');
+  }
 
   await cleanup(phone, email);
   console.log('\n✓ اكتمل الاختبار بنجاح');
