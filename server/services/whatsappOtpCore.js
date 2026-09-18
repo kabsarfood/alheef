@@ -70,7 +70,20 @@ function allowSend(phone, purpose, ip) {
   return true;
 }
 
+/** سطر WebOTP — يساعد المتصفح على الجوال بتعبئة الرمز تلقائيًا عند الدعم */
+function otpAutofillLine(code) {
+  try {
+    const site = (process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.alheef.website').trim();
+    const host = new URL(site).hostname;
+    if (!host) return '';
+    return `\n@${host} #${code}`;
+  } catch {
+    return `\n@www.alheef.website #${code}`;
+  }
+}
+
 function buildMessage(purpose, code) {
+  const autofill = otpAutofillLine(code);
   if (purpose === 'ejar') {
     return [
       'الهيف العقارية',
@@ -80,7 +93,8 @@ function buildMessage(purpose, code) {
       '',
       'صالح لمدة 5 دقائق.',
       'لا تشارك هذا الرمز مع أي شخص.',
-    ].join('\n');
+      autofill,
+    ].filter(Boolean).join('\n');
   }
   if (purpose === 'private_offer') {
     return [
@@ -91,15 +105,19 @@ function buildMessage(purpose, code) {
       '',
       'صالح لمدة 5 دقائق.',
       'لا تشارك هذا الرمز مع أي شخص.',
-    ].join('\n');
+      autofill,
+    ].filter(Boolean).join('\n');
   }
   return [
-    'رمز التحقق للدخول إلى منصة الهيف:',
+    'الهيف العقارية',
+    '',
+    'رمز التحقق للدخول إلى لوحة التحكم:',
     String(code),
     '',
     'صالح لمدة 5 دقائق.',
     'لا تشارك هذا الرمز مع أي شخص.',
-  ].join('\n');
+    autofill,
+  ].filter(Boolean).join('\n');
 }
 
 function resendCooldownMs(purpose) {

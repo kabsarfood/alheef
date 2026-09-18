@@ -20,11 +20,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const otpError = document.getElementById('otp-error');
   const btn = document.getElementById('login-btn');
   const otpBtn = document.getElementById('otp-btn');
+  const otpCodeInput = document.getElementById('otp-code');
+  const otpPhoneDisplay = document.getElementById('otp-phone-display');
   const passwordGroup = document.getElementById('password-group');
   const passwordInput = document.getElementById('password');
   const togglePasswordBtn = document.getElementById('toggle-password-login');
   let challengeId = '';
   let passwordMode = false;
+  let lastPhone = '';
+  let otpAbort = null;
+  let verifying = false;
 
   function showError(el, message) {
     if (!el) return;
@@ -32,32 +37,110 @@ document.addEventListener('DOMContentLoaded', async () => {
     el.hidden = !message;
   }
 
+  function stopOtpAutofill() {
+    if (otpAbort) {
+      try {
+        otpAbort.abort();
+      } catch {
+        /* ignore */
+      }
+      otpAbort = null;
+    }
+  }
+
+  /** WebOTP / لوحة مفاتيح الجوال — يملأ الرمز تلقائيًا إن دعمه المتصفح */
+  function startOtpAutofill() {
+    stopOtpAutofill();
+    if (!otpCodeInput) return;
+
+    if ('OTPCredential' in window && navigator.credentials?.get) {
+      otpAbort = new AbortController();
+      navigator.credentials
+        .get({
+          otp: { transport: ['sms'] },
+          signal: otpAbort.signal,
+        })
+        .then((cred) => {
+          const code = String(cred?.code || '').replace(/\D/g, '').slice(0, 6);
+          if (code.length === 6) {
+            otpCodeInput.value = code;
+            otpForm?.requestSubmit();
+          }
+        })
+        .catch(() => {
+          /* المستخدم أغلق الاقتراح أو غير مدعوم */
+        });
+    }
+  }
+
+  async function verifyOtpCode(code) {
+    const cleaned = String(code || '').replace(/\D/g, '').slice(0, 6);
+    if (!challengeId || cleaned.length !== 6 || verifying) return;
+    verifying = true;
+    showError(otpError, '');
+    otpBtn.disabled = true;
+    otpBtn.textContent = 'جاري التحقق...';
+    stopOtpAutofill();
+    try {
+      const res = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId, code: cleaned }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.token) throw new Error(data.message || 'رمز التحقق غير صحيح');
+      if (data.role !== 'admin') throw new Error('غير مصرح بالدخول إلى لوحة التحكم');
+      Auth.setSession(data.token, data.phone);
+      window.location.replace(loginRedirect());
+    } catch (err) {
+      showError(otpError, err.message);
+      otpBtn.disabled = false;
+      otpBtn.textContent = 'تأكيد الدخول';
+      verifying = false;
+      startOtpAutofill();
+    }
+  }
+
   function showOtpStep(id, message) {
     challengeId = id;
+    verifying = false;
     form.hidden = true;
     otpForm.hidden = false;
     showError(otpError, '');
-    if (message) showError(otpError, message);
-    document.getElementById('otp-code').value = '';
-    document.getElementById('otp-code').focus();
+    if (message && !/أُرسل|أرسل|واتساب|تحقق/i.test(message)) {
+      showError(otpError, message);
+    }
+    if (otpPhoneDisplay) {
+      otpPhoneDisplay.textContent = lastPhone ? `واتساب: ${lastPhone}` : '';
+      otpPhoneDisplay.hidden = !lastPhone;
+    }
+    otpCodeInput.value = '';
+    otpBtn.disabled = false;
+    otpBtn.textContent = 'تأكيد الدخول';
+    otpCodeInput.focus({ preventScroll: false });
+    startOtpAutofill();
   }
 
   function showLoginStep() {
+    stopOtpAutofill();
     challengeId = '';
+    verifying = false;
     otpForm.hidden = true;
     form.hidden = false;
     showError(otpError, '');
     btn.disabled = false;
-    btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
+    btn.textContent = passwordMode ? 'دخول' : 'طلب رمز التحقق';
   }
 
   function setPasswordMode(on) {
     passwordMode = !!on;
     if (passwordGroup) passwordGroup.hidden = !passwordMode;
     if (passwordInput) passwordInput.required = passwordMode;
-    btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
+    btn.textContent = passwordMode ? 'دخول' : 'طلب رمز التحقق';
     if (togglePasswordBtn) {
-      togglePasswordBtn.textContent = passwordMode ? 'دخول عبر واتساب' : 'دخول بكلمة المرور';
+      togglePasswordBtn.textContent = passwordMode
+        ? 'العودة لدخول واتساب'
+        : 'دخول بكلمة المرور (طوارئ)';
     }
   }
 
@@ -66,11 +149,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     showError(errorEl, '');
   });
 
+  otpCodeInput?.addEventListener('input', () => {
+    const cleaned = otpCodeInput.value.replace(/\D/g, '').slice(0, 6);
+    if (otpCodeInput.value !== cleaned) otpCodeInput.value = cleaned;
+    if (cleaned.length === 6) verifyOtpCode(cleaned);
+  });
+
+  // اقتراح لوحة المفاتيح / لصق من واتساب
+  otpCodeInput?.addEventListener('change', () => {
+    const cleaned = otpCodeInput.value.replace(/\D/g, '').slice(0, 6);
+    if (cleaned.length === 6) verifyOtpCode(cleaned);
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     showError(errorEl, '');
     btn.disabled = true;
     const phone = document.getElementById('phone').value.trim();
+    lastPhone = phone;
 
     try {
       if (!passwordMode) {
@@ -86,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         showOtpStep(data.challengeId, data.message);
         btn.disabled = false;
-        btn.textContent = 'إرسال رمز واتساب';
+        btn.textContent = 'طلب رمز التحقق';
         return;
       }
 
@@ -117,34 +213,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       showError(errorEl, err.message || 'تعذر تسجيل الدخول');
       btn.disabled = false;
-      btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
+      btn.textContent = passwordMode ? 'دخول' : 'طلب رمز التحقق';
     }
   });
 
   otpForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    showError(otpError, '');
-    otpBtn.disabled = true;
-    otpBtn.textContent = 'جاري التحقق...';
-    try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId,
-          code: document.getElementById('otp-code').value.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.token) throw new Error(data.message || 'رمز التحقق غير صحيح');
-      if (data.role !== 'admin') throw new Error('غير مصرح بالدخول إلى لوحة التحكم');
-      Auth.setSession(data.token, data.phone);
-      window.location.replace(loginRedirect());
-    } catch (err) {
-      showError(otpError, err.message);
-      otpBtn.disabled = false;
-      otpBtn.textContent = 'تأكيد الرمز';
-    }
+    await verifyOtpCode(otpCodeInput.value);
   });
 
   document.getElementById('otp-resend')?.addEventListener('click', async () => {
@@ -158,7 +233,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
       if (data.challengeId) challengeId = data.challengeId;
-      showError(otpError, data.message || 'تم إعادة إرسال الرمز');
+      otpCodeInput.value = '';
+      startOtpAutofill();
+      showError(otpError, data.message || 'تم إعادة إرسال الرمز إلى واتساب');
+      otpCodeInput.focus();
     } catch (err) {
       showError(otpError, err.message);
     }
