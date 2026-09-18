@@ -83,7 +83,7 @@ router.post('/otp/start', async (req, res) => {
     if (!otpService.isEnabled()) {
       return res.status(503).json({
         success: false,
-        message: 'خدمة التحقق عبر واتساب غير مهيأة — استخدم الدخول بكلمة المرور مؤقتاً',
+        message: 'خدمة التحقق عبر واتساب غير مهيأة حاليًا — حاول لاحقًا',
       });
     }
     const phone = String(req.body.phone || req.body.login || '').trim();
