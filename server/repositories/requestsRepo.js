@@ -130,6 +130,12 @@ async function createEjarContract(data) {
     try {
       const created = await insertRequest(row);
       if (!created.referenceNo) created.referenceNo = referenceNo;
+      try {
+        const contactsRepo = require('./contactsRepo');
+        await contactsRepo.ingestEjarContractParties(payload, created.id);
+      } catch (contactErr) {
+        console.warn('[contacts] ejar ingest:', contactErr.message);
+      }
       return created;
     } catch (err) {
       lastError = err;

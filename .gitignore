@@ -6,3 +6,6 @@ data/*
 .env
 .DS_Store
 *.log
+tmp-admin-otp-challenge.json
+tmp-ejar-shots/
+tmp-ejar-cards/

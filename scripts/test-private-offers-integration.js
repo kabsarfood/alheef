@@ -112,16 +112,30 @@ async function main() {
     sortOrder: 1,
   }, true);
 
-  const verifyRes = await fetch(`${BASE}/api/private-offers/verify`, {
+  const verifyGone = await fetch(`${BASE}/api/private-offers/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slug, code }),
   });
-  const verifyData = await verifyRes.json();
-  if (!verifyRes.ok) throw new Error(verifyData.message || 'فشل التحقق من الرمز');
+  if (verifyGone.status !== 410) {
+    throw new Error('مسار رمز الدخول القديم يجب أن يعيد 410');
+  }
+
+  // دخول العرض بعد OTP موحّد — في التكامل نحاكي جلسة private_viewer بعد نجاح التحقق
+  const accessMeta = await fetch(`${BASE}/api/admin/private-offers/access`, { headers }).then((r) => r.json());
+  const { createPrivateViewerToken } = require('../server/middleware/auth');
+  let viewerClientId = accessMeta.access?.id || accessMeta.client?.id;
+  if (!viewerClientId) {
+    const clientsRes = await fetch(`${BASE}/api/admin/private-clients`, { headers });
+    const clientsData = await clientsRes.json().catch(() => ({}));
+    const client = (clientsData.clients || []).find((c) => c.pageSlug === slug || c.slug === slug);
+    if (!client?.id) throw new Error('تعذر إيجاد معرف عميل العروض الخاصة');
+    viewerClientId = client.id;
+  }
+  const viewerToken = createPrivateViewerToken(viewerClientId);
 
   const listRes = await fetch(`${BASE}/api/private-offers`, {
-    headers: { Authorization: `Bearer ${verifyData.token}` },
+    headers: { Authorization: `Bearer ${viewerToken}` },
   });
   const listData = await listRes.json();
   const offers = listData.offers || [];
@@ -138,11 +152,11 @@ async function main() {
     ['موقع معطّل', !foundNoLoc?.location && foundNoLoc?.showLocation === false],
     ['رابط /v/', shareUrl.includes('/v/')],
     ['صفحة العميل', (await fetch(shareUrl.replace('https://www.alheef.website', BASE))).ok],
+    ['رمز الدخول القديم متوقف (410)', verifyGone.status === 410],
   ];
 
   console.log('\n=== اختبار تكامل العروض الخاصة ===\n');
   console.log('رابط المشاركة:', shareUrl);
-  console.log('رمز الدخول (اختبار):', code);
   console.log('رقم العرض الكامل:', full.offerNumber);
   checks.forEach(([label, ok]) => console.log(`${ok ? '✓' : '✗'} ${label}`));
 

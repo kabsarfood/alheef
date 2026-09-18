@@ -1,35 +1,28 @@
 const express = require('express');
-const { createToken, verifyToken, checkPassword, parseToken } = require('../middleware/auth');
+const { createToken, checkPassword, parseToken, revokeToken, extractBearerToken } = require('../middleware/auth');
+const { getAdminPhoneRaw } = require('../lib/authConfig');
+const { createRateLimiter } = require('../utils/rateLimit');
 const marketersRepo = require('../repositories/marketersRepo');
 const passwordResetRepo = require('../repositories/passwordResetRepo');
 const otpService = require('../services/otpService');
+const appUsersRepo = require('../repositories/appUsersRepo');
 const { sendPasswordResetEmail, buildResetUrl } = require('../services/emailService');
 const { normalizeEmail, isValidEmail } = require('../utils/email');
+const { isValidSaudiMobile, normalizeAccountPhone } = require('../utils/phone');
 
 const { normalizePhone } = require('../utils/marketerZones');
 
 const router = express.Router();
 
-const otpIpMap = new Map();
-
-function otpClientKey(req) {
-  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.ip || req.socket?.remoteAddress || 'unknown';
-}
+const LOGIN_RATE_MSG = 'محاولات كثيرة — حاول مرة أخرى بعد ربع ساعة';
+const loginRate = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+const setupPasswordRate = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+const forgotPasswordRate = createRateLimiter({ max: 8, windowMs: 15 * 60 * 1000 });
+const otpIpRate = createRateLimiter({ max: 20, windowMs: 15 * 60 * 1000 });
+const otpStartRate = createRateLimiter({ max: 8, windowMs: 15 * 60 * 1000 });
 
 function allowOtpIp(req) {
-  const key = otpClientKey(req);
-  const now = Date.now();
-  let entry = otpIpMap.get(key);
-  if (!entry || now > entry.reset) entry = { count: 0, reset: now + 15 * 60 * 1000 };
-  entry.count += 1;
-  otpIpMap.set(key, entry);
-  if (otpIpMap.size > 5000) {
-    for (const [k, v] of otpIpMap) {
-      if (now > v.reset) otpIpMap.delete(k);
-    }
-  }
-  return entry.count <= 20;
+  return otpIpRate.allowRequest(req);
 }
 
 async function startOtpChallenge(res, { purpose, phone, marketerId, userId, pendingMessage }) {
@@ -50,18 +43,83 @@ async function startOtpChallenge(res, { purpose, phone, marketerId, userId, pend
 }
 
 const FORGOT_MSG = 'إذا كان البريد مسجّلاً ومعتمداً، سيصلك رابط إعادة تعيين كلمة المرور خلال دقائق.';
+const ADMIN_DENY = 'غير مصرح بالدخول إلى لوحة التحكم';
 
 function allowedAdminPhone() {
-  return normalizePhone(process.env.ADMIN_PHONE || '0530792754');
+  const raw = getAdminPhoneRaw();
+  return raw ? normalizePhone(raw) : '';
 }
 
 function isAllowedAdminPhone(phone) {
-  return normalizePhone(phone) === allowedAdminPhone();
+  const allowed = allowedAdminPhone();
+  if (!allowed) return false;
+  return normalizePhone(phone) === allowed;
 }
 
+/** أدمن = ADMIN_PHONE من env أو دور admin في app_users (ليس إثبات OTP وحده) */
+async function isAuthorizedAdminPhone(phone) {
+  const normalized = normalizeAccountPhone(phone) || normalizePhone(phone);
+  if (!normalized) return false;
+  if (isAllowedAdminPhone(normalized)) return true;
+  try {
+    const user = await appUsersRepo.findByPhone(normalized);
+    if (!user) return false;
+    const roles = await appUsersRepo.getRoles(user.id);
+    return Array.isArray(roles) && roles.includes('admin');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * بدء OTP للأدمن بالجوال فقط (بدون كلمة مرور).
+ * كلمة المرور تبقى متاحة عبر POST /login كـ fallback.
+ */
+router.post('/otp/start', async (req, res) => {
+  try {
+    if (!otpStartRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+    }
+    if (!otpService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        message: 'خدمة التحقق عبر واتساب غير مهيأة — استخدم الدخول بكلمة المرور مؤقتاً',
+      });
+    }
+    const phone = String(req.body.phone || req.body.login || '').trim();
+    if (!phone || !isValidSaudiMobile(phone)) {
+      return res.status(400).json({ success: false, message: 'أدخل رقم جوال سعودي صحيح' });
+    }
+
+    const authorized = await isAuthorizedAdminPhone(phone);
+    if (!authorized) {
+      // لا نكشف إن الرقم أدمن أم لا
+      return res.status(401).json({ success: false, message: ADMIN_DENY });
+    }
+
+    const adminPhone = normalizeAccountPhone(phone);
+    return startOtpChallenge(res, {
+      purpose: 'admin',
+      phone: adminPhone,
+      userId: adminPhone,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر إرسال رمز التحقق' });
+  }
+});
+
 router.post('/login', async (req, res) => {
+  if (!loginRate.allowRequest(req)) {
+    return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+  }
   const phone = req.body.phone || req.body.login;
   const { password } = req.body;
+  if (!allowedAdminPhone()) {
+    return res.status(503).json({
+      success: false,
+      message: 'دخول الإدارة غير مفعّل — عرّف ADMIN_PHONE في المتغيرات',
+    });
+  }
   if (!phone) {
     return res.status(400).json({ success: false, message: 'يرجى إدخال رقم الجوال' });
   }
@@ -94,6 +152,9 @@ router.post('/login', async (req, res) => {
 
 router.post('/marketer/login', async (req, res) => {
   try {
+    if (!loginRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+    }
     const login = req.body.login || req.body.phone || req.body.email;
     const { password } = req.body;
     if (!login) {
@@ -139,6 +200,9 @@ router.post('/marketer/login', async (req, res) => {
 
 router.post('/marketer/setup-password', async (req, res) => {
   try {
+    if (!setupPasswordRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+    }
     const { phone, nationalId, password, confirmPassword } = req.body;
     if (!phone || !nationalId || !password) {
       return res.status(400).json({ success: false, message: 'أكمل جميع الحقول' });
@@ -174,6 +238,9 @@ router.post('/marketer/setup-password', async (req, res) => {
 
 router.post('/marketer/forgot-password', async (req, res) => {
   try {
+    if (!forgotPasswordRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+    }
     const email = normalizeEmail(req.body.email);
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ success: false, message: 'أدخل بريداً إلكترونياً صالحاً' });
@@ -233,7 +300,23 @@ router.post('/otp/verify', async (req, res) => {
       const status = result.reason === 'bad_code' ? 401 : 400;
       return res.status(status).json({ success: false, message: otpService.otpErrorMessage(result.reason) });
     }
+
+    // إنشاء/تحديث app_users بعد نجاح OTP فقط (لا يُمنح admin تلقائياً)
     if (result.purpose === 'admin') {
+      const allowed = await isAuthorizedAdminPhone(result.phone);
+      if (!allowed) {
+        return res.status(401).json({ success: false, message: ADMIN_DENY });
+      }
+      try {
+        await appUsersRepo.ensureUserAfterOtpVerify({
+          phone: result.phone,
+          ensureRoles: ['admin'],
+          defaultRole: 'admin',
+          createIfMissing: true,
+        });
+      } catch (err) {
+        console.warn('[auth] app_users after otp:', err.message);
+      }
       const token = createToken({ role: 'admin', userId: result.userId || result.phone });
       return res.json({
         success: true,
@@ -244,6 +327,16 @@ router.post('/otp/verify', async (req, res) => {
       });
     }
     if (result.purpose === 'marketer') {
+      try {
+        await appUsersRepo.ensureUserAfterOtpVerify({
+          phone: result.phone,
+          ensureRoles: ['marketer'],
+          defaultRole: 'marketer',
+          createIfMissing: true,
+        });
+      } catch (err) {
+        console.warn('[auth] app_users after otp:', err.message);
+      }
       const marketer = await marketersRepo.getById(result.marketerId);
       if (!marketer || marketer.status !== 'active') {
         return res.status(401).json({ success: false, message: 'الحساب غير متاح' });
@@ -289,7 +382,7 @@ router.post('/otp/resend', async (req, res) => {
 
 router.get('/verify', (req, res) => {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : req.query.token;
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   const payload = parseToken(token);
   if (!payload) {
     return res.status(401).json({ success: false, authenticated: false });
@@ -299,11 +392,13 @@ router.get('/verify', (req, res) => {
     authenticated: true,
     role: payload.role,
     marketerId: payload.marketerId || null,
-    adminPhone: payload.role === 'admin' ? (payload.userId || allowedAdminPhone()) : null,
+    adminPhone: payload.role === 'admin' ? (payload.userId || allowedAdminPhone() || null) : null,
   });
 });
 
-router.post('/logout', (_req, res) => {
+router.post('/logout', (req, res) => {
+  const token = extractBearerToken(req);
+  if (token) revokeToken(token);
   res.json({ success: true, message: 'تم تسجيل الخروج' });
 });
 

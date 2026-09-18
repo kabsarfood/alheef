@@ -28,17 +28,12 @@ const PROPERTY_STATUS_LABELS = {
 
 const PUBLIC_STATUSES = ['published', 'approved_published'];
 
+const {
+  normalizePhone,
+} = require('./phone');
+
 function zoneLabel(key) {
   return MARKETING_ZONES[key] || key || '—';
-}
-
-function normalizePhone(phone) {
-  let p = String(phone || '').replace(/\D/g, '');
-  if (p.startsWith('966')) p = p.slice(3);
-  if (p.startsWith('0')) p = p.slice(1);
-  if (p.length === 9 && p.startsWith('5')) return `0${p}`;
-  if (p.length === 10 && p.startsWith('05')) return p;
-  return String(phone || '').trim();
 }
 
 module.exports = {

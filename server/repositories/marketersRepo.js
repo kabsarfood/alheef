@@ -76,6 +76,18 @@ async function createFromJoinRequest(request) {
     }
     throw new Error(error.message);
   }
+  try {
+    const contactsRepo = require('./contactsRepo');
+    await contactsRepo.upsertContact({
+      phone: row.phone,
+      name: row.full_name,
+      businessRole: 'marketer',
+      source: 'marketer',
+      sourceRef: data.id,
+    });
+  } catch (err) {
+    console.warn('[contacts] marketer create:', err.message);
+  }
   return data;
 }
 

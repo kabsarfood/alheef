@@ -103,7 +103,12 @@
   const gateForm = document.getElementById('gate-form');
   const gateError = document.getElementById('gate-error');
   const offersContainer = document.getElementById('offers-container');
-  const accessCodeInput = document.getElementById('access-code');
+  const gatePhoneInput = document.getElementById('gate-phone');
+  const gateOtpInput = document.getElementById('gate-otp');
+  const gateStepPhone = document.getElementById('gate-step-phone');
+  const gateStepOtp = document.getElementById('gate-step-otp');
+  const gateResendBtn = document.getElementById('gate-resend-btn');
+  const gateBackBtn = document.getElementById('gate-back-btn');
   const typeTabsEl = document.getElementById('type-tabs');
   const typeFiltersEl = document.getElementById('type-filters');
   const searchInput = document.getElementById('offers-search');
@@ -117,6 +122,8 @@
   let filterState = { type: '', listing: '', q: '', area: '', price: '' };
   let lightboxState = { images: [], index: 0 };
   let pdfBusy = false;
+  let otpChallengeId = '';
+  let otpPhone = '';
 
   if (!slug) {
     document.body.innerHTML = '<p style="text-align:center;padding:3rem;font-family:Cairo,sans-serif">الرابط غير صالح</p>';
@@ -201,22 +208,32 @@
     });
   }
 
-  function readCodeFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    return (params.get('code') || params.get('c') || '').trim();
+  function showGatePhoneStep() {
+    otpChallengeId = '';
+    if (gateStepPhone) gateStepPhone.hidden = false;
+    if (gateStepOtp) gateStepOtp.hidden = true;
+    if (gatePhoneInput) {
+      gatePhoneInput.required = true;
+      gatePhoneInput.focus();
+    }
+    if (gateOtpInput) {
+      gateOtpInput.required = false;
+      gateOtpInput.value = '';
+    }
   }
 
-  function prefillCodeFromUrl() {
-    const code = readCodeFromUrl();
-    if (code && accessCodeInput) {
-      accessCodeInput.value = code;
-      accessCodeInput.focus();
+  function showGateOtpStep() {
+    if (gateStepPhone) gateStepPhone.hidden = true;
+    if (gateStepOtp) gateStepOtp.hidden = false;
+    if (gatePhoneInput) gatePhoneInput.required = false;
+    if (gateOtpInput) {
+      gateOtpInput.required = true;
+      gateOtpInput.focus();
     }
-    return code;
   }
 
   showGate();
-  prefillCodeFromUrl();
+  showGatePhoneStep();
 
   async function checkSession() {
     const token = getToken();
@@ -226,15 +243,38 @@
     return data.authenticated;
   }
 
-  async function verifyCode(code) {
-    const res = await fetch('/api/private-offers/verify', {
+  async function sendOtp(phone) {
+    const res = await fetch('/api/private-offers/otp/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, code }),
+      body: JSON.stringify({ slug, phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'تعذر إرسال الرمز');
+    otpChallengeId = data.challengeId;
+    otpPhone = phone;
+  }
+
+  async function verifyOtp(code) {
+    const res = await fetch('/api/private-offers/otp/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, challengeId: otpChallengeId, code }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'رمز غير صحيح');
     setToken(data.token);
+  }
+
+  async function resendOtp() {
+    const res = await fetch('/api/private-offers/otp/resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challengeId: otpChallengeId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
+    otpChallengeId = data.challengeId || otpChallengeId;
   }
 
   function offerImages(o) {
@@ -877,16 +917,43 @@
   gateForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     gateError.hidden = true;
-    const code = document.getElementById('access-code').value.trim();
     try {
-      await verifyCode(code);
-      showOffers();
-      await loadOffers();
+      if (!otpChallengeId) {
+        const phone = (gatePhoneInput && gatePhoneInput.value || '').trim();
+        await sendOtp(phone);
+        showGateOtpStep();
+      } else {
+        const code = (gateOtpInput && gateOtpInput.value || '').trim();
+        await verifyOtp(code);
+        showOffers();
+        await loadOffers();
+      }
     } catch (err) {
       gateError.textContent = err.message;
       gateError.hidden = false;
     }
   });
+
+  if (gateResendBtn) {
+    gateResendBtn.addEventListener('click', async () => {
+      gateError.hidden = true;
+      try {
+        await resendOtp();
+        gateError.textContent = 'تم إعادة إرسال الرمز';
+        gateError.hidden = false;
+      } catch (err) {
+        gateError.textContent = err.message;
+        gateError.hidden = false;
+      }
+    });
+  }
+
+  if (gateBackBtn) {
+    gateBackBtn.addEventListener('click', () => {
+      gateError.hidden = true;
+      showGatePhoneStep();
+    });
+  }
 
   bindToolbarEvents();
 
@@ -897,7 +964,7 @@
       await loadOffers();
     } else {
       showGate();
-      prefillCodeFromUrl();
+      showGatePhoneStep();
     }
   })();
 })();

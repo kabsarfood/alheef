@@ -176,6 +176,17 @@ router.post('/otp/verify', (req, res) => {
       attemptsLeft: result.attemptsLeft,
     });
   }
+
+  // حساب client بعد نجاح OTP فقط — إثبات الجوال ≠ صلاحية أدمن
+  const appUsersRepo = require('../repositories/appUsersRepo');
+  Promise.resolve()
+    .then(() => appUsersRepo.ensureUserAfterOtpVerify({
+      phone: result.session.phone,
+      defaultRole: 'client',
+      createIfMissing: true,
+    }))
+    .catch((err) => console.warn('[ejar] app_users after otp:', err.message));
+
   res.json({
     success: true,
     verificationId: result.session.id,

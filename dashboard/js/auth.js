@@ -88,6 +88,13 @@ const Auth = {
   },
 
   logout() {
+    const token = this.getToken();
+    if (token) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
     this.clearToken();
     window.location.replace(this.LOGIN_PATH);
   },

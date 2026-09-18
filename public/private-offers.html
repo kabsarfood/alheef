@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=6">
   <meta property="og:type" content="website">
   <meta property="og:title" content="_ أهلاً بكم _">
-  <meta property="og:description" content="العروض الخاصة — أدخل رمز الدخول">
+  <meta property="og:description" content="العروض الخاصة — تحقق عبر واتساب">
   <meta property="og:image" content="/assets/app-icon.png?v=6">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="_ أهلاً بكم _">
@@ -20,7 +20,7 @@
   <title>عروض خاصة</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/private-offers.css?v=12">
+  <link rel="stylesheet" href="/css/private-offers.css?v=13">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="private-page">
@@ -33,11 +33,20 @@
       <img src="/assets/app-icon.png?v=6" alt="" class="private-brand__icon" width="88" height="88">
       <p class="private-brand__welcome">_ أهلاً بكم _</p>
       <h1>العروض الخاصة</h1>
-      <p>هذه الصفحة خاصة. أدخل رمز الدخول الذي استلمته من فريقنا.</p>
+      <p>هذه الصفحة خاصة. أدخل رقم جوالك المرتبط بهذا الرابط، ثم رمز التحقق المرسل عبر واتساب.</p>
       <form id="gate-form">
-        <label for="access-code">رمز الدخول</label>
-        <input id="access-code" name="code" type="text" autocomplete="off" required placeholder="أدخل الرمز">
-        <button type="submit" class="btn btn-gold btn-block">دخول</button>
+        <div id="gate-step-phone">
+          <label for="gate-phone">رقم الجوال</label>
+          <input id="gate-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="05XXXXXXXX">
+          <button type="submit" class="btn btn-gold btn-block" id="gate-send-btn">إرسال رمز التحقق</button>
+        </div>
+        <div id="gate-step-otp" hidden>
+          <label for="gate-otp">رمز التحقق</label>
+          <input id="gate-otp" name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6 أرقام">
+          <button type="submit" class="btn btn-gold btn-block" id="gate-verify-btn">تأكيد الدخول</button>
+          <button type="button" class="btn btn-block" id="gate-resend-btn" style="margin-top:0.5rem">إعادة إرسال الرمز</button>
+          <button type="button" class="btn btn-block" id="gate-back-btn" style="margin-top:0.35rem">تغيير الرقم</button>
+        </div>
         <p id="gate-error" class="private-gate__error" hidden></p>
       </form>
     </div>
@@ -84,6 +93,6 @@
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="/js/private-offers.js?v=16"></script>
+  <script src="/js/private-offers.js?v=17"></script>
 </body>
 </html>

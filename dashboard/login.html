@@ -34,11 +34,12 @@
         <label for="phone">رقم الجوال</label>
         <input type="tel" id="phone" name="phone" placeholder="05xxxxxxxx" dir="ltr" required autocomplete="username" inputmode="tel">
       </div>
-      <div class="form-group">
-        <label for="password">الرقم السري</label>
-        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      <div class="form-group" id="password-group" hidden>
+        <label for="password">الرقم السري (احتياطي)</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password">
       </div>
-      <button type="submit" class="btn btn-gold login-form__submit" id="login-btn">دخول</button>
+      <button type="submit" class="btn btn-gold login-form__submit" id="login-btn">إرسال رمز واتساب</button>
+      <button type="button" class="btn btn-outline login-form__submit" id="toggle-password-login" style="margin-top:0.5rem">دخول بكلمة المرور</button>
     </form>
     <form id="otp-form" class="login-form" hidden>
       <div id="otp-error" class="login-error" hidden></div>
@@ -55,8 +56,8 @@
     </form>
     <a href="/" class="login-card__back">← العودة للموقع</a>
   </div>
-  <script src="/dashboard/js/auth.js?v=2"></script>
-  <script src="/dashboard/js/login.js?v=3"></script>
+  <script src="/dashboard/js/auth.js?v=3"></script>
+  <script src="/dashboard/js/login.js?v=4"></script>
   <script src="/js/pwa.js" defer></script>
 </body>
 </html>

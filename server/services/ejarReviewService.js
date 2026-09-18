@@ -26,13 +26,7 @@ function buildWhatsAppMessage(reviewUrl) {
   ].join('\n');
 }
 
-function toWhatsAppNumber(phone) {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (/^9665\d{8}$/.test(digits)) return digits;
-  if (/^05\d{8}$/.test(digits)) return `966${digits.slice(1)}`;
-  if (/^5\d{8}$/.test(digits)) return `966${digits}`;
-  return '';
-}
+const { toWhatsAppNumber } = require('../utils/phone');
 
 function customerPhoneFromRequest(request) {
   const meta = parseEjarRequestMessage(request?.message);

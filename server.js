@@ -81,7 +81,16 @@ const marketerDir = path.join(ROOT, 'marketer');
 const { getAppBuild } = require('./server/utils/appBuild');
 const { PRIVATE_PAGE_RE } = require('./server/utils/privateOffersPath');
 
-console.log('STEP 5 — Supabase');
+console.log('STEP 5 — التحقق من أسرار الدخول');
+try {
+  const { validateAuthConfig } = require('./server/lib/authConfig');
+  validateAuthConfig({ exitProcess: true });
+} catch (err) {
+  console.error('[Auth] فشل التحقق من الإعداد:', err.message);
+  process.exit(1);
+}
+
+console.log('STEP 6 — Supabase');
 console.log('  PORT:', PORT);
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
 const supabaseReady = initSupabase();
@@ -106,7 +115,7 @@ if (supabaseReady) {
   console.warn('  ⚠ بدون Supabase: النماذج والعروض من الداشبورد لن تُحفظ في القاعدة');
 }
 
-console.log('STEP 6 — إعداد middleware');
+console.log('STEP 7 — إعداد middleware');
 
 // إعادة توجيه النطاق بدون www → www (بعد ربط DNS للنطاقين على نفس الخادم)
 app.use((req, res, next) => {
@@ -193,7 +202,7 @@ if (fs.existsSync(publicDir)) {
   console.warn('  تحذير: مجلد public غير موجود');
 }
 
-console.log('STEP 7 — ربط API');
+console.log('STEP 8 — ربط API');
 
 app.get('/health/ready', async (_req, res) => {
   const supabase = await pingSupabase();
@@ -329,7 +338,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
 });
 
-console.log('STEP 8 — SERVER STARTING...');
+console.log('STEP 9 — SERVER STARTING...');
 
 app.listen(PORT, HOST, () => {
   console.log(`الهيف — الخادم يعمل على المنفذ ${PORT}`);

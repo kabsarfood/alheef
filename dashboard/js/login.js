@@ -20,7 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const otpError = document.getElementById('otp-error');
   const btn = document.getElementById('login-btn');
   const otpBtn = document.getElementById('otp-btn');
+  const passwordGroup = document.getElementById('password-group');
+  const passwordInput = document.getElementById('password');
+  const togglePasswordBtn = document.getElementById('toggle-password-login');
   let challengeId = '';
+  let passwordMode = false;
 
   function showError(el, message) {
     if (!el) return;
@@ -44,22 +48,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     form.hidden = false;
     showError(otpError, '');
     btn.disabled = false;
-    btn.textContent = 'دخول';
+    btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
   }
+
+  function setPasswordMode(on) {
+    passwordMode = !!on;
+    if (passwordGroup) passwordGroup.hidden = !passwordMode;
+    if (passwordInput) passwordInput.required = passwordMode;
+    btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
+    if (togglePasswordBtn) {
+      togglePasswordBtn.textContent = passwordMode ? 'دخول عبر واتساب' : 'دخول بكلمة المرور';
+    }
+  }
+
+  togglePasswordBtn?.addEventListener('click', () => {
+    setPasswordMode(!passwordMode);
+    showError(errorEl, '');
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     showError(errorEl, '');
     btn.disabled = true;
-    btn.textContent = 'جاري الدخول...';
+    const phone = document.getElementById('phone').value.trim();
 
     try {
+      if (!passwordMode) {
+        btn.textContent = 'جاري الإرسال...';
+        const res = await fetch('/api/auth/otp/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.challengeId) {
+          throw new Error(data.message || 'تعذر إرسال رمز التحقق');
+        }
+        showOtpStep(data.challengeId, data.message);
+        btn.disabled = false;
+        btn.textContent = 'إرسال رمز واتساب';
+        return;
+      }
+
+      btn.textContent = 'جاري الدخول...';
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: document.getElementById('phone').value.trim(),
-          password: document.getElementById('password').value,
+          phone,
+          password: passwordInput.value,
         }),
       });
       const data = await res.json();
@@ -78,9 +115,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       Auth.setSession(data.token, data.phone);
       window.location.replace(loginRedirect());
     } catch (err) {
-      showError(errorEl, err.message || 'كلمة المرور غير صحيحة');
+      showError(errorEl, err.message || 'تعذر تسجيل الدخول');
       btn.disabled = false;
-      btn.textContent = 'دخول';
+      btn.textContent = passwordMode ? 'دخول' : 'إرسال رمز واتساب';
     }
   });
 
@@ -100,6 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error(data.message || 'رمز التحقق غير صحيح');
+      if (data.role !== 'admin') throw new Error('غير مصرح بالدخول إلى لوحة التحكم');
       Auth.setSession(data.token, data.phone);
       window.location.replace(loginRedirect());
     } catch (err) {
@@ -127,4 +165,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('otp-back')?.addEventListener('click', showLoginStep);
+  setPasswordMode(false);
 });

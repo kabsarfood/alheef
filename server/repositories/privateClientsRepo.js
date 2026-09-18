@@ -3,6 +3,7 @@ const { getAdmin, isEnabled } = require('../lib/supabase');
 const { rowToPrivateClient } = require('../services/mappers');
 const { hashPassword } = require('../utils/password');
 const { generatePrivateSlug } = require('../utils/privateOffersPath');
+const { normalizeAccountPhone } = require('../utils/phone');
 
 const SETTINGS_TABLE = 'private_offers_settings';
 const CLIENTS_TABLE = 'private_client_access';
@@ -113,7 +114,7 @@ function normalizeClientFields({
   const area = areaRaw != null && areaRaw !== '' ? Number(areaRaw) : null;
   return {
     client_label: String(clientLabel || '').trim() || 'عميل',
-    phone: String(phone || '').trim(),
+    phone: normalizeAccountPhone(phone) || String(phone || '').trim(),
     request_type: requestType === 'rent' ? 'rent' : 'buy',
     property_kind: kind,
     required_area: Number.isFinite(area) && area > 0 ? area : null,
@@ -163,6 +164,20 @@ async function createClient(fields = {}) {
   if (error) throw new Error(formatClientDbError(error));
   const client = rowToPrivateClient(data);
   client.plainCode = plainCode;
+  try {
+    const contactsRepo = require('./contactsRepo');
+    if (client.phone) {
+      await contactsRepo.upsertContact({
+        phone: client.phone,
+        name: client.clientLabel,
+        businessRole: 'private_client',
+        source: 'private_offer',
+        sourceRef: client.pageSlug || client.id,
+      });
+    }
+  } catch (err) {
+    console.warn('[contacts] private client create:', err.message);
+  }
   return client;
 }
 
@@ -252,7 +267,22 @@ async function updateClientDetails(id, fields = {}) {
       .single());
   }
   if (error) throw new Error(formatClientDbError(error));
-  return rowToPrivateClient(data);
+  const client = rowToPrivateClient(data);
+  try {
+    const contactsRepo = require('./contactsRepo');
+    if (client.phone) {
+      await contactsRepo.upsertContact({
+        phone: client.phone,
+        name: client.clientLabel,
+        businessRole: 'private_client',
+        source: 'private_offer',
+        sourceRef: client.pageSlug || client.id,
+      });
+    }
+  } catch (err) {
+    console.warn('[contacts] private client update:', err.message);
+  }
+  return client;
 }
 
 async function recordClientLogin(id) {

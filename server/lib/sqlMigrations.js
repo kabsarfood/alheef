@@ -15,6 +15,8 @@ const EJAR_REVIEWS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'mig
 const PAGE_SESSIONS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '013_site_visit_page_sessions.sql');
 const EJAR_CONTRACTS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '014_ejar_contract_requests.sql');
 const RLS_LOCKDOWN_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '015_rls_server_only_lockdown.sql');
+const APP_USERS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '016_app_users_phone_identity.sql');
+const CONTACTS_MIGRATION = path.join(__dirname, '..', '..', 'supabase', 'migrations', '017_contacts_central.sql');
 
 function projectRef() {
   const url = (process.env.SUPABASE_URL || '').trim();
@@ -203,8 +205,28 @@ async function isRlsLockdownReady() {
   }
 }
 
+async function isAppUsersSchemaReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('app_users').select('id').limit(1);
+  if (error) return false;
+  const { error: rolesErr } = await c.from('app_user_roles').select('user_id').limit(1);
+  return !rolesErr;
+}
+
+async function isContactsSchemaReady() {
+  const c = getAdminClient();
+  if (!c) return false;
+  const { error } = await c.from('contacts').select('id').limit(1);
+  if (error) return false;
+  const { error: rolesErr } = await c.from('contact_business_roles').select('contact_id').limit(1);
+  if (rolesErr) return false;
+  const { error: srcErr } = await c.from('contact_sources').select('id').limit(1);
+  return !srcErr;
+}
+
 async function getSchemaStatus() {
-  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews, siteVisitPageSessions, ejarContracts, rlsLockdown] = await Promise.all([
+  const [marketer, notifications, push, emailPassword, privateOffers, privateClients, siteAnalytics, privateListingType, privateClientFields, ejarReviews, siteVisitPageSessions, ejarContracts, rlsLockdown, appUsers, contacts] = await Promise.all([
     isMarketerSchemaReady(),
     isNotificationsSchemaReady(),
     isPushSchemaReady(),
@@ -218,8 +240,10 @@ async function getSchemaStatus() {
     isSiteVisitPageSessionsReady(),
     isEjarContractSchemaReady(),
     isRlsLockdownReady(),
+    isAppUsersSchemaReady(),
+    isContactsSchemaReady(),
   ]);
-  const tablesReady = marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews && siteVisitPageSessions && ejarContracts;
+  const tablesReady = marketer && notifications && push && emailPassword && privateOffers && privateClients && siteAnalytics && privateListingType && privateClientFields && ejarReviews && siteVisitPageSessions && ejarContracts && appUsers && contacts;
   return {
     marketer,
     notifications,
@@ -234,6 +258,8 @@ async function getSchemaStatus() {
     siteVisitPageSessions,
     ejarContracts,
     rlsLockdown,
+    appUsers,
+    contacts,
     allReady: tablesReady && rlsLockdown,
   };
 }
@@ -340,6 +366,14 @@ async function applyMigrationsIfNeeded({ silent = false } = {}) {
       await runSqlFile(client, RLS_LOCKDOWN_MIGRATION, '015_rls_server_only_lockdown');
       applied.push('015_rls_server_only_lockdown');
     }
+    if (!status.appUsers) {
+      await runSqlFile(client, APP_USERS_MIGRATION, '016_app_users');
+      applied.push('016_app_users_phone_identity');
+    }
+    if (!status.contacts) {
+      await runSqlFile(client, CONTACTS_MIGRATION, '017_contacts');
+      applied.push('017_contacts_central');
+    }
 
     if (applied.length) await reloadPostgrestSchema(client);
 
@@ -409,4 +443,6 @@ module.exports = {
   getSchemaStatus,
   getConnectionConfig,
   isRlsLockdownReady,
+  isAppUsersSchemaReady,
+  isContactsSchemaReady,
 };

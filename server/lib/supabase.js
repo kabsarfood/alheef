@@ -88,8 +88,12 @@ function getAdmin() {
 }
 
 function getPublic() {
-  if (supabasePublic) return supabasePublic;
-  return getAdmin();
+  if (!supabasePublic) {
+    throw new Error(
+      'Supabase anon client غير متاح — أضف SUPABASE_ANON_KEY في المتغيرات (لا يُستخدم service_role للقراءة العامة)'
+    );
+  }
+  return supabasePublic;
 }
 
 async function ping() {

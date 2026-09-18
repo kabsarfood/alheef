@@ -3,6 +3,7 @@
  * المفتاح يُقرأ من العملية فقط — لا يُمرَّر للمتصفح ولا يُسجَّل في اللوج.
  */
 const crypto = require('crypto');
+const { toWhatsAppNumber, maskPhone } = require('../utils/phone');
 
 function getConfig() {
   const domain = (
@@ -18,20 +19,6 @@ function getConfig() {
 function isConfigured() {
   const { domain, key, instance } = getConfig();
   return Boolean(domain && key && instance);
-}
-
-function toWhatsAppNumber(phone) {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (/^9665\d{8}$/.test(digits)) return digits;
-  if (/^05\d{8}$/.test(digits)) return `966${digits.slice(1)}`;
-  if (/^5\d{8}$/.test(digits)) return `966${digits}`;
-  return '';
-}
-
-function maskPhone(phone) {
-  const n = toWhatsAppNumber(phone);
-  if (n.length < 8) return '****';
-  return `${n.slice(0, 5)}****${n.slice(-2)}`;
 }
 
 function redact(value) {

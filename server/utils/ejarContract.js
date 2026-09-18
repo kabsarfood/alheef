@@ -60,17 +60,7 @@ const STATUS_LABELS = {
 const ALLOWED_STATUSES = Object.keys(STATUS_LABELS);
 const CREATED_CONTRACT_STATUSES = ['contract_created', 'sent_for_auth', 'authenticated', 'done'];
 
-function normalizeSaudiMobile(input) {
-  const digits = String(input || '').replace(/\D/g, '');
-  if (/^9665\d{8}$/.test(digits)) return `0${digits.slice(3)}`;
-  if (/^05\d{8}$/.test(digits)) return digits;
-  if (/^5\d{8}$/.test(digits)) return `0${digits}`;
-  return digits;
-}
-
-function isValidSaudiMobile(input) {
-  return /^05\d{8}$/.test(normalizeSaudiMobile(input));
-}
+const { normalizeSaudiMobile, isValidSaudiMobile } = require('./phone');
 
 function isValidSaudiId(input) {
   const s = String(input || '').replace(/\D/g, '');

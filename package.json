@@ -15,7 +15,12 @@
     "postinstall": "node -e \"console.log('deps ok')\"",
     "migrate:supabase": "node --use-system-ca scripts/migrate-json-to-supabase.js",
     "migrate:sql": "node --use-system-ca scripts/apply-migrations.js",
-    "check:supabase": "node --use-system-ca scripts/check-supabase.js"
+    "check:supabase": "node --use-system-ca scripts/check-supabase.js",
+    "test:auth": "node scripts/test-auth-hardening.js",
+    "test:phone": "node scripts/test-phone-normalize.js",
+    "test:otp": "node scripts/test-whatsapp-otp-core.js",
+    "test:contacts": "node scripts/test-contacts-repo.js",
+    "auth:hash": "node scripts/generate-admin-password-hash.js"
   },
   "engines": {
     "node": "18.x",
