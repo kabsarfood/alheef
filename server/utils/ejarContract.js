@@ -1,8 +1,21 @@
 const SCHEMA = 'ejar_contract_v2';
 
+/** ينتهي عرض اليوم الوطني مع بداية 26 سبتمبر 2026 بتوقيت الرياض. */
+const NATIONAL_DAY_OFFER_UNTIL = Date.parse('2026-09-26T00:00:00+03:00');
+
+function nationalDayOfferActive(now = Date.now()) {
+  return now < NATIONAL_DAY_OFFER_UNTIL;
+}
+
 const CONTRACT_KINDS = {
-  residential: { label: 'سكني', price: 229 },
-  commercial: { label: 'تجاري', price: 329 },
+  residential: {
+    label: 'سكني',
+    get price() { return nationalDayOfferActive() ? 199 : 229; },
+  },
+  commercial: {
+    label: 'تجاري',
+    get price() { return nationalDayOfferActive() ? 299 : 329; },
+  },
   sublease: { label: 'عقد بالباطن', price: 229 },
 };
 

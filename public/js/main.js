@@ -159,12 +159,13 @@
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const desktop = '/assets/hero/banner-1920.jpg';
     const mobile = '/assets/hero/banner-mobile.jpg';
-    heroImg.src = withCacheBust(isMobile ? mobile : desktop, v);
+    const heroV = '3-' + (v || 1);
+    heroImg.src = withCacheBust(isMobile ? mobile : desktop, heroV);
     heroImg.srcset = [
-      `/assets/hero/banner-640.jpg?v=${encodeURIComponent(v || 1)} 640w`,
-      `/assets/hero/banner-960.jpg?v=${encodeURIComponent(v || 1)} 960w`,
-      `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(v || 1)} 1280w`,
-      `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(v || 1)} 1536w`,
+      `/assets/hero/banner-640.jpg?v=${encodeURIComponent(heroV)} 640w`,
+      `/assets/hero/banner-960.jpg?v=${encodeURIComponent(heroV)} 960w`,
+      `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(heroV)} 1280w`,
+      `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(heroV)} 1920w`,
     ].join(', ');
     heroImg.sizes = '100vw';
     const source = heroImg.parentElement && heroImg.parentElement.querySelector('source');

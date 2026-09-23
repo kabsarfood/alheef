@@ -106,7 +106,7 @@
 
   function priceText(k) {
     var p = prices();
-    var n = k === 'commercial' ? p.commercial : p.residential;
+    var n = k === 'commercial' ? p.commercial : (k === 'sublease' ? 229 : p.residential);
     return n + ' ريال شامل الرسوم';
   }
 

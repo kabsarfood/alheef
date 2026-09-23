@@ -177,7 +177,7 @@
   }
 
   body:has(.ejar-ticker) .nav-overlay {
-    top: calc(var(--header-h) + var(--ejar-ticker-h));
+    top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h));
   }
 
   .nav-overlay.active {
@@ -221,7 +221,7 @@
   }
 
   body:has(.ejar-ticker) .nav {
-    top: calc(var(--header-h) + var(--ejar-ticker-h));
+    top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h));
   }
 
   .nav.open {
@@ -234,7 +234,7 @@
   }
 
   body:has(.ejar-ticker) .nav.open {
-    max-height: min(520px, calc(100dvh - var(--header-h) - var(--ejar-ticker-h) - 1rem));
+    max-height: min(520px, calc(100dvh - var(--header-h) - var(--ejar-ticker-h) - var(--ejar-offer-h) - 1rem));
   }
 
   .nav__link {
@@ -1055,7 +1055,7 @@
   }
 
   body:has(.ejar-ticker) .nav-overlay {
-    top: calc(var(--header-h) + var(--ejar-ticker-h));
+    top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h));
   }
 
   .nav-overlay.active {
@@ -1093,7 +1093,7 @@
   }
 
   body:has(.ejar-ticker) .nav {
-    top: calc(var(--header-h) + var(--ejar-ticker-h));
+    top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h));
   }
 
   .nav.open {
@@ -1106,7 +1106,7 @@
   }
 
   body:has(.ejar-ticker) .nav.open {
-    max-height: min(70dvh, calc(100dvh - var(--header-h) - var(--ejar-ticker-h) - 1rem));
+    max-height: min(70dvh, calc(100dvh - var(--header-h) - var(--ejar-ticker-h) - var(--ejar-offer-h) - 1rem));
   }
 
   .nav__link {

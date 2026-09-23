@@ -20,10 +20,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=23">
-  <link rel="stylesheet" href="/css/mobile.css?v=26">
+  <link rel="stylesheet" href="/css/main.css?v=26">
+  <link rel="stylesheet" href="/css/mobile.css?v=27">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/ejar.css?v=86">
+  <link rel="stylesheet" href="/css/ejar.css?v=87">
+  <script src="/js/national-offer.js?v=1"></script>
 </head>
 <body class="ejar-page">
 
@@ -58,7 +59,7 @@
 
   <main>
     <div class="ejar-ticker" role="region" aria-label="شريط ترحيبي">
-      <p class="ejar-sr-only">أهلًا بكم في مؤسسة الهيف للخدمات العقارية. أنشئ عقدك الإلكتروني من الموقع بخطوات واضحة عبر زر ابدأ العقد السكني أو ابدأ العقد التجاري. واتساب مخصص للاستفسار قبل البدء. السكني 229 ريال، التجاري 329 ريال.</p>
+      <p class="ejar-sr-only" data-regular-price="أهلًا بكم في مؤسسة الهيف للخدمات العقارية. أنشئ عقدك الإلكتروني من الموقع بخطوات واضحة عبر زر ابدأ العقد السكني أو ابدأ العقد التجاري. واتساب مخصص للاستفسار قبل البدء. السكني 229 ريال، التجاري 329 ريال.">أهلًا بكم في مؤسسة الهيف للخدمات العقارية. أنشئ عقدك الإلكتروني من الموقع بخطوات واضحة عبر زر ابدأ العقد السكني أو ابدأ العقد التجاري. واتساب مخصص للاستفسار قبل البدء. السكني 199 ريال، التجاري 299 ريال.</p>
       <div class="ejar-ticker__viewport" aria-hidden="true">
         <div class="ejar-ticker__track">
           <div class="ejar-ticker__seq">
@@ -70,7 +71,7 @@
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
             <span>ابدأ إنشاء العقد من الموقع عبر زرّي السكني والتجاري</span>
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
-            <span>السكني <strong><span data-ejar-price="residential">229</span> ريال</strong> • التجاري <strong><span data-ejar-price="commercial">329</span> ريال</strong></span>
+            <span>السكني <strong><span data-ejar-price="residential" data-regular-price="229">199</span> ريال</strong> • التجاري <strong><span data-ejar-price="commercial" data-regular-price="329">299</span> ريال</strong></span>
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
             <span>واتساب للاستفسار قبل إنشاء العقد</span>
           </div>
@@ -83,12 +84,17 @@
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
             <span>ابدأ إنشاء العقد من الموقع عبر زرّي السكني والتجاري</span>
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
-            <span>السكني <strong><span data-ejar-price="residential">229</span> ريال</strong> • التجاري <strong><span data-ejar-price="commercial">329</span> ريال</strong></span>
+            <span>السكني <strong><span data-ejar-price="residential" data-regular-price="229">199</span> ريال</strong> • التجاري <strong><span data-ejar-price="commercial" data-regular-price="329">299</span> ريال</strong></span>
             <span class="ejar-ticker__dot" aria-hidden="true"></span>
             <span>واتساب للاستفسار قبل إنشاء العقد</span>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="ejar-offer" id="ejar-national-offer" role="region" aria-label="عروض اليوم الوطني">
+      <p>عروض اليوم الوطني - العقد السكني 199 ريال والعقد التجاري 299 ريال</p>
+      <a class="ejar-offer__btn" href="/ejar">ابدأ الآن</a>
     </div>
 
     <section class="ejar-hero" id="ejar-hero">
@@ -106,21 +112,21 @@
             <article class="ejar-price-card ejar-price-card--featured">
               <p class="ejar-price-card__tag">الأكثر طلبًا</p>
               <h2 class="ejar-price-card__type">عقد سكني</h2>
-              <p class="ejar-price-card__amount" data-ejar-price="residential">229 <small>ريال</small></p>
+              <p class="ejar-price-card__amount" data-ejar-price="residential">199 <small>ريال</small></p>
               <p class="ejar-price-card__note">شامل رسوم منصة إيجار وأتعاب الخدمة لمدة سنة</p>
               <button type="button" class="btn btn-primary" data-ejar-contract="residential">ابدأ العقد السكني</button>
             </article>
             <article class="ejar-price-card">
               <p class="ejar-price-card__tag">للأنشطة التجارية</p>
               <h2 class="ejar-price-card__type">عقد تجاري</h2>
-              <p class="ejar-price-card__amount" data-ejar-price="commercial">329 <small>ريال</small></p>
+              <p class="ejar-price-card__amount" data-ejar-price="commercial">299 <small>ريال</small></p>
               <p class="ejar-price-card__note">شامل رسوم منصة إيجار وأتعاب الخدمة لمدة سنة</p>
               <button type="button" class="btn btn-gold" data-ejar-contract="commercial">ابدأ العقد التجاري</button>
             </article>
             <article class="ejar-price-card ejar-price-card--sublease">
               <p class="ejar-price-card__tag">نموذج مستقل</p>
               <h2 class="ejar-price-card__type">عقد بالباطن</h2>
-              <p class="ejar-price-card__amount" data-ejar-price="residential">229 <small>ريال</small></p>
+              <p class="ejar-price-card__amount">229 <small>ريال</small></p>
               <p class="ejar-price-card__note">يشمل بيانات المستأجر الأصلي والممثل والمستأجر من الباطن</p>
               <button type="button" class="btn btn-outline" data-ejar-contract="sublease">ابدأ عقد بالباطن</button>
             </article>
@@ -512,13 +518,13 @@
     </a>
   </nav>
 
-  <script src="/js/ejar-config.js?v=3" defer></script>
+  <script src="/js/ejar-config.js?v=4" defer></script>
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/ejar.js?v=14" defer></script>
   <script src="/js/ejar-dates.js?v=8" defer></script>
-  <script src="/js/ejar-wizard.js?v=44" defer></script>
+  <script src="/js/ejar-wizard.js?v=45" defer></script>
   <script src="/js/ejar-reviews-public.js?v=7" defer></script>
   <script src="/js/ejar-proof.js?v=3" defer></script>
 </body>

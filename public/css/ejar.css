@@ -49,11 +49,11 @@
 
   font-weight: var(--ejar-fw-normal);
   line-height: var(--ejar-lh-body);
-  padding-top: calc(var(--header-h) + var(--ejar-ticker-h));
+  padding-top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h));
 }
 
 .ejar-page [id] {
-  scroll-margin-top: calc(var(--header-h) + var(--ejar-ticker-h) + 0.75rem);
+  scroll-margin-top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h) + 0.75rem);
 }
 
 .ejar-container {

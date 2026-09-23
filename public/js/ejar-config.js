@@ -11,9 +11,13 @@
   /** International WhatsApp format without + (966XXXXXXXXX) */
   var EJAR_SERVICE_WHATSAPP = '966558391249';
 
-  /** Service prices (SAR) — single source for /ejar page */
-  var EJAR_PRICE_RESIDENTIAL = 229;
-  var EJAR_PRICE_COMMERCIAL = 329;
+  /** Service prices (SAR). National-day offer overrides these while it is active. */
+  var EJAR_PRICE_RESIDENTIAL = typeof global.EJAR_PRICE_RESIDENTIAL === 'number'
+    ? global.EJAR_PRICE_RESIDENTIAL
+    : 229;
+  var EJAR_PRICE_COMMERCIAL = typeof global.EJAR_PRICE_COMMERCIAL === 'number'
+    ? global.EJAR_PRICE_COMMERCIAL
+    : 329;
 
   global.EJAR_SERVICE_PHONE = EJAR_SERVICE_PHONE;
   global.EJAR_SERVICE_PHONE_TEL = EJAR_SERVICE_PHONE_TEL;

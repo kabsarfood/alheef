@@ -83,8 +83,8 @@ const residential = validateAndNormalize({
 if (!residential.ok) fail('Validation السكني: ' + JSON.stringify(residential.errors));
 else ok('Validation العقد السكني يمر بالبيانات الصحيحة');
 
-if (residential.data.servicePrice !== CONTRACT_KINDS.residential.price) fail('سعر السكني يجب أن يكون 229');
-else ok('سعر السكني ثابت 229 ريال');
+if (residential.data.servicePrice !== CONTRACT_KINDS.residential.price) fail('سعر السكني لا يطابق نوع العقد');
+else ok('سعر السكني يطابق سعر نوع العقد: ' + residential.data.servicePrice);
 
 const commercial = validateAndNormalize({
   ...base,
@@ -94,8 +94,8 @@ const commercial = validateAndNormalize({
 if (!commercial.ok) fail('Validation التجاري: ' + JSON.stringify(commercial.errors));
 else ok('Validation العقد التجاري يمر بالبيانات الصحيحة');
 
-if (commercial.data.servicePrice !== 329) fail('سعر التجاري يجب أن يكون 329');
-else ok('سعر التجاري ثابت 329 ريال');
+if (commercial.data.servicePrice !== CONTRACT_KINDS.commercial.price) fail('سعر التجاري لا يطابق نوع العقد');
+else ok('سعر التجاري يطابق سعر نوع العقد: ' + commercial.data.servicePrice);
 
 const badRent = validateAndNormalize({ ...base, contractKind: 'residential', unitType: 'شقة', rentAmount: 0 });
 if (badRent.ok || !badRent.errors.rentAmount) fail('رفض الإيجار الصفري');
