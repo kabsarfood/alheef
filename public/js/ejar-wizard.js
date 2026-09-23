@@ -36,6 +36,7 @@
     { value: 'شركة', label: 'مستأجر شركة' },
   ];
   var TRUST = '🔒 لا نطلب كلمة مرور منصة إيجار أو رمز نفاذ.';
+  var SUBMIT_REVIEW_NOTE = 'يرجى مراجعة البيانات قبل الإرسال، لأن البيانات غير المطابقة قد تؤخر تنفيذ العقد.';
   var DECLARATION = 'أقر بصحة البيانات المدخلة وأطلب من مكتب الهيف للخدمات العقارية إعداد عقد الإيجار عبر منصة إيجار وإرساله للأطراف للتوثيق.';
   var DISCLAIMER = 'مكتب الهيف للخدمات العقارية وسيط عقاري مرخص، وهذه الخدمة ليست الموقع الرسمي لمنصة إيجار.';
   var SECTIONS = [
@@ -64,7 +65,6 @@
   var DEED_MAX_BYTES = DEED_MAX_MB * 1024 * 1024;
   var DEED_ACCEPT = 'image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif';
   var openedFromHome = false;
-  var introPending = false;
   var resumePendingKind = 'residential';
   var viewportBound = false;
   var onViewportChange = null;
@@ -1018,58 +1018,6 @@
     el.hidden = false;
     el.classList.add('is-open');
     bindViewport();
-    if (introPending) {
-      attachIntro();
-      return;
-    }
-    if (verifyPending) {
-      attachVerify();
-      return;
-    }
-    window.setTimeout(focusCurrent, 40);
-  }
-
-  function introHtml() {
-    return '<div class="ejar-wizard__intro" role="dialog" aria-modal="true" aria-labelledby="ejar-wizard-intro-title">'
-      + '<button type="button" class="ejar-wizard__close" aria-label="إغلاق">×</button>'
-      + '<div class="ejar-wizard__intro-scroll">'
-      + '<div class="ejar-wizard__intro-icon" aria-hidden="true">'
-      + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.15" fill="currentColor"/></svg>'
-      + '</div>'
-      + '<h2 id="ejar-wizard-intro-title">أهلًا بكم في خدمة إنشاء العقود الإلكترونية</h2>'
-      + '<p>نرجو عند تعبئة النموذج التأكد من إدخال الأرقام والتواريخ كما وردت في الوثائق الرسمية دون تغيير، مثل رقم الهوية، رقم الصك، وتواريخ الميلاد.</p>'
-      + '<p>كما نرجو إضافة موقع العقار بدقة عبر رابط الموقع من خرائط Google؛ لتسهيل مراجعة بيانات الوحدة وإتمام الطلب بشكل صحيح.</p>'
-      + '<p class="ejar-wizard__intro-note">يرجى مراجعة البيانات قبل الإرسال، لأن البيانات غير المطابقة قد تؤخر تنفيذ العقد.</p>'
-      + '</div>'
-      + '<div class="ejar-wizard__intro-actions">'
-      + '<button type="button" class="btn btn-primary" data-intro-start>فهمت، ابدأ تعبئة النموذج</button>'
-      + '</div></div>';
-  }
-
-  function attachIntro() {
-    if (!introPending || !root) return;
-    if (!root.querySelector('.ejar-wizard__intro')) {
-      root.insertAdjacentHTML('beforeend', introHtml());
-    }
-    root.classList.add('has-intro');
-    var startBtn = root.querySelector('[data-intro-start]');
-    if (startBtn && !startBtn.dataset.bound) {
-      startBtn.dataset.bound = '1';
-      startBtn.addEventListener('click', dismissIntro);
-    }
-    window.setTimeout(function () {
-      try { startBtn && startBtn.focus({ preventScroll: true }); } catch (_) {
-        if (startBtn) startBtn.focus();
-      }
-    }, 40);
-  }
-
-  function dismissIntro() {
-    introPending = false;
-    if (!root) return;
-    var intro = root.querySelector('.ejar-wizard__intro');
-    if (intro) intro.remove();
-    root.classList.remove('has-intro');
     if (verifyPending) {
       attachVerify();
       return;
@@ -1157,7 +1105,7 @@
   function syncVerifyLock() {
     if (!root) return;
     var panel = root.querySelector('.ejar-wizard__panel');
-    if (verifyPending && !introPending) {
+    if (verifyPending) {
       root.classList.add('has-verify');
       if (panel) {
         panel.setAttribute('inert', '');
@@ -1256,7 +1204,7 @@
   }
 
   function attachVerify() {
-    if (!verifyPending || !root || introPending) {
+    if (!verifyPending || !root) {
       syncVerifyLock();
       return;
     }
@@ -1443,7 +1391,6 @@
     if (verification) applyVerifiedIdentity(verification);
     verifyPending = !skipVerify && !verification;
     otpUi = { step: 'form', sending: false, verifying: false, cooldownUntil: 0, verificationId: '', error: '', role: verification && verification.role, phone: verification && verification.phone };
-    introPending = !(options && options.screen);
     openedFromHome = !!(options && options.fromHome);
     resumePendingKind = normalizeKind(nextKind);
     var previewId = options && options.screen;
@@ -1528,7 +1475,6 @@
   }
 
   function close() {
-    introPending = false;
     stopOtpTimer();
     if (hasAnswers() && !root.querySelector('.ejar-wizard__success')) saveDraft();
     resetMemory();
@@ -1536,7 +1482,6 @@
     if (!root) return;
     root.hidden = true;
     root.classList.remove('is-open');
-    root.classList.remove('has-intro');
     root.classList.remove('has-verify');
     document.body.classList.remove('ejar-wizard-open');
     if (openedFromHome) {
@@ -2162,7 +2107,6 @@
   }
 
   function focusCurrent() {
-    if (introPending) return;
     if (isGroupedKind()) {
       var screen = currentScreen();
       if (screen && screen.type === 'review') return;
@@ -2752,8 +2696,7 @@
       e.preventDefault();
       close();
     });
-    if (introPending) attachIntro();
-    else if (verifyPending) attachVerify();
+    if (verifyPending) attachVerify();
     else syncVerifyLock();
   }
 
@@ -2811,7 +2754,8 @@
       + '<input type="text" name="website" class="ejar-hp" tabindex="-1" autocomplete="off" aria-hidden="true">'
       + '<p class="ejar-wizard__error" role="alert" hidden></p>'
       + '<div class="ejar-wizard__body">' + body + '</div>'
-      + '<div class="ejar-wizard__nav">'
+      + '<div class="ejar-wizard__nav' + (isReview ? ' ejar-wizard__nav--review' : '') + '">'
+      + (isReview ? '<p class="ejar-wizard__submit-note">' + SUBMIT_REVIEW_NOTE + '</p>' : '')
       + '<button type="button" class="btn btn-outline ejar-wizard__prev"' + (isFirst ? ' disabled hidden' : '') + '>السابق</button>'
       + '<button type="button" class="btn btn-primary ejar-wizard__next">' + (isReview ? 'إرسال طلب إنشاء العقد' : 'التالي') + '</button>'
       + '</div>'
@@ -2819,8 +2763,7 @@
 
     bindRendered();
     syncVisualViewport();
-    if (introPending) attachIntro();
-    else if (verifyPending) attachVerify();
+    if (verifyPending) attachVerify();
     else syncVerifyLock();
   }
 

@@ -607,14 +607,14 @@ if (!/id="hero-btn-ejar"/.test(homeHtml) || !/إنشاء عقد إيجار/.test
 } else ok('زر الصفحة الرئيسية «إنشاء عقد إيجار» مربوط بصفحة إيجار');
 if (!/ejar-wizard__close/.test(wizardJs) || !/requestClose/.test(wizardJs)) fail('زر إغلاق المعالج');
 else ok('زر × يغلق نموذج إنشاء العقد');
-if (!/data-intro-start/.test(wizardJs) || !/أهلًا بكم في خدمة إنشاء العقود الإلكترونية/.test(wizardJs) || !/فهمت، ابدأ تعبئة النموذج/.test(wizardJs)) {
-  fail('رسالة الترحيب عند فتح النموذج');
-} else ok('رسالة ترحيب تظهر مرة واحدة عند فتح نموذج العقد');
-if (!/introPending/.test(wizardJs) || !/dismissIntro/.test(wizardJs) || !/attachIntro/.test(wizardJs)) {
-  fail('الترحيب لا يُعاد مع السابق/التالي');
-} else ok('الترحيب لا يتكرر أثناء التنقل بين الخطوات');
-if (!/ejar-wizard__intro/.test(wizardCss) || !/has-intro/.test(wizardCss)) fail('تنسيق نافذة الترحيب');
-else ok('تنسيق نافذة الترحيب متناسق مع صفحة إيجار');
+if (/data-intro-start/.test(wizardJs) || /أهلًا بكم في خدمة إنشاء العقود الإلكترونية/.test(wizardJs) || /فهمت، ابدأ تعبئة النموذج/.test(wizardJs) || /introPending/.test(wizardJs)) {
+  fail('مربع التحذير ما زال يظهر قبل النموذج');
+} else ok('مربع التحذير محذوف ويعتمد النموذج على توثيق واتساب');
+if (!/ejar-wizard__submit-note/.test(wizardJs) || !/يرجى مراجعة البيانات قبل الإرسال، لأن البيانات غير المطابقة قد تؤخر تنفيذ العقد/.test(wizardJs)) {
+  fail('تنبيه المراجعة أسفل الإرسال');
+} else ok('تنبيه مراجعة البيانات يظهر أسفل النموذج قبل الإرسال');
+if (!/ejar-wizard__submit-note/.test(wizardCss) || /ejar-wizard__intro/.test(wizardCss)) fail('تنسيق تنبيه المراجعة');
+else ok('تنسيق تنبيه المراجعة أسفل النموذج دون مربع التحذير');
 if (!/ejar-wizard__verify/.test(wizardCss) || !/has-verify/.test(wizardCss) || !/blur\(/.test(wizardCss)) fail('تنسيق شاشة التحقق');
 else ok('النموذج يظهر ضبابياً حتى اكتمال التحقق');
 if (/msg\.textContent = item\.message/.test(wizardJs)) fail('رسالة الخطأ ما زالت داخل حقل الرقم');
