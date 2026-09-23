@@ -510,7 +510,7 @@ ul { list-style: none; }
 }
 
 body:has(.ejar-offer) {
-  --ejar-offer-h: 2.75rem;
+  --ejar-offer-h: var(--ejar-ticker-h);
 }
 
 .ejar-offer {
@@ -522,20 +522,30 @@ body:has(.ejar-offer) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
   height: var(--ejar-offer-h);
-  padding: 0.3rem 0.9rem;
+  padding: 0 0.4rem;
   background: #123524;
-  color: #f7f3ea;
+  color: var(--ivory);
   text-align: center;
   border-bottom: 1px solid rgba(197, 164, 109, 0.35);
+  animation: ejar-offer-flash 5s ease-in-out infinite;
+}
+
+.ejar-offer p,
+.ejar-offer__btn {
+  font-family: var(--font);
+  font-size: clamp(0.875rem, 0.2vw + 0.84rem, 0.95rem);
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .ejar-offer p {
+  flex: 0 1 auto;
+  min-width: 0;
   margin: 0;
-  font-size: clamp(0.84rem, 0.2vw + 0.8rem, 0.98rem);
-  font-weight: 700;
-  line-height: 1.45;
 }
 
 .ejar-offer__btn {
@@ -543,16 +553,18 @@ body:has(.ejar-offer) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  min-height: 1.9rem;
-  padding: 0.15rem 0.9rem;
+  min-height: 1.7rem;
+  padding: 0.1rem 0.55rem;
   border-radius: 999px;
   background: #c5a46d;
   color: #123524;
-  font-size: 0.84rem;
-  font-weight: 800;
-  line-height: 1;
   text-decoration: none;
-  white-space: nowrap;
+}
+
+@keyframes ejar-offer-flash {
+  0%, 100% { background-color: #123524; }
+  4% { background-color: #2f6a45; }
+  8% { background-color: #123524; }
 }
 
 .ejar-offer__btn:hover {
@@ -569,25 +581,10 @@ body:has(.ejar-ticker) [id] {
     --ejar-ticker-h: 2.75rem;
   }
 
-  body:has(.ejar-offer) {
-    --ejar-offer-h: 4.35rem;
-  }
-
-  .ejar-offer {
-    flex-wrap: wrap;
-    gap: 0.35rem 0.55rem;
-    padding-inline: 0.75rem;
-  }
-
-  .ejar-offer p {
-    font-size: 0.82rem;
-    line-height: 1.35;
-  }
-
+  .ejar-offer p,
   .ejar-offer__btn {
-    min-height: 1.75rem;
-    padding-inline: 0.8rem;
-    font-size: 0.8rem;
+    font-size: clamp(0.92rem, 3.6vw, 1.05rem);
+    line-height: 1.4;
   }
 
   .ejar-ticker__track {
@@ -609,6 +606,10 @@ body:has(.ejar-ticker) [id] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ejar-offer {
+    animation: none;
+  }
+
   .ejar-ticker__track {
     animation: none;
     width: 100%;
@@ -1999,6 +2000,11 @@ body.modal-open {
   margin-top: 0;
   justify-content: center;
   opacity: 1;
+  width: 100%;
+}
+
+.home-page .hero__actions .btn {
+  min-height: 44px;
 }
 
 .home-page .hero__actions .btn-primary {
@@ -2008,9 +2014,17 @@ body.modal-open {
 }
 
 .home-page .hero__actions .btn-outline {
-  background: rgba(255, 255, 255, 0.94);
+  background: #fff;
   color: #123524;
-  border-color: transparent;
+  border: 1px solid rgba(18, 53, 36, 0.16);
+}
+
+@media (min-width: 1100px) {
+  .home-page .hero__actions .btn {
+    min-height: 46px;
+    padding: 0.6rem 1.3rem;
+    font-size: 0.95rem;
+  }
 }
 
 .home-page .hero__actions .btn-outline:hover,
