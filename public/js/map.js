@@ -29,6 +29,8 @@
   let shareTarget = null;
   let loadGen = 0;
   let lastMapFilters = {};
+  let activeCategory = '';
+  let renderGen = 0;
   /** عند فتح بطاقة العقار: موضع العلامة على الشاشة + مستوى التكبير */
   let mapDetailLock = null;
 
@@ -49,9 +51,11 @@
 
   function markerColor(type, listingType) {
     if (listingType === 'buy_request') return '#8B5CF6';
+    const categoryColor = window.AlheefMapCategories?.colorOf(type);
+    if (categoryColor) return categoryColor;
     const t = (type || '').trim();
     if (TYPE_COLORS[t]) return TYPE_COLORS[t];
-    if (t.includes('أرض')) return TYPE_COLORS['أرض'] || '#22C55E';
+    if (t.includes('أرض') || t.includes('ارض')) return '#22C55E';
     return '#1E2A38';
   }
 
@@ -680,14 +684,13 @@
   function renderLegend() {
     if (!els.legend) return;
     const items = [
-      { c: '#C5A46D', l: 'فلل / قصور' },
-      { c: '#6366F1', l: 'أبراج' },
-      { c: '#3B82F6', l: 'شقق' },
-      { c: '#22C55E', l: 'أراضي سكنية' },
-      { c: '#14B8A6', l: 'أراضي تجارية' },
-      { c: '#16A34A', l: 'أراضي زراعية' },
-      { c: '#64748B', l: 'عمائر' },
-      { c: '#F97316', l: 'تجاري / محلات' },
+      { c: '#22C55E', l: 'أرض' },
+      { c: '#C5A46D', l: 'فيلا' },
+      { c: '#3B82F6', l: 'شقة' },
+      { c: '#64748B', l: 'عمارة' },
+      { c: '#A855F7', l: 'استراحة' },
+      { c: '#F97316', l: 'محل / مكتب' },
+      { c: '#8B5CF6', l: 'طلب شراء' },
     ];
     els.legend.innerHTML = `
       <p class="map-legend__title">دليل الألوان</p>
@@ -845,10 +848,11 @@
       const data = await res.json();
       if (gen !== loadGen) return;
       allProperties = data.items || [];
-      renderMarkers(allProperties, lastMapFilters);
+      updateCategoryUi();
+      renderMarkers(visibleProperties(), lastMapFilters, true);
       if (els.count) {
         const meta = data.meta || {};
-        let label = `${allProperties.length} عقار`;
+        let label = `${visibleProperties().length} عقار`;
         if (meta.missingCoords > 0) {
           label += ` (${meta.missingCoords} بدون إحداثيات)`;
         }
@@ -864,7 +868,64 @@
     }
   }
 
-  function renderMarkers(items, filters = {}) {
+  function propertyCategory(property) {
+    return window.AlheefMapCategories?.categoryOf(property?.propertyType) || '';
+  }
+
+  function visibleProperties() {
+    if (!activeCategory) return allProperties;
+    return allProperties.filter((property) => propertyCategory(property) === activeCategory);
+  }
+
+  function categoryCount(id) {
+    if (!id) return allProperties.length;
+    return allProperties.filter((property) => propertyCategory(property) === id).length;
+  }
+
+  function setCategoryPanel(open) {
+    const panel = document.getElementById('map-cats');
+    const toggle = document.getElementById('map-cats-toggle');
+    if (!panel || !toggle) return;
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function countPhrase(count, button) {
+    const n = Number(count) || 0;
+    let word = button.dataset.many;
+    if (n === 1) word = button.dataset.one;
+    else if (n === 2) word = button.dataset.two;
+    else if (n === 0 || (n >= 3 && n <= 10)) word = button.dataset.few;
+    return `${button.dataset.label} - ${n} ${word}`;
+  }
+
+  function updateCategoryUi() {
+    document.querySelectorAll('.map-cat').forEach((btn) => {
+      const id = btn.dataset.category || '';
+      const text = btn.querySelector('.map-cat__text');
+      if (text) text.textContent = countPhrase(categoryCount(id), btn);
+      const on = id === activeCategory;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const dot = document.getElementById('map-cats-dot');
+    const active = document.querySelector('.map-cat.is-active');
+    if (!dot || !active) return;
+    if (!activeCategory) {
+      dot.hidden = true;
+      return;
+    }
+    dot.hidden = false;
+    dot.style.setProperty('--cat', active.style.getPropertyValue('--cat'));
+  }
+
+  function showVisibleCount() {
+    if (!els.count) return;
+    els.count.textContent = `${visibleProperties().length} عقار`;
+  }
+
+  function renderMarkers(items, filters = {}, refit = true) {
+    const gen = ++renderGen;
     cluster.clearLayers();
     markersById.clear();
     const bounds = [];
@@ -874,7 +935,7 @@
     let i = 0;
 
     function finishMapView() {
-      if (!map || mapDetailLock) return;
+      if (!refit || !map || mapDetailLock) return;
       if (hasLocationFilter && filters.city) {
         if (filteredBounds.length) {
           map.fitBounds(filteredBounds, {
@@ -893,6 +954,7 @@
     }
 
     function addBatch() {
+      if (gen !== renderGen) return;
       const end = Math.min(i + batch, items.length);
       for (; i < end; i += 1) {
         const p = items[i];
@@ -916,26 +978,24 @@
   }
 
   function setupEvents() {
-    els.form?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const filters = filtersFromForm();
-      if (filters.city || filters.district) {
-        flyToFilterLocation(filters);
-      }
-      loadProperties(filters);
-      closeFilters();
+    document.getElementById('map-cats-toggle')?.addEventListener('click', () => {
+      const panel = document.getElementById('map-cats');
+      setCategoryPanel(!!panel?.hidden);
     });
 
-    document.getElementById('filter-reset')?.addEventListener('click', () => {
-      els.form?.reset();
-      fillDistrictsForCity('', true);
-      flyToDefaultMap();
-      loadProperties({});
+    document.getElementById('map-cats')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('.map-cat');
+      if (!btn) return;
+      activeCategory = btn.dataset.category || '';
+      updateCategoryUi();
+      renderMarkers(visibleProperties(), lastMapFilters, false);
+      showVisibleCount();
+      setCategoryPanel(false);
     });
 
-    els.filtersToggle?.addEventListener('click', () => {
-      if (els.form?.classList.contains('is-open')) closeFilters();
-      else openFilters();
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('.map-search')) return;
+      setCategoryPanel(false);
     });
 
     els.sheetBackdrop?.addEventListener('click', closeSheet);
@@ -952,6 +1012,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (isSheetOpen()) closeSheet();
+      else if (document.getElementById('map-cats') && !document.getElementById('map-cats').hidden) setCategoryPanel(false);
       else if (els.form?.classList.contains('is-open')) closeFilters();
       else closeLegend();
     });
@@ -1010,7 +1071,6 @@
     }
 
     setupEvents();
-    await loadFilterOptions();
 
     try {
       const cfg = await fetch('/api/config').then((r) => r.json());

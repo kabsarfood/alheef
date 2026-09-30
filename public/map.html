@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
   <link rel="stylesheet" href="/css/main.css?v=23">
   <link rel="stylesheet" href="/css/mobile.css?v=26">
-  <link rel="stylesheet" href="/css/map.css?v=61">
+  <link rel="stylesheet" href="/css/map.css?v=65">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="map-page">
@@ -76,61 +76,34 @@
     </section>
 
     <section class="map-filters container" aria-label="تصفية العقارات">
-      <button type="button" class="map-filters-toggle" id="map-filters-toggle" aria-expanded="false" aria-controls="map-filters-form">
-        تفاصيل البحث
-      </button>
-      <form class="map-filters__inner" id="map-filters-form">
-        <label>الغرض
-          <select name="listing_type" id="filter-listing">
-            <option value="">الكل</option>
-            <option value="sale">بيع</option>
-            <option value="rent">إيجار</option>
-            <option value="buy_request">طلب شراء</option>
-          </select>
-        </label>
-        <label>نوع العقار
-          <select name="property_type" id="filter-type">
-            <option value="">الكل</option>
-            <optgroup label="أراضي">
-              <option value="أرض سكنية">أرض سكنية</option>
-              <option value="أرض تجارية">أرض تجارية</option>
-              <option value="أرض زراعية">أرض زراعية</option>
-            </optgroup>
-            <optgroup label="عقارات">
-              <option value="فيلا">فيلا</option>
-              <option value="دوبلكس">دوبلكس</option>
-              <option value="شقة">شقة</option>
-              <option value="عمارة">عمارة</option>
-              <option value="قصر">قصر</option>
-              <option value="برج">برج</option>
-              <option value="استراحة">استراحة</option>
-              <option value="محل">محل</option>
-              <option value="مكتب">مكتب</option>
-              <option value="عقار تجاري">عقار تجاري</option>
-            </optgroup>
-          </select>
-        </label>
-        <label>المدينة
-          <select name="city" id="filter-city">
-            <option value="">الكل</option>
-          </select>
-        </label>
-        <label>الحي
-          <select name="district" id="filter-district" disabled>
-            <option value="">اختر المدينة أولاً</option>
-          </select>
-        </label>
-        <label>السعر من
-          <input type="number" name="min_price" id="filter-min" placeholder="0" min="0" dir="ltr">
-        </label>
-        <label>السعر إلى
-          <input type="number" name="max_price" id="filter-max" placeholder="—" min="0" dir="ltr">
-        </label>
-        <div class="map-filters__actions">
-          <button type="submit" class="map-filters__btn map-filters__btn--gold">تطبيق</button>
-          <button type="button" class="map-filters__btn map-filters__btn--ghost" id="filter-reset">إعادة</button>
+      <div class="map-search">
+        <button type="button" class="map-search__btn" id="map-cats-toggle" aria-expanded="false" aria-controls="map-cats">
+          <span class="map-search__dot" id="map-cats-dot" hidden></span>
+          خيارات البحث
+        </button>
+        <div class="map-cats" id="map-cats" hidden>
+          <button type="button" class="map-search__btn map-cat is-active" data-category="" data-label="الكل" data-one="عقار" data-two="عقاران" data-few="عقارات" data-many="عقار" style="--cat:#1E2A38" aria-pressed="true">
+            <span class="map-search__dot"></span>
+            <span class="map-cat__text">الكل</span>
+          </button>
+          <button type="button" class="map-search__btn map-cat" data-category="land" data-label="أرض" data-one="قطعة" data-two="قطعتان" data-few="قطع" data-many="قطعة" style="--cat:#22C55E" aria-pressed="false">
+            <span class="map-search__dot"></span>
+            <span class="map-cat__text">أرض</span>
+          </button>
+          <button type="button" class="map-search__btn map-cat" data-category="villa" data-label="فيلا" data-one="فيلا" data-two="فيلتان" data-few="فلل" data-many="فيلا" style="--cat:#C5A46D" aria-pressed="false">
+            <span class="map-search__dot"></span>
+            <span class="map-cat__text">فيلا</span>
+          </button>
+          <button type="button" class="map-search__btn map-cat" data-category="apartment" data-label="شقة" data-one="شقة" data-two="شقتان" data-few="شقق" data-many="شقة" style="--cat:#3B82F6" aria-pressed="false">
+            <span class="map-search__dot"></span>
+            <span class="map-cat__text">شقة</span>
+          </button>
+          <button type="button" class="map-search__btn map-cat" data-category="building" data-label="عمارة" data-one="عمارة" data-two="عمارتان" data-few="عمائر" data-many="عمارة" style="--cat:#64748B" aria-pressed="false">
+            <span class="map-search__dot"></span>
+            <span class="map-cat__text">عمارة</span>
+          </button>
         </div>
-      </form>
+      </div>
     </section>
 
     <section class="map-stage container" id="map-stage">
@@ -193,7 +166,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
-  <script src="/js/map.js?v=19"></script>
+  <script src="/js/map-categories.js?v=1"></script>
+  <script src="/js/map.js?v=24"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     fetch('/api/config').then((r) => r.json()).then((c) => {
