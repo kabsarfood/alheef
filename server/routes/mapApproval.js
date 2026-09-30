@@ -31,7 +31,7 @@ publicRouter.post('/webhook', async (req, res) => {
     const outcome = await gate.acceptWebhook({
       rawBody: raw,
       signature: req.get('x-alheef-signature'),
-      apiKey: req.get('apikey'),
+      webhookToken: req.get('x-alheef-webhook-token'),
       body: req.body || {},
     });
     res.status(outcome.status).json(outcome.body);

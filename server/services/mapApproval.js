@@ -104,6 +104,14 @@ function verifyWebhook(rawBody, header) {
   return safeEqual(expected, given);
 }
 
+function verifyWebhookToken(header) {
+  const secret = signingSecret();
+  if (secret.length < 24) return false;
+  const given = String(header || '').trim();
+  if (!given) return false;
+  return safeEqual(given, secret);
+}
+
 function hashValue(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
 }
@@ -314,8 +322,8 @@ function approvalMessage(row, codes) {
     fullText,
     footer: 'خريطة الهيف',
     buttons: [
-      { displayText: 'نعم، انشر', id: `a.${codes.approve}` },
-      { displayText: 'رفض', id: `r.${codes.reject}` },
+      { displayText: 'نعم، انشر', id: `alheef_map:approve:${codes.approve}` },
+      { displayText: 'رفض', id: `alheef_map:reject:${codes.reject}` },
     ],
     fallbackText: [
       fullText,
@@ -793,31 +801,103 @@ async function decide({ rid, act, exp, sig, from }) {
 }
 
 function parseButtonId(value) {
-  const match = String(value || '').trim().match(/^([ar])\.([A-Za-z0-9_-]{8,64})$/);
-  if (!match) return null;
-  return { action: match[1] === 'a' ? 'approve' : 'reject', code: match[2] };
+  const text = String(value || '').trim();
+  const current = text.match(/^alheef_map:(approve|reject):([A-Za-z0-9_-]{8,64})$/);
+  if (current) return { action: current[1], code: current[2] };
+  const legacy = text.match(/^([ar])\.([A-Za-z0-9_-]{8,64})$/);
+  if (!legacy) return null;
+  return { action: legacy[1] === 'a' ? 'approve' : 'reject', code: legacy[2] };
 }
 
 function evolutionData(body) {
   if (Array.isArray(body?.data)) return body.data[0] || {};
+  if (Array.isArray(body?.data?.messages)) return body.data.messages[0] || {};
   return body?.data || {};
+}
+
+function unwrapMessage(message) {
+  if (!message || typeof message !== 'object') return {};
+  return message.ephemeralMessage?.message
+    || message.viewOnceMessage?.message
+    || message.viewOnceMessageV2?.message
+    || message.documentWithCaptionMessage?.message
+    || message;
+}
+
+function idFromParamsJson(value) {
+  const text = String(value || '').trim();
+  if (!text.startsWith('{')) return '';
+  try {
+    const parsed = JSON.parse(text);
+    return String(parsed.id || parsed.selectedButtonId || parsed.button_id || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function buttonIdFromMessage(message) {
+  const msg = unwrapMessage(message);
+  const nested = unwrapMessage(msg);
+  const candidates = [
+    msg.buttonsResponseMessage?.selectedButtonId,
+    nested.buttonsResponseMessage?.selectedButtonId,
+    msg.templateButtonReplyMessage?.selectedId,
+    nested.templateButtonReplyMessage?.selectedId,
+    msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+    nested.listResponseMessage?.singleSelectReply?.selectedRowId,
+    msg.interactive?.button_reply?.id,
+    nested.interactive?.button_reply?.id,
+    msg.button_reply?.id,
+    nested.button_reply?.id,
+    msg.interactiveResponseMessage?.button_reply?.id,
+    idFromParamsJson(msg.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson),
+    idFromParamsJson(nested.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson),
+  ];
+  return candidates.map((item) => String(item || '').trim()).find(Boolean) || '';
 }
 
 function buttonIdFromBody(body) {
   const explicit = String(body?.button_id || body?.selectedButtonId || '').trim();
   if (explicit) return explicit;
   const data = evolutionData(body);
-  const message = data.message || body?.message || {};
-  return message?.buttonsResponseMessage?.selectedButtonId
-    || message?.templateButtonReplyMessage?.selectedId
-    || message?.listResponseMessage?.singleSelectReply?.selectedRowId
-    || '';
+  return buttonIdFromMessage(data.message || body?.message || {});
+}
+
+function eventName(body) {
+  return String(body?.event || evolutionData(body)?.messageType || 'unknown').slice(0, 80);
+}
+
+function messageIdFromBody(body) {
+  return String(body?.webhook_id || evolutionData(body)?.key?.id || body?.key?.id || '').slice(0, 80);
+}
+
+function maskButtonId(value) {
+  const parsed = parseButtonId(value);
+  if (!parsed) return value ? 'unrecognized' : '';
+  return `alheef_map:${parsed.action}:***`;
+}
+
+function logWebhook({ event, messageId, buttonId, route }) {
+  console.info(JSON.stringify({
+    scope: 'map-approval-webhook',
+    at: new Date().toISOString(),
+    event: String(event || 'unknown').slice(0, 80),
+    messageId: String(messageId || '').slice(0, 80),
+    buttonId: maskButtonId(buttonId),
+    route: String(route || '').slice(0, 40),
+  }));
+}
+
+function isFromMe(body) {
+  const data = evolutionData(body);
+  return data?.key?.fromMe === true || body?.key?.fromMe === true;
 }
 
 function senderFromBody(body) {
   if (body?.from) return String(body.from);
-  const jid = evolutionData(body)?.key?.remoteJid || '';
-  return String(jid).split('@')[0];
+  const jid = String(evolutionData(body)?.key?.remoteJid || body?.key?.remoteJid || '');
+  if (jid.endsWith('@g.us')) return '';
+  return jid.split('@')[0].split(':')[0];
 }
 
 function webhookIdFromBody(body, rawBody) {
@@ -828,12 +908,14 @@ function webhookIdFromBody(body, rawBody) {
   return hashValue(rawBody?.toString?.('utf8') || JSON.stringify(body || {})).slice(0, 40);
 }
 
-function verifyIncomingWebhook(rawBody, signature, apiKeyHeader) {
-  if (verifyWebhook(rawBody, signature)) return true;
-  const expected = String(process.env.EVOLUTION_API_KEY || '').trim();
-  const given = String(apiKeyHeader || '').trim();
-  if (expected.length < 8 || !given) return false;
-  return safeEqual(given, expected);
+function verifyIncomingWebhook(rawBody, signature, webhookToken) {
+  return verifyWebhook(rawBody, signature) || verifyWebhookToken(webhookToken);
+}
+
+function explicitDecision(body) {
+  const action = String(body?.action || '').trim().toLowerCase();
+  if (!['approve', 'reject'].includes(action)) return '';
+  return action;
 }
 
 async function rememberWebhook(webhookId, requestId) {
@@ -846,39 +928,60 @@ async function rememberWebhook(webhookId, requestId) {
   return { fresh: false, error };
 }
 
-async function acceptWebhook({ rawBody, signature, apiKey, body }) {
-  if (!verifyIncomingWebhook(rawBody, signature, apiKey)) {
+async function acceptWebhook({ rawBody, signature, webhookToken, body }) {
+  const event = eventName(body);
+  const messageId = messageIdFromBody(body);
+  const buttonId = buttonIdFromBody(body);
+  if (!verifyIncomingWebhook(rawBody, signature, webhookToken)) {
+    logWebhook({ event, messageId, buttonId, route: 'unauthorized' });
     return { status: 401, body: { success: false, message: 'توقيع الويب هوك غير صالح' } };
+  }
+  if (isFromMe(body)) {
+    logWebhook({ event, messageId, buttonId, route: 'ignored' });
+    return { status: 200, body: { success: true, ignored: true } };
+  }
+  const button = parseButtonId(buttonId);
+  const requested = explicitDecision(body);
+  if (!button && !(body?.request_id && requested)) {
+    logWebhook({ event, messageId, buttonId, route: 'ignored' });
+    return { status: 200, body: { success: true, ignored: true } };
   }
   const from = senderFromBody(body);
   if (!phonesEqual(from, adminPhone())) {
+    logWebhook({ event, messageId, buttonId, route: 'rejected-phone' });
     return { status: 403, body: { success: false, message: 'رقم غير مصرح له بالقرار' } };
   }
-  const button = parseButtonId(buttonIdFromBody(body));
-  let action = String(body?.action || '').trim().toLowerCase();
-  if (action === 'نعم، انشر' || action === 'موافقة ونشر') action = 'approve';
-  if (action === 'رفض') action = 'reject';
+  let action = requested;
   let row = null;
   if (button) {
     row = await findByCode(button.action === 'approve' ? 'approve_code_hash' : 'reject_code_hash', button.code);
     action = button.action;
-  } else if (body?.request_id && ['approve', 'reject'].includes(action)) {
+  } else {
     row = await getRequest(String(body.request_id));
   }
-  if (!row) return { status: 404, body: { success: false, message: 'الطلب غير موجود' } };
+  if (!row) {
+    logWebhook({ event, messageId, buttonId, route: 'unknown-request' });
+    return { status: 404, body: { success: false, message: 'الطلب غير موجود' } };
+  }
   const webhookId = webhookIdFromBody(body, rawBody);
   const remembered = await rememberWebhook(webhookId, row.id);
-  if (remembered.error) return { status: 500, body: { success: false, message: 'تعذر تسجيل الويب هوك' } };
+  if (remembered.error) {
+    logWebhook({ event, messageId, buttonId, route: 'error' });
+    return { status: 500, body: { success: false, message: 'تعذر تسجيل الويب هوك' } };
+  }
   if (!remembered.fresh) {
+    logWebhook({ event, messageId, buttonId, route: 'replay' });
     const current = await getRequest(row.id);
     await audit(current, 'webhook_replay', {});
     const linked = await propertyLink(current?.published_property_id);
     return { status: 200, body: { ...publicRequest(current, { idempotent: true, ...linked }), message: 'تم استخدام هذا القرار من قبل.' } };
   }
   if (row.status !== 'pending_approval' && action === 'approve' && ['published', 'publishing', 'failed'].includes(row.status)) {
+    logWebhook({ event, messageId, buttonId, route: 'replay' });
     const linked = await propertyLink(row.published_property_id);
     return { status: 200, body: { ...publicRequest(row, { idempotent: true, ...linked }), message: 'تم استخدام هذا القرار من قبل.' } };
   }
+  logWebhook({ event, messageId, buttonId, route: 'decision' });
   return applyDecision(row, action, normalizeAccountPhone(from));
 }
 
