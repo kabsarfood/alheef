@@ -3,10 +3,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initLayout('offers', 'العروض الحالية');
   setTopbarActions(`
     <div class="offers-page-toolbar">
-      <a href="/dashboard/add-property.html" class="btn btn-gold btn-sm">
-        <span class="btn-label btn-label--desktop">＋ إضافة إعلان</span>
-        <span class="btn-label btn-label--mobile">إضافة إعلان</span>
-      </a>
+      <a href="/dashboard/add-property.html" class="btn btn-outline btn-sm">إضافة كاملة</a>
+      <a href="/dashboard/quick-add.html" class="btn btn-gold btn-sm">+ إضافة سريعة</a>
     </div>
   `);
 
@@ -34,7 +32,7 @@ async function loadOffers() {
         <div class="empty-state">
           <div class="empty-state__icon">◇</div>
           <p>لا توجد عروض حالياً</p>
-          <a href="/dashboard/add-property.html" class="btn btn-gold" style="margin-top:1rem">إضافة أول إعلان</a>
+          <a href="/dashboard/quick-add.html" class="btn btn-gold" style="margin-top:1rem">+ إضافة سريعة</a>
         </div>
       `;
       return;

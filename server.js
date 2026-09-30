@@ -33,6 +33,7 @@ let cors;
 let apiRoutes;
 let adminRoutes;
 let mapImportRoutes;
+let mapApprovalRoutes;
 let authRoutes;
 let marketerRoutes;
 let pushRoutes;
@@ -49,6 +50,7 @@ try {
   apiRoutes = require('./server/routes/api');
   adminRoutes = require('./server/routes/admin');
   mapImportRoutes = require('./server/routes/mapImport');
+  mapApprovalRoutes = require('./server/routes/mapApproval');
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
@@ -129,7 +131,14 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    if (String(req.originalUrl || '').startsWith('/api/integrations/alheef-map/webhook')) {
+      req.rawBody = buf;
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /** PWA — معرّف البناء و Service Worker ديناميكي (يتغيّر مع كل نشر) */
@@ -227,8 +236,14 @@ app.use('/api/marketer', marketerRoutes);
 app.use('/api/ejar', ejarContractsRoutes);
 app.use('/api/ejar', ejarReviewsRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/integrations/alheef-map', mapApprovalRoutes.publicRouter);
+app.use('/api/admin/map-approvals', mapApprovalRoutes.adminRouter);
 app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/admin', adminRoutes);
+
+app.get('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
+app.get('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
+app.get('/m/o/:code', (req, res) => mapApprovalRoutes.shortOpen(req, res));
 
 app.get('/api/config', async (_req, res) => {
   try {

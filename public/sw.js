@@ -116,6 +116,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (url.pathname.startsWith('/m/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if (isHtmlRequest(request, url)) {
     if (isReviewPath(url)) {
       event.respondWith(networkFirst(request, '/ejar-review.html'));

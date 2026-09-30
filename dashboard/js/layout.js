@@ -6,9 +6,11 @@ const NAV_ITEMS = [
     { href: '/dashboard/index.html', icon: '◈', label: 'لوحة التحكم', page: 'index' },
   ]},
   { section: 'الإدارة', items: [
-    { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة عقار', page: 'add-property' },
+    { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة كاملة', page: 'add-property' },
+    { href: '/dashboard/quick-add.html', icon: '✎', label: 'إضافة سريعة', page: 'quick-add' },
     { href: '/dashboard/offers.html', icon: '◇', label: 'العقارات', page: 'offers' },
     { href: '/dashboard/map-imports.html', icon: '⇩', label: 'إعلانات مستوردة للمراجعة', page: 'map-imports' },
+    { href: '/dashboard/map-approvals.html', icon: '✉', label: 'طلبات إضافة خريطة الهيف', page: 'map-approvals' },
     { href: '/dashboard/private-offers.html', icon: '◈', label: 'العروض الخاصة', page: 'private-offers' },
     { href: '/dashboard/banners.html', icon: '▣', label: 'البنرات', page: 'banners' },
     { href: '/dashboard/news.html', icon: '◉', label: 'الأخبار', page: 'news' },

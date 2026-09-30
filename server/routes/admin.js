@@ -269,6 +269,34 @@ router.post('/offers', uploadMemory.array('images', 20), async (req, res) => {
   }
 });
 
+router.post('/properties/quick-preview', async (req, res) => {
+  const { parseListingPaste } = require('../utils/listingPaste');
+  res.json({ success: true, parsed: parseListingPaste(req.body?.text || '') });
+});
+
+router.post('/properties/quick', uploadMemory.array('images', 12), async (req, res) => {
+  try {
+    const { prepareQuickListing } = require('../services/quickPaste');
+    const prepared = await prepareQuickListing({
+      text: req.body?.text,
+      mapsUrl: req.body?.mapsUrl,
+      contactPhone: req.body?.contactPhone,
+    });
+    const created = await propertiesRepo.create(prepared.body);
+    const urls = await uploadFiles(req.files, 'properties');
+    if (urls.length) await propertiesRepo.addImages(created.id, urls);
+    const full = await propertiesRepo.getById(created.id);
+    res.json({
+      success: true,
+      published: prepared.published,
+      message: prepared.message,
+      property: full,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
+});
+
 async function applyKeptImages(propertyId, body) {
   if (body.existingImages == null || body.existingImages === '') return;
   let kept = body.existingImages;

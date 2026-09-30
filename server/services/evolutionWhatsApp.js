@@ -79,11 +79,70 @@ function randomId() {
   return crypto.randomBytes(24).toString('base64url');
 }
 
+async function sendReplyButtons(phone, { title, description, footer, buttons }) {
+  const number = toWhatsAppNumber(phone);
+  if (!number) throw new Error('رقم الجوال غير صالح لإرسال واتساب');
+  const result = await evolutionFetch('/message/sendButtons/{instance}', {
+    method: 'POST',
+    body: {
+      number,
+      title: String(title || '').slice(0, 60),
+      description: String(description || '').slice(0, 1024),
+      footer: String(footer || 'خريطة الهيف').slice(0, 60),
+      buttons: (buttons || []).slice(0, 3).map((button) => ({
+        type: button.url ? 'url' : 'reply',
+        displayText: String(button.displayText || '').slice(0, 20),
+        id: button.url ? undefined : String(button.id || '').slice(0, 256),
+        url: button.url ? String(button.url) : undefined,
+      })),
+    },
+  });
+  if (result.ok) return { ok: true, status: result.status, mode: 'buttons' };
+  const unsupported = result.status === 400 || result.status === 404 || result.status === 405 || result.status === 422 || result.status === 501;
+  return { ok: false, status: result.status, unsupported, mode: 'buttons' };
+}
+
+async function sendImageBuffer(phone, buffer, mime) {
+  const number = toWhatsAppNumber(phone);
+  if (!number || !buffer?.length) return { ok: false };
+  const result = await evolutionFetch('/message/sendMedia/{instance}', {
+    method: 'POST',
+    body: {
+      number,
+      mediatype: 'image',
+      mimetype: mime || 'image/jpeg',
+      media: buffer.toString('base64'),
+      caption: 'صورة الإعلان',
+      fileName: 'listing-image',
+    },
+  });
+  return { ok: result.ok, status: result.status };
+}
+
+async function sendImageUrl(phone, url) {
+  const number = toWhatsAppNumber(phone);
+  if (!number || !url) return { ok: false };
+  const result = await evolutionFetch('/message/sendMedia/{instance}', {
+    method: 'POST',
+    body: {
+      number,
+      mediatype: 'image',
+      media: String(url),
+      caption: 'صورة الإعلان',
+      fileName: 'listing-image',
+    },
+  });
+  return { ok: result.ok, status: result.status };
+}
+
 module.exports = {
   isConfigured,
   toWhatsAppNumber,
   getConnectionState,
   sendText,
+  sendReplyButtons,
+  sendImageBuffer,
+  sendImageUrl,
   maskPhone,
   randomId,
 };
