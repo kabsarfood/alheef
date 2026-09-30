@@ -1,6 +1,11 @@
 const { DEFAULT_SETTINGS, resolveLegacyHeroImage } = require('../utils/settingsDefaults');
 const { parseCoord, parseCoordsFromMapsUrl } = require('../utils/coords');
 const {
+  maskPublicListingPhone,
+  sanitizePublicFeatures,
+  redactPublicStrings,
+} = require('../utils/publicPropertySanitize');
+const {
   readMeta, resolveWorkflowStatus, injectIntoFeatures, metaFromBody, workflowToDbPatch, isWorkflowStatus,
 } = require('../utils/marketerFeatures');
 
@@ -161,12 +166,18 @@ function rowToProperty(row, images = []) {
     location: [row.city, row.district].filter(Boolean).join(' — '),
     priceDisplay: row.price != null ? Number(row.price).toLocaleString('ar-SA') : '',
     contractNumber: row.reference_no || '',
-    plotNumber: row.plot_number || '',
-    planNumber: row.plan_number || '',
-    direction: row.direction || '',
-    streetWidth: row.street_width || '',
-    priceType: row.price_type || 'fixed',
-    contactPhone: extra.isBuyRequest ? extra.requestPhone : (row.contact_phone || row.agent_phone || extra.contactPhone),
+    /** رقم الهيف الداخلي. مستقل عن reference_no الذي يبقى رقم الترخيص. */
+    internalRef: row.internal_ref || '',
+    source: row.source || '',
+    sourceUrl: row.source_url || '',
+    sourceListingId: row.source_listing_id || '',
+    sourceImportId: row.source_import_id || '',
+    plotNumber: extra.plotNumber,
+    planNumber: extra.planNumber,
+    direction: extra.direction,
+    streetWidth: extra.streetWidth,
+    priceType: extra.priceType || 'fixed',
+    contactPhone: extra.isBuyRequest ? extra.requestPhone : extra.contactPhone,
     requestPropertyKind: extra.requestPropertyKind || row.property_type,
     requestUsage: extra.requestUsage,
     requestPhone: extra.requestPhone,
@@ -174,7 +185,8 @@ function rowToProperty(row, images = []) {
     marketerId: meta.marketerId,
     licenseExpiresAt: meta.licenseExpiresAt,
     brokerageContractNo: meta.brokerageContractNo,
-    facade: meta.facade || row.direction || '',
+    /** واجهة العقار (وصف الواجهة). الاتجاه الجغرافي للخريطة في direction وليس هنا. */
+    facade: extra.facade || meta.facade || '',
     internalNotes: meta.internalNotes,
     adminFeedback: meta.adminFeedback,
     reviewedBy: meta.reviewedBy,
@@ -186,15 +198,26 @@ function rowToProperty(row, images = []) {
   };
 }
 
+/** الاتجاه على الخريطة: عمود direction، ثم features، ثم واجهة قديمة إذا كانت بوصلة. */
+const COMPASS_RE = /شمال|جنوب|شرق|غرب/;
+
+function directionFromFacade(facade) {
+  const text = String(facade || '').trim();
+  if (!text || !COMPASS_RE.test(text)) return '';
+  return text;
+}
+
 function readMapExtras(row) {
   const f = row.features && typeof row.features === 'object' && !Array.isArray(row.features)
     ? row.features
     : {};
   const isBuy = row.listing_type === 'buy_request' || f.is_buy_request;
+  const facade = row.facade || f.facade || '';
   return {
     plotNumber: row.plot_number || f.plot_number || f.plotNumber || '',
     planNumber: row.plan_number || f.plan_number || f.planNumber || '',
     direction: row.direction || f.direction || '',
+    facade,
     streetWidth: row.street_width || f.street_width || f.streetWidth || '',
     priceType: row.price_type || f.price_type || f.priceType || 'fixed',
     contactPhone: isBuy
@@ -212,13 +235,22 @@ function buildMapFeatures(body) {
   const listing = body.listingType || body.listing_type || 'sale';
   const isBuy = listing === 'buy_request';
 
+  const provided = (camel, snake) => body[camel] !== undefined || body[snake] !== undefined;
   const mapFields = {
-    plot_number: body.plotNumber || body.plot_number || null,
-    plan_number: body.planNumber || body.plan_number || null,
-    direction: body.direction || null,
-    street_width: body.streetWidth || body.street_width || null,
-    price_type: body.priceType || body.price_type || 'fixed',
-    contact_phone: isBuy ? null : (body.contactPhone || body.contact_phone || null),
+    plot_number: { value: body.plotNumber || body.plot_number || null, on: provided('plotNumber', 'plot_number') },
+    plan_number: { value: body.planNumber || body.plan_number || null, on: provided('planNumber', 'plan_number') },
+    direction: { value: body.direction || null, on: provided('direction', 'direction') },
+    street_width: { value: body.streetWidth || body.street_width || null, on: provided('streetWidth', 'street_width') },
+    price_type: { value: body.priceType || body.price_type || 'fixed', on: true },
+    contact_phone: {
+      value: isBuy ? null : (body.contactPhone || body.contact_phone || null),
+      on: isBuy || provided('contactPhone', 'contact_phone'),
+    },
+    /** نسخة توافق. العمود facade يبقى المصدر عند وجوده، ولا يُنسخ من direction. */
+    facade: {
+      value: body.facade != null && String(body.facade).trim() !== '' ? String(body.facade).trim() : null,
+      on: provided('facade', 'facade'),
+    },
   };
 
   let f = body.features;
@@ -230,8 +262,10 @@ function buildMapFeatures(body) {
     f = {};
   }
 
-  Object.entries(mapFields).forEach(([k, v]) => {
-    if (v != null && v !== '') f[k] = v;
+  Object.entries(mapFields).forEach(([key, field]) => {
+    if (!field.on) return;
+    if (field.value != null && field.value !== '') f[key] = field.value;
+    else delete f[key];
   });
 
   if (isBuy) {
@@ -310,7 +344,8 @@ function propertyToRow(body) {
     reference_no: body.licenseNumber || body.contractNumber || body.referenceNo || body.reference_no || null,
     brokerage_contract_no: body.brokerageContractNo || body.brokerage_contract_no || null,
     license_expires_at: body.licenseExpiresAt || body.license_expires_at || null,
-    facade: body.facade || body.direction || null,
+    /** الواجهة وصف مستقل. لا تُنسخ من direction حتى لا يتعارض الحقلان. */
+    facade: body.facade != null && String(body.facade).trim() !== '' ? String(body.facade).trim() : null,
     internal_notes: body.internalNotes || body.internal_notes || null,
     admin_feedback: body.adminFeedback || body.admin_feedback || null,
     marketer_id: body.marketerId || body.marketer_id || null,
@@ -322,6 +357,7 @@ function propertyToRow(body) {
 function propertyToRowWithColumns(body) {
   const row = propertyToRow(body);
   const f = row.features && typeof row.features === 'object' ? row.features : {};
+  const isBuy = row.listing_type === 'buy_request';
   return {
     ...row,
     plot_number: f.plot_number || null,
@@ -329,12 +365,17 @@ function propertyToRowWithColumns(body) {
     direction: f.direction || null,
     street_width: f.street_width || null,
     price_type: f.price_type || 'fixed',
-    contact_phone: f.contact_phone || row.agent_phone || null,
+    contact_phone: isBuy ? null : (f.contact_phone || null),
+    internal_ref: body.internalRef || body.internal_ref || null,
+    source: body.source || null,
+    source_url: body.sourceUrl || body.source_url || null,
+    source_listing_id: body.sourceListingId || body.source_listing_id || null,
+    source_import_id: body.sourceImportId || body.source_import_id || null,
   };
 }
 
 function toPublicProperty(p) {
-  return {
+  return redactPublicStrings({
     id: p.id,
     title: p.title,
     slug: p.slug,
@@ -357,14 +398,14 @@ function toPublicProperty(p) {
     coverImage: p.coverImage,
     gallery: p.gallery,
     featured: p.featured,
-    features: p.features,
+    features: sanitizePublicFeatures(p.features),
     referenceNo: p.contractNumber || '',
     plotNumber: p.plotNumber || '',
     planNumber: p.planNumber || '',
     direction: p.direction || '',
     streetWidth: p.streetWidth || '',
     mapsUrl: p.mapsUrl || '',
-  };
+  });
 }
 
 function propertyToMapProperty(p) {
@@ -393,6 +434,7 @@ function propertyToMapProperty(p) {
     direction: p.direction,
     street_width: p.streetWidth,
     price_type: p.priceType,
+    facade: p.facade,
     contact_phone: p.contactPhone,
     agent_phone: p.contactPhone || p.agentPhone,
     features: buildMapFeatures({
@@ -412,7 +454,7 @@ function rowToMapProperty(row) {
   const lng = parseCoord(row.longitude);
   const priceType = extra.priceType || 'fixed';
   const isBuyRequest = row.listing_type === 'buy_request' || extra.isBuyRequest;
-  return {
+  const payload = {
     id: row.id,
     title: row.title,
     slug: row.slug,
@@ -441,10 +483,14 @@ function rowToMapProperty(row) {
     mapsUrl: row.maps_url || '',
     plotNumber: extra.plotNumber,
     planNumber: extra.planNumber,
-    direction: extra.direction,
+    direction: extra.direction || directionFromFacade(extra.facade),
+    facade: extra.facade && extra.facade !== (extra.direction || directionFromFacade(extra.facade))
+      ? extra.facade
+      : '',
     streetWidth: extra.streetWidth,
-    contactPhone: isBuyRequest ? '' : extra.contactPhone,
+    contactPhoneMasked: isBuyRequest ? '' : maskPublicListingPhone(extra.contactPhone),
   };
+  return redactPublicStrings(payload);
 }
 
 function rowToNews(row) {
@@ -669,7 +715,7 @@ function rowToSubscription(row) {
 
 /** توافق مع الواجهة القديمة */
 function toLegacyPublicOffer(p) {
-  return {
+  return redactPublicStrings({
     id: p.id,
     slug: p.slug,
     title: p.title,
@@ -680,7 +726,7 @@ function toLegacyPublicOffer(p) {
     image: p.coverImage,
     description: resolveDescription(p),
     listingType: p.listingType || '',
-  };
+  });
 }
 
 function toPublicSettings(s) {
@@ -726,6 +772,7 @@ module.exports = {
   settingsToRow,
   rowToProperty,
   propertyToRow,
+  propertyToRowWithColumns,
   toPublicProperty,
   rowToMapProperty,
   propertyToMapProperty,

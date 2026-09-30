@@ -613,14 +613,30 @@ function mapsUrlFromCoords(lat, lng) {
   return `https://www.google.com/maps?q=${pair.lat},${pair.lng}`;
 }
 
+function readManualCoords(body) {
+  const lat = parseCoord(body.latitude ?? body.lat);
+  const lng = parseCoord(body.longitude ?? body.lng);
+  if (!isValidCoord(lat, lng)) return null;
+  return { lat, lng };
+}
+
 async function enrichBodyCoords(body) {
   if (!body || typeof body !== 'object') return body;
 
   const mapsUrl = normalizeMapsUrl(body.mapsUrl || body.maps_url);
-  if (mapsUrl) {
-    body.mapsUrl = mapsUrl;
-    body.maps_url = mapsUrl;
+  const manual = readManualCoords(body);
+  const preferManual = body.coordsSource === 'manual' || body.coords_source === 'manual';
 
+  if (mapsUrl) body.mapsUrl = mapsUrl;
+  if (mapsUrl) body.maps_url = mapsUrl;
+
+  if (preferManual && manual) {
+    body.latitude = manual.lat;
+    body.longitude = manual.lng;
+    return body;
+  }
+
+  if (mapsUrl) {
     const coords = await parseCoordsFromMapsUrlResolved(mapsUrl);
     if (coords) {
       body.latitude = coords.lat;
@@ -632,17 +648,19 @@ async function enrichBodyCoords(body) {
       }
       return body;
     }
-
+    if (manual) {
+      body.latitude = manual.lat;
+      body.longitude = manual.lng;
+      return body;
+    }
     body.latitude = null;
     body.longitude = null;
     return body;
   }
 
-  const lat = parseCoord(body.latitude ?? body.lat);
-  const lng = parseCoord(body.longitude ?? body.lng);
-  if (isValidCoord(lat, lng)) {
-    body.latitude = lat;
-    body.longitude = lng;
+  if (manual) {
+    body.latitude = manual.lat;
+    body.longitude = manual.lng;
   }
 
   return body;

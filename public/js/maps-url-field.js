@@ -50,10 +50,12 @@ const MapsUrlField = (() => {
     if (coords && window.AlheefCoords?.isValidCoord(coords.lat, coords.lng)) {
       _coords = { lat: Number(coords.lat), lng: Number(coords.lng) };
       _coordsForUrl = url || getValue();
+      if (typeof cfg.onCoords === 'function') cfg.onCoords(_coords);
       return _coords;
     }
     _coords = null;
     _coordsForUrl = '';
+    if (typeof cfg.onCoords === 'function') cfg.onCoords(null);
     return null;
   }
 

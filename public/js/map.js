@@ -132,7 +132,7 @@
     const area = p.area ? `${p.area} م²` : '';
     const ref = p.referenceNo ? `رقم الترخيص: ${escapeHtml(p.referenceNo)}` : '';
     const pid = p.id;
-    const phone = (p.contactPhone || '').replace(/\D/g, '');
+    const phoneLabel = String(p.contactPhoneMasked || '').trim();
     const priceLabel = p.priceType === 'auction' ? 'على السوم' : `${formatPrice(p)} ر.س`;
 
     return `
@@ -150,15 +150,15 @@
             ${detailRow('رقم القطعة', p.plotNumber)}
             ${detailRow('رقم المخطط', p.planNumber)}
             ${detailRow('الاتجاه', p.direction)}
+            ${detailRow('الواجهة', p.facade)}
             ${detailRow('عرض الشارع', p.streetWidth)}
             ${ref ? `<p class="map-card__ref">${ref}</p>` : ''}
-            ${phone ? `<p class="map-card__ref">جوال: ${escapeHtml(p.contactPhone)}</p>` : ''}
+            ${phoneLabel ? `<p class="map-card__ref">جوال: ${escapeHtml(phoneLabel)}</p>` : ''}
           </div>
           ${rooms ? `<div class="map-card__meta"><span>${escapeHtml(rooms)}</span></div>` : ''}
           <p class="map-card__desc">${escapeHtml(truncate(p.description, 140))}</p>
           <div class="map-card__actions">
             <a class="map-card__btn map-card__btn--primary" href="${propertyUrl(p)}">عرض التفاصيل</a>
-            ${phone ? `<a class="map-card__btn map-card__btn--call" href="tel:${phone}">اتصال</a>` : ''}
             <a class="map-card__btn map-card__btn--wa" href="#" data-wa="${pid}">واتساب</a>
             <button type="button" class="map-card__btn map-card__btn--share" data-share="${pid}">مشاركة</button>
           </div>
@@ -207,9 +207,10 @@
       p.plotNumber ? `رقم القطعة: ${p.plotNumber}` : '',
       p.planNumber ? `رقم المخطط: ${p.planNumber}` : '',
       p.direction ? `الاتجاه: ${p.direction}` : '',
+      p.facade ? `الواجهة: ${p.facade}` : '',
       p.streetWidth ? `عرض الشارع: ${p.streetWidth}` : '',
       p.referenceNo ? `رقم الترخيص: ${p.referenceNo}` : '',
-      p.contactPhone ? `الجوال: ${p.contactPhone}` : '',
+      p.contactPhoneMasked ? `الجوال: ${p.contactPhoneMasked}` : '',
       propertyUrl(p),
     ].filter(Boolean);
     return lines.join('\n');

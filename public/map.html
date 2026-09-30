@@ -97,11 +97,13 @@
               <option value="أرض زراعية">أرض زراعية</option>
             </optgroup>
             <optgroup label="عقارات">
-              <option value="عمارة">عمارة</option>
               <option value="فيلا">فيلا</option>
+              <option value="دوبلكس">دوبلكس</option>
+              <option value="شقة">شقة</option>
+              <option value="عمارة">عمارة</option>
               <option value="قصر">قصر</option>
               <option value="برج">برج</option>
-              <option value="شقة">شقة</option>
+              <option value="استراحة">استراحة</option>
               <option value="محل">محل</option>
               <option value="مكتب">مكتب</option>
               <option value="عقار تجاري">عقار تجاري</option>
@@ -191,7 +193,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script src="/js/map-locations.js?v=8"></script>
-  <script src="/js/map.js?v=17"></script>
+  <script src="/js/map.js?v=19"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     fetch('/api/config').then((r) => r.json()).then((c) => {

@@ -1,4 +1,5 @@
-const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 'مكتب', 'عقار تجاري', 'استراحة', 'دوبلكس'];
+const PROPERTY_TYPES = (window.AlheefPropertyTypes && AlheefPropertyTypes.labels())
+  || ['أرض سكنية', 'أرض تجارية', 'أرض زراعية', 'فيلا', 'دوبلكس', 'شقة', 'عمارة', 'قصر', 'برج', 'استراحة', 'محل', 'مكتب', 'عقار تجاري'];
 
 (async function () {
   'use strict';
@@ -52,7 +53,7 @@ const PROPERTY_TYPES = ['فيلا', 'شقة', 'أرض', 'عمارة', 'محل', 
           </div>
           <div class="form-group">
             <label>الواجهة</label>
-            <input type="text" name="facade" placeholder="شمالية / جنوبية">
+            <input type="text" name="facade" placeholder="مثال: واجهة واحدة على شارع 20">
           </div>
           <div class="form-group full">
             <label>عنوان الإعلان *</label>

@@ -1,8 +1,10 @@
 const { getAdmin, isEnabled } = require('../lib/supabase');
-const { rowToProperty, propertyToRow } = require('../services/mappers');
+const { rowToProperty, propertyToRowWithColumns } = require('../services/mappers');
+const { typeFilterValues } = require('../utils/propertyTypes');
 const { uniqueSlug } = require('../utils/slug');
 const { parseCoord, isValidCoord } = require('../utils/coords');
-const { pickPropertyColumns, stripOptionalMapColumns } = require('../utils/propertyColumns');
+const { pickPropertyColumns, missingColumnFromError } = require('../utils/propertyColumns');
+const { isMahdiaListing, formatMahdiaRef, nextMahdiaNumber } = require('../utils/internalRef');
 const { PUBLIC_STATUSES } = require('../utils/propertyStatus');
 const {
   isWorkflowStatus, dbStatusForWorkflowFilter,
@@ -49,8 +51,9 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   if (query.city) q = q.ilike('city', `%${query.city}%`);
   if (query.district) q = q.ilike('district', `%${query.district}%`);
   if (query.propertyType) {
-    const pt = String(query.propertyType).trim();
-    q = q.ilike('property_type', `%${pt}%`);
+    const values = typeFilterValues(query.propertyType);
+    if (values.length === 1) q = q.eq('property_type', values[0]);
+    else if (values.length) q = q.in('property_type', values);
   }
   if (query.listingType) q = q.eq('listing_type', query.listingType);
   if (query.featured != null) q = q.eq('featured', query.featured);
@@ -99,8 +102,9 @@ async function listForMap(filters = {}) {
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
   if (filters.propertyType) {
-    const pt = String(filters.propertyType).trim();
-    q = q.ilike('property_type', `%${pt}%`);
+    const values = typeFilterValues(filters.propertyType);
+    if (values.length === 1) q = q.eq('property_type', values[0]);
+    else if (values.length) q = q.in('property_type', values);
   }
   if (filters.listingType) q = q.eq('listing_type', filters.listingType);
   if (filters.minPrice) q = q.gte('price', filters.minPrice);
@@ -179,15 +183,81 @@ async function getBySlug(slug) {
   return rowToProperty(data, images);
 }
 
+function assertCoords(row) {
+  const hasLat = row.latitude != null && row.latitude !== '';
+  const hasLng = row.longitude != null && row.longitude !== '';
+  if ((hasLat || hasLng) && !isValidCoord(row.latitude, row.longitude)) {
+    throw new Error('خط العرض أو خط الطول غير صحيح');
+  }
+  const published = row.status === 'published';
+  const buy = row.listing_type === 'buy_request';
+  if (published && !buy && !isValidCoord(row.latitude, row.longitude)) {
+    throw new Error('نشر الإعلان على الخريطة يحتاج خط عرض وخط طول صحيحين');
+  }
+}
+
+async function syncCoverAndGallery(propertyId) {
+  const images = await loadImages(propertyId);
+  const gallery = images.map((img) => img.image_url);
+  await getAdmin().from(TABLE).update({
+    gallery,
+    cover_image: gallery[0] || null,
+  }).eq('id', propertyId);
+  return gallery;
+}
+
+/**
+ * يحذف العمود الناقص فقط ويعيد المحاولة.
+ * هكذا تُحفظ facade و contact_phone إذا كانت موجودة،
+ * حتى لو كان plot_number أو direction غير مضافين بعد.
+ */
+async function writeRow(payload, run) {
+  let current = { ...payload };
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    const { data, error } = await run({ ...current });
+    if (!error) return data;
+    const missing = missingColumnFromError(error.message);
+    if (!missing || !Object.prototype.hasOwnProperty.call(current, missing)) {
+      throw new Error(error.message);
+    }
+    delete current[missing];
+  }
+  throw new Error('تعذر حفظ العقار');
+}
+
+async function nextMahdiaRef() {
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('internal_ref')
+    .like('internal_ref', 'H-MHD-%');
+  if (error) throw new Error(error.message);
+  return formatMahdiaRef(nextMahdiaNumber((data || []).map((row) => row.internal_ref)));
+}
+
+/** الرقم الممنوح سابقًا يبقى. المهدية بلا رقم تأخذ الرقم التالي. غير المهدية تبقى بلا رقم. */
+async function resolveInternalRef(existing, body) {
+  if (existing?.internalRef) return existing.internalRef;
+  const source = {
+    district: body?.district != null ? body.district : existing?.district,
+    city: body?.city != null ? body.city : existing?.city,
+    title: body?.title != null ? body.title : existing?.title,
+  };
+  if (!isMahdiaListing(source)) return null;
+  return nextMahdiaRef();
+}
+
 async function insertPropertyRow(row) {
   let payload = pickPropertyColumns(row);
-  let { data, error } = await getAdmin().from(TABLE).insert(payload).select().single();
-  if (error && /column|schema cache/i.test(error.message)) {
-    payload = stripOptionalMapColumns(payload);
-    ({ data, error } = await getAdmin().from(TABLE).insert(payload).select().single());
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      return await writeRow(payload, (current) => getAdmin().from(TABLE).insert(current).select().single());
+    } catch (err) {
+      const retry = payload.internal_ref && /internal_ref|duplicate key/i.test(err.message) && attempt < 4;
+      if (!retry) throw err;
+      payload = { ...payload, internal_ref: await nextMahdiaRef() };
+    }
   }
-  if (error) throw new Error(error.message);
-  return data;
+  throw new Error('تعذر منح رقم الهيف الداخلي');
 }
 
 async function create(body) {
@@ -197,11 +267,13 @@ async function create(body) {
     );
   }
   const slug = body.slug || (await uniqueSlug(body.title, (s) => slugExists(s)));
+  const internalRef = await resolveInternalRef(null, body);
   const row = pickPropertyColumns({
-    ...propertyToRow(body),
+    ...propertyToRowWithColumns({ ...body, internalRef }),
     slug,
     created_at: new Date().toISOString(),
   });
+  assertCoords(row);
   const data = await insertPropertyRow(row);
   return rowToProperty(data, []);
 }
@@ -220,13 +292,13 @@ async function update(id, body) {
     slug = await uniqueSlug(body.title, (s) => slugExists(s, id));
   }
 
-  const row = pickPropertyColumns({ ...propertyToRow({ ...existing, ...body }), slug });
-  let { data, error } = await getAdmin().from(TABLE).update(row).eq('id', id).select().single();
-  if (error && /column|schema cache/i.test(error.message)) {
-    const safe = stripOptionalMapColumns(row);
-    ({ data, error } = await getAdmin().from(TABLE).update(safe).eq('id', id).select().single());
-  }
-  if (error) throw new Error(error.message);
+  const internalRef = await resolveInternalRef(existing, body);
+  const row = pickPropertyColumns({
+    ...propertyToRowWithColumns({ ...existing, ...body, internalRef }),
+    slug,
+  });
+  assertCoords(row);
+  const data = await writeRow(row, (current) => getAdmin().from(TABLE).update(current).eq('id', id).select().single());
   const images = await loadImages(id);
   return rowToProperty(data, images);
 }
@@ -248,10 +320,7 @@ async function addImages(propertyId, urls) {
   const { data, error } = await getAdmin().from(IMG_TABLE).insert(rows).select();
   if (error) throw new Error(error.message);
 
-  const allImages = await loadImages(propertyId);
-  const gallery = allImages.map((i) => i.image_url);
-  const cover = gallery[0] || null;
-  await getAdmin().from(TABLE).update({ gallery, cover_image: cover }).eq('id', propertyId);
+  await syncCoverAndGallery(propertyId);
   return data;
 }
 
@@ -259,14 +328,35 @@ async function reorderImages(propertyId, orderedIds) {
   for (let i = 0; i < orderedIds.length; i += 1) {
     await getAdmin().from(IMG_TABLE).update({ sort_order: i }).eq('id', orderedIds[i]).eq('property_id', propertyId);
   }
-  const images = await loadImages(propertyId);
-  const gallery = images.map((i) => i.image_url);
-  await getAdmin().from(TABLE).update({ gallery, cover_image: gallery[0] || null }).eq('id', propertyId);
+  await syncCoverAndGallery(propertyId);
+}
+
+async function retainImages(propertyId, keptUrls) {
+  const urls = (keptUrls || []).map((url) => String(url || '').trim()).filter(Boolean);
+  const existing = await loadImages(propertyId);
+  for (const img of existing) {
+    if (!urls.includes(img.image_url)) {
+      await getAdmin().from(IMG_TABLE).delete().eq('id', img.id);
+    }
+  }
+  const remaining = await loadImages(propertyId);
+  const byUrl = new Map(remaining.map((img) => [img.image_url, img]));
+  let order = 0;
+  for (const url of urls) {
+    const img = byUrl.get(url);
+    if (!img) continue;
+    order += 1;
+    await getAdmin().from(IMG_TABLE).update({ sort_order: order }).eq('id', img.id);
+  }
+  await syncCoverAndGallery(propertyId);
 }
 
 async function removeImage(imageId) {
+  const { data } = await getAdmin().from(IMG_TABLE).select('property_id').eq('id', imageId).maybeSingle();
   const { error } = await getAdmin().from(IMG_TABLE).delete().eq('id', imageId);
-  return !error;
+  if (error) return false;
+  if (data?.property_id) await syncCoverAndGallery(data.property_id);
+  return true;
 }
 
 async function countAll() {
@@ -345,6 +435,7 @@ module.exports = {
   remove,
   addImages,
   reorderImages,
+  retainImages,
   removeImage,
   countAll,
   countPublished,

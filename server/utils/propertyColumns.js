@@ -1,6 +1,7 @@
 /**
- * أعمدة جدول properties المعروفة في Supabase (بدون حقول الخريطة الاختيارية).
- * حقول مثل direction و contact_phone تُخزَّن داخل features أو agent_phone.
+ * أعمدة جدول properties.
+ * حقول الخريطة الاختيارية تُكتب كأعمدة عندما تكون موجودة،
+ * وتبقى نسخة داخل features للإعلانات القديمة وإذا تعذر العمود.
  */
 const ALLOWED = new Set([
   'id',
@@ -29,6 +30,16 @@ const ALLOWED = new Set([
   'agent_name',
   'agent_phone',
   'reference_no',
+  'internal_ref',
+  'plot_number',
+  'plan_number',
+  'direction',
+  'street_width',
+  'price_type',
+  'source',
+  'source_url',
+  'source_listing_id',
+  'source_import_id',
   'views_count',
   'marketer_id',
   'license_expires_at',
@@ -46,19 +57,14 @@ const ALLOWED = new Set([
   'updated_at',
 ]);
 
-/** أعمدة اختيارية — قد لا تكون منفّذة في قاعدة الإنتاج */
+/** عمود قد يبقى غائبًا في بيئة لم تُنفَّذ فيها كل الهجرات */
 const OPTIONAL_MAP_COLUMNS = [
-  'plot_number',
-  'plan_number',
-  'direction',
-  'street_width',
-  'price_type',
   'contact_phone',
 ];
 
 const { MARKETER_DB_COLUMNS } = require('./marketerFeatures');
 
-function pickPropertyColumns(row, { allowOptional = false } = {}) {
+function pickPropertyColumns(row, { allowOptional = true } = {}) {
   const out = {};
   for (const [key, value] of Object.entries(row || {})) {
     if (ALLOWED.has(key)) {
@@ -79,9 +85,20 @@ function stripOptionalMapColumns(row) {
   return safe;
 }
 
+/** اسم العمود الناقص من رسالة PostgREST أو Postgres، إن وُجد. */
+function missingColumnFromError(message) {
+  const text = String(message || '');
+  const pg = text.match(/column ["']?(?:[\w]+\.)?([a-z0-9_]+)["']? does not exist/i);
+  if (pg) return pg[1];
+  const cache = text.match(/could not find the ['"]([a-z0-9_]+)['"] column/i);
+  if (cache) return cache[1];
+  return null;
+}
+
 module.exports = {
   ALLOWED_PROPERTY_COLUMNS: ALLOWED,
   OPTIONAL_MAP_COLUMNS,
   pickPropertyColumns,
   stripOptionalMapColumns,
+  missingColumnFromError,
 };

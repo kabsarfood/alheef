@@ -32,6 +32,7 @@ let express;
 let cors;
 let apiRoutes;
 let adminRoutes;
+let mapImportRoutes;
 let authRoutes;
 let marketerRoutes;
 let pushRoutes;
@@ -47,6 +48,7 @@ try {
   cors = require('cors');
   apiRoutes = require('./server/routes/api');
   adminRoutes = require('./server/routes/admin');
+  mapImportRoutes = require('./server/routes/mapImport');
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
@@ -225,6 +227,7 @@ app.use('/api/marketer', marketerRoutes);
 app.use('/api/ejar', ejarContractsRoutes);
 app.use('/api/ejar', ejarReviewsRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/config', async (_req, res) => {

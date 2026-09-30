@@ -78,6 +78,35 @@ router.get('/map/coords-warnings', async (_req, res) => {
 
 router.post('/map/parse-coords', handleParseMapCoords);
 
+router.get('/map/import-queue', async (_req, res) => {
+  try {
+    const { listImportQueue } = require('../services/mapImport');
+    res.json(await listImportQueue());
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/map/import-queue/:id/publish', async (req, res) => {
+  try {
+    const { reviewDecision } = require('../services/mapImport');
+    const outcome = await reviewDecision(req.params.id, { publish: true, confirmPossible: false });
+    res.status(outcome.status).json(outcome.body);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/map/import-queue/:id/reject', async (req, res) => {
+  try {
+    const { reviewDecision } = require('../services/mapImport');
+    const outcome = await reviewDecision(req.params.id, { publish: false });
+    res.status(outcome.status).json(outcome.body);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Stats ───
 router.get('/stats', async (_req, res) => {
   try {
@@ -240,6 +269,16 @@ router.post('/offers', uploadMemory.array('images', 20), async (req, res) => {
   }
 });
 
+async function applyKeptImages(propertyId, body) {
+  if (body.existingImages == null || body.existingImages === '') return;
+  let kept = body.existingImages;
+  if (typeof kept === 'string') {
+    try { kept = JSON.parse(kept); } catch { return; }
+  }
+  if (!Array.isArray(kept)) return;
+  await propertiesRepo.retainImages(propertyId, kept);
+}
+
 router.put('/properties/:id', uploadMemory.array('images', 20), async (req, res) => {
   try {
     const body = await enrichBodyCoords({ ...req.body });
@@ -248,6 +287,7 @@ router.put('/properties/:id', uploadMemory.array('images', 20), async (req, res)
     }
     const p = await propertiesRepo.update(req.params.id, body);
     if (!p) return res.status(404).json({ success: false, message: 'غير موجود' });
+    await applyKeptImages(p.id, body);
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
     res.json({ success: true, property: await propertiesRepo.getById(p.id) });
@@ -264,6 +304,7 @@ router.put('/offers/:id', uploadMemory.array('images', 20), async (req, res) => 
     }
     const p = await propertiesRepo.update(req.params.id, body);
     if (!p) return res.status(404).json({ success: false, message: 'غير موجود' });
+    await applyKeptImages(p.id, body);
     const urls = await uploadFiles(req.files, 'properties');
     if (urls.length) await propertiesRepo.addImages(p.id, urls);
     res.json({ success: true, offer: await propertiesRepo.getById(p.id) });

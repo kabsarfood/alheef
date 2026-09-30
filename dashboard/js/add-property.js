@@ -1,8 +1,6 @@
-const PROPERTY_TYPES = [
-  'أرض', 'فيلا', 'عمارة', 'شقة', 'محل', 'مكتب', 'أرض زراعية', 'استراحة', 'عقار تجاري',
-];
+const PROPERTY_TYPES = (window.AlheefPropertyTypes && AlheefPropertyTypes.labels())
+  || ['أرض سكنية', 'أرض تجارية', 'أرض زراعية', 'فيلا', 'دوبلكس', 'شقة', 'عمارة', 'قصر', 'برج', 'استراحة', 'محل', 'مكتب', 'عقار تجاري'];
 
-const REQUEST_KINDS = ['أرض', 'عمارة', 'فيلا'];
 const REQUEST_USAGE = [
   { value: 'residential', label: 'سكني' },
   { value: 'commercial', label: 'تجاري' },
@@ -11,12 +9,20 @@ const REQUEST_USAGE = [
 let imageQueue = [];
 let editId = null;
 let dropBound = false;
+let coordsEdited = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
   MapsUrlField.configure({
     parseEndpoint: '/api/map/parse-coords',
     authHeaders: () => Auth.authHeaders(),
     mapPageUrl: '/map.html',
+    onCoords(coords) {
+      if (coordsEdited || !coords) return;
+      const latEl = document.getElementById('latitude');
+      const lngEl = document.getElementById('longitude');
+      if (latEl) latEl.value = coords.lat;
+      if (lngEl) lngEl.value = coords.lng;
+    },
   });
   const params = new URLSearchParams(location.search);
   editId = params.get('id');
@@ -65,9 +71,10 @@ function syncListingMode() {
     sectionTitle.textContent = buy ? 'طلب شراء عقار' : 'معلومات العقار';
   }
 
+  const auction = document.getElementById('priceType')?.value === 'auction';
   if (priceEl) {
-    priceEl.required = !buy;
-    priceEl.placeholder = buy ? 'اختياري — الميزانية' : 'مثال: 3200000';
+    priceEl.required = !buy && !auction;
+    priceEl.placeholder = auction ? 'اختياري مع السوم' : 'مثال: 3200000';
   }
 
   if (propertyTypeEl) propertyTypeEl.required = !buy;
@@ -77,10 +84,10 @@ function syncListingMode() {
     el.required = buy;
     el.disabled = !buy;
   });
+  const saleRequired = new Set(['title', 'propertyType', 'city']);
   document.querySelectorAll('.data-sale-only').forEach((el) => {
-    if (el.id === 'price' || el.id === 'property-description') return;
-    el.required = !buy;
     el.disabled = buy;
+    if (saleRequired.has(el.id)) el.required = !buy;
   });
   document.querySelectorAll('#sale-fields-block input, #sale-fields-block select, #sale-fields-block textarea').forEach((el) => {
     if (el.classList.contains('data-sale-only')) return;
@@ -90,14 +97,18 @@ function syncListingMode() {
   if (priceEl) priceEl.disabled = buy;
   const descEl = document.getElementById('property-description');
   if (descEl) descEl.disabled = buy;
-  const mapsUrlEl = document.getElementById('mapsUrl');
-  if (mapsUrlEl) MapsUrlField.setRequired(!buy);
+  const lat = document.getElementById('latitude')?.value;
+  const lng = document.getElementById('longitude')?.value;
+  const manualOk = window.AlheefCoords?.isValidCoord(lat, lng);
+  MapsUrlField.setRequired(!buy && !manualOk);
 }
 
 function renderForm() {
   const content = getPageContent();
-  const typesOptions = PROPERTY_TYPES.map((t) => `<option value="${t}">${t}</option>`).join('');
-  const requestKinds = REQUEST_KINDS.map((t) => `<option value="${t}">${t}</option>`).join('');
+  const typesOptions = window.AlheefPropertyTypes
+    ? AlheefPropertyTypes.groupedHtml()
+    : PROPERTY_TYPES.map((t) => `<option value="${t}">${t}</option>`).join('');
+  const requestKinds = typesOptions;
   const usageOptions = REQUEST_USAGE.map((u) => `<option value="${u.value}">${u.label}</option>`).join('');
 
   if (editId) {
@@ -169,6 +180,17 @@ function renderForm() {
                 </select>
               </div>
               <div class="form-group">
+                <label>نوع السعر</label>
+                <select name="priceType" id="priceType" class="data-sale-only">
+                  <option value="fixed">سعر ثابت</option>
+                  <option value="auction">على السوم</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>السعر <span class="required">*</span></label>
+                <input type="text" name="price" id="price" class="data-sale-only" placeholder="مثال: 3200000" required dir="ltr">
+              </div>
+              <div class="form-group">
                 <label>مساحة العقار</label>
                 <input type="text" name="area" id="area" class="data-sale-only" placeholder="مثال: 450">
                 <span class="form-hint">اختياري — بالمتر المربع</span>
@@ -178,12 +200,44 @@ function renderForm() {
                 <input type="number" name="bedrooms" id="bedrooms" class="data-sale-only" min="0" placeholder="اختياري">
               </div>
               <div class="form-group">
-                <label>رقم الإعلان المرخص</label>
-                <input type="text" name="contractNumber" id="contractNumber" class="data-sale-only" placeholder="رقم الترخيص / فال">
+                <label>رقم المخطط</label>
+                <input type="text" name="planNumber" id="planNumber" class="data-sale-only" placeholder="مثال: 2566/ب">
               </div>
               <div class="form-group">
-                <label>السعر <span class="required">*</span></label>
-                <input type="text" name="price" id="price" class="data-sale-only" placeholder="مثال: 3200000" required dir="ltr">
+                <label>رقم القطعة</label>
+                <input type="text" name="plotNumber" id="plotNumber" class="data-sale-only" placeholder="مثال: 3043">
+              </div>
+              <div class="form-group">
+                <label>عرض الشارع</label>
+                <input type="text" name="streetWidth" id="streetWidth" class="data-sale-only" placeholder="مثال: 20">
+              </div>
+              <div class="form-group">
+                <label>الاتجاه</label>
+                <input type="text" name="direction" id="direction" class="data-sale-only" placeholder="شمالي / جنوبي / شرقي / غربي">
+                <span class="form-hint">يظهر على بطاقة الخريطة</span>
+              </div>
+              <div class="form-group">
+                <label>الواجهة</label>
+                <input type="text" name="facade" id="facade" class="data-sale-only" placeholder="مثال: واجهة واحدة على شارع 20">
+                <span class="form-hint">وصف الواجهة. الاتجاه الجغرافي يُكتب في الحقل السابق</span>
+              </div>
+              <div class="form-group">
+                <label>اسم الشارع</label>
+                <input type="text" name="street" id="street" class="data-sale-only" placeholder="اختياري">
+              </div>
+              <div class="form-group">
+                <label>رقم الترخيص</label>
+                <input type="text" name="contractNumber" id="contractNumber" class="data-sale-only" placeholder="رقم الإعلان المرخص / فال">
+              </div>
+              <div class="form-group">
+                <label>رقم الهيف</label>
+                <input type="text" id="internalRef" class="data-sale-only" dir="ltr" readonly placeholder="يُمنح عند الحفظ">
+                <span class="form-hint">للمهدية فقط، مثل H-MHD-000001. ثابت بعد منحه ولا يغيّر رقم الترخيص</span>
+              </div>
+              <div class="form-group">
+                <label>جوال المعلن</label>
+                <input type="tel" name="contactPhone" id="contactPhone" class="data-sale-only" placeholder="05xxxxxxxx" dir="ltr">
+                <span class="form-hint">يُحفظ للأدمن فقط. الزائر يرى رقماً مقنّعاً إن وُجد</span>
               </div>
               <div class="form-group full">
                 <label>وصف العقار</label>
@@ -192,11 +246,26 @@ function renderForm() {
               </div>
             </div>
 
-            <div class="form-group full">
-              <label>الموقع / اللوكيشن <span class="required">*</span></label>
-              <input type="text" name="location" id="location" placeholder="مثال: الرياض — حي النرجس" required>
+            <div class="form-group">
+              <label>المدينة <span class="required">*</span></label>
+              <input type="text" name="city" id="city" list="city-list" placeholder="الرياض" required>
+              <datalist id="city-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label>الحي</label>
+              <input type="text" name="district" id="district" list="district-list" placeholder="النرجس">
+              <datalist id="district-list"></datalist>
             </div>
             ${MapsUrlField.fieldHtml({ required: true })}
+            <div class="form-group">
+              <label>خط العرض</label>
+              <input type="text" name="latitude" id="latitude" dir="ltr" inputmode="decimal" placeholder="24.7136">
+              <span class="form-hint">يُملأ من رابط الخريطة ويمكن تعديله يدوياً</span>
+            </div>
+            <div class="form-group">
+              <label>خط الطول</label>
+              <input type="text" name="longitude" id="longitude" dir="ltr" inputmode="decimal" placeholder="46.6753">
+            </div>
             <div class="form-group">
               <label>حالة الإعلان</label>
               <select name="status" id="status">
@@ -227,6 +296,16 @@ function renderForm() {
   `;
 
   document.getElementById('listingType').addEventListener('change', syncListingMode);
+  document.getElementById('priceType')?.addEventListener('change', syncListingMode);
+  fillCityList();
+  document.getElementById('city')?.addEventListener('input', () => fillDistrictList(document.getElementById('city').value));
+  ['latitude', 'longitude'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      coordsEdited = true;
+      syncListingMode();
+    });
+  });
+  document.getElementById('mapsUrl')?.addEventListener('input', () => { coordsEdited = false; });
   syncListingMode();
 
   document.getElementById('property-form').addEventListener('submit', handleSubmit);
@@ -258,6 +337,35 @@ function bindDropZone() {
   });
 }
 
+function fillCityList() {
+  const list = document.getElementById('city-list');
+  const cities = window.AlheefMapLocations?.cities || [];
+  if (!list) return;
+  list.innerHTML = cities.map((city) => `<option value="${city}"></option>`).join('');
+}
+
+function fillDistrictList(city) {
+  const list = document.getElementById('district-list');
+  const districts = window.AlheefMapLocations?.districts?.[city] || [];
+  if (!list) return;
+  list.innerHTML = districts.map((name) => `<option value="${name}"></option>`).join('');
+}
+
+function ensureTypeOption(selectId, value) {
+  const select = document.getElementById(selectId);
+  const current = String(value || '').trim();
+  if (!select || !current) return;
+  if ([...select.options].some((opt) => opt.value === current)) {
+    select.value = current;
+    return;
+  }
+  const opt = document.createElement('option');
+  opt.value = current;
+  opt.textContent = `${current} (قيمة حالية)`;
+  select.appendChild(opt);
+  select.value = current;
+}
+
 function parseFeatures(offer) {
   const f = offer.features;
   if (f && typeof f === 'object' && !Array.isArray(f)) return f;
@@ -273,7 +381,7 @@ async function loadOffer(id) {
     syncListingMode();
 
     if (offer.listingType === 'buy_request') {
-      document.getElementById('requestPropertyKind').value = offer.requestPropertyKind || f.request_property_kind || offer.propertyType || '';
+      ensureTypeOption('requestPropertyKind', offer.requestPropertyKind || f.request_property_kind || offer.propertyType || '');
       document.getElementById('requestUsage').value = offer.requestUsage || f.request_usage || '';
       const areaBuy = document.getElementById('areaBuy');
       if (areaBuy) areaBuy.value = offer.area != null ? offer.area : '';
@@ -285,16 +393,36 @@ async function loadOffer(id) {
     } else {
       const titleEl = document.getElementById('title');
       if (titleEl) titleEl.value = offer.title || '';
-      document.getElementById('propertyType').value = offer.propertyType || '';
+      ensureTypeOption('propertyType', offer.propertyType || '');
       document.getElementById('area').value = offer.area != null ? String(offer.area) : '';
       const bedEl = document.getElementById('bedrooms');
       if (bedEl) bedEl.value = offer.bedrooms != null ? offer.bedrooms : '';
+      document.getElementById('planNumber').value = offer.planNumber || f.plan_number || '';
+      document.getElementById('plotNumber').value = offer.plotNumber || f.plot_number || '';
+      document.getElementById('streetWidth').value = offer.streetWidth || f.street_width || '';
+      document.getElementById('direction').value = offer.direction || f.direction || '';
+      document.getElementById('facade').value = offer.facade || f.facade || '';
+      document.getElementById('street').value = offer.street || '';
       document.getElementById('contractNumber').value = offer.contractNumber || '';
+      const refEl = document.getElementById('internalRef');
+      if (refEl) refEl.value = offer.internalRef || '';
+      document.getElementById('contactPhone').value = offer.contactPhone || f.contact_phone || '';
+      document.getElementById('priceType').value = offer.priceType || f.price_type || 'fixed';
       document.getElementById('price').value = offer.price != null ? offer.price : '';
       document.getElementById('property-description').value = offer.description || offer.details || '';
+      syncListingMode();
     }
 
-    document.getElementById('location').value = offer.location || [offer.city, offer.district].filter(Boolean).join(' — ');
+    const cityEl = document.getElementById('city');
+    const districtEl = document.getElementById('district');
+    if (cityEl) cityEl.value = offer.city || '';
+    fillDistrictList(offer.city || '');
+    if (districtEl) districtEl.value = offer.district || '';
+    if (offer.latitude != null && offer.longitude != null) {
+      document.getElementById('latitude').value = offer.latitude;
+      document.getElementById('longitude').value = offer.longitude;
+      coordsEdited = true;
+    }
     await MapsUrlField.loadFromOffer(offer);
     document.getElementById('status').value = offer.status || 'published';
     const urls = offer.gallery?.length ? offer.gallery : (offer.images || []).map((i) => (typeof i === 'string' ? i : i.url));
@@ -356,10 +484,12 @@ async function handleSubmit(e) {
 
   const buy = isBuyRequestMode();
   const fd = new FormData(e.target);
-  const location = fd.get('location') || '';
-  const parts = location.split('—').map((s) => s.trim());
-  fd.set('city', parts[0] || location);
-  fd.set('district', parts[1] || '');
+  const city = String(fd.get('city') || '').trim();
+  const district = String(fd.get('district') || '').trim();
+  const location = [city, district].filter(Boolean).join(' — ');
+  fd.set('city', city);
+  fd.set('district', district);
+  fd.set('location', location);
   fd.set('listingType', fd.get('listingType') || 'sale');
 
   if (buy) {
@@ -396,8 +526,15 @@ async function handleSubmit(e) {
     fd.set('description', desc);
     fd.delete('details');
     fd.delete('buy_description');
-    if (!fd.get('price')) {
+    const auction = fd.get('priceType') === 'auction';
+    if (!auction && !fd.get('price')) {
       showToast('السعر مطلوب لإعلانات البيع والإيجار', 'error');
+      btn.disabled = false;
+      btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
+      return;
+    }
+    if (!city) {
+      showToast('المدينة مطلوبة', 'error');
       btn.disabled = false;
       btn.textContent = editId ? 'حفظ التعديلات' : 'حفظ الإعلان';
       return;
@@ -405,9 +542,12 @@ async function handleSubmit(e) {
   }
 
   const status = fd.get('status') || 'published';
-  btn.textContent = 'جاري التحقق من الرابط...';
+  const manualLat = String(document.getElementById('latitude')?.value || '').trim();
+  const manualLng = String(document.getElementById('longitude')?.value || '').trim();
+  const manualOk = window.AlheefCoords?.isValidCoord(manualLat, manualLng);
+  btn.textContent = 'جاري التحقق من الموقع...';
   const mapsResult = await MapsUrlField.applyToFormData(fd, {
-    validate: status === 'published' && !buy,
+    validate: status === 'published' && !buy && !manualOk,
   });
   if (!mapsResult.ok) {
     showToast(mapsResult.message, 'error');
@@ -418,9 +558,21 @@ async function handleSubmit(e) {
 
   btn.textContent = 'جاري الحفظ...';
 
-  const coords = mapsResult.coords;
-  const lat = coords?.lat;
-  const lng = coords?.lng;
+  let lat = mapsResult.coords?.lat;
+  let lng = mapsResult.coords?.lng;
+  if (manualOk && (coordsEdited || !lat || !lng)) {
+    fd.set('latitude', manualLat);
+    fd.set('longitude', manualLng);
+    fd.set('coordsSource', 'manual');
+    lat = Number(manualLat);
+    lng = Number(manualLng);
+  } else if (manualOk && lat != null && (Number(manualLat) !== Number(lat) || Number(manualLng) !== Number(lng))) {
+    fd.set('latitude', manualLat);
+    fd.set('longitude', manualLng);
+    fd.set('coordsSource', 'manual');
+    lat = Number(manualLat);
+    lng = Number(manualLng);
+  }
 
   if (fd.get('bedrooms') === '') fd.delete('bedrooms');
   fd.append('existingImages', JSON.stringify(

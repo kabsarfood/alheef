@@ -103,18 +103,27 @@ CREATE TABLE properties (
   agent_name TEXT,
   agent_phone TEXT,
   reference_no TEXT,
+  internal_ref TEXT,
   plot_number TEXT,
   plan_number TEXT,
   direction TEXT,
   street_width TEXT,
   price_type TEXT DEFAULT 'fixed',
   contact_phone TEXT,
+  source TEXT,
+  source_url TEXT,
+  source_listing_id TEXT,
+  source_import_id TEXT,
   views_count INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT properties_status_check CHECK (status IN ('draft', 'published', 'sold', 'archived')),
   CONSTRAINT properties_listing_type_check CHECK (listing_type IN ('sale', 'rent', 'buy_request')),
-  CONSTRAINT properties_price_type_check CHECK (price_type IS NULL OR price_type IN ('fixed', 'auction'))
+  CONSTRAINT properties_price_type_check CHECK (price_type IS NULL OR price_type IN ('fixed', 'auction')),
+  CONSTRAINT properties_source_check CHECK (
+    source IS NULL
+    OR source IN ('alheef', 'chatgpt', 'haraj', 'aqar', 'whatsapp', 'manual', 'other')
+  )
 );
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -238,10 +247,38 @@ CREATE INDEX idx_properties_featured ON properties (featured) WHERE featured = t
 CREATE INDEX idx_properties_created_at ON properties (created_at DESC);
 CREATE INDEX idx_properties_slug ON properties (slug);
 CREATE INDEX idx_properties_reference_no ON properties (reference_no) WHERE reference_no IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_properties_internal_ref
+  ON properties (internal_ref)
+  WHERE internal_ref IS NOT NULL AND btrim(internal_ref) <> '';
 CREATE INDEX idx_properties_map ON properties (latitude, longitude)
   WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND status = 'published';
 
+CREATE TABLE IF NOT EXISTS property_import_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID REFERENCES properties(id) ON DELETE SET NULL,
+  source TEXT,
+  source_url TEXT,
+  source_listing_id TEXT,
+  source_import_id TEXT,
+  publish_mode TEXT,
+  result TEXT NOT NULL,
+  duplicate_of UUID,
+  duplicate_type TEXT,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX idx_property_images_property ON property_images (property_id, sort_order);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_properties_source_listing
+  ON properties (source, source_listing_id)
+  WHERE source IS NOT NULL AND btrim(source) <> ''
+    AND source_listing_id IS NOT NULL AND btrim(source_listing_id) <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_properties_source_import
+  ON properties (source_import_id)
+  WHERE source_import_id IS NOT NULL AND btrim(source_import_id) <> '';
+CREATE INDEX IF NOT EXISTS idx_property_import_logs_import_id
+  ON property_import_logs (source_import_id)
+  WHERE source_import_id IS NOT NULL AND btrim(source_import_id) <> '';
 CREATE INDEX idx_news_slug ON news (slug);
 CREATE INDEX idx_news_status ON news (status);
 CREATE INDEX idx_news_created_at ON news (created_at DESC);
@@ -306,6 +343,7 @@ INSERT INTO settings (
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE property_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_import_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
