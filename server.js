@@ -348,6 +348,10 @@ app.get('*', (req, res, next) => {
 });
 
 app.use((err, _req, res, _next) => {
+  if (!res.headersSent && (err?.type === 'entity.too.large' || err?.status === 413)) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(413).json({ success: false, message: 'حجم الطلب يتجاوز الحد' });
+  }
   console.error('خطأ في الطلب:', err);
   if (!res.headersSent) {
     res.status(500).json({ success: false, message: 'حدث خطأ في الخادم' });

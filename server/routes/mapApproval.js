@@ -1,7 +1,13 @@
 const express = require('express');
+const multer = require('multer');
 const { requireAdmin } = require('../middleware/auth');
 const gate = require('../services/mapApproval');
 const submitLinks = require('../services/mapSubmitLink');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: 6, fileSize: 8 * 1024 * 1024, fields: 12, fieldSize: 64 * 1024 },
+});
 
 const publicRouter = express.Router();
 const adminRouter = express.Router();
@@ -11,24 +17,82 @@ function wantsJson(req) {
   return req.query.format === 'json' || /json/i.test(req.get('accept') || '');
 }
 
-publicRouter.post('/one-time-submit/:code', async (req, res) => {
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"]/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+  }[ch]));
+}
+
+function resultHtml(body) {
+  const message = escapeHtml(body?.message || (body?.success ? 'تم إرسال الإعلان للموافقة' : 'تعذر إرسال الإعلان'));
+  const number = body?.request_number ? `<p>رقم الطلب: ${escapeHtml(body.request_number)}</p>` : '';
+  const state = body?.status === 'pending_approval' ? '<p>الحالة: بانتظار الموافقة</p>' : '';
+  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"></head><body style="font-family:sans-serif;padding:1.5rem;line-height:1.8"><p>${message}</p>${number}${state}</body></html>`;
+}
+
+function wantsHtmlResult(req) {
+  return /multipart\/form-data/i.test(String(req.get('content-type') || ''));
+}
+
+function sendSubmitResult(req, res, status, body) {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  if (wantsHtmlResult(req)) return res.status(status).type('html').send(resultHtml(body));
+  return res.status(status).json(body);
+}
+
+function sniffedDataUrl(file) {
+  const buffer = file?.buffer;
+  if (!buffer || !buffer.length) return '';
+  let mime = '';
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) mime = 'image/jpeg';
+  else if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) mime = 'image/png';
+  else if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') mime = 'image/webp';
+  if (!mime) return '';
+  return `data:${mime};base64,${buffer.toString('base64')}`;
+}
+
+function uploadErrorMessage(error) {
+  if (error?.code === 'LIMIT_FILE_SIZE') return 'حجم الصورة يتجاوز الحد';
+  if (error?.code === 'LIMIT_FILE_COUNT' || error?.code === 'LIMIT_UNEXPECTED_FILE') return 'الحد الأقصى 6 صور.';
+  return 'تعذر قراءة الصور';
+}
+
+publicRouter.post('/one-time-submit/:code', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   res.set('Referrer-Policy', 'no-referrer');
   const code = String(req.params.code || '');
   const codeHash = /^[A-Za-z0-9_-]{43}$/.test(code) ? submitLinks.hashCode(code) : 'invalid';
   if (!submitLinks.allow(req, codeHash)) {
-    return res.status(429).json({ success: false, message: 'محاولات كثيرة. أعد المحاولة لاحقًا' });
+    return sendSubmitResult(req, res, 429, { success: false, message: 'محاولات كثيرة. أعد المحاولة لاحقًا' });
   }
+  const type = String(req.get('content-type') || '');
   const length = Number(req.get('content-length') || 0);
-  if (length > 10 * 1024 * 1024) {
-    return res.status(413).json({ success: false, message: 'حجم الطلب يتجاوز الحد' });
+  const multipart = /multipart\/form-data/i.test(type);
+  const limit = multipart ? 48 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (length > limit) {
+    return sendSubmitResult(req, res, 413, { success: false, message: 'حجم الطلب يتجاوز الحد' });
   }
+  if (!multipart) return next();
+  return upload.array('images', 6)(req, res, (error) => {
+    if (error) return sendSubmitResult(req, res, 400, { success: false, message: uploadErrorMessage(error) });
+    const images = [];
+    for (const file of req.files || []) {
+      const dataUrl = sniffedDataUrl(file);
+      if (!dataUrl) return sendSubmitResult(req, res, 400, { success: false, message: 'نوع الصورة غير مسموح' });
+      images.push(dataUrl);
+    }
+    req.body = { ...(req.body || {}), images };
+    return next();
+  });
+}, async (req, res) => {
+  const code = String(req.params.code || '');
   try {
     const outcome = await submitLinks.submitOnce(code, req.body || {});
-    res.status(outcome.status).json(outcome.body);
+    sendSubmitResult(req, res, outcome.status, outcome.body);
   } catch (error) {
     console.error('[map-submit-link]', gate.safeReason(error));
-    res.status(500).json({ success: false, message: 'تعذر إرسال الإعلان' });
+    sendSubmitResult(req, res, 500, { success: false, message: 'تعذر إرسال الإعلان' });
   }
 });
 

@@ -157,14 +157,17 @@ function messageFor(state) {
   return 'الرابط غير صالح.';
 }
 
-function pageHtml(state) {
+function pageHtml(state, code) {
   if (state !== 'new') {
     return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>رابط الإضافة</title></head><body style="font-family:sans-serif;padding:1.5rem;line-height:1.8"><p>${messageFor(state)}</p></body></html>`;
   }
+  const action = CODE_RE.test(String(code || ''))
+    ? `/api/integrations/alheef-map/one-time-submit/${code}`
+    : '';
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>إرسال إعلان للموافقة</title></head><body style="font-family:sans-serif;padding:1rem;line-height:1.7;max-width:40rem;margin:auto">
 <h1 style="font-size:1.3rem">إرسال إعلان إلى خريطة الهيف</h1>
 <p>يُرسل الطلب للموافقة فقط، ولا يُنشر مباشرة.</p>
-<form id="submit-form">
+<form id="submit-form" method="post" enctype="multipart/form-data" action="${action}" novalidate>
 <label>نوع العقار<br><select name="property_type" required><option value="أرض">أرض</option><option value="فيلا">فيلا</option><option value="شقة">شقة</option><option value="عمارة">عمارة</option></select></label><br><br>
 <label>تفاصيل الإعلان<br><textarea name="details" required rows="8" maxlength="8000"></textarea></label><br><br>
 <label>رابط الموقع<br><input name="location_url" inputmode="url"></label><br><br>
@@ -173,14 +176,16 @@ function pageHtml(state) {
 <label>رابط المصدر الخارجي، اختياري<br><input name="source_url" inputmode="url"></label><br><br>
 <label>اسم المصدر، اختياري<br><input name="source_name" maxlength="120"></label><br><br>
 <label>الصور، حتى 6<br><input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><br><br>
-<button type="submit">إرسال للموافقة</button>
+<button type="submit" id="send-approval">إرسال للموافقة</button>
 </form>
-<div id="submit-result"></div>
+<div id="submit-result" style="min-height:1.4em;font-weight:700"></div>
 <script>
 (function () {
   var form = document.getElementById('submit-form');
-  var phoneInput = form.contact_phone;
+  var phoneInput = form.querySelector('[name=contact_phone]');
   var phoneError = document.getElementById('phone-error');
+  var fileInput = form.querySelector('input[type=file]');
+  if (!phoneInput || !fileInput) return;
   function digitsOf(value) { return String(value || '').replace(/\\D/g, ''); }
   function accountPhone(digits) {
     var d = digits;
@@ -225,64 +230,94 @@ function pageHtml(state) {
     phoneInput.value = text;
     syncPhone(event);
   });
-  function readImage(file, signal) {
+  function field(name) {
+    var input = form.querySelector('[name="' + name + '"]');
+    return input ? input.value : '';
+  }
+  function compressImage(file, signal) {
     return new Promise(function (resolve, reject) {
-      var aborted = false;
-      function abortRead() {
-        aborted = true;
+      if (signal.aborted) {
         reject(Object.assign(new Error('abort'), { name: 'AbortError' }));
+        return;
       }
-      if (signal.aborted) { abortRead(); return; }
-      var reader = new FileReader();
-      function stop() { reader.abort(); abortRead(); }
-      signal.addEventListener('abort', stop, { once: true });
-      reader.onload = function () {
-        signal.removeEventListener('abort', stop);
-        resolve(reader.result);
+      var url = URL.createObjectURL(file);
+      var image = new Image();
+      function fail() {
+        URL.revokeObjectURL(url);
+        reject(new Error('image'));
+      }
+      image.onload = function () {
+        var maxSide = 1600;
+        var longest = Math.max(image.width, image.height) || 1;
+        var scale = Math.min(1, maxSide / longest);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
       };
-      reader.onerror = function () {
-        signal.removeEventListener('abort', stop);
-        if (!aborted) reject(new Error('image'));
-      };
-      reader.readAsDataURL(file);
+      image.onerror = fail;
+      signal.addEventListener('abort', function () {
+        image.src = '';
+        URL.revokeObjectURL(url);
+        reject(Object.assign(new Error('abort'), { name: 'AbortError' }));
+      }, { once: true });
+      image.src = url;
     });
   }
   form.addEventListener('submit', async function (event) {
     event.preventDefault();
-    var button = form.querySelector('button');
+    var button = document.getElementById('send-approval');
     var result = document.getElementById('submit-result');
     var phone = syncPhone({ type: 'submit' });
+    if (!String(field('details')).trim()) {
+      result.textContent = 'تفاصيل الإعلان مطلوبة';
+      return;
+    }
     if (String(phoneInput.value || '').trim() && !phone) {
       result.textContent = 'رقم الجوال غير صالح';
       return;
     }
-    var files = form.images.files;
+    var files = fileInput.files || [];
     if (files.length > 6) { result.textContent = 'الحد الأقصى 6 صور.'; return; }
     button.disabled = true;
+    button.textContent = 'جارٍ الإرسال…';
     result.textContent = 'جارٍ الإرسال…';
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 45000);
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var signal = controller ? controller.signal : { aborted: false, addEventListener: function () {} };
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 45000);
+    var started = false;
     try {
       var images = [];
-      for (var i = 0; i < files.length; i += 1) images.push(await readImage(files[i], controller.signal));
+      for (var i = 0; i < files.length; i += 1) images.push(await compressImage(files[i], signal));
+      var payload = JSON.stringify({
+        property_type: field('property_type'),
+        details: field('details'),
+        location_url: field('location_url'),
+        contact_phone: phone,
+        source_url: field('source_url'),
+        source_name: field('source_name'),
+        images: images
+      });
+      if (payload.length > 9000000) {
+        button.disabled = false;
+        button.textContent = 'إرسال للموافقة';
+        result.textContent = 'حجم الصور أكبر من الحد.';
+        return;
+      }
+      started = true;
       var code = location.pathname.split('/').filter(Boolean).pop();
       var response = await fetch('/api/integrations/alheef-map/one-time-submit/' + encodeURIComponent(code), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          property_type: form.property_type.value,
-          details: form.details.value,
-          location_url: form.location_url.value,
-          contact_phone: phone,
-          source_url: form.source_url.value,
-          source_name: form.source_name.value,
-          images: images
-        }),
-        signal: controller.signal
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: payload,
+        signal: controller ? controller.signal : undefined
       });
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.success) {
         button.disabled = false;
+        button.textContent = 'إرسال للموافقة';
         result.textContent = data.message || 'تعذر إرسال الإعلان.';
         return;
       }
@@ -299,7 +334,13 @@ function pageHtml(state) {
       }
       result.replaceChildren(title, number, state);
     } catch (error) {
+      if (!started && !(error && error.name === 'AbortError')) {
+        clearTimeout(timer);
+        HTMLFormElement.prototype.submit.call(form);
+        return;
+      }
       button.disabled = false;
+      button.textContent = 'إرسال للموافقة';
       result.textContent = error && error.name === 'AbortError'
         ? 'انتهت مهلة الإرسال. حاول مرة أخرى.'
         : 'تعذر الاتصال. حاول مرة أخرى.';
@@ -315,7 +356,7 @@ function pageHtml(state) {
 async function pageForCode(code) {
   const loaded = await loadLink(code);
   if (loaded.state === 'missing') return { status: 404, html: pageHtml('missing') };
-  return { status: 200, html: pageHtml(loaded.state) };
+  return { status: 200, html: pageHtml(loaded.state, code) };
 }
 
 function validate(body) {
@@ -430,7 +471,7 @@ module.exports = {
   listSubmitLinks,
   cancelSubmitLink,
   pageForCode,
-  renderSubmitForm: () => pageHtml('new'),
+  renderSubmitForm: (code) => pageHtml('new', code),
   submitOnce,
   hashCode,
 };
