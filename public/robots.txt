@@ -3,4 +3,5 @@ Allow: /
 Disallow: /v/
 Disallow: /p/
 Disallow: /dashboard/
+Disallow: /map-submit
 Disallow: /marketer/

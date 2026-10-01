@@ -116,7 +116,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/m/') || url.pathname.startsWith('/map-submit/')) {
+  if (url.pathname === '/map-submit' || url.pathname.startsWith('/map-submit/') || url.pathname.startsWith('/m/')) {
     event.respondWith(fetch(request));
     return;
   }

@@ -34,6 +34,7 @@ let apiRoutes;
 let adminRoutes;
 let mapImportRoutes;
 let mapApprovalRoutes;
+let mapDirectRoutes;
 let chatgptMapMcpRoutes;
 let authRoutes;
 let marketerRoutes;
@@ -52,6 +53,7 @@ try {
   adminRoutes = require('./server/routes/admin');
   mapImportRoutes = require('./server/routes/mapImport');
   mapApprovalRoutes = require('./server/routes/mapApproval');
+  mapDirectRoutes = require('./server/routes/mapDirectSubmit');
   chatgptMapMcpRoutes = require('./server/routes/chatgptMapMcp');
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
@@ -243,12 +245,14 @@ app.use('/api/integrations/alheef-map', mapApprovalRoutes.publicRouter);
 app.use('/api/admin/map-approvals', mapApprovalRoutes.adminRouter);
 app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/admin', adminRoutes);
+app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
 
 app.get('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
 app.post('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
 app.get('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
 app.post('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
 app.get('/m/o/:code', (req, res) => mapApprovalRoutes.shortOpen(req, res));
+app.get('/map-submit', (req, res) => mapDirectRoutes.page(req, res));
 app.get('/map-submit/:code', (req, res) => mapApprovalRoutes.submitPage(req, res));
 
 app.get('/api/config', async (_req, res) => {
