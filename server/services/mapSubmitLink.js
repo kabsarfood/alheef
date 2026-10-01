@@ -308,7 +308,12 @@ function pageHtml(state, code) {
         body: payload,
         signal: controller ? controller.signal : undefined
       });
-      var data = await response.json().catch(function () { return {}; });
+      var raw = await response.text();
+      var data = {};
+      try { data = JSON.parse(raw); } catch (parseError) { data = {}; }
+      if (response.ok && !data.success && raw.indexOf('تم إرسال الإعلان للموافقة') !== -1) {
+        data = { success: true, status: 'pending_approval', request_number: '', message: 'تم إرسال الإعلان للموافقة' };
+      }
       if (!response.ok || !data.success) {
         button.disabled = false;
         button.textContent = 'إرسال للموافقة';

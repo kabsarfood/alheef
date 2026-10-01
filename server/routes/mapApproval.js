@@ -31,6 +31,8 @@ function resultHtml(body) {
 }
 
 function wantsHtmlResult(req) {
+  const accept = String(req.get('accept') || '');
+  if (/application\/json/i.test(accept)) return false;
   return /multipart\/form-data/i.test(String(req.get('content-type') || ''));
 }
 
