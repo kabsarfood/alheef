@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initLayout('map-approvals', 'طلبات إضافة خريطة الهيف');
   const content = getPageContent();
   content.innerHTML = `
+    <div class="card" style="padding:1rem;margin-bottom:1rem">
+      <button type="button" class="btn btn-gold" id="create-submit-link">إنشاء رابط إضافة آمن</button>
+      <p id="submit-link-once" style="display:none;margin-top:0.8rem"></p>
+      <div id="submit-link-list" style="margin-top:1rem">جاري تحميل الروابط...</div>
+    </div>
     <div class="card" style="padding:1rem">
       <div id="approval-tabs" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem"></div>
       <div id="approval-list">جاري التحميل...</div>
@@ -34,6 +39,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabs.appendChild(button);
   });
   load('pending_approval');
+  loadSubmitLinks();
+  document.getElementById('create-submit-link').addEventListener('click', createSubmitLink);
 });
 
 async function load(status) {
@@ -98,4 +105,70 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+const LINK_STATUS = { new: 'جديد', used: 'مستخدم', expired: 'منتهي', cancelled: 'ملغي' };
+
+function formatWhen(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('ar-SA');
+}
+
+async function loadSubmitLinks() {
+  const list = document.getElementById('submit-link-list');
+  try {
+    const data = await DashboardAPI.request('/map-approvals/submit-links');
+    const items = data.items || [];
+    if (!items.length) {
+      list.textContent = 'لا توجد روابط بعد.';
+      return;
+    }
+    list.innerHTML = `<table class="table"><thead><tr><th>الإنشاء</th><th>الانتهاء</th><th>الحالة</th><th></th></tr></thead><tbody>
+      ${items.map((item) => `<tr>
+        <td>${escapeHtml(formatWhen(item.createdAt))}</td>
+        <td>${escapeHtml(formatWhen(item.expiresAt))}</td>
+        <td>${escapeHtml(LINK_STATUS[item.status] || item.status)}</td>
+        <td>${item.status === 'new' ? `<button type="button" class="btn btn-sm btn-outline" data-cancel-link="${escapeHtml(item.id)}">إلغاء</button>` : ''}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+    list.querySelectorAll('[data-cancel-link]').forEach((button) => {
+      button.addEventListener('click', () => cancelSubmitLink(button.dataset.cancelLink));
+    });
+  } catch (error) {
+    list.textContent = error.message || 'تعذر تحميل الروابط';
+  }
+}
+
+async function createSubmitLink() {
+  const button = document.getElementById('create-submit-link');
+  const once = document.getElementById('submit-link-once');
+  button.disabled = true;
+  try {
+    const data = await DashboardAPI.request('/map-approvals/submit-links', { method: 'POST' });
+    once.style.display = 'block';
+    once.innerHTML = '';
+    const text = document.createElement('span');
+    text.textContent = data.url;
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'btn btn-sm btn-outline';
+    copy.textContent = 'نسخ';
+    copy.style.marginInlineStart = '0.5rem';
+    copy.addEventListener('click', () => navigator.clipboard.writeText(data.url));
+    once.append(text, copy);
+    await loadSubmitLinks();
+  } catch (error) {
+    window.alert(error.message || 'تعذر إنشاء الرابط');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function cancelSubmitLink(id) {
+  try {
+    await DashboardAPI.request(`/map-approvals/submit-links/${id}/cancel`, { method: 'POST' });
+    await loadSubmitLinks();
+  } catch (error) {
+    window.alert(error.message || 'تعذر إلغاء الرابط');
+  }
 }

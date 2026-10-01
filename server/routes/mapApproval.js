@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
 const gate = require('../services/mapApproval');
+const submitLinks = require('../services/mapSubmitLink');
 
 const publicRouter = express.Router();
 const adminRouter = express.Router();
@@ -9,6 +10,27 @@ adminRouter.use(requireAdmin);
 function wantsJson(req) {
   return req.query.format === 'json' || /json/i.test(req.get('accept') || '');
 }
+
+publicRouter.post('/one-time-submit/:code', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  const code = String(req.params.code || '');
+  const codeHash = /^[A-Za-z0-9_-]{43}$/.test(code) ? submitLinks.hashCode(code) : 'invalid';
+  if (!submitLinks.allow(req, codeHash)) {
+    return res.status(429).json({ success: false, message: 'محاولات كثيرة. أعد المحاولة لاحقًا' });
+  }
+  const length = Number(req.get('content-length') || 0);
+  if (length > 10 * 1024 * 1024) {
+    return res.status(413).json({ success: false, message: 'حجم الطلب يتجاوز الحد' });
+  }
+  try {
+    const outcome = await submitLinks.submitOnce(code, req.body || {});
+    res.status(outcome.status).json(outcome.body);
+  } catch (error) {
+    console.error('[map-submit-link]', gate.safeReason(error));
+    res.status(500).json({ success: false, message: 'تعذر إرسال الإعلان' });
+  }
+});
 
 publicRouter.post('/requests', async (req, res) => {
   if (!gate.rateLimiter.allowRequest(req)) {
@@ -82,6 +104,33 @@ publicRouter.get('/preview-image', async (req, res) => {
   }
 });
 
+adminRouter.post('/submit-links', async (req, res) => {
+  try {
+    const outcome = await submitLinks.createSubmitLink();
+    res.status(outcome.status).json(outcome.body);
+  } catch (error) {
+    res.status(500).json({ success: false, message: gate.safeReason(error) });
+  }
+});
+
+adminRouter.get('/submit-links', async (req, res) => {
+  try {
+    const outcome = await submitLinks.listSubmitLinks();
+    res.status(outcome.status).json(outcome.body);
+  } catch (error) {
+    res.status(500).json({ success: false, message: gate.safeReason(error) });
+  }
+});
+
+adminRouter.post('/submit-links/:id/cancel', async (req, res) => {
+  try {
+    const outcome = await submitLinks.cancelSubmitLink(req.params.id);
+    res.status(outcome.status).json(outcome.body);
+  } catch (error) {
+    res.status(500).json({ success: false, message: gate.safeReason(error) });
+  }
+});
+
 adminRouter.get('/', async (req, res) => {
   try {
     const items = await gate.listRequests(String(req.query.status || ''));
@@ -126,11 +175,26 @@ async function shortPage(req, res, action) {
   }
 }
 
+async function submitPage(req, res) {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; connect-src 'self'; form-action 'self'; base-uri 'none'");
+  try {
+    const page = await submitLinks.pageForCode(String(req.params.code || ''));
+    res.status(page.status).type('html').send(page.html);
+  } catch (error) {
+    console.error('[map-submit-link]', gate.safeReason(error));
+    res.status(500).type('html').send('<p dir="rtl">تعذر فتح الرابط.</p>');
+  }
+}
+
 module.exports = {
   publicRouter,
   adminRouter,
   shortApprove: (req, res) => shortPage(req, res, 'approve'),
   shortReject: (req, res) => shortPage(req, res, 'reject'),
+  submitPage,
   shortOpen: async (req, res) => {
     try {
       const target = await gate.shortOpen(String(req.params.code || ''));
