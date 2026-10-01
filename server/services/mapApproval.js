@@ -77,6 +77,22 @@ function authorizeIntegration(header) {
   return { ok: true };
 }
 
+function connectorToken() {
+  return String(process.env.ALHEEF_CHATGPT_CONNECTOR_TOKEN || '');
+}
+
+function authorizeConnector(header) {
+  const expected = connectorToken();
+  if (expected.length < 24) {
+    return { ok: false, status: 503, message: 'موصل ChatGPT غير مفعّل' };
+  }
+  const match = String(header || '').match(/^Bearer\s+(.+)$/i);
+  if (!match || !safeEqual(match[1].trim(), expected)) {
+    return { ok: false, status: 401, message: 'غير مصرح' };
+  }
+  return { ok: true };
+}
+
 function sign(parts) {
   const secret = signingSecret();
   if (secret.length < 24) {
@@ -315,15 +331,22 @@ function approvalMessage(row, codes) {
   const base = publicBase();
   const approveUrl = `${base}/m/a/${codes.approve}`;
   const rejectUrl = `${base}/m/r/${codes.reject}`;
+  const description = [
+    'اضغط الزر لتنفيذ القرار:',
+    approveUrl,
+    rejectUrl,
+    '',
+    fullText,
+  ].join('\n').slice(0, 1024);
   return {
     kind: 'approval',
     title: 'طلب نشر جديد',
-    description: fullText.slice(0, 1024),
+    description,
     fullText,
     footer: 'خريطة الهيف',
     buttons: [
-      { displayText: 'نعم، انشر', id: `alheef_map:approve:${codes.approve}` },
-      { displayText: 'رفض', id: `alheef_map:reject:${codes.reject}` },
+      { displayText: 'نعم، انشر', url: approveUrl },
+      { displayText: 'رفض', url: rejectUrl },
     ],
     fallbackText: [
       fullText,
@@ -1007,6 +1030,42 @@ async function shortOpen(code) {
   return linked.propertyUrl;
 }
 
+async function resendPendingApproval(requestNumber) {
+  const number = String(requestNumber || '').trim();
+  const { data: row, error } = await getAdmin()
+    .from('map_publish_requests')
+    .select('*')
+    .eq('request_number', number)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return { ok: false, status: 'missing' };
+  if (row.status !== 'pending_approval' || row.published_property_id) {
+    return { ok: false, status: row.status, propertyId: row.published_property_id || null };
+  }
+  const approve = shortCode();
+  const reject = shortCode();
+  const { data: updated, error: updateError } = await getAdmin()
+    .from('map_publish_requests')
+    .update({
+      approve_code_hash: hashValue(approve),
+      reject_code_hash: hashValue(reject),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', row.id)
+    .eq('status', 'pending_approval')
+    .select('id,status,published_property_id')
+    .maybeSingle();
+  if (updateError) throw new Error(updateError.message);
+  if (!updated || updated.published_property_id) return { ok: false, status: updated?.status || 'changed' };
+  const sent = await notify(row, approvalMessage(row, { approve, reject }), 'whatsapp_approval_resend');
+  return {
+    ok: !!sent?.ok,
+    mode: sent?.mode || '',
+    status: 'pending_approval',
+    propertyId: null,
+  };
+}
+
 async function cancelRequest(id) {
   const row = await getRequest(id);
   if (!row) return { status: 404, body: { success: false, message: 'الطلب غير موجود' } };
@@ -1149,6 +1208,7 @@ async function cleanupExpiredStaging() {
 module.exports = {
   SOURCES,
   authorizeIntegration,
+  authorizeConnector,
   verifyWebhook,
   sign,
   createRequest,
@@ -1157,6 +1217,7 @@ module.exports = {
   acceptWebhook,
   shortDecision,
   shortOpen,
+  resendPendingApproval,
   decisionPage,
   cancelRequest,
   deleteRequest,

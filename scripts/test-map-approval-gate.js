@@ -162,8 +162,8 @@ async function main() {
     const notice = approvalOf(sent.at(-1));
     assert(notice.message.buttons?.length === 2, 'رسالة واتساب فيها زرّان');
     assert(notice.message.buttons[0].displayText === 'نعم، انشر' && notice.message.buttons[1].displayText === 'رفض', 'الزران: نعم انشر ورفض');
-    assert(notice.message.buttons[0].id.startsWith('alheef_map:approve:') && notice.message.buttons[1].id.startsWith('alheef_map:reject:'), 'معرّف الزر يربط الطلب بالقرار');
-    assert(!JSON.stringify(notice.message.buttons).includes('http'), 'الأزرار لا تحمل روابط');
+    assert(notice.message.buttons[0].url.endsWith(`/m/a/${notice.approve}`) && notice.message.buttons[1].url.endsWith(`/m/r/${notice.reject}`), 'الزر يفتح قرار الطلب نفسه');
+    assert(!JSON.stringify(notice.message.buttons).includes('sig='), 'أزرار القرار بلا توقيع طويل');
     assert(notice.text.includes('النرجس') && notice.text.includes('/m/a/') && notice.text.includes('/m/r/'), 'النص البديل فيه التفاصيل ورابطان قصيران');
     assert(!notice.text.includes('معاينة') && !notice.text.includes('sig=') && !notice.text.includes('/decision?'), 'الرسالة لا تعرض معاينة ولا توقيعًا ولا رابطًا طويلًا');
     assert(sent.at(-1).phone === '966530792754', 'الإشعار يذهب لرقم الأدمن');
