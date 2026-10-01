@@ -594,6 +594,13 @@ async function createRequest(body) {
       const raced = await findActiveByHash(payloadHash);
       if (raced) return { status: 200, body: publicRequest(raced, { duplicate: true }) };
     }
+    if (idempotencyKey && /idempotency|idx_map_publish_idempotency/i.test(error.message || '')) {
+      const again = await getAdmin().from('map_publish_requests').select('*').eq('idempotency_key', idempotencyKey).limit(1);
+      if (again.data?.[0]) {
+        const linked = await propertyLink(again.data[0].published_property_id);
+        return { status: 200, body: publicRequest(again.data[0], { idempotent: true, ...linked }) };
+      }
+    }
     if (!/duplicate|unique/i.test(error.message || '') || attempt === 3) throw new Error(error.message);
   }
 

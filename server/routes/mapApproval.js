@@ -88,6 +88,12 @@ publicRouter.post('/one-time-submit/:code', (req, res, next) => {
 }, async (req, res) => {
   const code = String(req.params.code || '');
   try {
+    console.info(JSON.stringify({
+      scope: 'map-submit-link',
+      at: new Date().toISOString(),
+      images: Array.isArray(req.body?.images) ? req.body.images.length : 0,
+      result: 'received',
+    }));
     const outcome = await submitLinks.submitOnce(code, req.body || {});
     sendSubmitResult(req, res, outcome.status, outcome.body);
   } catch (error) {

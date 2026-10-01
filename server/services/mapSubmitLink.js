@@ -255,7 +255,10 @@ function pageHtml(state, code) {
         canvas.height = Math.max(1, Math.round(image.height * scale));
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        canvas.toBlob(function (blob) {
+          if (!blob) reject(new Error('image'));
+          else resolve(blob);
+        }, 'image/jpeg', 0.82);
       };
       image.onerror = fail;
       signal.addEventListener('abort', function () {
@@ -286,31 +289,22 @@ function pageHtml(state, code) {
     result.textContent = 'جارٍ الإرسال…';
     var controller = typeof AbortController === 'function' ? new AbortController() : null;
     var signal = controller ? controller.signal : { aborted: false, addEventListener: function () {} };
-    var timer = setTimeout(function () { if (controller) controller.abort(); }, 45000);
-    var started = false;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 90000);
     try {
       var images = [];
       for (var i = 0; i < files.length; i += 1) images.push(await compressImage(files[i], signal));
-      var payload = JSON.stringify({
-        property_type: field('property_type'),
-        details: field('details'),
-        location_url: field('location_url'),
-        contact_phone: phone,
-        source_url: field('source_url'),
-        source_name: field('source_name'),
-        images: images
-      });
-      if (payload.length > 9000000) {
-        button.disabled = false;
-        button.textContent = 'إرسال للموافقة';
-        result.textContent = 'حجم الصور أكبر من الحد.';
-        return;
-      }
-      started = true;
+      var payload = new FormData();
+      payload.append('property_type', field('property_type'));
+      payload.append('details', field('details'));
+      payload.append('location_url', field('location_url'));
+      payload.append('contact_phone', phone);
+      payload.append('source_url', field('source_url'));
+      payload.append('source_name', field('source_name'));
+      for (var n = 0; n < images.length; n += 1) payload.append('images', images[n], 'photo-' + n + '.jpg');
       var code = location.pathname.split('/').filter(Boolean).pop();
       var response = await fetch('/api/integrations/alheef-map/one-time-submit/' + encodeURIComponent(code), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/json' },
         body: payload,
         signal: controller ? controller.signal : undefined
       });
@@ -325,7 +319,7 @@ function pageHtml(state, code) {
       var title = document.createElement('p');
       var number = document.createElement('p');
       var state = document.createElement('p');
-      if (data.status === 'pending_approval' && !data.idempotent) {
+      if (data.status === 'pending_approval') {
         title.textContent = 'تم إرسال الإعلان للموافقة';
         number.textContent = 'رقم الطلب: ' + String(data.request_number || '');
         state.textContent = 'الحالة: بانتظار الموافقة';
@@ -334,16 +328,11 @@ function pageHtml(state, code) {
       }
       result.replaceChildren(title, number, state);
     } catch (error) {
-      if (!started && !(error && error.name === 'AbortError')) {
-        clearTimeout(timer);
-        HTMLFormElement.prototype.submit.call(form);
-        return;
-      }
       button.disabled = false;
       button.textContent = 'إرسال للموافقة';
-      result.textContent = error && error.name === 'AbortError'
-        ? 'انتهت مهلة الإرسال. حاول مرة أخرى.'
-        : 'تعذر الاتصال. حاول مرة أخرى.';
+      if (error && error.message === 'image') result.textContent = 'تعذر قراءة الصور. استخدم JPG أو PNG.';
+      else if (error && error.name === 'AbortError') result.textContent = 'انتهت مهلة الإرسال. أعد المحاولة.';
+      else result.textContent = 'تعذر الاتصال. أعد المحاولة، ولن يُنشأ طلب مكرر.';
     } finally {
       clearTimeout(timer);
     }
@@ -436,33 +425,31 @@ async function submitOnce(code, body) {
     return { status: error.status || 400, body: { success: false, message: gate.safeReason(error) } };
   }
   payload.idempotency_key = `map-submit:${loaded.row.code_hash}`;
-  const now = new Date().toISOString();
-  const claimed = await getAdmin()
-    .from('map_submit_links')
-    .update({ status: 'used', used_at: now })
-    .eq('id', loaded.row.id)
-    .eq('status', 'new')
-    .gt('expires_at', now)
-    .select('id')
-    .maybeSingle();
-  if (claimed.error) return { status: 500, body: { success: false, message: 'تعذر إرسال الإعلان' } };
-  if (!claimed.data) return { status: 409, body: { success: false, message: 'تم استخدام هذا الرابط.' } };
+  let outcome;
   try {
-    const outcome = await gate.createRequest(payload);
-    const requestId = outcome.body?.request_id || null;
-    if (requestId) {
-      await getAdmin().from('map_submit_links').update({ request_id: requestId }).eq('id', loaded.row.id);
-    }
-    await gateAudit(loaded.row.id, 'submit_link_used');
-    logLink(loaded.row.id, 'used');
-    const result = publicResult(outcome.body || {});
-    if (outcome.body?.duplicate) result.message = 'هذا الإعلان موجود مسبقًا، ولم يُنشر إعلان جديد.';
-    return { status: outcome.status, body: result };
+    outcome = await gate.createRequest(payload);
   } catch (error) {
-    await getAdmin().from('map_submit_links').update({ status: 'new', used_at: null }).eq('id', loaded.row.id).is('request_id', null);
     const status = error.status || 500;
     return { status, body: { success: false, message: status === 500 ? 'تعذر إرسال الإعلان' : gate.safeReason(error) } };
   }
+  const requestId = outcome.body?.request_id || null;
+  if (!requestId) {
+    return { status: outcome.status || 500, body: { success: false, message: 'تعذر إرسال الإعلان' } };
+  }
+  const now = new Date().toISOString();
+  await getAdmin()
+    .from('map_submit_links')
+    .update({ status: 'used', used_at: now, request_id: requestId })
+    .eq('id', loaded.row.id)
+    .eq('status', 'new');
+  await gateAudit(loaded.row.id, 'submit_link_used');
+  logLink(loaded.row.id, 'used');
+  const result = publicResult(outcome.body || {});
+  if (outcome.body?.duplicate) result.message = 'هذا الإعلان موجود مسبقًا، ولم يُنشر إعلان جديد.';
+  if (outcome.body?.idempotent && outcome.body?.status === 'pending_approval') {
+    result.message = 'تم إرسال الإعلان للموافقة.';
+  }
+  return { status: outcome.body?.idempotent ? 200 : outcome.status, body: result };
 }
 
 module.exports = {

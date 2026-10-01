@@ -151,7 +151,7 @@ async function main() {
     assert(page.status === 200 && page.text.includes('إرسال للموافقة') && page.text.includes('فيلا') && !page.text.includes('لوحة'), 'الرابط الصحيح يعرض نموذج الإرسال');
     assert(page.headers['cache-control'] === 'no-store' && page.headers['referrer-policy'] === 'no-referrer', 'صفحة الرابط لا تُخزن ولا ترسل المرجع');
     assert(!page.text.includes('googletagmanager') && !page.text.includes('analytics'), 'الصفحة بلا أدوات تحليل');
-    assert(page.text.includes("addEventListener('paste'") && page.text.includes('انتهت مهلة الإرسال') && page.text.includes('45000'), 'النموذج يطبّع الجوال ويوقف الإرسال بعد المهلة');
+    assert(page.text.includes("addEventListener('paste'") && page.text.includes('انتهت مهلة الإرسال') && page.text.includes('90000') && page.text.includes('new FormData'), 'النموذج يرسل الصور كملفات ويوقف الإرسال بعد المهلة');
     assert(page.text.includes('multipart/form-data') && page.text.includes('method="post"') && page.text.includes(`/one-time-submit/${code}`), 'زر الإرسال يرسل النموذج مباشرة');
     const bad = await call(port, { path: '/map-submit/not-a-real-code' });
     assert(bad.status === 404 && bad.text.includes('الرابط غير صالح'), 'الرمز الخاطئ يعيد 404');
