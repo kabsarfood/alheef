@@ -245,7 +245,9 @@ app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
+app.post('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
 app.get('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
+app.post('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
 app.get('/m/o/:code', (req, res) => mapApprovalRoutes.shortOpen(req, res));
 
 app.get('/api/config', async (_req, res) => {

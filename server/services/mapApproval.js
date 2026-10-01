@@ -417,7 +417,9 @@ async function sendAdmin(message) {
   if (whatsAppSender) return whatsAppSender(phone, message);
   if (!evolution.isConfigured()) return { ok: false, skipped: true };
   const buttons = message?.buttons || [];
-  if (buttons.length) {
+  const text = String(message?.fallbackText || message?.fullText || '').trim();
+  const urlButtons = buttons.some((button) => button.url);
+  if (buttons.length && !urlButtons) {
     const interactive = await evolution.sendReplyButtons(phone, {
       title: message.title,
       description: message.description || message.fullText,
@@ -426,7 +428,6 @@ async function sendAdmin(message) {
     });
     if (interactive.ok) return { ok: true, mode: 'buttons' };
   }
-  const text = String(message?.fallbackText || message?.fullText || '').trim();
   if (!text) return { ok: false };
   const sent = await evolution.sendText(phone, text);
   return { ...sent, mode: 'short_link' };
@@ -736,6 +737,20 @@ async function finishPublish(row) {
     await notify(failed || publishing, resultMessage({ ...(failed || publishing), failure_reason: safeReason(error) }, null, null), 'whatsapp_result');
     return { status: 200, body: { success: false, status: 'failed', request_id: publishing.id, message: safeReason(error) } };
   }
+}
+
+function confirmPage(action) {
+  const approve = action === 'approve';
+  const title = approve ? 'نشر الإعلان على خريطة الهيف' : 'رفض طلب النشر';
+  const label = approve ? 'نعم، انشر' : 'رفض';
+  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta name="robots" content="noindex,nofollow"></head><body style="font-family:sans-serif;padding:1.5rem"><p>${title}</p><form method="post"><button type="submit">${label}</button></form></body></html>`;
+}
+
+async function shortLinkState(action, code) {
+  if (!validShortCode(code) || !['approve', 'reject'].includes(action)) return 'missing';
+  const row = await findByCode(action === 'approve' ? 'approve_code_hash' : 'reject_code_hash', code);
+  if (!row) return 'missing';
+  return row.status === 'pending_approval' ? 'pending' : 'done';
 }
 
 function decisionPage(outcome) {
@@ -1217,6 +1232,8 @@ module.exports = {
   acceptWebhook,
   shortDecision,
   shortOpen,
+  shortLinkState,
+  confirmPage,
   resendPendingApproval,
   decisionPage,
   cancelRequest,

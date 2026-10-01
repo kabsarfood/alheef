@@ -111,7 +111,13 @@ adminRouter.delete('/:id', async (req, res) => {
 
 async function shortPage(req, res, action) {
   try {
-    const outcome = await gate.shortDecision(action, String(req.params.code || ''));
+    const code = String(req.params.code || '');
+    if (req.method === 'GET') {
+      const state = await gate.shortLinkState(action, code);
+      if (state === 'pending') return res.status(200).type('html').send(gate.confirmPage(action));
+      if (state === 'missing') return res.status(404).type('html').send('<p dir="rtl">الرابط غير صالح.</p>');
+    }
+    const outcome = await gate.shortDecision(action, code);
     const page = gate.decisionPage(outcome);
     res.status(page.status).type('html').send(page.html);
   } catch (error) {

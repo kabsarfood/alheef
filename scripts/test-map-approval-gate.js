@@ -120,7 +120,9 @@ async function main() {
   }));
   app.use('/api/integrations/alheef-map', publicRouter);
   app.get('/m/a/:code', shortApprove);
+  app.post('/m/a/:code', shortApprove);
   app.get('/m/r/:code', shortReject);
+  app.post('/m/r/:code', shortReject);
   app.get('/m/o/:code', shortOpen);
   const server = await listen(app);
   const port = server.address().port;
@@ -170,7 +172,11 @@ async function main() {
     const propertyCount = await propertiesRepo.getById(created.json.property_id || '00000000-0000-0000-0000-000000000000');
     assert(!propertyCount, 'لا يوجد سجل عقار للطلب الجديد');
 
-    const approved = await call(port, { path: `/m/a/${notice.approve}` });
+    const openedLink = await call(port, { path: `/m/a/${notice.approve}` });
+    assert(openedLink.status === 200 && openedLink.text.includes('نعم، انشر') && !openedLink.text.includes('تم نشر الإعلان'), 'فتح الرابط لا ينشر قبل التأكيد');
+    const stillWaiting = (await getAdmin().from('map_publish_requests').select('status,published_property_id').eq('id', created.json.request_id).single()).data;
+    assert(stillWaiting.status === 'pending_approval' && !stillWaiting.published_property_id, 'معاينة الرابط تترك الطلب بانتظار الموافقة');
+    const approved = await call(port, { method: 'POST', path: `/m/a/${notice.approve}` });
     assert(approved.status === 200 && approved.text.includes('تم نشر الإعلان'), 'الرابط القصير ينشر الإعلان');
     const approvedRow = (await getAdmin().from('map_publish_requests').select('*').eq('id', created.json.request_id).single()).data;
     assert(approvedRow.status === 'published' && approvedRow.property_status === 'published', 'الحالة تصبح منشورة');
@@ -182,7 +188,7 @@ async function main() {
     assert(pub.contactPhoneMasked && !JSON.stringify(pub).includes('0530792754'), 'إخفاء الجوال لم يتأثر');
     const opened = await call(port, { path: `/m/o/${(success.text.match(/\/m\/o\/([A-Za-z0-9_-]+)/) || [])[1]}` });
     assert(opened.status === 302 && String(opened.headers.location || '').includes('/property.html?slug='), 'زر فتح الإعلان يوصل لصفحة الإعلان');
-    const again = await call(port, { path: `/m/a/${notice.approve}` });
+    const again = await call(port, { method: 'POST', path: `/m/a/${notice.approve}` });
     assert(again.text.includes('تم استخدام هذا القرار') && (await getAdmin().from('properties').select('id').eq('id', approvedRow.published_property_id)).data.length === 1, 'الضغط مرتين لا ينشئ إعلانًا ثانيًا');
     const publishAudits = (await getAdmin().from('map_publish_audit').select('event').eq('request_id', created.json.request_id).eq('event', 'publish_started')).data || [];
     assert(publishAudits.length === 1, 'quickPaste يبدأ مرة واحدة');
@@ -190,11 +196,11 @@ async function main() {
     const rejectPayload = bodyFor({ token: 'reject', location_url: '' });
     const rejectCreated = await gate.createRequest(rejectPayload);
     const rejectCodes = approvalOf(sent.at(-1));
-    const rejected = await call(port, { path: `/m/r/${rejectCodes.reject}` });
+    const rejected = await call(port, { method: 'POST', path: `/m/r/${rejectCodes.reject}` });
     assert(rejected.text.includes('تم رفض الطلب'), 'الرفض يغيّر الحالة');
     const rejectRow = (await getAdmin().from('map_publish_requests').select('*').eq('id', rejectCreated.body.request_id).single()).data;
     assert(rejectRow.status === 'rejected' && !rejectRow.published_property_id, 'الرفض لا ينشئ عقارًا');
-    const rejectAgain = await call(port, { path: `/m/r/${rejectCodes.reject}` });
+    const rejectAgain = await call(port, { method: 'POST', path: `/m/r/${rejectCodes.reject}` });
     assert(rejectAgain.text.includes('من قبل'), 'الرفض لا يُستخدم مرة ثانية');
 
     const expirePayload = bodyFor({ token: 'expire' });
@@ -203,7 +209,7 @@ async function main() {
     const stillPending = (await getAdmin().from('map_publish_requests').select('status').eq('id', expireCreated.body.request_id).single()).data;
     assert(stillPending.status === 'pending_approval', 'تاريخ الانتهاء القديم لا يُنهي الطلب');
     const expireCodes = approvalOf(sent.at(-1));
-    const expiredApprove = await call(port, { path: `/m/a/${expireCodes.approve}` });
+    const expiredApprove = await call(port, { method: 'POST', path: `/m/a/${expireCodes.approve}` });
     assert(expiredApprove.status === 200 && expiredApprove.text.includes('تم نشر الإعلان'), 'الموافقة تبقى متاحة بعد الوقت القديم');
 
     const hookPayload = bodyFor({ token: 'hook', source_type: 'haraj', source_name: 'حراج', source_url: 'https://haraj.com.sa/example' });
