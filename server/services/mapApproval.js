@@ -433,6 +433,23 @@ async function sendAdmin(message) {
   return { ...sent, mode: 'short_link' };
 }
 
+function withDeadline(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const error = new Error('انتهت مهلة واتساب');
+      error.status = 504;
+      reject(error);
+    }, ms);
+    Promise.resolve(promise).then((value) => {
+      clearTimeout(timer);
+      resolve(value);
+    }, (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
 async function notify(row, message, event) {
   try {
     const result = await sendAdmin(message);
@@ -588,7 +605,10 @@ async function createRequest(body) {
     payload_hash: payloadHash,
   });
   try {
-    const sent = await notify(created, approvalMessage(created, { approve: approveCode, reject: rejectCode }), 'whatsapp_approval');
+    const sent = await withDeadline(
+      notify(created, approvalMessage(created, { approve: approveCode, reject: rejectCode }), 'whatsapp_approval'),
+      12000,
+    );
     await audit(created, 'whatsapp_approval_result', { ok: !!sent?.ok });
   } catch (error) {
     await audit(created, 'whatsapp_approval_failed', { reason: safeReason(error) });

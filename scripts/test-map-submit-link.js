@@ -20,6 +20,7 @@ const { getAdmin } = require('../server/lib/supabase');
 const { getConnectionConfig } = require('../server/lib/sqlMigrations');
 const propertiesRepo = require('../server/repositories/propertiesRepo');
 const { prepareQuickListing } = require('../server/services/quickPaste');
+const { normalizeListingPhone } = require('../server/utils/phone');
 
 const sent = [];
 const linkIds = [];
@@ -107,6 +108,10 @@ async function cleanup() {
 }
 
 async function main() {
+  assert(normalizeListingPhone('05307927540530792754') === '0530792754', 'الرقم المكرر يُطبّع مرة واحدة');
+  assert(normalizeListingPhone('0530792754') === '0530792754', 'الرقم الصحيح يبقى كما هو');
+  assert(normalizeListingPhone('+966 53 079 2754') === '0530792754', 'صيغة واتساب تُطبّع إلى رقم محلي');
+  assert(normalizeListingPhone('12345') === '', 'الرقم غير الصالح لا يمر');
   await applyMigration();
   gate.setWhatsAppSender(async (_phone, message) => {
     sent.push(message);
@@ -146,6 +151,7 @@ async function main() {
     assert(page.status === 200 && page.text.includes('إرسال للموافقة') && page.text.includes('فيلا') && !page.text.includes('لوحة'), 'الرابط الصحيح يعرض نموذج الإرسال');
     assert(page.headers['cache-control'] === 'no-store' && page.headers['referrer-policy'] === 'no-referrer', 'صفحة الرابط لا تُخزن ولا ترسل المرجع');
     assert(!page.text.includes('googletagmanager') && !page.text.includes('analytics'), 'الصفحة بلا أدوات تحليل');
+    assert(page.text.includes("addEventListener('paste'") && page.text.includes('انتهت مهلة الإرسال') && page.text.includes('45000'), 'النموذج يطبّع الجوال ويوقف الإرسال بعد المهلة');
     const bad = await call(port, { path: '/map-submit/not-a-real-code' });
     assert(bad.status === 404 && bad.text.includes('الرابط غير صالح'), 'الرمز الخاطئ يعيد 404');
 

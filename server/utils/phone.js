@@ -31,6 +31,24 @@ function isValidSaudiMobile(input) {
   return /^05\d{8}$/.test(normalizeAccountPhone(input));
 }
 
+/**
+ * رقم إعلان: صيغة سعودية واحدة.
+ * إذا تكررت نفس القيمة عند اللصق أو التعبئة الآلية تُحفظ مرة واحدة.
+ */
+function normalizeListingPhone(input) {
+  const digits = digitsOnly(input);
+  const direct = normalizeAccountPhone(digits);
+  if (direct) return direct;
+  for (const size of [9, 10, 12, 14]) {
+    if (digits.length < size * 2 || digits.length % size !== 0) continue;
+    const piece = digits.slice(0, size);
+    if (piece.repeat(digits.length / size) !== digits) continue;
+    const phone = normalizeAccountPhone(piece);
+    if (phone) return phone;
+  }
+  return '';
+}
+
 /** توافق مع marketerZones: صالح → 05…، وإلا النص الأصلي بعد trim */
 function normalizePhone(phone) {
   const normalized = normalizeAccountPhone(phone);
@@ -75,6 +93,7 @@ module.exports = {
   normalizePhone,
   normalizeSaudiMobile,
   isValidSaudiMobile,
+  normalizeListingPhone,
   toWhatsAppNumber,
   toE164,
   phonesEqual,

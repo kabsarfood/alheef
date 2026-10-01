@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const gate = require('./mapApproval');
 const { getAdmin } = require('../lib/supabase');
-const { isValidSaudiMobile } = require('../utils/phone');
+const { normalizeListingPhone } = require('../utils/phone');
 const { createRateLimiter } = require('../utils/rateLimit');
 
 const CODE_BYTES = 32;
@@ -168,7 +168,8 @@ function pageHtml(state) {
 <label>نوع العقار<br><select name="property_type" required><option value="أرض">أرض</option><option value="فيلا">فيلا</option><option value="شقة">شقة</option><option value="عمارة">عمارة</option></select></label><br><br>
 <label>تفاصيل الإعلان<br><textarea name="details" required rows="8" maxlength="8000"></textarea></label><br><br>
 <label>رابط الموقع<br><input name="location_url" inputmode="url"></label><br><br>
-<label>رقم التواصل<br><input name="contact_phone" inputmode="tel"></label><br><br>
+<label>رقم التواصل<br><input name="contact_phone" inputmode="tel" autocomplete="tel" maxlength="32"></label>
+<p id="phone-error" style="color:#8a1f1f;min-height:1.2em"></p>
 <label>رابط المصدر الخارجي، اختياري<br><input name="source_url" inputmode="url"></label><br><br>
 <label>اسم المصدر، اختياري<br><input name="source_name" maxlength="120"></label><br><br>
 <label>الصور، حتى 6<br><input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><br><br>
@@ -176,55 +177,137 @@ function pageHtml(state) {
 </form>
 <div id="submit-result"></div>
 <script>
-document.getElementById('submit-form').addEventListener('submit', async function (event) {
-  event.preventDefault();
-  var form = event.currentTarget;
-  var button = form.querySelector('button');
-  var result = document.getElementById('submit-result');
-  var files = form.images.files;
-  if (files.length > 6) { result.textContent = 'الحد الأقصى 6 صور.'; return; }
-  button.disabled = true;
-  var images = [];
-  for (var i = 0; i < files.length; i += 1) {
-    images.push(await new Promise(function (resolve) {
-      var reader = new FileReader();
-      reader.onload = function () { resolve(reader.result); };
-      reader.readAsDataURL(files[i]);
-    }));
+(function () {
+  var form = document.getElementById('submit-form');
+  var phoneInput = form.contact_phone;
+  var phoneError = document.getElementById('phone-error');
+  function digitsOf(value) { return String(value || '').replace(/\\D/g, ''); }
+  function accountPhone(digits) {
+    var d = digits;
+    if (d.indexOf('00966') === 0) d = d.slice(5);
+    else if (d.indexOf('966') === 0) d = d.slice(3);
+    if (d.charAt(0) === '0') d = d.slice(1);
+    if (d.length === 9 && d.charAt(0) === '5') return '0' + d;
+    return '';
   }
-  var code = location.pathname.split('/').filter(Boolean).pop();
-  var response = await fetch('/api/integrations/alheef-map/one-time-submit/' + encodeURIComponent(code), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      property_type: form.property_type.value,
-      details: form.details.value,
-      location_url: form.location_url.value,
-      contact_phone: form.contact_phone.value,
-      source_url: form.source_url.value,
-      source_name: form.source_name.value,
-      images: images
-    })
+  function normalizePhone(value) {
+    var digits = digitsOf(value);
+    var direct = accountPhone(digits);
+    if (direct) return direct;
+    var sizes = [9, 10, 12, 14];
+    for (var i = 0; i < sizes.length; i += 1) {
+      var size = sizes[i];
+      if (digits.length < size * 2 || digits.length % size !== 0) continue;
+      var piece = digits.slice(0, size);
+      if (piece.repeat(digits.length / size) !== digits) continue;
+      var phone = accountPhone(piece);
+      if (phone) return phone;
+    }
+    return '';
+  }
+  function syncPhone(event) {
+    var phone = normalizePhone(phoneInput.value);
+    if (phone) {
+      if (phoneInput.value !== phone) phoneInput.value = phone;
+      phoneError.textContent = '';
+      return phone;
+    }
+    var show = event && (event.type === 'paste' || event.type === 'change' || event.type === 'submit');
+    if (!show && digitsOf(phoneInput.value).length >= 10) show = true;
+    phoneError.textContent = show && String(phoneInput.value || '').trim() ? 'رقم الجوال غير صالح' : '';
+    return '';
+  }
+  phoneInput.addEventListener('input', syncPhone);
+  phoneInput.addEventListener('change', syncPhone);
+  phoneInput.addEventListener('paste', function (event) {
+    event.preventDefault();
+    var text = event.clipboardData ? event.clipboardData.getData('text') : '';
+    phoneInput.value = text;
+    syncPhone(event);
   });
-  var data = await response.json().catch(function () { return {}; });
-  if (!response.ok || !data.success) {
-    button.disabled = false;
-    result.textContent = data.message || 'تعذر إرسال الإعلان.';
-    return;
+  function readImage(file, signal) {
+    return new Promise(function (resolve, reject) {
+      var aborted = false;
+      function abortRead() {
+        aborted = true;
+        reject(Object.assign(new Error('abort'), { name: 'AbortError' }));
+      }
+      if (signal.aborted) { abortRead(); return; }
+      var reader = new FileReader();
+      function stop() { reader.abort(); abortRead(); }
+      signal.addEventListener('abort', stop, { once: true });
+      reader.onload = function () {
+        signal.removeEventListener('abort', stop);
+        resolve(reader.result);
+      };
+      reader.onerror = function () {
+        signal.removeEventListener('abort', stop);
+        if (!aborted) reject(new Error('image'));
+      };
+      reader.readAsDataURL(file);
+    });
   }
-  form.remove();
-  var title = document.createElement('p');
-  var number = document.createElement('p');
-  var state = document.createElement('p');
-  if (data.status === 'pending_approval' && !data.idempotent) {
-    title.textContent = 'تم إرسال الإعلان للموافقة';
-    number.textContent = 'رقم الطلب: ' + String(data.request_number || '');
-    state.textContent = 'الحالة: بانتظار الموافقة';
-  } else {
-    title.textContent = data.message || 'تم استخدام هذا الرابط.';
-  }
-  result.replaceChildren(title, number, state);
-});
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var button = form.querySelector('button');
+    var result = document.getElementById('submit-result');
+    var phone = syncPhone({ type: 'submit' });
+    if (String(phoneInput.value || '').trim() && !phone) {
+      result.textContent = 'رقم الجوال غير صالح';
+      return;
+    }
+    var files = form.images.files;
+    if (files.length > 6) { result.textContent = 'الحد الأقصى 6 صور.'; return; }
+    button.disabled = true;
+    result.textContent = 'جارٍ الإرسال…';
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 45000);
+    try {
+      var images = [];
+      for (var i = 0; i < files.length; i += 1) images.push(await readImage(files[i], controller.signal));
+      var code = location.pathname.split('/').filter(Boolean).pop();
+      var response = await fetch('/api/integrations/alheef-map/one-time-submit/' + encodeURIComponent(code), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property_type: form.property_type.value,
+          details: form.details.value,
+          location_url: form.location_url.value,
+          contact_phone: phone,
+          source_url: form.source_url.value,
+          source_name: form.source_name.value,
+          images: images
+        }),
+        signal: controller.signal
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.success) {
+        button.disabled = false;
+        result.textContent = data.message || 'تعذر إرسال الإعلان.';
+        return;
+      }
+      form.remove();
+      var title = document.createElement('p');
+      var number = document.createElement('p');
+      var state = document.createElement('p');
+      if (data.status === 'pending_approval' && !data.idempotent) {
+        title.textContent = 'تم إرسال الإعلان للموافقة';
+        number.textContent = 'رقم الطلب: ' + String(data.request_number || '');
+        state.textContent = 'الحالة: بانتظار الموافقة';
+      } else {
+        title.textContent = data.message || 'تم استخدام هذا الرابط.';
+      }
+      result.replaceChildren(title, number, state);
+    } catch (error) {
+      button.disabled = false;
+      result.textContent = error && error.name === 'AbortError'
+        ? 'انتهت مهلة الإرسال. حاول مرة أخرى.'
+        : 'تعذر الاتصال. حاول مرة أخرى.';
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+})();
 </script>
 </body></html>`;
 }
@@ -241,7 +324,8 @@ function validate(body) {
   const sourceName = plain(body?.source_name, 120);
   const sourceUrl = String(body?.source_url || '').trim();
   const locationUrl = String(body?.location_url || '').trim();
-  const phone = String(body?.contact_phone || '').trim();
+  const rawPhone = String(body?.contact_phone || '').trim();
+  const phone = normalizeListingPhone(rawPhone);
   if (!TYPES.has(propertyType)) {
     const error = new Error('نوع العقار غير مدعوم');
     error.status = 400;
@@ -252,7 +336,7 @@ function validate(body) {
     error.status = 400;
     throw error;
   }
-  if (phone && !isValidSaudiMobile(phone)) {
+  if (rawPhone && !phone) {
     const error = new Error('رقم الجوال غير صالح');
     error.status = 400;
     throw error;
@@ -346,6 +430,7 @@ module.exports = {
   listSubmitLinks,
   cancelSubmitLink,
   pageForCode,
+  renderSubmitForm: () => pageHtml('new'),
   submitOnce,
   hashCode,
 };
