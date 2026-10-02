@@ -888,6 +888,32 @@ router.put('/private-offers/clients/:id', async (req, res) => {
     });
     res.json({
       success: true,
+      accessCode: client.plainCode || undefined,
+      deviceReset: Boolean(client.plainCode),
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/private-offers/clients/:id/revoke-device', async (req, res) => {
+  try {
+    const client = await privateClientsRepo.revokeClientDevice(req.params.id);
+    res.json({
+      success: true,
+      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/private-offers/clients/:id/end-sessions', async (req, res) => {
+  try {
+    const client = await privateClientsRepo.endClientSessions(req.params.id);
+    res.json({
+      success: true,
       client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
     });
   } catch (err) {

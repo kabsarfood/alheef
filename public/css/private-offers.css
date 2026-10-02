@@ -162,6 +162,28 @@
   color: #c0392b;
   margin-top: 0.75rem;
   font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+.private-gate__warn,
+.private-gate__blocked {
+  background: #f7f1e6;
+  border: 1px solid #e2d3b4;
+  border-radius: 10px;
+  padding: 0.85rem 0.9rem;
+  margin: 0 0 1rem;
+  line-height: 1.7;
+  text-align: right;
+}
+
+.private-gate__blocked p {
+  margin: 0 0 0.85rem;
+  white-space: pre-line;
+}
+
+#gate-external {
+  margin-bottom: 0.5rem;
+  text-align: center;
 }
 
 /* رأس الصفحة */

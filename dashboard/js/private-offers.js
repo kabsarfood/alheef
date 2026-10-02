@@ -140,6 +140,12 @@ function clientPropertyKindLabel(v) {
   return CLIENT_PROPERTY_KINDS.find((t) => t.value === v)?.label || 'أرض';
 }
 
+function deviceStatusLabel(status) {
+  if (status === 'active') return 'مفعّل';
+  if (status === 'revoked') return 'ملغى';
+  return 'غير مفعّل';
+}
+
 function formatClientArea(area) {
   if (area == null || area === '') return '—';
   return `${Number(area).toLocaleString('ar-SA')} م²`;
@@ -214,10 +220,19 @@ function renderClientsList() {
                 <strong>${c.loginCount || 0}</strong> مرة دخول
                 ${c.lastVisitAt ? ` — آخر زيارة: ${formatVisitDate(c.lastVisitAt)}` : ''}
               </p>
+              <p class="po-client-card__meta">
+                الجهاز: <strong>${escapeHtml(deviceStatusLabel(c.deviceStatus))}</strong>
+                ${c.deviceLabel ? ` — ${escapeHtml(c.deviceLabel)}` : ''}
+                ${c.deviceBoundAt ? ` — أول تفعيل: ${formatVisitDate(c.deviceBoundAt)}` : ''}
+                ${c.deviceLastSeenAt ? ` — آخر نشاط: ${formatVisitDate(c.deviceLastSeenAt)}` : ''}
+                ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
+              </p>
               <div class="po-client-card__actions">
                 <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
                 <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط والرمز</button>
-                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">رابط جديد</button>
+                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
+                <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}">إلغاء الجهاز الحالي</button>
+                <button type="button" class="btn btn-outline btn-sm" data-sessions="${c.id}">إنهاء جميع الجلسات</button>
                 <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
               </div>
             </form>
@@ -247,8 +262,15 @@ function renderClientsList() {
         });
         const idx = clientsCache.findIndex((c) => c.id === id);
         if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
-        showToast('تم حفظ بيانات العميل');
         renderClientsList();
+        if (r.deviceReset && r.accessCode) {
+          clientPlainCodes.set(id, r.accessCode);
+          const saved = clientsCache.find((c) => c.id === id);
+          showClientSuccessModal(saved, r.accessCode);
+          showToast('تغيّر الرقم: أُلغي الرابط والجهاز السابق');
+        } else {
+          showToast('تم حفظ بيانات العميل');
+        }
         const open = document.querySelector(`.po-client-accordion[data-client="${id}"]`);
         if (open) open.open = true;
       } catch (err) {
@@ -269,6 +291,14 @@ function renderClientsList() {
     btn.addEventListener('click', () => regenerateClient(btn.dataset.regen));
   });
 
+  list.querySelectorAll('[data-revoke]').forEach((btn) => {
+    btn.addEventListener('click', () => revokeClientDevice(btn.dataset.revoke));
+  });
+
+  list.querySelectorAll('[data-sessions]').forEach((btn) => {
+    btn.addEventListener('click', () => endClientSessions(btn.dataset.sessions));
+  });
+
   list.querySelectorAll('[data-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => toggleClient(btn.dataset.toggle));
   });
@@ -285,8 +315,26 @@ async function copyClientCredentials(id) {
   showToast(code ? 'تم نسخ الرابط والرمز' : 'تم نسخ الرابط — الرمز يظهر عند الإنشاء أو «رابط جديد»');
 }
 
+async function revokeClientDevice(id) {
+  if (!confirm('سيُلغى الجهاز الحالي وتُنهى جلساته ويتوقف الرابط. المتابعة؟')) return;
+  const r = await DashboardAPI.revokePrivateClientDevice(id);
+  const idx = clientsCache.findIndex((c) => c.id === id);
+  if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
+  renderClientsList();
+  showToast('تم إلغاء الجهاز وإنهاء الجلسات');
+}
+
+async function endClientSessions(id) {
+  if (!confirm('ستنتهي الجلسات الحالية. الجهاز المعتمد يبقى، ويستطيع العميل طلب رمز جديد من نفس المتصفح. المتابعة؟')) return;
+  const r = await DashboardAPI.endPrivateClientSessions(id);
+  const idx = clientsCache.findIndex((c) => c.id === id);
+  if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
+  renderClientsList();
+  showToast('تم إنهاء الجلسات');
+}
+
 async function regenerateClient(id) {
-  if (!confirm('سيتوقف الرابط والرمز القديمان لهذا العميل. هل تريد إنشاء رابط ورمز جديدين؟')) return;
+  if (!confirm('سيُلغى الرابط والجهاز الحالي وتُنهى الجلسات، ويُصدر رابط جديد لتفعيل جهاز واحد. المتابعة؟')) return;
   const r = await DashboardAPI.regeneratePrivateClient(id);
   const idx = clientsCache.findIndex((c) => c.id === id);
   if (idx >= 0) {

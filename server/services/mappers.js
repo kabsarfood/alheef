@@ -663,6 +663,17 @@ function rowToPrivateClient(row) {
     lastVisitAt: row.last_visit_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    deviceStatus: ['none', 'active', 'revoked'].includes(row.device_status) ? row.device_status : 'none',
+    deviceBoundAt: row.device_bound_at || null,
+    deviceLastSeenAt: row.device_last_seen_at || null,
+    deviceLabel: row.device_label || '',
+    accessEpoch: Number(row.access_epoch) || 1,
+    lastDeviceAttemptAt: Array.isArray(row.device_attempts) && row.device_attempts.length
+      ? row.device_attempts[row.device_attempts.length - 1].at || null
+      : null,
+    lastDeviceAttemptKind: Array.isArray(row.device_attempts) && row.device_attempts.length
+      ? String(row.device_attempts[row.device_attempts.length - 1].kind || '')
+      : '',
   };
 }
 

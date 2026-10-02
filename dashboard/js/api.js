@@ -286,6 +286,14 @@ const DashboardAPI = {
     return this.request(`/private-offers/clients/${id}/regenerate`, { method: 'POST' });
   },
 
+  revokePrivateClientDevice(id) {
+    return this.request(`/private-offers/clients/${id}/revoke-device`, { method: 'POST' });
+  },
+
+  endPrivateClientSessions(id) {
+    return this.request(`/private-offers/clients/${id}/end-sessions`, { method: 'POST' });
+  },
+
   setPrivateClientActive(id, active) {
     return this.request(`/private-offers/clients/${id}/active`, {
       method: 'PUT',

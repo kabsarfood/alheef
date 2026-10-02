@@ -8,7 +8,7 @@ const {
 } = require('../lib/sessionStore');
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const PRIVATE_VIEWER_TTL_MS = 24 * 60 * 60 * 1000;
+const PRIVATE_VIEWER_TTL_MS = 12 * 60 * 60 * 1000;
 
 function getSecret() {
   const secret = getAuthSecret();
@@ -39,15 +39,17 @@ function createToken(payload = {}) {
     jti,
     exp: Date.now() + ttl,
   };
+  if (payload.epoch != null) data.epoch = payload.epoch;
   const encoded = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = crypto.createHmac('sha256', getSecret()).update(encoded).digest('base64url');
   return `${encoded}.${sig}`;
 }
 
-function createPrivateViewerToken(clientAccessId) {
+function createPrivateViewerToken(clientAccessId, epoch) {
   return createToken({
     role: 'private_viewer',
     userId: clientAccessId || null,
+    epoch: Number(epoch) || 1,
     ttlMs: PRIVATE_VIEWER_TTL_MS,
   });
 }

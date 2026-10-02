@@ -8,11 +8,37 @@ const appUsersRepo = require('../repositories/appUsersRepo');
 const privateOffersRepo = require('../repositories/privateOffersRepo');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const { toPublicPrivateOffer } = require('../services/mappers');
+const device = require('../services/privateDevice');
 
 const router = express.Router();
 const otpRate = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
 
 const GENERIC_DENY = 'تعذر التحقق — تأكد من الرقم أو تواصل مع مكتب الهيف';
+
+function maskPhone(phone) {
+  const local = normalizeAccountPhone(phone);
+  if (!local) return '';
+  return `${local.slice(0, 2)}••• ••${local.slice(-3)}`;
+}
+
+async function guardRow(clientId) {
+  if (!clientId) return null;
+  const { getAdmin } = require('../lib/supabase');
+  const { data } = await getAdmin()
+    .from('private_client_access')
+    .select('id, phone, active, device_status, device_token_hash, access_epoch, page_slug')
+    .eq('id', clientId)
+    .maybeSingle();
+  return data || null;
+}
+
+async function guardBySlug(slug) {
+  const loaded = await loadActiveClientForSlug(slug);
+  if (loaded.error) return loaded;
+  const row = await guardRow(loaded.client.id);
+  if (!row) return { error: { status: 404, message: 'هذا الرابط غير صالح — اطلب رابطًا جديدًا من مكتب الهيف' } };
+  return { client: loaded.client, row };
+}
 
 function requireDb(_req, res, next) {
   if (!isEnabled()) {
@@ -43,28 +69,28 @@ router.post('/otp/send', requireDb, async (req, res) => {
       return res.status(429).json({ success: false, message: otpCore.errorMessage('rate_limited') });
     }
     const slug = String(req.body.slug || '').trim();
-    const phone = String(req.body.phone || '').trim();
-    if (!slug || !phone) {
-      return res.status(400).json({ success: false, message: 'أدخل رقم الجوال' });
-    }
-    if (!isValidSaudiMobile(phone)) {
-      return res.status(400).json({ success: false, message: otpCore.errorMessage('bad_phone') });
+    if (!slug) {
+      return res.status(400).json({ success: false, message: 'الرابط غير صالح' });
     }
 
-    const loaded = await loadActiveClientForSlug(slug);
+    const loaded = await guardBySlug(slug);
     if (loaded.error) {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
+    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (state === 'other') {
+      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+    }
 
-    const clientPhone = normalizeAccountPhone(loaded.client.phone);
-    if (!clientPhone || !phonesEqual(phone, clientPhone)) {
-      // لا نكشف إن الرقم مختلف عن المسجّل
-      return res.status(401).json({ success: false, message: GENERIC_DENY });
+    const clientPhone = normalizeAccountPhone(loaded.row.phone);
+    if (!clientPhone || !isValidSaudiMobile(clientPhone)) {
+      return res.status(400).json({ success: false, message: GENERIC_DENY });
     }
 
     const sent = await otpCore.sendOtp({
       purpose: 'private_offer',
-      phone,
+      phone: clientPhone,
       meta: { slug, clientAccessId: loaded.client.id },
       ip: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '',
       userAgent: String(req.headers['user-agent'] || '').slice(0, 300),
@@ -150,12 +176,35 @@ router.post('/otp/verify', requireDb, async (req, res) => {
       console.warn('[private-offers] app_users:', err.message);
     }
 
-    const loaded = await loadActiveClientForSlug(slug);
+    const loaded = await guardBySlug(slug);
     if (loaded.error) {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
-    if (!phonesEqual(result.phone, loaded.client.phone)) {
+    if (!phonesEqual(result.phone, loaded.row.phone)) {
       return res.status(401).json({ success: false, message: GENERIC_DENY });
+    }
+    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (state === 'other') {
+      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+    }
+    if (state === 'open') {
+      const secret = device.newDeviceSecret();
+      try {
+        await privateClientsRepo.bindClientDevice(loaded.row.id, {
+          tokenHash: device.hashDevice(secret),
+          label: device.deviceLabel(req.headers['user-agent']),
+        });
+      } catch (err) {
+        if (err.code === 'DEVICE_BOUND') {
+          return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+        }
+        throw err;
+      }
+      device.setDeviceCookie(req, res, secret);
+    } else {
+      device.setDeviceCookie(req, res, device.readDeviceCookie(req));
+      await privateClientsRepo.touchClientDevice(loaded.row.id);
     }
 
     try {
@@ -173,8 +222,9 @@ router.post('/otp/verify', requireDb, async (req, res) => {
     }
 
     await privateClientsRepo.recordClientLogin(loaded.client.id);
-    const token = createPrivateViewerToken(loaded.client.id);
-    res.json({ success: true, token, phone: result.phone });
+    const fresh = await guardRow(loaded.row.id);
+    const token = createPrivateViewerToken(loaded.client.id, fresh?.access_epoch);
+    res.json({ success: true, token });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر التحقق من الرمز' });
   }
@@ -188,17 +238,65 @@ router.post('/verify', (_req, res) => {
   });
 });
 
-router.get('/session', (req, res) => {
+router.get('/gate', requireDb, async (req, res) => {
+  try {
+    const slug = String(req.query.slug || '').trim();
+    const loaded = await guardBySlug(slug);
+    if (loaded.error) {
+      return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
+    }
+    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (state === 'other') {
+      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+      return res.json({ success: true, state: 'other', message: device.OTHER_MESSAGE });
+    }
+    res.json({
+      success: true,
+      state: state === 'same' ? 'same' : 'open',
+      phoneMasked: maskPhone(loaded.row.phone),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر فتح الرابط' });
+  }
+});
+
+router.get('/session', requireDb, async (req, res) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
   const payload = parseToken(token);
   if (!payload || payload.role !== 'private_viewer') {
     return res.json({ authenticated: false });
   }
-  res.json({ authenticated: true, clientId: payload.userId || null });
+  const row = await guardRow(payload.userId);
+  const state = device.deviceState(row, device.readDeviceCookie(req));
+  if (!row || row.active === false || state !== 'same' || Number(payload.epoch) !== Number(row.access_epoch)) {
+    return res.json({ authenticated: false });
+  }
+  await privateClientsRepo.touchClientDevice(row.id);
+  res.json({
+    authenticated: true,
+    token: createPrivateViewerToken(row.id, row.access_epoch),
+  });
 });
 
-router.get('/', requireDb, requirePrivateViewer, async (_req, res) => {
+async function requireSameDevice(req, res, next) {
+  try {
+    const row = await guardRow(req.auth?.userId);
+    const state = device.deviceState(row, device.readDeviceCookie(req));
+    if (!row || row.active === false || state !== 'same') {
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+    }
+    if (Number(req.auth?.epoch) !== Number(row.access_epoch)) {
+      return res.status(401).json({ success: false, message: 'انتهت الجلسة' });
+    }
+    await privateClientsRepo.touchClientDevice(row.id);
+    return next();
+  } catch (err) {
+    return res.status(403).json({ success: false, message: device.OTHER_MESSAGE });
+  }
+}
+
+router.get('/', requireDb, requirePrivateViewer, requireSameDevice, async (_req, res) => {
   try {
     const offers = await privateOffersRepo.listPublic();
     res.json({ success: true, offers });
@@ -207,7 +305,7 @@ router.get('/', requireDb, requirePrivateViewer, async (_req, res) => {
   }
 });
 
-router.get('/:id', requireDb, requirePrivateViewer, async (req, res) => {
+router.get('/:id', requireDb, requirePrivateViewer, requireSameDevice, async (req, res) => {
   try {
     const offer = await privateOffersRepo.getById(req.params.id);
     if (!offer || !offer.active || !offer.visible || offer.status === 'hidden') {

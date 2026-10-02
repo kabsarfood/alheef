@@ -386,6 +386,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
 });
 
+function startServer() {
 console.log('STEP 9 — SERVER STARTING...');
 
 app.listen(PORT, HOST, () => {
@@ -422,3 +423,10 @@ app.listen(PORT, HOST, () => {
   setTimeout(runExpire, 2500);
   setInterval(runExpire, 60 * 60 * 1000);
 });
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;

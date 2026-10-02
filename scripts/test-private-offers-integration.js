@@ -137,8 +137,8 @@ async function main() {
   const listRes = await fetch(`${BASE}/api/private-offers`, {
     headers: { Authorization: `Bearer ${viewerToken}` },
   });
-  const listData = await listRes.json();
-  const offers = listData.offers || [];
+  const adminList = await fetch(`${BASE}/api/admin/private-offers`, { headers }).then((r) => r.json());
+  const offers = adminList.offers || [];
   const found = offers.find((o) => o.id === full.id);
   const foundNoLoc = offers.find((o) => o.id === noLoc.id);
 
@@ -153,6 +153,7 @@ async function main() {
     ['رابط /v/', shareUrl.includes('/v/')],
     ['صفحة العميل', (await fetch(shareUrl.replace('https://www.alheef.website', BASE))).ok],
     ['رمز الدخول القديم متوقف (410)', verifyGone.status === 410],
+    ['بدون جهاز معتمد لا تُعرض العروض', listRes.status === 403],
   ];
 
   console.log('\n=== اختبار تكامل العروض الخاصة ===\n');

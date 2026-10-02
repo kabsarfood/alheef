@@ -199,7 +199,13 @@ async function updateClientCode(id, newCode) {
   return client;
 }
 
+async function nextEpoch(existing) {
+  return (Number(existing?.accessEpoch) || 1) + 1;
+}
+
 async function regenerateClientAccess(id) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
   const plainCode = generateAccessCode();
   const slug = generatePrivateSlug();
   const { data, error } = await getAdmin()
@@ -208,6 +214,12 @@ async function regenerateClientAccess(id) {
       page_slug: slug,
       access_code_hash: hashPassword(plainCode),
       active: true,
+      device_status: 'none',
+      device_token_hash: null,
+      device_bound_at: null,
+      device_last_seen_at: null,
+      device_label: null,
+      access_epoch: await nextEpoch(existing),
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -238,6 +250,8 @@ async function updateClientDetails(id, fields = {}) {
   const existing = await getClientById(id);
   if (!existing) throw new Error('العميل غير موجود');
   await ensureClientFieldsSchema();
+  const nextPhone = fields.phone != null ? fields.phone : existing.phone;
+  const phoneChanged = normalizeAccountPhone(existing.phone) !== normalizeAccountPhone(nextPhone);
   const patch = normalizeClientFields({
     clientLabel: fields.clientLabel != null ? fields.clientLabel : existing.clientLabel,
     phone: fields.phone != null ? fields.phone : existing.phone,
@@ -245,10 +259,23 @@ async function updateClientDetails(id, fields = {}) {
     propertyKind: fields.propertyKind != null ? fields.propertyKind : existing.propertyKind,
     requiredArea: fields.requiredArea !== undefined ? fields.requiredArea : existing.requiredArea,
   });
+  const replacementCode = phoneChanged ? generateAccessCode() : '';
+  const reset = phoneChanged ? {
+    page_slug: generatePrivateSlug(),
+    access_code_hash: hashPassword(replacementCode),
+    active: true,
+    device_status: 'none',
+    device_token_hash: null,
+    device_bound_at: null,
+    device_last_seen_at: null,
+    device_label: null,
+    access_epoch: await nextEpoch(existing),
+  } : {};
   let { data, error } = await getAdmin()
     .from(CLIENTS_TABLE)
     .update({
       ...patch,
+      ...reset,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -260,6 +287,7 @@ async function updateClientDetails(id, fields = {}) {
       .from(CLIENTS_TABLE)
       .update({
         ...patch,
+        ...reset,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -268,6 +296,7 @@ async function updateClientDetails(id, fields = {}) {
   }
   if (error) throw new Error(formatClientDbError(error));
   const client = rowToPrivateClient(data);
+  if (replacementCode) client.plainCode = replacementCode;
   try {
     const contactsRepo = require('./contactsRepo');
     if (client.phone) {
@@ -283,6 +312,88 @@ async function updateClientDetails(id, fields = {}) {
     console.warn('[contacts] private client update:', err.message);
   }
   return client;
+}
+
+async function bindClientDevice(id, { tokenHash, label }) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
+  if (existing.deviceStatus === 'active' || existing.deviceStatus === 'revoked') {
+    const err = new Error('DEVICE_BOUND');
+    err.code = 'DEVICE_BOUND';
+    throw err;
+  }
+  const now = new Date().toISOString();
+  const { data, error } = await getAdmin()
+    .from(CLIENTS_TABLE)
+    .update({
+      device_status: 'active',
+      device_token_hash: tokenHash,
+      device_bound_at: now,
+      device_last_seen_at: now,
+      device_label: label || null,
+      updated_at: now,
+    })
+    .eq('id', id)
+    .eq('device_status', 'none')
+    .select();
+  if (error) throw new Error(error.message);
+  if (!data || !data.length) {
+    const err = new Error('DEVICE_BOUND');
+    err.code = 'DEVICE_BOUND';
+    throw err;
+  }
+  return rowToPrivateClient(data[0]);
+}
+
+async function touchClientDevice(id) {
+  const now = new Date().toISOString();
+  await getAdmin().from(CLIENTS_TABLE).update({
+    device_last_seen_at: now,
+    updated_at: now,
+  }).eq('id', id);
+}
+
+async function noteDeviceAttempt(id, kind) {
+  const existing = await getClientById(id);
+  if (!existing) return;
+  const raw = await getAdmin().from(CLIENTS_TABLE).select('device_attempts').eq('id', id).maybeSingle();
+  const attempts = Array.isArray(raw.data?.device_attempts) ? raw.data.device_attempts.slice(-19) : [];
+  attempts.push({ at: new Date().toISOString(), kind: String(kind || 'متصفح آخر').slice(0, 40) });
+  await getAdmin().from(CLIENTS_TABLE).update({ device_attempts: attempts }).eq('id', id);
+}
+
+async function revokeClientDevice(id) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
+  const { data, error } = await getAdmin()
+    .from(CLIENTS_TABLE)
+    .update({
+      device_status: 'revoked',
+      active: false,
+      access_epoch: await nextEpoch(existing),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return rowToPrivateClient(data);
+}
+
+async function endClientSessions(id) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
+  const { data, error } = await getAdmin()
+    .from(CLIENTS_TABLE)
+    .update({
+      access_epoch: await nextEpoch(existing),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return rowToPrivateClient(data);
 }
 
 async function recordClientLogin(id) {
@@ -329,4 +440,9 @@ module.exports = {
   updateClientDetails,
   recordClientLogin,
   getClientsVisitSummary,
+  bindClientDevice,
+  touchClientDevice,
+  noteDeviceAttempt,
+  revokeClientDevice,
+  endClientSessions,
 };
