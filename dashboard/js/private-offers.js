@@ -35,7 +35,6 @@ const STATUS_OPTIONS = [
 let settingsInfo = { active: true };
 let clientsCache = [];
 let offersCache = [];
-const clientPlainCodes = new Map();
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.classList.add('po-admin-page');
@@ -64,7 +63,7 @@ function renderShell() {
       <div class="card__body">
         <div class="po-section-head">
           <h3>عملاء العروض الخاصة</h3>
-          <p class="text-muted po-page-intro">رابط مستقل وكلمة سر لكل عميل</p>
+          <p class="text-muted po-page-intro">رابط دخول آمن لكل عميل</p>
         </div>
         <div class="loading"><div class="spinner"></div></div>
       </div>
@@ -101,7 +100,7 @@ async function loadClientsPanel() {
     el.innerHTML = `
       <div class="po-section-head">
         <h3>عملاء العروض الخاصة</h3>
-        <p class="text-muted po-page-intro">كل عميل يحصل على <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong>.</p>
+        <p class="text-muted po-page-intro">الرابط مرتبط برقم العميل وجهاز واحد. التحقق عبر واتساب.</p>
       </div>
       ${!settingsInfo.active ? `
         <div class="access-warning">
@@ -159,7 +158,7 @@ function renderClientsList() {
   const list = document.getElementById('clients-list');
   if (!list) return;
   if (!clientsCache.length) {
-    list.innerHTML = '<p class="empty-state">لا يوجد عملاء بعد — اضغط «عميل جديد» لإنشاء رابط ورمز</p>';
+    list.innerHTML = '<p class="empty-state">لا يوجد عملاء بعد — اضغط «عميل جديد» لإنشاء رابط الدخول</p>';
     return;
   }
 
@@ -228,12 +227,13 @@ function renderClientsList() {
                 ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
               </p>
               <div class="po-client-card__actions">
+                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ رابط الدخول</button>
+                <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إرسال رابط الدخول عبر واتساب</button>
                 <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
-                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط والرمز</button>
                 <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
-                <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}">إلغاء الجهاز الحالي</button>
+                <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}" ${c.deviceStatus === 'active' ? '' : 'disabled title="لا يوجد جهاز مفعّل لإلغائه"'}>إلغاء الجهاز الحالي</button>
                 <button type="button" class="btn btn-outline btn-sm" data-sessions="${c.id}">إنهاء جميع الجلسات</button>
-                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف' : 'تفعيل'}</button>
+                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف الرابط' : 'تفعيل الرابط'}</button>
               </div>
             </form>
           </div>
@@ -263,10 +263,9 @@ function renderClientsList() {
         const idx = clientsCache.findIndex((c) => c.id === id);
         if (idx >= 0) clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
         renderClientsList();
-        if (r.deviceReset && r.accessCode) {
-          clientPlainCodes.set(id, r.accessCode);
+        if (r.deviceReset) {
           const saved = clientsCache.find((c) => c.id === id);
-          showClientSuccessModal(saved, r.accessCode);
+          showClientSuccessModal(saved);
           showToast('تغيّر الرقم: أُلغي الرابط والجهاز السابق');
         } else {
           showToast('تم حفظ بيانات العميل');
@@ -284,7 +283,14 @@ function renderClientsList() {
   });
 
   list.querySelectorAll('[data-copy]').forEach((btn) => {
-    btn.addEventListener('click', () => copyClientCredentials(btn.dataset.copy));
+    btn.addEventListener('click', () => copyClientLink(btn.dataset.copy));
+  });
+
+  list.querySelectorAll('[data-wa]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const client = clientsCache.find((c) => c.id === btn.dataset.wa);
+      if (client) openClientWhatsApp(client);
+    });
   });
 
   list.querySelectorAll('[data-regen]').forEach((btn) => {
@@ -304,15 +310,44 @@ function renderClientsList() {
   });
 }
 
-async function copyClientCredentials(id) {
+function maskClientPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  let local = digits;
+  if (local.startsWith('966')) local = `0${local.slice(3)}`;
+  if (/^5\d{8}$/.test(local)) local = `0${local}`;
+  if (!/^05\d{8}$/.test(local)) return '05••• ••';
+  return `${local.slice(0, 2)}••• ••${local.slice(-3)}`;
+}
+
+function clientWhatsAppNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  let number = digits;
+  if (number.startsWith('00')) number = number.slice(2);
+  if (number.startsWith('0')) number = `966${number.slice(1)}`;
+  else if (/^5\d{8}$/.test(number)) number = `966${number}`;
+  return /^9665\d{8}$/.test(number) ? number : '';
+}
+
+function clientEntryMessage(client) {
+  const name = client.clientLabel || 'عميلنا';
+  return `مرحبًا ${name}،\n\nتم إنشاء رابط دخولك إلى العروض العقارية الخاصة لدى مؤسسة الهيف للخدمات العقارية:\n\n${client.shareUrl}\n\nعند فتح الرابط، سيُرسل رمز تحقق إلى رقم واتسابك، وبعد نجاح التحقق سيُعتمد المتصفح الذي استخدمته.\n\nتنبيه: افتح الرابط من المتصفح والجهاز اللذين ستستخدمهما دائمًا؛ لن يعمل الدخول من جهاز أو متصفح آخر إلا بعد إعادة الضبط بواسطة الهيف.\n\nمؤسسة الهيف للخدمات العقارية`;
+}
+
+function openClientWhatsApp(client) {
+  const number = clientWhatsAppNumber(client && client.phone);
+  if (!number || !client.shareUrl) {
+    showToast('تعذر فتح واتساب — تأكد من رقم العميل', 'error');
+    return;
+  }
+  const url = `https://wa.me/${number}?text=${encodeURIComponent(clientEntryMessage(client))}`;
+  window.open(url, '_blank', 'noopener');
+}
+
+async function copyClientLink(id) {
   const client = clientsCache.find((c) => c.id === id);
-  if (!client) return;
-  const code = clientPlainCodes.get(id);
-  const text = code
-    ? `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${code}`
-    : client.shareUrl;
-  await navigator.clipboard.writeText(text);
-  showToast(code ? 'تم نسخ الرابط والرمز' : 'تم نسخ الرابط — الرمز يظهر عند الإنشاء أو «رابط جديد»');
+  if (!client || !client.shareUrl) return;
+  await navigator.clipboard.writeText(client.shareUrl);
+  showToast('تم نسخ رابط الدخول');
 }
 
 async function revokeClientDevice(id) {
@@ -341,13 +376,8 @@ async function regenerateClient(id) {
     clientsCache[idx] = { ...r.client, shareUrl: r.client.shareUrl };
   }
   renderClientsList();
-  if (r.accessCode) {
-    clientPlainCodes.set(id, r.accessCode);
-    const client = clientsCache.find((c) => c.id === id);
-    showClientSuccessModal(client, r.accessCode);
-  } else {
-    showToast('تم إنشاء رابط ورمز جديدين');
-  }
+  const client = clientsCache.find((c) => c.id === id);
+  showClientSuccessModal(client);
 }
 
 async function toggleClient(id) {
@@ -379,7 +409,7 @@ function openAddClientModal() {
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <p class="po-modal-hint">
-        أدخل بيانات الطلب. سيتم إنشاء <strong>رابط مستقل</strong> و<strong>رمز دخول خاص</strong> لهذا العميل.
+        أدخل بيانات الطلب. سيتم إنشاء <strong>رابط دخول آمن</strong> مرتبط برقم العميل وجهاز واحد. التحقق عبر واتساب.
       </p>
       <form id="client-form" class="po-modal-form">
         <div class="form-group">
@@ -408,7 +438,7 @@ function openAddClientModal() {
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-outline" data-close>إلغاء</button>
-          <button type="submit" class="btn btn-gold">إنشاء الرابط والرمز</button>
+          <button type="submit" class="btn btn-gold">إنشاء رابط الدخول</button>
         </div>
       </form>
     </div>
@@ -433,43 +463,48 @@ function openAddClientModal() {
         requiredArea: fd.get('requiredArea'),
       });
       clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl });
-      if (r.accessCode) clientPlainCodes.set(r.client.id, r.accessCode);
       renderClientsList();
-      showClientSuccessModal(r.client, r.accessCode);
+      showClientSuccessModal(r.client);
       wrap.remove();
     } catch (err) {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'إنشاء الرابط والرمز';
+      submitBtn.textContent = 'إنشاء رابط الدخول';
       showToast(err.message, 'error');
     }
   };
 }
 
-function showClientSuccessModal(client, accessCode) {
+function showClientSuccessModal(client) {
   const wrap = document.createElement('div');
   wrap.className = 'modal active';
   wrap.innerHTML = `
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box modal__box--po" role="dialog">
       <div class="modal__header">
-        <h3 class="modal__title">تم إنشاء العميل</h3>
+        <h3 class="modal__title">تم إنشاء رابط الدخول</h3>
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <div class="po-success-panel">
         <div class="po-success-panel__icon" aria-hidden="true">✓</div>
         <p class="po-modal-hint" style="margin:0;text-align:center">
-          انسخ الرابط والرمز وأرسلهما للعميل <strong>${escapeHtml(client.clientLabel || '')}</strong>
+          تم إنشاء رابط الدخول للعميل بنجاح.<br>
+          سيتم التحقق من رقم العميل عبر واتساب عند فتح الرابط، ثم اعتماد أول متصفح يُفعّل عليه.
         </p>
         <div class="po-credential-box">
-          <label>رابط العروض الخاصة</label>
-          <input readonly dir="ltr" value="${escapeHtml(client.shareUrl)}" id="po-success-url">
+          <label>اسم العميل</label>
+          <div class="po-credential-value">${escapeHtml(client.clientLabel || '')}</div>
         </div>
         <div class="po-credential-box">
-          <label>رمز الدخول</label>
-          <div class="po-credential-value po-credential-value--code" id="po-success-code">${escapeHtml(accessCode || '—')}</div>
+          <label>رقم الجوال</label>
+          <div class="po-credential-value" dir="ltr">${escapeHtml(maskClientPhone(client.phone))}</div>
+        </div>
+        <div class="po-credential-box">
+          <label>رابط الدخول</label>
+          <input readonly dir="ltr" value="${escapeHtml(client.shareUrl)}" id="po-success-url">
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-gold" id="po-copy-both">نسخ الرابط والرمز</button>
+          <button type="button" class="btn btn-gold" id="po-copy-link">نسخ رابط الدخول</button>
+          <button type="button" class="btn btn-outline" id="po-send-wa">إرسال رابط الدخول عبر واتساب</button>
           <button type="button" class="btn btn-outline" data-close>تم</button>
         </div>
       </div>
@@ -478,16 +513,11 @@ function showClientSuccessModal(client, accessCode) {
   document.body.appendChild(wrap);
   const close = () => wrap.remove();
   wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
-  wrap.querySelector('#po-copy-both')?.addEventListener('click', async () => {
-    const text = `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${accessCode || ''}`;
-    await navigator.clipboard.writeText(text);
-    showToast('تم نسخ الرابط والرمز');
+  wrap.querySelector('#po-copy-link')?.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(client.shareUrl || '');
+    showToast('تم نسخ رابط الدخول');
   });
-  if (accessCode) {
-    navigator.clipboard.writeText(
-      `رابط العروض الخاصة:\n${client.shareUrl}\n\nرمز الدخول:\n${accessCode}`,
-    ).catch(() => {});
-  }
+  wrap.querySelector('#po-send-wa')?.addEventListener('click', () => openClientWhatsApp(client));
 }
 
 async function loadOffers() {

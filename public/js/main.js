@@ -358,41 +358,58 @@
     window.AlheefNav?.close?.();
   }
 
-  /** يضمن ظهور رابط الخريطة حتى مع نسخة HTML قديمة على الاستضافة */
+  const PRIVATE_ENTRY_LABEL = 'طلب دخول العروض الخاصة';
+  const PRIVATE_ENTRY_HREF = 'https://wa.me/966530792754?text=' + encodeURIComponent(
+    'السلام عليكم، أرغب في طلب الدخول إلى العروض العقارية الخاصة لدى مؤسسة الهيف للخدمات العقارية.\n\nالاسم:\nنوع العقار المطلوب: أرض / فيلا / شقة / عمارة\nالحي المطلوب:\nالمساحة:\nالميزانية:\nطريقة الشراء: كاش / تمويل'
+  );
+
+  function isVisitorMapHref(href) {
+    try {
+      const url = new URL(href, location.origin);
+      if (url.origin !== location.origin) return false;
+      return url.pathname === '/map' || url.pathname === '/map.html' || url.pathname === '/private-offers' || url.pathname === '/board.html';
+    } catch {
+      return false;
+    }
+  }
+
+  function paintPrivateEntryLink(link) {
+    link.href = PRIVATE_ENTRY_HREF;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.title = PRIVATE_ENTRY_LABEL;
+    link.classList.add('nav__link', 'nav__link--private-entry');
+    link.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>طلب دخول العروض الخاصة</span>';
+  }
+
+  /** يستبدل روابط الخريطة القديمة في الصفحات المحفوظة بزر طلب الدخول */
   function ensureMapNavLink() {
     const nav = document.getElementById('nav');
     if (!nav) return;
-
-    let link = document.getElementById('nav-map');
+    let link = document.getElementById('nav-private-entry') || document.getElementById('nav-map');
     if (!link) {
-      link = nav.querySelector('a[href="/map.html"], a[href="/map"], a[href="/private-offers"]');
+      link = Array.from(nav.querySelectorAll('a')).find((item) => isVisitorMapHref(item.getAttribute('href')));
     }
     if (!link) {
       link = document.createElement('a');
-      link.id = 'nav-map';
-      link.href = '/map.html';
-      link.className = 'nav__link';
-      link.textContent = 'الخريطة العقارية';
       const home = nav.querySelector('a[href="#hero"], a[href="/"], a[href="/#hero"]');
       if (home?.nextSibling) home.after(link);
       else nav.prepend(link);
-    } else {
-      link.id = 'nav-map';
-      link.href = '/map.html';
-      link.textContent = 'الخريطة العقارية';
-      link.classList.add('nav__link');
     }
+    link.id = 'nav-private-entry';
+    paintPrivateEntryLink(link);
 
-    const footerLinks = document.querySelector('.footer__links');
-    if (footerLinks && !footerLinks.querySelector('a[href="/map.html"]')) {
-      const li = document.createElement('li');
-      li.className = 'footer__link-item footer__link-item--map';
-      const a = document.createElement('a');
-      a.href = '/map.html';
-      a.innerHTML = '<span class="footer__link-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="footer__link-label">الخريطة العقارية</span>';
-      li.appendChild(a);
-      footerLinks.appendChild(li);
-    }
+    document.querySelectorAll('a[href="/map.html"], a[href="/map"], a[href="/private-offers"], a[href="/board.html"]').forEach((item) => {
+      if (item.closest('.footer__links')) {
+        item.href = PRIVATE_ENTRY_HREF;
+        item.target = '_blank';
+        item.rel = 'noopener';
+        const label = item.querySelector('.footer__link-label');
+        if (label) label.textContent = PRIVATE_ENTRY_LABEL;
+        return;
+      }
+      if (item !== link) paintPrivateEntryLink(item);
+    });
   }
 
   // ─── Navigation ───

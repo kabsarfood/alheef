@@ -9,6 +9,9 @@ const SETTINGS_TABLE = 'private_offers_settings';
 const CLIENTS_TABLE = 'private_client_access';
 const SETTINGS_ID = 'main';
 
+// access_code_hash حقل قديم غير مستخدم في الدخول.
+// الدخول يتم برقم واتساب والجهاز المعتمد فقط. تُحفظ البصمة حتى لا يُحذف العمود، ولا يُعاد النص إلى الواجهة.
+// access_code_hash حقل legacy غير مستخدم في الدخول. التحقق يتم عبر واتساب والجهاز فقط.
 function generateAccessCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -163,7 +166,6 @@ async function createClient(fields = {}) {
   }
   if (error) throw new Error(formatClientDbError(error));
   const client = rowToPrivateClient(data);
-  client.plainCode = plainCode;
   try {
     const contactsRepo = require('./contactsRepo');
     if (client.phone) {
@@ -194,9 +196,7 @@ async function updateClientCode(id, newCode) {
     .select()
     .single();
   if (error) throw new Error(error.message);
-  const client = rowToPrivateClient(data);
-  client.plainCode = code;
-  return client;
+  return rowToPrivateClient(data);
 }
 
 async function nextEpoch(existing) {
@@ -226,9 +226,7 @@ async function regenerateClientAccess(id) {
     .select()
     .single();
   if (error) throw new Error(error.message);
-  const client = rowToPrivateClient(data);
-  client.plainCode = plainCode;
-  return client;
+  return rowToPrivateClient(data);
 }
 
 async function setClientActive(id, active) {
@@ -296,7 +294,7 @@ async function updateClientDetails(id, fields = {}) {
   }
   if (error) throw new Error(formatClientDbError(error));
   const client = rowToPrivateClient(data);
-  if (replacementCode) client.plainCode = replacementCode;
+  if (phoneChanged) client.accessReset = true;
   try {
     const contactsRepo = require('./contactsRepo');
     if (client.phone) {

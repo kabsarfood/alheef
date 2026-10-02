@@ -803,6 +803,15 @@ router.get('/private-offers/clients', async (_req, res) => {
   }
 });
 
+function presentPrivateClient(client) {
+  const deviceReset = Boolean(client && client.accessReset);
+  const body = { ...(client || {}), shareUrl: buildPrivateShareUrl(client && client.pageSlug) };
+  delete body.plainCode;
+  delete body.accessReset;
+  delete body.accessCode;
+  return { client: body, deviceReset };
+}
+
 router.post('/private-offers/clients', async (req, res) => {
   try {
     const client = await privateClientsRepo.createClient({
@@ -812,14 +821,7 @@ router.post('/private-offers/clients', async (req, res) => {
       propertyKind: req.body.propertyKind,
       requiredArea: req.body.requiredArea,
     });
-    res.json({
-      success: true,
-      client: {
-        ...client,
-        shareUrl: buildPrivateShareUrl(client.pageSlug),
-      },
-      accessCode: client.plainCode,
-    });
+    res.json({ success: true, ...presentPrivateClient(client) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -830,11 +832,7 @@ router.put('/private-offers/clients/:id/code', async (req, res) => {
     const code = String(req.body.accessCode || '').trim();
     if (!code) return res.status(400).json({ success: false, message: 'يرجى إدخال رمز الدخول' });
     const client = await privateClientsRepo.updateClientCode(req.params.id, code);
-    res.json({
-      success: true,
-      accessCode: client.plainCode,
-      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
-    });
+    res.json({ success: true, ...presentPrivateClient(client) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -843,11 +841,7 @@ router.put('/private-offers/clients/:id/code', async (req, res) => {
 router.post('/private-offers/clients/:id/regenerate', async (req, res) => {
   try {
     const client = await privateClientsRepo.regenerateClientAccess(req.params.id);
-    res.json({
-      success: true,
-      accessCode: client.plainCode,
-      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
-    });
+    res.json({ success: true, ...presentPrivateClient(client) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -886,12 +880,7 @@ router.put('/private-offers/clients/:id', async (req, res) => {
       propertyKind: req.body.propertyKind,
       requiredArea: req.body.requiredArea,
     });
-    res.json({
-      success: true,
-      accessCode: client.plainCode || undefined,
-      deviceReset: Boolean(client.plainCode),
-      client: { ...client, shareUrl: buildPrivateShareUrl(client.pageSlug) },
-    });
+    res.json({ success: true, ...presentPrivateClient(client) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

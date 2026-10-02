@@ -212,13 +212,14 @@ if (fs.existsSync(marketerDir)) {
   console.log('  static /marketer ✓');
 }
 
-function sendClientBoard(_req, res) {
-  const pagePath = path.join(publicDir, 'board.html');
+function sendPrivateEntryGate(_req, res) {
+  const pagePath = path.join(publicDir, 'private-entry.html');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(pagePath);
 }
 
-app.get(['/private-offers', '/map', '/map.html'], sendClientBoard);
+app.get(['/private-offers', '/map', '/map.html', '/board.html'], sendPrivateEntryGate);
 
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
@@ -338,8 +339,8 @@ app.get('*', (req, res, next) => {
       }
     }
 
-    if (req.path === '/map' || req.path === '/map.html' || req.path === '/private-offers') {
-      return sendClientBoard(req, res);
+    if (req.path === '/map' || req.path === '/map.html' || req.path === '/private-offers' || req.path === '/board.html') {
+      return sendPrivateEntryGate(req, res);
     }
 
     const pageMap = {

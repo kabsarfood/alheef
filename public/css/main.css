@@ -344,6 +344,12 @@ ul { list-style: none; }
   white-space: nowrap;
 }
 
+.nav__link--private-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .nav__link::after {
   content: '';
   position: absolute;
