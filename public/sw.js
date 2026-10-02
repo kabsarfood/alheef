@@ -131,7 +131,11 @@ self.addEventListener('fetch', (event) => {
       return;
     }
     if (url.pathname === '/map' || url.pathname === '/map.html') {
-      event.respondWith(networkFirst(request, '/map.html'));
+      event.respondWith(fetch(request));
+      return;
+    }
+    if (url.pathname === '/map-legacy' || url.pathname === '/map-legacy.html') {
+      event.respondWith(networkFirst(request, '/map-legacy.html'));
       return;
     }
     event.respondWith(networkFirst(request, '/index.html'));

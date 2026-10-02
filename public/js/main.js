@@ -365,12 +365,12 @@
 
     let link = document.getElementById('nav-map');
     if (!link) {
-      link = nav.querySelector('a[href="/map.html"], a[href="/map"]');
+      link = nav.querySelector('a[href="/map-legacy.html"], a[href="/map.html"], a[href="/map"]');
     }
     if (!link) {
       link = document.createElement('a');
       link.id = 'nav-map';
-      link.href = '/map.html';
+      link.href = '/map-legacy.html';
       link.className = 'nav__link';
       link.textContent = 'الخريطة العقارية';
       const home = nav.querySelector('a[href="#hero"], a[href="/"], a[href="/#hero"]');
@@ -378,17 +378,17 @@
       else nav.prepend(link);
     } else {
       link.id = 'nav-map';
-      link.href = '/map.html';
+      link.href = '/map-legacy.html';
       link.textContent = 'الخريطة العقارية';
       link.classList.add('nav__link');
     }
 
     const footerLinks = document.querySelector('.footer__links');
-    if (footerLinks && !footerLinks.querySelector('a[href="/map.html"]')) {
+    if (footerLinks && !footerLinks.querySelector('a[href="/map-legacy.html"]')) {
       const li = document.createElement('li');
       li.className = 'footer__link-item footer__link-item--map';
       const a = document.createElement('a');
-      a.href = '/map.html';
+      a.href = '/map-legacy.html';
       a.innerHTML = '<span class="footer__link-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="footer__link-label">الخريطة العقارية</span>';
       li.appendChild(a);
       footerLinks.appendChild(li);

@@ -35,6 +35,7 @@ let adminRoutes;
 let mapImportRoutes;
 let mapApprovalRoutes;
 let mapDirectRoutes;
+let offerBoardRoutes;
 let chatgptMapMcpRoutes;
 let authRoutes;
 let marketerRoutes;
@@ -54,6 +55,7 @@ try {
   mapImportRoutes = require('./server/routes/mapImport');
   mapApprovalRoutes = require('./server/routes/mapApproval');
   mapDirectRoutes = require('./server/routes/mapDirectSubmit');
+  offerBoardRoutes = require('./server/routes/offerBoard');
   chatgptMapMcpRoutes = require('./server/routes/chatgptMapMcp');
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
@@ -244,6 +246,7 @@ app.use('/api/integrations/alheef-map', chatgptMapMcpRoutes);
 app.use('/api/integrations/alheef-map', mapApprovalRoutes.publicRouter);
 app.use('/api/admin/map-approvals', mapApprovalRoutes.adminRouter);
 app.use('/api/admin/map', mapImportRoutes);
+app.use('/api/admin/offer-board', offerBoardRoutes);
 app.use('/api/admin', adminRoutes);
 app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
 
@@ -326,9 +329,13 @@ app.get('*', (req, res, next) => {
       }
     }
 
+    if (req.path === '/map' || req.path === '/map.html') {
+      return res.redirect(302, '/dashboard/private-offers.html?view=map');
+    }
+
     const pageMap = {
-      '/map': 'map.html',
-      '/map.html': 'map.html',
+      '/map-legacy': 'map-legacy.html',
+      '/map-legacy.html': 'map-legacy.html',
       '/property': 'property.html',
       '/property.html': 'property.html',
       '/ejar': 'ejar.html',

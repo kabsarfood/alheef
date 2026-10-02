@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   MapsUrlField.configure({
     parseEndpoint: '/api/map/parse-coords',
     authHeaders: () => Auth.authHeaders(),
-    mapPageUrl: '/map.html',
+    mapPageUrl: '/dashboard/private-offers.html?view=map',
     onCoords(coords) {
       if (coordsEdited || !coords) return;
       const latEl = document.getElementById('latitude');

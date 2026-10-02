@@ -7,6 +7,7 @@ const { cleanMapsShareUrl } = require('../utils/coords');
 const { getAdmin, isEnabled } = require('../lib/supabase');
 const { uploadBuffer } = require('./storage');
 const propertiesRepo = require('../repositories/propertiesRepo');
+const offerBoard = require('./offerBoard');
 const evolution = require('./evolutionWhatsApp');
 const { createRateLimiter } = require('../utils/rateLimit');
 
@@ -715,8 +716,26 @@ async function finishPublish(row) {
     const explicit = normalizePropertyType(payload.property_type || '');
     if (explicit) prepared.body.propertyType = explicit;
     prepared.body.description = payload.details;
-    const created = await propertiesRepo.create(prepared.body);
-    createdId = created.id;
+    const duplicate = await offerBoard.findConfirmedDuplicate({
+      referenceNo: prepared.body.referenceNo || prepared.body.licenseNumber,
+      source: prepared.body.source,
+      sourceListingId: prepared.body.sourceListingId,
+      planNumber: prepared.body.planNumber,
+      plotNumber: prepared.body.plotNumber,
+      district: prepared.body.district,
+      latitude: prepared.body.latitude,
+      longitude: prepared.body.longitude,
+      mapsUrl: prepared.body.mapsUrl,
+    });
+    let created;
+    if (duplicate) {
+      await offerBoard.refreshExisting(duplicate.id, prepared.body);
+      created = await propertiesRepo.getById(duplicate.id);
+      createdId = duplicate.id;
+    } else {
+      created = await propertiesRepo.create(prepared.body);
+      createdId = created.id;
+    }
     const urls = [];
     for (const image of payload.images || []) {
       if (image.kind === 'remote') urls.push(image.url);
@@ -729,6 +748,10 @@ async function finishPublish(row) {
       }
     }
     if (urls.length) await propertiesRepo.addImages(created.id, urls);
+    await offerBoard.markVisible(created.id, {
+      requestNumber: row.request_number,
+      phone: payload.contact_phone,
+    });
     const full = await propertiesRepo.getById(created.id);
     const openCode = full.status === 'published' ? shortCode() : null;
     const done = await patchStatus(publishing.id, 'publishing', {

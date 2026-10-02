@@ -37,7 +37,7 @@ async function loadQueue() {
 function renderCard(item) {
   const img = item.coverImage || item.gallery?.[0] || '';
   const sourceHref = /^https:\/\//i.test(item.sourceUrl || '') ? item.sourceUrl : '';
-  const mapHref = item.slug ? `/map?slug=${encodeURIComponent(item.slug)}` : '/map';
+  const mapHref = `/dashboard/private-offers.html?view=map&id=${encodeURIComponent(item.id)}`;
   return `
     <article class="offer-card offers-admin-card" data-id="${escapeHtml(item.id)}">
       <div class="offer-card__img">

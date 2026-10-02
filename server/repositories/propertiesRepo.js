@@ -118,7 +118,7 @@ async function listForMap(filters = {}) {
   }
 
   const all = data || [];
-  const withCoords = all.filter((row) => isValidCoord(row.latitude, row.longitude));
+  const withCoords = all.filter((row) => isValidCoord(row.latitude, row.longitude) && row.show_on_map !== false);
   const missingCoords = all.length - withCoords.length;
 
   console.log('[propertiesRepo] listForMap:', {
