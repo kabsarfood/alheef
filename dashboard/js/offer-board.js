@@ -8,6 +8,7 @@ const TYPES = [
 const COLORS = { land: '#16A34A', villa: '#C5A46D', apartment: '#2563EB', building: '#7C3AED', all: '#1E2A38' };
 const MAHDIA = [24.6475, 46.5115];
 const VIEW_KEY = 'alheef-offer-view';
+const ADMIN = window.ALHEEF_BOARD_MODE === 'admin';
 
 let view = 'map';
 let type = 'all';
@@ -22,8 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
   view = params.get('view') === 'list' || params.get('view') === 'map' ? params.get('view') : (saved || 'map');
-  await initLayout('private-offers', 'العروض الخاصة');
-  setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
+  if (ADMIN) {
+    await initLayout('private-offers', 'العروض الخاصة');
+    setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
+  }
   renderShell();
   bindShell();
   loadWhatsapp();
@@ -37,8 +40,7 @@ function renderShell() {
       <div class="ob-bar">
         <button type="button" data-view="map">الخريطة</button>
         <button type="button" data-view="list">القائمة</button>
-        <button type="button" data-archive="0">النشطة</button>
-        <button type="button" data-archive="1">الأرشيف</button>
+        ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button>' : ''}
       </div>
       <div class="ob-filters" id="ob-filters"></div>
       <div class="ob-layout" id="ob-layout">
@@ -114,7 +116,7 @@ async function loadWhatsapp() {
 }
 
 async function loadItems(append) {
-  const data = await DashboardAPI.request(`/offer-board?view=${view}&type=${type}&archive=${archive ? '1' : '0'}&page=${page}&limit=24${view === 'map' ? '&map=1' : ''}`);
+  const data = await boardRequest(`?view=${view}&type=${type}&archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=24${view === 'map' ? '&map=1' : ''}`);
   items = append ? items.concat(data.items || []) : (data.items || []);
   document.getElementById('ob-count').textContent = `${data.total || 0} إعلان`;
   document.getElementById('ob-more').hidden = items.length >= (data.total || 0);
@@ -191,13 +193,24 @@ function drawMap() {
   map.invalidateSize();
 }
 
+async function boardRequest(path, options) {
+  if (ADMIN) return DashboardAPI.request(`/offer-board${path}`, options);
+  const res = await fetch(`/api/offer-board${path}`, {
+    ...options,
+    headers: { Accept: 'application/json', ...(options && options.headers) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || 'تعذر التحميل');
+  return data;
+}
+
 function heefLink(item) {
   const text = `مرحبًا، أود الاستفسار عن ${item.internalRef || item.title || 'إعلان'} في ${item.district || ''}`.trim();
   return `https://wa.me/${heefWhatsapp}?text=${encodeURIComponent(text)}`;
 }
 
 async function openDetail(id) {
-  const data = await DashboardAPI.request(`/offer-board/${id}`);
+  const data = await boardRequest(`/${id}`);
   const item = data.item;
   const old = document.getElementById('ob-modal');
   if (old) old.remove();
@@ -216,13 +229,13 @@ async function openDetail(id) {
       <p class="ob-meta">الرقم الداخلي: ${escapeHtml(item.internalRef || '—')}</p>
       <p class="ob-meta">آخر تحديث: ${escapeHtml(item.updatedAt ? new Date(item.updatedAt).toLocaleString('ar-SA') : '—')}</p>
       <a class="btn btn-gold" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>
-      <div class="ob-admin">
+      ${ADMIN ? `<div class="ob-admin">
         <p>رقم المعلن: ${escapeHtml(item.advertiserPhone || '—')}</p>
         ${item.advertiserPhone ? `<a href="tel:${escapeHtml(item.advertiserPhone)}">اتصال</a> <a href="https://wa.me/${escapeHtml(item.advertiserPhone.replace(/^0/, '966'))}" target="_blank" rel="noopener">واتساب المعلن</a>` : ''}
         <p class="ob-meta">المصدر: ${escapeHtml(item.sourceName || '—')} ${item.sourceUrl ? `<a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener">فتح المصدر</a>` : ''}</p>
         <div class="ob-actions" id="ob-admin-actions"></div>
         <pre class="ob-meta">${escapeHtml((item.statusLog || []).map((entry) => `${entry.at || ''} ${entry.action || ''}`).join('\n'))}</pre>
-      </div>
+      </div>` : ''}
     </div>`;
   document.body.appendChild(modal);
   const actions = [
@@ -231,12 +244,14 @@ async function openDetail(id) {
     ['map_off', 'إخفاء من الخريطة'], ['offers_on', 'إظهار في العروض'], ['offers_off', 'إخفاء من العروض'],
     ['homepage_on', 'إضافة للرئيسية'], ['homepage_off', 'إزالة من الرئيسية'],
   ];
+  if (ADMIN) {
   document.getElementById('ob-admin-actions').innerHTML = actions.map(([action, label]) =>
     `<button type="button" data-action="${action}">${label}</button>`).join('')
     + `<a class="btn btn-outline btn-sm" href="/dashboard/add-property.html?id=${encodeURIComponent(item.id)}">تعديل</a>`;
+  }
   modal.querySelector('#ob-close').addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (event) => { if (event.target === modal) modal.remove(); });
-  modal.querySelectorAll('[data-action]').forEach((btn) => {
+  if (ADMIN) modal.querySelectorAll('[data-action]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       await DashboardAPI.request(`/offer-board/${id}/action`, {
         method: 'POST',

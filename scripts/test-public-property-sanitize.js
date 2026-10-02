@@ -112,7 +112,7 @@ assert(!FULL_PHONE.test(masked), 'القناع نفسه ليس رقماً كام
 
 const saleMap = rowToMapProperty(saleRow);
 assertNoSecrets(saleMap, 'map/sale');
-assert(saleMap.contactPhoneMasked === '05••• ••754', 'الخريطة ترسل القناع فقط');
+assert(!saleMap.contactPhoneMasked && !JSON.stringify(saleMap).includes('0530792754'), 'الخريطة العامة لا تقرأ رقم المعلن');
 assert(saleMap.plotNumber === '1420' && saleMap.planNumber === '3185', 'القطعة والمخطط باقيان');
 assert(saleMap.area === 450 && saleMap.price === 3200000, 'السعر والمساحة باقيان');
 assert(saleMap.coverImage.includes('cover.webp'), 'الصورة باقية');

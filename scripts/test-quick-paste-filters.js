@@ -134,7 +134,7 @@ async function testSave() {
     assert(full.coverImage === 'https://example.com/quick-a.jpg', 'الغلاف من أول صورة');
     const pub = propertyToMapProperty(full);
     const json = JSON.stringify(pub);
-    assert(pub.contactPhoneMasked && !json.includes('0530792754'), 'الزائر يرى الرقم مخفيًا');
+    assert(!pub.contactPhoneMasked && !json.includes('0530792754'), 'الزائر لا يرى رقم المعلن');
     assert(pub.priceDisplay === 'على السوم', 'بدون سعر يظهر على السوم');
   } finally {
     await cleanup(draftId);

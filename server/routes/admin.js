@@ -714,7 +714,8 @@ router.put('/properties/:id/review', async (req, res) => {
       patch.status = 'approved_published';
       patch.approved_at = now;
       patch.approved_by = req.auth?.userId || 'admin';
-      patch.homepage_published = true;
+      patch.show_on_private_offers = true;
+      patch.show_on_map = true;
     } else if (action === 'needs_changes') {
       patch.status = 'needs_changes';
       patch.admin_feedback = adminFeedback || 'يرجى تعديل الإعلان وفق الملاحظات';

@@ -488,7 +488,7 @@ function rowToMapProperty(row) {
       ? extra.facade
       : '',
     streetWidth: extra.streetWidth,
-    contactPhoneMasked: isBuyRequest ? '' : maskPublicListingPhone(extra.contactPhone),
+    contactPhoneMasked: '',
   };
   return redactPublicStrings(payload);
 }

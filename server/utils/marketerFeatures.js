@@ -68,7 +68,6 @@ function workflowToDbPatch(workflowStatus, extra = {}) {
   let dbStatus = 'draft';
   if (workflowStatus === 'approved_published') {
     dbStatus = 'published';
-    meta.homepagePublished = true;
   } else if (workflowStatus === 'rejected' || workflowStatus === 'hidden') {
     dbStatus = 'archived';
   } else if (workflowStatus === 'expired') {

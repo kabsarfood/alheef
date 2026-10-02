@@ -5,9 +5,32 @@ const board = require('../services/offerBoard');
 const router = express.Router();
 router.use(requireAdmin);
 
+const publicRouter = express.Router();
+
+publicRouter.get('/', async (req, res) => {
+  try {
+    const data = await board.listBoard({ ...req.query, archive: '0' }, { admin: false });
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    console.error('[offer-board]', err.message);
+    res.status(500).json({ ok: false, message: 'تعذر تحميل العروض' });
+  }
+});
+
+publicRouter.get('/:id', async (req, res) => {
+  try {
+    const item = await board.getBoardItem(req.params.id, { admin: false });
+    if (!item) return res.status(404).json({ ok: false, message: 'العقار غير موجود' });
+    res.json({ ok: true, item });
+  } catch (err) {
+    console.error('[offer-board]', err.message);
+    res.status(500).json({ ok: false, message: 'تعذر تحميل التفاصيل' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
-    const data = await board.listBoard(req.query);
+    const data = await board.listBoard(req.query, { admin: true });
     res.json({ ok: true, ...data });
   } catch (err) {
     console.error('[offer-board]', err.message);
@@ -37,3 +60,4 @@ router.post('/:id/action', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.publicRouter = publicRouter;

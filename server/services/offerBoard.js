@@ -63,10 +63,38 @@ function card(row) {
   };
 }
 
+function clientCard(row) {
+  const item = card(row);
+  return {
+    id: item.id,
+    internalRef: item.internalRef,
+    propertyType: item.propertyType,
+    typeKey: item.typeKey,
+    title: item.title,
+    district: item.district,
+    city: item.city,
+    price: item.price,
+    priceType: item.priceType,
+    area: item.area,
+    pricePerMeter: item.pricePerMeter,
+    planNumber: item.planNumber,
+    plotNumber: item.plotNumber,
+    direction: item.direction,
+    streetWidth: item.streetWidth,
+    lengths: item.lengths,
+    coverImage: item.coverImage,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
+    priceNote: item.priceNote,
+  };
+}
+
 function detail(row, { admin = false } = {}) {
   const gallery = Array.isArray(row.gallery) ? row.gallery.filter(Boolean) : [];
   const base = {
-    ...card(row),
+    ...(admin ? card(row) : clientCard(row)),
     description: row.description || '',
     gallery: gallery.length ? gallery : (coverOf(row) ? [coverOf(row)] : []),
   };
@@ -111,8 +139,9 @@ async function loadRows(statuses) {
   return data || [];
 }
 
-async function listBoard(query = {}) {
-  const archive = query.archive === '1' || query.archive === 'true';
+async function listBoard(query = {}, options = {}) {
+  const admin = options.admin === true;
+  const archive = admin && (query.archive === '1' || query.archive === 'true');
   const rows = await loadRows(archive ? ARCHIVE : VISIBLE);
   const bounds = ['north', 'south', 'east', 'west'].every((key) => query[key] != null && query[key] !== '')
     ? {
@@ -134,7 +163,7 @@ async function listBoard(query = {}) {
   const limit = Math.min(60, Math.max(1, parseInt(query.limit, 10) || 24));
   const start = (page - 1) * limit;
   return {
-    items: filtered.slice(start, start + limit).map(card),
+    items: filtered.slice(start, start + limit).map((row) => (admin ? card(row) : clientCard(row))),
     total: filtered.length,
     page,
     limit,
@@ -297,6 +326,7 @@ async function applyAction(id, action) {
 module.exports = {
   VISIBLE,
   card,
+  clientCard,
   detail,
   listBoard,
   getBoardItem,

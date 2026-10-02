@@ -81,11 +81,11 @@ async function main() {
     assert(pendingRow.data && pendingRow.data.published_property_id === before.data.published_property_id, 'هذه المهمة لم تغيّر MAP-000003');
 
     await board.applyAction(id, 'sold');
-    const afterSold = await board.listBoard({});
-    const archive = await board.listBoard({ archive: '1' });
+    const afterSold = await board.listBoard({}, { admin: true });
+    const archive = await board.listBoard({ archive: '1' }, { admin: true });
     assert(!afterSold.items.some((item) => item.id === id) && archive.items.some((item) => item.id === id), 'المباع يختفي ويبقى في الأرشيف');
     await board.applyAction(id, 'withdrawn');
-    const afterWithdrawn = await board.listBoard({ archive: '1' });
+    const afterWithdrawn = await board.listBoard({ archive: '1' }, { admin: true });
     assert(afterWithdrawn.items.some((item) => item.id === id && item.status === 'withdrawn'), 'المسحوب يبقى في الأرشيف');
 
     const adminItem = await board.getBoardItem(id, { admin: true });

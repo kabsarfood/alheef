@@ -76,7 +76,7 @@ assert(stored.features.plot_number === '3043', 'نسخة features تبقى لل�
 
 const pub = propertyToMapProperty(legacy);
 const pubJson = JSON.stringify(pub);
-assert(pub.contactPhoneMasked === '05••• ••754', 'الخريطة ترسل القناع فقط');
+assert(!pub.contactPhoneMasked, 'الخريطة العامة لا تقرأ رقم المعلن');
 assert(!pubJson.includes('0530792754'), 'رد الخريطة بلا رقم كامل');
 assert(pub.plotNumber === '3043' && pub.planNumber === '2566/ب', 'البطاقة تستلم المخطط والقطعة');
 assert(pub.direction === 'جنوبية', 'واجهة بوصلة قديمة تظهر كاتجاه على الخريطة فقط');
@@ -174,7 +174,7 @@ async function main() {
     const { rows } = await propertiesRepo.listForMap({ propertyType: 'فيلا' });
     assert(rows.some((row) => row.id === createdId), 'العقار المنشور يظهر في استعلام الخريطة');
     const masked = propertyToMapProperty(updated);
-    assert(masked.contactPhoneMasked === '05••• ••754', 'بعد التعديل القناع العام يبقى');
+    assert(!masked.contactPhoneMasked, 'بعد التعديل الواجهة العامة بلا رقم');
     assert(!JSON.stringify(masked).includes('0530792754'), 'بعد التعديل الرقم الكامل لا يخرج للخريطة');
   } finally {
     if (createdId) {

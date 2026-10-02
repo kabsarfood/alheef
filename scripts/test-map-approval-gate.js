@@ -185,7 +185,7 @@ async function main() {
     assert(success.text.includes('/m/o/') && !success.text.includes('sig=') && !success.text.includes('/property.html'), 'رابط النجاح قصير ومن دون توقيع');
     const full = await propertiesRepo.getById(approvedRow.published_property_id);
     const pub = propertyToMapProperty(full);
-    assert(pub.contactPhoneMasked && !JSON.stringify(pub).includes('0530792754'), 'إخفاء الجوال لم يتأثر');
+    assert(!pub.contactPhoneMasked && !JSON.stringify(pub).includes('0530792754'), 'الواجهة العامة لا تقرأ رقم المعلن');
     const opened = await call(port, { path: `/m/o/${(success.text.match(/\/m\/o\/([A-Za-z0-9_-]+)/) || [])[1]}` });
     assert(opened.status === 302 && String(opened.headers.location || '').includes('/property.html?slug='), 'زر فتح الإعلان يوصل لصفحة الإعلان');
     const again = await call(port, { method: 'POST', path: `/m/a/${notice.approve}` });

@@ -1,4 +1,6 @@
-.ob-page { display: flex; flex-direction: column; gap: .75rem; }
+.ob-public-head { display: flex; justify-content: space-between; align-items: center; padding: .8rem 1rem; background: #1E2A38; color: #fff; }
+.ob-public-head a { color: #fff; text-decoration: none; font-weight: 700; }
+.ob-page { display: flex; flex-direction: column; gap: .75rem; padding: .75rem; }
 .ob-bar, .ob-filters { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .ob-bar button, .ob-filters button, .ob-actions button {
   border: 1px solid #d7deE6; background: #fff; border-radius: 999px; padding: .35rem .8rem; cursor: pointer; font: inherit;

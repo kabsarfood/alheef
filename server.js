@@ -212,6 +212,14 @@ if (fs.existsSync(marketerDir)) {
   console.log('  static /marketer ✓');
 }
 
+function sendClientBoard(_req, res) {
+  const pagePath = path.join(publicDir, 'board.html');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(pagePath);
+}
+
+app.get(['/private-offers', '/map', '/map.html'], sendClientBoard);
+
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   console.log('  static /public ✓');
@@ -246,6 +254,7 @@ app.use('/api/integrations/alheef-map', chatgptMapMcpRoutes);
 app.use('/api/integrations/alheef-map', mapApprovalRoutes.publicRouter);
 app.use('/api/admin/map-approvals', mapApprovalRoutes.adminRouter);
 app.use('/api/admin/map', mapImportRoutes);
+app.use('/api/offer-board', offerBoardRoutes.publicRouter);
 app.use('/api/admin/offer-board', offerBoardRoutes);
 app.use('/api/admin', adminRoutes);
 app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
@@ -329,8 +338,8 @@ app.get('*', (req, res, next) => {
       }
     }
 
-    if (req.path === '/map' || req.path === '/map.html') {
-      return res.redirect(302, '/dashboard/private-offers.html?view=map');
+    if (req.path === '/map' || req.path === '/map.html' || req.path === '/private-offers') {
+      return sendClientBoard(req, res);
     }
 
     const pageMap = {
