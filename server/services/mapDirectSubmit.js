@@ -42,7 +42,10 @@ async function submitDirect(body) {
   if (honeypot) return fail(400, 'تعذر إرسال الإعلان');
 
   const details = String(body?.details || '').trim();
-  const mapsRaw = String(body?.maps_url || body?.location_url || '').trim();
+  const embedded = (details.match(/https?:\/\/[^\s<>"']+/g) || [])
+    .map((url) => url.replace(/[),.\]]+$/g, ''))
+    .find((url) => looksLikeMapsUrl(url)) || '';
+  const mapsRaw = String(body?.maps_url || body?.location_url || embedded || '').trim();
   if (!details) return fail(400, 'تفاصيل الإعلان مطلوبة');
   if (!looksLikeMapsUrl(mapsRaw)) return fail(400, 'رابط خرائط Google غير صالح');
   const mapUrl = cleanMapsShareUrl(mapsRaw) || mapsRaw;
@@ -70,6 +73,7 @@ async function submitDirect(body) {
       contact_phone: phone,
       source_type: 'heef_map',
       source_name: 'هيف ماب',
+      source_url: String(body?.source_url || '').trim(),
       images,
       idempotency_key: idempotencyKey(mapUrl, parsed.plotNumber, parsed.planNumber),
     });

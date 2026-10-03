@@ -70,7 +70,9 @@ async function main() {
   const port = server.address().port;
   try {
     const hidden = await call(port, { path: '/map-submit' });
-    assert(hidden.status === 404 && !hidden.text.includes(TOKEN), 'الصفحة بدون المفتاح تعيد 404');
+    assert(hidden.status === 200 && hidden.text.includes('إرسال الإعلان') && !hidden.text.includes(TOKEN), 'النموذج يفتح بدون رمز دخول');
+    const wrong = await call(port, { path: '/map-submit?k=wrong-token' });
+    assert(wrong.status === 404, 'رمز خاطئ لا يفتح النموذج');
     const opened = await call(port, { path: `/map-submit?k=${encodeURIComponent(TOKEN)}` });
     assert(opened.status === 200 && opened.text.includes('إرسال الإعلان') && opened.text.includes('0530792754') && !opened.text.includes('لوحة'), 'الرابط الخاص يعرض النموذج');
     assert(opened.text.includes('noindex') && opened.text.includes('name="website"'), 'الصفحة مخفية عن الفهرسة وفيها حقل خداع');

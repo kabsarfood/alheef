@@ -27,11 +27,12 @@ function pageHtml(token) {
   const key = escapeHtml(token);
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>إرسال إعلان</title></head><body style="font-family:sans-serif;padding:1rem;line-height:1.7;max-width:40rem;margin:auto">
 <h1 style="font-size:1.3rem">إرسال إعلان إلى خريطة الهيف</h1>
-<p>يُرسل الطلب للموافقة فقط، ولا يُنشر قبل موافقة الأدمن.</p>
+<p>بدون رمز دخول. الصق الإعلان كما هو، أو انسخه من الموقع، ثم أرسله. يصل إشعار واتساب للموافقة أو الرفض، وبعد الموافقة يظهر في العروض الخاصة وعلى الخريطة.</p>
 <form id="map-form" method="post" action="/api/map-submit" enctype="multipart/form-data" novalidate>
 <input type="hidden" name="k" value="${key}">
 <label>تفاصيل الإعلان<br><textarea name="details" required rows="10" maxlength="8000"></textarea></label><br><br>
-<label>رابط خرائط Google<br><input name="maps_url" inputmode="url" required></label><br><br>
+<label>رابط خرائط Google<br><input name="maps_url" inputmode="url" placeholder="أو ضعه داخل نص الإعلان"></label><br><br>
+<label>رابط صفحة الإعلان، اختياري<br><input name="source_url" inputmode="url" placeholder="https://"></label><br><br>
 <label>رقم الجوال، اختياري<br><input name="contact_phone" inputmode="tel" value="0530792754" maxlength="32"></label><br><br>
 <label>الصور، حتى 6<br><input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><br><br>
 <div style="position:absolute;left:-9999px;height:0;overflow:hidden" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
@@ -71,7 +72,7 @@ function pageHtml(token) {
     var details = form.details.value.trim();
     var maps = form.maps_url.value.trim();
     if (!details) { result.textContent = 'تفاصيل الإعلان مطلوبة'; return; }
-    if (!maps) { result.textContent = 'رابط خرائط Google مطلوب'; return; }
+    if (!maps && !/https?:\/\/\S+/.test(details)) { result.textContent = 'أضف رابط خرائط Google داخل الإعلان أو في حقله'; return; }
     var files = fileInput.files || [];
     if (files.length > 6) { result.textContent = 'الحد الأقصى 6 صور.'; return; }
     button.disabled = true;
@@ -85,6 +86,7 @@ function pageHtml(token) {
       body.append('k', form.k.value);
       body.append('details', details);
       body.append('maps_url', maps);
+      body.append('source_url', form.source_url.value);
       body.append('contact_phone', form.contact_phone.value);
       body.append('website', form.website.value);
       for (var i = 0; i < files.length; i += 1) {
@@ -143,7 +145,8 @@ function tokenFrom(req) {
 
 async function handle(req, res) {
   if (!direct.allowIp(req)) return send(req, res, 429, { ok: false, message: 'محاولات كثيرة. أعد المحاولة لاحقًا' });
-  if (!direct.tokenMatches(tokenFrom(req))) return send(req, res, 404, { ok: false, message: 'الصفحة غير موجودة' });
+  const token = tokenFrom(req);
+  if (token && !direct.tokenMatches(token)) return send(req, res, 404, { ok: false, message: 'الصفحة غير موجودة' });
   if (!direct.allowKey()) return send(req, res, 429, { ok: false, message: 'محاولات كثيرة. أعد المحاولة لاحقًا' });
   const outcome = await direct.submitDirect(req.body || {});
   return send(req, res, outcome.status, outcome.body);
@@ -156,10 +159,10 @@ function page(req, res) {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; connect-src 'self'; form-action 'self'; base-uri 'none'");
   const token = String(req.query.k || '').trim();
-  if (!direct.tokenMatches(token)) {
+  if (token && !direct.tokenMatches(token)) {
     return res.status(404).type('html').send('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta name="robots" content="noindex,nofollow"></head><body><p>الصفحة غير موجودة</p></body></html>');
   }
-  return res.status(200).type('html').send(pageHtml(token));
+  return res.status(200).type('html').send(pageHtml(''));
 }
 
 function submit(req, res, next) {

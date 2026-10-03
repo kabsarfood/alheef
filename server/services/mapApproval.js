@@ -83,7 +83,8 @@ function connectorToken() {
 }
 
 function authorizeConnector(header) {
-  const expected = connectorToken();
+  const dedicated = connectorToken();
+  const expected = dedicated.length >= 24 ? dedicated : integrationKey();
   if (expected.length < 24) {
     return { ok: false, status: 503, message: 'موصل ChatGPT غير مفعّل' };
   }
