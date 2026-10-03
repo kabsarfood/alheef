@@ -790,11 +790,48 @@ async function finishPublish(row) {
   }
 }
 
+function mobileShell(title, inner) {
+  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>${escapeHtml(title)}</title><style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:#f3f6f1;color:#142016;font-family:Tahoma,"Segoe UI",sans-serif}
+main{width:min(100%,26rem);text-align:center}
+h1{margin:0 0 .8rem;font-size:1.7rem;line-height:1.45;font-weight:800}
+p{margin:0 0 1.35rem;font-size:1.15rem;line-height:1.7}
+form{margin:0}
+button{display:flex;align-items:center;justify-content:center;width:100%;min-height:5.4rem;padding:1rem 1.2rem;border:0;border-radius:1.15rem;background:#178a45;color:#fff;font:inherit;font-size:1.85rem;font-weight:800;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 .5rem 0 #0d5a2b}
+button.reject{background:#b42318;box-shadow:0 .5rem 0 #7a160f}
+button:active,button.pressed{transform:translateY(.22rem)}
+button.go:active,button.go.pressed{box-shadow:0 .15rem 0 #0d5a2b}
+button.reject:active,button.reject.pressed{box-shadow:0 .15rem 0 #7a160f}
+a{display:inline-block;margin-top:.4rem;color:#0f6b34;font-size:1.25rem;font-weight:800;text-decoration:none}
+</style></head><body><main>${inner}</main></body></html>`;
+}
+
 function confirmPage(action) {
   const approve = action === 'approve';
   const title = approve ? 'نشر الإعلان على خريطة الهيف' : 'رفض طلب النشر';
   const label = approve ? 'نعم، انشر' : 'رفض';
-  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta name="robots" content="noindex,nofollow"></head><body style="font-family:sans-serif;padding:1.5rem"><p>${title}</p><form method="post"><button type="submit">${label}</button></form></body></html>`;
+  const hint = approve ? 'اضغط الزر الأخضر لتأكيد النشر على الخريطة.' : 'اضغط الزر لتأكيد رفض الطلب.';
+  const wait = approve ? 'جارٍ النشر…' : 'جارٍ الرفض…';
+  const klass = approve ? 'go' : 'reject';
+  const inner = `<h1>${title}</h1><p>${hint}</p><form method="post" id="decision"><button type="submit" id="go" class="${klass}">${label}</button></form><script>
+(function(){
+  var form=document.getElementById('decision');
+  var button=document.getElementById('go');
+  var sent=false;
+  function press(){button.classList.add('pressed');}
+  function release(){button.classList.remove('pressed');}
+  button.addEventListener('pointerdown',press);
+  button.addEventListener('pointerup',release);
+  button.addEventListener('pointercancel',release);
+  form.addEventListener('submit',function(event){
+    if(sent){event.preventDefault();return;}
+    sent=true;
+    button.textContent=${JSON.stringify(wait)};
+  });
+})();
+</script>`;
+  return mobileShell(title, inner);
 }
 
 async function shortLinkState(action, code) {
@@ -810,7 +847,7 @@ function decisionPage(outcome) {
   const link = body.property_url && body.property_status === 'published'
     ? `<p><a href="${escapeHtml(body.property_url)}">فتح الإعلان</a></p>`
     : '';
-  return { status: outcome.status, html: `<!DOCTYPE html><html lang="ar" dir="rtl"><body style="font-family:sans-serif;padding:1.5rem"><p>${escapeHtml(message)}</p>${link}</body></html>` };
+  return { status: outcome.status, html: mobileShell('نتيجة القرار', `<h1>${escapeHtml(message)}</h1>${link}`) };
 }
 
 async function applyDecision(row, action, actor) {

@@ -231,6 +231,8 @@ adminRouter.delete('/:id', async (req, res) => {
 });
 
 async function shortPage(req, res, action) {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
   try {
     const code = String(req.params.code || '');
     if (req.method === 'GET') {
