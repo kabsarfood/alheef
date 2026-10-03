@@ -210,6 +210,7 @@ function heefLink(item) {
 }
 
 async function openDetail(id) {
+  if (map) map.closePopup();
   const data = await boardRequest(`/${id}`);
   const item = data.item;
   const old = document.getElementById('ob-modal');
