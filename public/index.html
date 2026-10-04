@@ -27,6 +27,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css?v=32">
   <link rel="stylesheet" href="/css/mobile.css?v=28">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/css/platform.css?v=1">
   <script src="/js/national-offer.js?v=1"></script>
   <link rel="stylesheet" href="/css/pwa.css?v=2">
 </head>
@@ -49,10 +51,11 @@
 
       <nav class="nav" id="nav" aria-label="التنقل الرئيسي">
         <a href="#hero" class="nav__link">الرئيسية</a>
+        <a href="#offers" class="nav__link" title="العقارات">العقارات</a>
+        <a href="#heef-map" class="nav__link" title="هيف ماب">هيف ماب</a>
+        <a href="#services" class="nav__link" title="خدماتنا">خدماتنا</a>
         <a href="/ejar" class="nav__link" title="عقود إيجار إلكترونية">عقود إيجار</a>
-        <a href="#services" class="nav__link nav__link--optional" title="خدماتنا">الخدمات</a>
-        <a href="#offers" class="nav__link" title="العروض الحالية">العروض</a>
-        <a href="#request" class="nav__link nav__link--optional" title="اطلب عقارك">طلب عقار</a>
+        <a href="#request" class="nav__link" title="اطلب عقارك">اطلب عقارك</a>
         <a href="#contact" class="nav__link">تواصل</a>
         <span class="nav__portal-label">دخول</span>
         <a href="/dashboard/login.html" class="nav__link nav__link--portal nav__link--admin">لوحة التحكم — أدمن</a>
@@ -65,6 +68,7 @@
           <div class="header__login-menu" role="menu">
             <a href="/dashboard/login.html" class="header__login-item" role="menuitem" title="لوحة تحكم الأدمن">أدمن</a>
             <a href="/marketer/login.html" class="header__login-item" role="menuitem" title="دخول فريق الهيف">الفريق</a>
+            <button type="button" class="header__login-item" id="join-team-btn-hero">كن أحد فريق الهيف</button>
           </div>
         </details>
         <a href="#" class="btn btn-whatsapp btn-sm btn-whatsapp--icon" id="header-whatsapp" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب" title="واتساب">
@@ -119,43 +123,77 @@
     <a class="ejar-offer__btn" href="/ejar">ابدأ الآن</a>
   </div>
 
-  <!-- HERO -->
   <section class="hero" id="hero">
-        <div class="hero__bg">
-      <picture>
-        <source
-          media="(max-width: 768px)"
-          srcset="/assets/hero/banner-mobile.jpg?v=3"
-        >
-        <img
-          id="hero-image"
-          src="/assets/hero/banner-1280.jpg?v=3"
-          srcset="/assets/hero/banner-640.jpg?v=3 640w, /assets/hero/banner-960.jpg?v=3 960w, /assets/hero/banner-1280.jpg?v=3 1280w, /assets/hero/banner-1920.jpg?v=3 1920w"
-          sizes="100vw"
-          alt="اليوم الوطني السعودي — الهيف العقارية تهنئكم"
-          width="1280"
-          height="720"
-          loading="eager"
-          fetchpriority="high"
-          decoding="async"
-        >
-      </picture>
-    </div>
-    <div class="hero__overlay"></div>
-    <div class="container hero__content">
-      <p class="hero__label" id="hero-label">مكتب عقاري اكتروني</p>
-      <h1 class="hero__title" id="hero-title">الهيف للخدمات العقارية</h1>
-      <p class="hero__desc" id="hero-desc">خبرة وثقة في الخدمات والتسويق العقاري — نُقدّم لك تجربة عقارية راقية تليق بمستوى تطلعاتك</p>
-      <div class="hero__actions">
-        <a href="#offers" class="btn btn-primary" id="hero-btn-offers">تصفح العروض</a>
-        <a href="#request" class="btn btn-outline" id="hero-btn-request">اطلب عقارك</a>
-        <a href="/ejar?create=1" class="btn btn-outline" id="hero-btn-ejar" aria-label="إنشاء عقد إيجار عبر مكتب الهيف">إنشاء عقد إيجار</a>
-        <button type="button" class="btn btn-outline" id="join-team-btn-hero">كن أحد فريق الهيف</button>
+    <div class="container">
+      <div class="pf-hero">
+        <div class="pf-hero__copy">
+          <span class="badge" id="hero-label">منصة الهيف العقارية</span>
+          <h1 class="hero__title" id="hero-title">عقار أوضح.<br>خدمة أسرع.<br>قرار أفضل.</h1>
+          <p class="hero__desc" id="hero-desc">منصة عقارية تجمع العقارات المختارة، هيف ماب، العروض الخاصة، خدمات التسويق، إدارة الأملاك، وطلبات عقود إيجار في تجربة واحدة سهلة ومريحة.</p>
+          <div class="hero__actions">
+            <a href="#offers" class="btn btn-primary" id="hero-btn-offers">استعرض العقارات</a>
+            <a href="#request" class="btn btn-outline" id="hero-btn-request">اطلب عقارك</a>
+            <a href="/ejar" class="btn btn-outline" id="hero-btn-ejar" aria-label="خدمات إيجار">خدمات إيجار</a>
+          </div>
+        </div>
+        <div class="pf-hero__media">
+          <picture>
+            <source media="(max-width: 768px)" srcset="/assets/hero/banner-mobile.jpg?v=3">
+            <img
+              id="hero-image"
+              src="/assets/hero/banner-1280.jpg?v=3"
+              srcset="/assets/hero/banner-640.jpg?v=3 640w, /assets/hero/banner-960.jpg?v=3 960w, /assets/hero/banner-1280.jpg?v=3 1280w, /assets/hero/banner-1920.jpg?v=3 1920w"
+              sizes="(max-width: 768px) 100vw, 46vw"
+              alt="الهيف العقارية"
+              width="1280"
+              height="720"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            >
+          </picture>
+          <div class="pf-hero__stats">
+            <div class="pf-stat"><strong>عقارات</strong><span>مختارة بعناية</span></div>
+            <div class="pf-stat"><strong>هيف ماب</strong><span>عرض مباشر على الخريطة</span></div>
+            <div class="pf-stat"><strong>واتساب</strong><span>تواصل ومتابعة سريعة</span></div>
+          </div>
+        </div>
       </div>
-      <a href="#services" class="hero__scroll" aria-hidden="true">
-        <span>اكتشف</span>
-        <div class="hero__scroll-line"></div>
-      </a>
+    </div>
+  </section>
+
+  <section class="section pf-shortcuts" id="platform">
+    <div class="container">
+      <header class="section-header">
+        <h2 class="section-title">كل خدمات الهيف في مكان واحد</h2>
+        <p class="section-subtitle">اختر المسار الذي تحتاجه وابدأ مباشرة.</p>
+      </header>
+      <div class="pf-shortcut-grid">
+        <a class="pf-shortcut" href="#offers">
+          <span class="pf-shortcut__icon">🏠</span>
+          <h3>العقارات</h3>
+          <p>أراضٍ وفلل وشقق وعمائر مختارة من عروض الهيف.</p>
+          <span>تصفح العقارات ←</span>
+        </a>
+        <a class="pf-shortcut" href="#heef-map">
+          <span class="pf-shortcut__icon">🗺️</span>
+          <h3>هيف ماب</h3>
+          <p>شاهد العقارات حسب موقعها الحقيقي على الخريطة.</p>
+          <span>فتح الخريطة ←</span>
+        </a>
+        <a class="pf-shortcut" href="#private">
+          <span class="pf-shortcut__icon">🔐</span>
+          <h3>العروض الخاصة</h3>
+          <p>عروض مختارة لعملاء الهيف عبر دعوة خاصة وآمنة.</p>
+          <span>تعرف عليها ←</span>
+        </a>
+        <a class="pf-shortcut" href="/ejar">
+          <span class="pf-shortcut__icon">📄</span>
+          <h3>عقود إيجار</h3>
+          <p>خدمات عقود إيجار سكنية وتجارية ومتابعة الطلب.</p>
+          <span>ابدأ الطلب ←</span>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -204,6 +242,11 @@
           <h3 class="service-card__title">إنشاء عقود الإيجار</h3>
           <p class="service-card__desc">إنشاء وتوثيق عقود الإيجار السكنية والتجارية إلكترونيًا عبر منصة إيجار بخطوات واضحة وأسعار محددة</p>
         </article>
+        <a class="service-card reveal" href="#heef-map">
+          <div class="service-card__icon">◎</div>
+          <h3 class="service-card__title">هيف ماب</h3>
+          <p class="service-card__desc">استعراض العقارات حسب مواقعها الفعلية داخل حي المهدية وغرب الرياض</p>
+        </a>
       </div>
     </div>
   </section>
@@ -212,15 +255,91 @@
   <section class="offers" id="offers">
     <div class="container">
       <header class="section-header reveal">
-        <p class="section-label">مختاراتنا</p>
-        <h2 class="section-title">العروض الحالية</h2>
-        <p class="section-subtitle">عقارات مختارة بعناية من محفظتنا الحصرية — ليست منصة إعلانات، بل عروض مكتب الهيف فقط</p>
+        <div>
+          <h2 class="section-title">عقارات مختارة من الهيف</h2>
+          <p class="section-subtitle">عروض مكتب الهيف المنشورة. العروض الخاصة لا تظهر هنا.</p>
+        </div>
+        <a href="#offers" class="btn btn-outline">عرض جميع العقارات</a>
       </header>
 
-      <div id="offers-grid" class="offers__grid">
+      <div id="offers-grid" class="offers__grid property-grid">
         <div class="loading">
           <div class="spinner"></div>
           <p>جاري تحميل العروض...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="heef-map">
+    <div class="container">
+      <div class="pf-map">
+        <div class="pf-map__copy">
+          <span class="badge">هيف ماب</span>
+          <h2>اكتشف العقارات على الخريطة</h2>
+          <p>شاهد مواقع العقارات في المهدية وغرب الرياض، وصفِّ النتائج حسب نوع العقار ثم افتح التفاصيل.</p>
+          <div class="pf-map__filters" id="home-map-filters">
+            <button type="button" class="is-on" data-map-type="all">الكل</button>
+            <button type="button" data-map-type="land">أرض</button>
+            <button type="button" data-map-type="villa">فيلا</button>
+            <button type="button" data-map-type="apartment">شقة</button>
+            <button type="button" data-map-type="building">عمارة</button>
+          </div>
+          <div class="pf-map__actions">
+            <a class="btn btn-primary" href="#heef-map">فتح هيف ماب</a>
+            <a class="btn btn-outline" href="#offers">عرض القائمة</a>
+          </div>
+        </div>
+        <div class="pf-map__canvas" id="home-map-shell">
+          <div id="home-map" class="pf-map__view"></div>
+          <button type="button" class="pf-map__full" id="home-map-full">ملء الشاشة</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="private">
+    <div class="container">
+      <div class="pf-private">
+        <div>
+          <span class="badge">العروض الخاصة</span>
+          <h2>عروض مخصصة لعملاء الهيف</h2>
+          <p>العميل يستلم دعوة خاصة مرتبطة برقم واتسابه، يدخل برمز تحقق، ثم يشاهد العروض عبر الخريطة أو القائمة ويستطيع مشاركة الإعلان إلى واتسابه.</p>
+          <p class="pf-private__note">الدخول للعروض الخاصة يتم عبر دعوة من الهيف فقط.</p>
+        </div>
+        <div class="pf-private__cards">
+          <article><strong>رابط شخصي</strong><span>مرتبط برقم واتساب العميل.</span></article>
+          <article><strong>تحقق واتساب</strong><span>رمز دخول قبل مشاهدة العروض.</span></article>
+          <article><strong>خريطة وقائمة</strong><span>العميل يختار طريقة التصفح.</span></article>
+          <article><strong>متابعة</strong><span>تسجيل الاهتمام والانتقال للتفاوض.</span></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="ejar-home">
+    <div class="container">
+      <div class="pf-ejar">
+        <div class="pf-ejar__main">
+          <span class="badge">خدمات إيجار</span>
+          <h2>عقود إيجار إلكترونية</h2>
+          <p>ابدأ طلب عقدك من المنصة، وسيتابع فريق الهيف الطلب حتى الإكمال.</p>
+          <div class="pf-ejar__prices">
+            <article>
+              <span>عقد سكني</span>
+              <strong data-regular-price="229 ريال">199 ر.س</strong>
+            </article>
+            <article>
+              <span>عقد تجاري</span>
+              <strong data-regular-price="329 ريال">299 ر.س</strong>
+            </article>
+          </div>
+          <a class="btn btn-primary" href="/ejar?create=1">ابدأ طلب عقد إيجار</a>
+        </div>
+        <div class="pf-ejar__side">
+          <h3>من البداية حتى التوثيق</h3>
+          <p>إدخال بيانات الملكية، المؤجر، المستأجر، الوحدة، التفاصيل المالية، ثم المراجعة والمتابعة من فريق الهيف.</p>
+          <a class="btn btn-gold" href="/ejar">تفاصيل الخدمة</a>
         </div>
       </div>
     </div>
@@ -251,6 +370,7 @@
   </section>
 
   <!-- REQUEST PROPERTY -->
+  <div class="pf-forms-wrap">
   <section class="forms-section" id="request">
     <div class="container">
       <div class="forms-grid">
@@ -363,6 +483,7 @@
       </div>
     </div>
   </section>
+  </div>
 
   <!-- SUBSCRIBE -->
   <section class="subscribe" id="subscribe">
@@ -441,6 +562,14 @@
         <div class="footer__col footer__col--links">
           <h4 class="footer__heading">روابط سريعة</h4>
           <ul class="footer__links">
+            <li class="footer__link-item footer__link-item--offers">
+              <a href="#heef-map">
+                <span class="footer__link-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                </span>
+                <span class="footer__link-label">هيف ماب</span>
+              </a>
+            </li>
             <li class="footer__link-item footer__link-item--offers">
               <a href="#offers">
                 <span class="footer__link-icon" aria-hidden="true">
@@ -602,21 +731,21 @@
     </div>
   </div>
 
-  <nav class="ejar-sticky-bar" aria-label="إجراءات سريعة — جوال">
-    <a href="#" class="ejar-sticky-bar__btn ejar-sticky-bar__btn--wa" id="sticky-whatsapp" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      واتساب
-    </a>
-    <a href="/ejar" class="ejar-sticky-bar__btn ejar-sticky-bar__btn--start" aria-label="إنشاء عقد إلكتروني">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-      إنشاء عقد إلكتروني
-    </a>
+  <nav class="pf-mobile-nav" aria-label="تنقل الجوال">
+    <a href="#hero"><b>⌂</b>الرئيسية</a>
+    <a href="#offers"><b>▦</b>العقارات</a>
+    <a href="#heef-map"><b>◎</b>الخريطة</a>
+    <a href="#services"><b>◇</b>الخدمات</a>
+    <a href="/ejar"><b>▤</b>إيجار</a>
+    <a href="#" id="sticky-whatsapp" target="_blank" rel="noopener"><b>✉</b>واتساب</a>
   </nav>
 
   <script src="/js/analytics.js" defer></script>
   <script src="/js/pwa.js" defer></script>
   <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/join-team.js?v=5" defer></script>
-  <script src="/js/main.js?v=18" defer></script>
+  <script src="/js/main.js?v=19" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="/js/home-map.js?v=1" defer></script>
 </body>
 </html>

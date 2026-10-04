@@ -22,7 +22,22 @@
 .pb-views button.is-on, .pb-filters button.is-on { background: var(--type, #1E2A38); color: #fff; border-color: transparent; }
 .pb-count { color: #6c7a88; margin: .7rem auto; }
 .pb-stage { padding-bottom: 2rem; }
-.pb-map { height: min(68vh, 640px); min-height: 340px; border-radius: 18px; overflow: hidden; background: #e7eef2; position: relative; z-index: 0; isolation: isolate; }
+.pb-map-shell { position: relative; border-radius: 18px; overflow: hidden; }
+.pb-map { height: min(72vh, 760px); min-height: 420px; border-radius: 18px; overflow: hidden; background: #e7eef2; position: relative; z-index: 0; isolation: isolate; }
+.pb-map-shell:fullscreen { width: 100%; height: 100%; border-radius: 0; background: #e7eef2; }
+.pb-map-shell:fullscreen .pb-map { height: 100%; min-height: 100%; border-radius: 0; }
+.pb-full, .pb-map .leaflet-control-zoom a {
+  background: rgba(255,255,255,.94);
+  border: 1px solid #e4ddd2;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(16,50,42,.12);
+  color: #17211e;
+  font-weight: 800;
+}
+.pb-full { position: absolute; z-index: 500; top: 14px; left: 14px; padding: 10px 12px; cursor: pointer; touch-action: manipulation; font: inherit; }
+.pb-map .leaflet-control-zoom { border: 0; box-shadow: none; }
+.pb-map .leaflet-control-zoom a { width: 36px; height: 36px; line-height: 36px; margin-bottom: 6px; }
+.pb-map-shell[hidden] { display: none !important; }
 .pb-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .9rem; }
 .pb-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 28px rgba(30, 42, 56, .06); display: flex; flex-direction: column; min-width: 0; }
 .pb-card__media { border: 0; padding: 0; background: #efeae3; cursor: pointer; }
@@ -53,5 +68,5 @@
   .pb-brand img { width: 104px; }
   .pb-slide { flex-basis: 86%; }
   .pb-slide img { height: 150px; }
-  .pb-map { height: 62vh; min-height: 300px; }
+  .pb-map { height: 68vh; min-height: 360px; }
 }

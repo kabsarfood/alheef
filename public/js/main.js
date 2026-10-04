@@ -212,12 +212,6 @@
 
     applySeo(s);
 
-    setText('hero-label', s.hero?.label);
-    setText('hero-title', s.hero?.title);
-    setText('hero-desc', s.hero?.description);
-    setText('hero-btn-offers', s.hero?.btnOffers);
-    setText('hero-btn-request', s.hero?.btnRequest);
-
     applyHeroBanner(s, v);
 
     const root = document.documentElement;
@@ -479,14 +473,19 @@
         </div>
         <div class="offer-card__body">
           <h3 class="offer-card__title">${escapeHtml(offer.title)}</h3>
-          <p class="offer-card__location">📍 ${escapeHtml(offer.location)}</p>
           <div class="offer-card__meta">
-            <span class="offer-card__area">${offer.area ? `المساحة ${escapeHtml(formatArea(offer.area))}` : '—'}</span>
-            <span class="offer-card__price">${escapeHtml(offer.price)} <span>ر.س</span></span>
+            ${offer.district || offer.location ? `<span>📍 ${escapeHtml(offer.district || offer.location)}</span>` : ''}
+            ${offer.area ? `<span>📐 ${escapeHtml(formatArea(offer.area))}</span>` : ''}
+            ${offer.street ? `<span>🛣 ${escapeHtml(offer.street)}</span>` : ''}
+            ${offer.streetWidth ? `<span>عرض الشارع ${escapeHtml(offer.streetWidth)}</span>` : ''}
+            ${offer.direction ? `<span>${escapeHtml(offer.direction)}</span>` : ''}
           </div>
+          <div class="offer-card__bottom">
+            <span class="offer-card__price">${escapeHtml(offer.price)} <span>ر.س</span></span>
           <div class="offer-card__actions">
             <button type="button" class="btn btn-outline btn-sm" data-offer-id="${escapeAttr(offer.id)}">التفاصيل</button>
             <a href="${whatsappLink(msg)}" class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener">واتساب</a>
+          </div>
           </div>
         </div>
       </article>
