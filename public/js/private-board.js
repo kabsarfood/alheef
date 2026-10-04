@@ -123,6 +123,7 @@
       areaText(item.area) ? `<span>${esc(areaText(item.area))}</span>` : '',
       item.direction ? `<span>${esc(item.direction)}</span>` : '',
       item.street ? `<span>${esc(item.street)}</span>` : '',
+      item.streetWidth ? `<span>عرض الشارع ${esc(item.streetWidth)}</span>` : '',
     ].filter(Boolean).join('');
     return `
       <article class="pb-card">
@@ -136,6 +137,7 @@
           <div class="pb-card__actions">
             ${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">مشاهدة الموقع</a>` : ''}
             <button type="button" data-open="${esc(item.id)}">مشاهدة التفاصيل</button>
+            <button type="button" class="pb-share" data-share="${esc(item.id)}">مشاركة الإعلان</button>
           </div>
         </div>
       </article>`;
@@ -176,9 +178,11 @@
           iconAnchor: [9, 9],
         }),
       });
-      marker.bindPopup(`<div class="pb-popup"><strong>${esc(item.title || item.propertyType || 'عرض')}</strong><p>${esc(item.district || '')}</p><p>${esc(money(item.price))}</p><button type="button" data-open="${esc(item.id)}">عرض التفاصيل</button></div>`, { maxWidth: 260 });
+      marker.bindPopup(`<div class="pb-popup"><strong>${esc(item.title || item.propertyType || 'عرض')}</strong><p>${esc(item.district || '')}</p><p>${esc(money(item.price))}</p><button type="button" data-open="${esc(item.id)}">عرض التفاصيل</button><button type="button" class="pb-share" data-share="${esc(item.id)}">مشاركة الإعلان</button></div>`, { maxWidth: 260 });
       marker.on('popupopen', (event) => {
-        event.popup.getElement()?.querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
+        const box = event.popup.getElement();
+        box?.querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
+        box?.querySelector('[data-share]')?.addEventListener('click', (click) => shareListing(click.currentTarget));
       });
       cluster.addLayer(marker);
     });
@@ -208,14 +212,38 @@
           ${areaText(item.area) ? `<span>${esc(areaText(item.area))}</span>` : ''}
           ${item.direction ? `<span>${esc(item.direction)}</span>` : ''}
           ${item.street ? `<span>${esc(item.street)}</span>` : ''}
+          ${item.streetWidth ? `<span>عرض الشارع ${esc(item.streetWidth)}</span>` : ''}
         </div>
         ${item.description ? `<p class="pb-sheet__text">${esc(item.description)}</p>` : ''}
         ${href ? `<a class="pb-sheet__link" href="${esc(href)}" target="_blank" rel="noopener">مشاهدة الموقع</a>` : ''}
+        <button type="button" class="pb-share" data-share="${esc(item.id)}">مشاركة الإعلان</button>
       </div>`;
     modal.querySelector('[data-close]').addEventListener('click', () => { modal.hidden = true; modal.innerHTML = ''; });
     modal.addEventListener('click', (event) => {
       if (event.target === modal) { modal.hidden = true; modal.innerHTML = ''; }
     }, { once: true });
+  }
+
+  async function shareListing(button) {
+    if (button.dataset.busy === '1') return;
+    button.dataset.busy = '1';
+    const original = button.textContent;
+    button.textContent = 'جارٍ الإرسال…';
+    try {
+      const res = await fetch(`/api/private-offers/board/${encodeURIComponent(button.dataset.share)}/share`, {
+        method: 'POST',
+        headers: headersFn(),
+      });
+      if (res.status === 401 || res.status === 403) return onAuthFail();
+      const data = await res.json().catch(() => ({}));
+      button.textContent = data.success ? 'تم الإرسال إلى واتسابك' : (data.message || 'تعذر الإرسال');
+    } catch (error) {
+      button.textContent = 'تعذر الإرسال';
+    }
+    setTimeout(() => {
+      button.dataset.busy = '';
+      button.textContent = original;
+    }, 4000);
   }
 
   function bind() {
@@ -233,6 +261,11 @@
         renderFilters();
         renderList();
         drawMap();
+        return;
+      }
+      const shareBtn = event.target.closest('[data-share]');
+      if (shareBtn) {
+        shareListing(shareBtn);
         return;
       }
       const openBtn = event.target.closest('[data-open]');

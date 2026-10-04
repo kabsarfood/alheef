@@ -9,6 +9,7 @@ const privateOffersRepo = require('../repositories/privateOffersRepo');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const { toPublicPrivateOffer } = require('../services/mappers');
 const offerBoard = require('../services/offerBoard');
+const offerLeads = require('../services/offerLeads');
 const device = require('../services/privateDevice');
 
 const router = express.Router();
@@ -305,6 +306,19 @@ router.get('/board', requireDb, requirePrivateViewer, requireSameDevice, async (
     res.json({ success: true, items });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر تحميل العروض' });
+  }
+});
+
+router.post('/board/:id/share', requireDb, requirePrivateViewer, requireSameDevice, async (req, res) => {
+  try {
+    const outcome = await offerLeads.shareListing({
+      clientId: req.auth.userId,
+      propertyId: String(req.params.id || ''),
+    });
+    res.status(outcome.status).json(outcome.body);
+  } catch (err) {
+    console.warn('[offer-leads] share failed');
+    res.status(500).json({ success: false, message: 'تعذر إرسال الإعلان' });
   }
 });
 

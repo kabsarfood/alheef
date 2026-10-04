@@ -42,7 +42,7 @@ function renderShell() {
         <button type="button" data-view="list">القائمة</button>
         ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
       </div>
-      ${ADMIN ? '<div id="ob-invites"></div>' : ''}
+      ${ADMIN ? '<div id="ob-invites"></div><section id="ob-leads" class="ob-leads"></section>' : ''}
       <div class="ob-filters" id="ob-filters"></div>
       <div class="ob-layout" id="ob-layout">
         <div id="ob-map" class="ob-map"></div>
@@ -56,7 +56,10 @@ function renderShell() {
   document.getElementById('ob-filters').innerHTML = TYPES.map((item) =>
     `<button type="button" data-type="${item.key}">${item.label}</button>`).join('');
   syncButtons();
-  if (ADMIN) setupInvites();
+  if (ADMIN) {
+    setupInvites();
+    setupLeads();
+  }
 }
 
 function syncButtons() {
@@ -330,6 +333,52 @@ async function setupInvites() {
   } catch {
     host.innerHTML = '<p class="ob-meta">تعذر تحميل الدعوات.</p>';
   }
+}
+
+async function setupLeads() {
+  const host = document.getElementById('ob-leads');
+  if (!host) return;
+  host.innerHTML = '<h2>متابعة العملاء والعروض</h2><p class="ob-meta">جاري التحميل…</p>';
+  try {
+    const data = await DashboardAPI.request('/private-offer-leads');
+    const items = data.items || [];
+    if (!items.length) {
+      host.innerHTML = '<h2>متابعة العملاء والعروض</h2><p class="ob-meta">لا توجد مشاركات بعد.</p>';
+      return;
+    }
+    host.innerHTML = `<h2>متابعة العملاء والعروض</h2><div class="ob-invites">${items.map((item) => `
+      <article class="ob-invite">
+        <div>
+          <strong>${escapeHtml(item.clientName || 'عميل')}</strong>
+          <span dir="ltr">${escapeHtml(item.phone || '')}</span>
+          <span class="ob-invite__status">${escapeHtml(item.statusLabel || '')}</span>
+        </div>
+        <p>العقار: ${escapeHtml(item.internalRef || item.propertyTitle || '—')} — المشاركة: ${escapeHtml(formatInviteDate(item.sharedAt))}</p>
+        <p>آخر رد: ${escapeHtml(item.lastReply || '—')} — آخر تواصل: ${escapeHtml(formatInviteDate(item.lastContactAt))} — الإشعارات: ${item.followupPaused ? 'متوقفة' : 'مفعّلة'}</p>
+        <div class="ob-actions">
+          ${item.status === 'negotiating' ? '' : `<button type="button" data-lead-talk="${escapeHtml(item.id)}">تحت التفاوض</button>`}
+          <button type="button" data-lead-pause="${escapeHtml(item.clientId)}" data-paused="${item.followupPaused ? '1' : '0'}">${item.followupPaused ? 'إعادة تفعيل المتابعة' : 'إيقاف الإشعارات'}</button>
+        </div>
+      </article>`).join('')}</div>`;
+    host.querySelectorAll('[data-lead-talk]').forEach((btn) => btn.addEventListener('click', () => markNegotiating(btn.dataset.leadTalk)));
+    host.querySelectorAll('[data-lead-pause]').forEach((btn) => btn.addEventListener('click', () => toggleFollowup(btn.dataset.leadPause, btn.dataset.paused !== '1')));
+  } catch {
+    host.innerHTML = '<h2>متابعة العملاء والعروض</h2><p class="ob-meta">تعذر تحميل المتابعة.</p>';
+  }
+}
+
+async function markNegotiating(id) {
+  await DashboardAPI.request(`/private-offer-leads/${id}/negotiating`, { method: 'PUT' });
+  await setupLeads();
+}
+
+async function toggleFollowup(clientId, paused) {
+  await DashboardAPI.request(`/private-offer-leads/clients/${clientId}/followup`, {
+    method: 'PUT',
+    headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ paused }),
+  });
+  await setupLeads();
 }
 
 function formatInviteDate(value) {

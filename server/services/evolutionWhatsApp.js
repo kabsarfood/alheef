@@ -119,7 +119,7 @@ async function sendImageBuffer(phone, buffer, mime) {
   return { ok: result.ok, status: result.status };
 }
 
-async function sendImageUrl(phone, url) {
+async function sendImageUrl(phone, url, caption) {
   const number = toWhatsAppNumber(phone);
   if (!number || !url) return { ok: false };
   const result = await evolutionFetch('/message/sendMedia/{instance}', {
@@ -128,7 +128,7 @@ async function sendImageUrl(phone, url) {
       number,
       mediatype: 'image',
       media: String(url),
-      caption: 'صورة الإعلان',
+      caption: String(caption || 'صورة الإعلان').slice(0, 200),
       fileName: 'listing-image',
     },
   });

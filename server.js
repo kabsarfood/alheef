@@ -41,6 +41,7 @@ let authRoutes;
 let marketerRoutes;
 let pushRoutes;
 let privateOffersRoutes;
+let offerLeadRoutes;
 let analyticsRoutes;
 let ejarReviewsRoutes;
 let ejarContractsRoutes;
@@ -61,6 +62,7 @@ try {
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
   privateOffersRoutes = require('./server/routes/privateOffers');
+  offerLeadRoutes = require('./server/routes/offerLeads');
   analyticsRoutes = require('./server/routes/analytics');
   ejarReviewsRoutes = require('./server/routes/ejarReviews');
   ejarContractsRoutes = require('./server/routes/ejarContracts');
@@ -257,6 +259,7 @@ app.use('/api/admin/map-approvals', mapApprovalRoutes.adminRouter);
 app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/offer-board', offerBoardRoutes.publicRouter);
 app.use('/api/admin/offer-board', offerBoardRoutes);
+app.use('/api/admin/private-offer-leads', offerLeadRoutes.adminRouter);
 app.use('/api/admin', adminRoutes);
 app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
 
@@ -265,6 +268,8 @@ app.post('/m/a/:code', (req, res) => mapApprovalRoutes.shortApprove(req, res));
 app.get('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
 app.post('/m/r/:code', (req, res) => mapApprovalRoutes.shortReject(req, res));
 app.get('/m/o/:code', (req, res) => mapApprovalRoutes.shortOpen(req, res));
+app.get('/f/:code', (req, res) => offerLeadRoutes.choicePage(req, res));
+app.post('/f/:code', (req, res) => offerLeadRoutes.choicePage(req, res));
 app.get('/map-submit', (req, res) => mapDirectRoutes.page(req, res));
 app.get('/map-submit/:code', (req, res) => mapApprovalRoutes.submitPage(req, res));
 
@@ -423,6 +428,12 @@ app.listen(PORT, HOST, () => {
   };
   setTimeout(runExpire, 2500);
   setInterval(runExpire, 60 * 60 * 1000);
+  const offerLeads = require('./server/services/offerLeads');
+  const runLeadFollowups = () => {
+    offerLeads.processDueFollowups().catch(() => console.warn('[offer-leads] scheduler failed'));
+  };
+  setTimeout(runLeadFollowups, 20000);
+  setInterval(runLeadFollowups, 15 * 60 * 1000);
 });
 }
 
