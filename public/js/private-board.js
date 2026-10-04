@@ -7,7 +7,8 @@
     { key: 'building', label: 'عمارة' },
   ];
   const COLORS = { land: '#16A34A', villa: '#C5A46D', apartment: '#2563EB', building: '#7C3AED', all: '#1E2A38' };
-  const CENTER = [24.6475, 46.5115];
+  const CENTER = [24.648, 46.512];
+  const MAHDIA = [[24.628, 46.478], [24.672, 46.548]];
 
   let items = [];
   let type = 'all';
@@ -74,7 +75,10 @@
       </div>
       <p class="pb-count" id="pb-count"></p>
       <div class="pb-stage">
-        <div id="pb-map" class="pb-map"></div>
+        <div id="pb-map-shell" class="pb-map-shell">
+          <div id="pb-map" class="pb-map"></div>
+          <button type="button" class="pb-full" id="pb-full">ملء الشاشة</button>
+        </div>
         <div id="pb-list" class="pb-list" hidden></div>
       </div>
       <div id="pb-modal" class="pb-modal" hidden></div>`;
@@ -152,7 +156,7 @@
 
   function syncView() {
     document.querySelectorAll('[data-view]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.view === view));
-    document.getElementById('pb-map').hidden = view !== 'map';
+    document.getElementById('pb-map-shell').hidden = view !== 'map';
     document.getElementById('pb-list').hidden = view !== 'list';
     if (view === 'map' && map) setTimeout(() => map.invalidateSize(), 40);
   }
@@ -161,10 +165,22 @@
     if (!window.L) return;
     const host = document.getElementById('pb-map');
     if (!map) {
-      map = L.map(host, { zoomControl: true }).setView(CENTER, 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      map = L.map(host, { zoomControl: false, scrollWheelZoom: true }).setView(CENTER, 13);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri',
+      }).addTo(map);
       cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 48 });
       map.addLayer(cluster);
+      const shell = document.getElementById('pb-map-shell');
+      document.getElementById('pb-full')?.addEventListener('click', () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else shell.requestFullscreen().catch(() => {});
+      });
+      document.addEventListener('fullscreenchange', () => {
+        setTimeout(() => map.invalidateSize(), 60);
+      });
     }
     cluster.clearLayers();
     const rows = filtered().filter((item) => item.latitude != null && item.longitude != null);
@@ -178,7 +194,7 @@
           iconAnchor: [9, 9],
         }),
       });
-      marker.bindPopup(`<div class="pb-popup"><strong>${esc(item.title || item.propertyType || 'عرض')}</strong><p>${esc(item.district || '')}</p><p>${esc(money(item.price))}</p><button type="button" data-open="${esc(item.id)}">عرض التفاصيل</button><button type="button" class="pb-share" data-share="${esc(item.id)}">مشاركة الإعلان</button></div>`, { maxWidth: 260 });
+      marker.bindPopup(`<div class="pb-popup"><strong>${esc(item.title || item.propertyType || 'عرض')}</strong><p>${esc(item.district || '')}</p><p>${esc(money(item.price))}</p><button type="button" data-open="${esc(item.id)}">عرض التفاصيل</button><button type="button" class="pb-share" data-share="${esc(item.id)}">مشاركة الإعلان</button></div>`, { maxWidth: 260, autoPan: false });
       marker.on('popupopen', (event) => {
         const box = event.popup.getElement();
         box?.querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
@@ -186,11 +202,15 @@
       });
       cluster.addLayer(marker);
     });
-    if (rows.length) map.fitBounds(rows.map((item) => [item.latitude, item.longitude]), { padding: [28, 28], maxZoom: 15 });
+    const bounds = L.latLngBounds(MAHDIA);
+    rows.forEach((item) => bounds.extend([item.latitude, item.longitude]));
+    map.fitBounds(bounds, { padding: [36, 36], maxZoom: 15, animate: false });
     map.invalidateSize();
   }
 
   async function openDetail(id) {
+    if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    map?.closePopup();
     const res = await fetch(`/api/private-offers/board/${encodeURIComponent(id)}`, { headers: headersFn() });
     if (res.status === 401 || res.status === 403) return onAuthFail();
     const data = await res.json().catch(() => ({}));
