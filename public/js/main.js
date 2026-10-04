@@ -157,15 +157,15 @@
     if (!heroImg) return;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const desktop = '/assets/hero/banner-1920.jpg';
-    const mobile = '/assets/hero/banner-mobile.jpg';
-    const heroV = '3-' + (v || 1);
+    const desktop = '/assets/hero/cover-1920.jpg';
+    const mobile = '/assets/hero/cover-mobile.jpg';
+    const heroV = '4-' + (v || 1);
     heroImg.src = withCacheBust(isMobile ? mobile : desktop, heroV);
     heroImg.srcset = [
-      `/assets/hero/banner-640.jpg?v=${encodeURIComponent(heroV)} 640w`,
-      `/assets/hero/banner-960.jpg?v=${encodeURIComponent(heroV)} 960w`,
-      `/assets/hero/banner-1280.jpg?v=${encodeURIComponent(heroV)} 1280w`,
-      `/assets/hero/banner-1920.jpg?v=${encodeURIComponent(heroV)} 1920w`,
+      `/assets/hero/cover-640.jpg?v=${encodeURIComponent(heroV)} 640w`,
+      `/assets/hero/cover-960.jpg?v=${encodeURIComponent(heroV)} 960w`,
+      `/assets/hero/cover-1280.jpg?v=${encodeURIComponent(heroV)} 1280w`,
+      `/assets/hero/cover-1920.jpg?v=${encodeURIComponent(heroV)} 1920w`,
     ].join(', ');
     heroImg.sizes = '100vw';
     const source = heroImg.parentElement && heroImg.parentElement.querySelector('source');
@@ -244,7 +244,7 @@
   function applySeo(s) {
     const desc = s.siteDescription || s.hero?.description || '';
     const title = s.siteName || document.title;
-    const img = '/assets/hero/banner-1280.jpg';
+    const img = '/assets/hero/cover-1280.jpg';
 
     const md = document.getElementById('meta-description');
     if (md) md.setAttribute('content', desc);
