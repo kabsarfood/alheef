@@ -261,11 +261,10 @@
         return;
       }
       grid.innerHTML = items.map((t) => `
-        <article class="testimonial-card reveal">
-          ${t.image ? `<img class="testimonial-card__img" src="${t.image}" alt="" loading="lazy">` : ''}
-          <p class="testimonial-card__stars">${'★'.repeat(t.rating || 5)}</p>
-          <p class="testimonial-card__text">${t.comment}</p>
-          <p class="testimonial-card__name">${t.customerName}</p>
+        <article class="testimonial">
+          <div class="stars">${'★'.repeat(t.rating || 5)}</div>
+          <p>${t.comment}</p>
+          <strong>${t.customerName}</strong>
         </article>
       `).join('');
       grid.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
@@ -311,7 +310,7 @@
     const waUrl = `https://wa.me/${config.whatsapp}`;
     const waMsg = encodeURIComponent('مرحباً، أتواصل معكم من موقع الهيف للخدمات العقارية');
 
-    ['header-whatsapp', 'sticky-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link', 'footer-whatsapp-btn'].forEach((id) => {
+    ['header-whatsapp', 'menu-whatsapp', 'sticky-whatsapp', 'footer-whatsapp', 'footer-whatsapp-link', 'footer-whatsapp-btn'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.href = `${waUrl}?text=${waMsg}`;
     });
@@ -466,26 +465,22 @@
     const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location}`;
     const img = offer.image || '';
     return `
-      <article class="offer-card" style="transition-delay:${index * 0.08}s">
-        <div class="offer-card__image">
-          <img src="${escapeAttr(img)}" alt="${escapeAttr(offer.title)}" loading="lazy" decoding="async" width="640" height="400">
-          <span class="offer-card__badge">${escapeHtml(offer.type)}</span>
+      <article class="property">
+        <div class="property-img" style="${img ? `background-image:url('${escapeAttr(img)}')` : ''}">
+          <span class="badge">${escapeHtml(offer.type)}</span>
         </div>
-        <div class="offer-card__body">
-          <h3 class="offer-card__title">${escapeHtml(offer.title)}</h3>
-          <div class="offer-card__meta">
+        <div class="property-body">
+          <h3>${escapeHtml(offer.title)}</h3>
+          <div class="property-meta">
             ${offer.district || offer.location ? `<span>📍 ${escapeHtml(offer.district || offer.location)}</span>` : ''}
             ${offer.area ? `<span>📐 ${escapeHtml(formatArea(offer.area))}</span>` : ''}
             ${offer.street ? `<span>🛣 ${escapeHtml(offer.street)}</span>` : ''}
             ${offer.streetWidth ? `<span>عرض الشارع ${escapeHtml(offer.streetWidth)}</span>` : ''}
             ${offer.direction ? `<span>${escapeHtml(offer.direction)}</span>` : ''}
           </div>
-          <div class="offer-card__bottom">
-            <span class="offer-card__price">${escapeHtml(offer.price)} <span>ر.س</span></span>
-          <div class="offer-card__actions">
-            <button type="button" class="btn btn-outline btn-sm" data-offer-id="${escapeAttr(offer.id)}">التفاصيل</button>
-            <a href="${whatsappLink(msg)}" class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener">واتساب</a>
-          </div>
+          <div class="property-bottom">
+            <div class="price">${escapeHtml(offer.price)} ر.س</div>
+            <button type="button" class="btn" data-offer-id="${escapeAttr(offer.id)}">التفاصيل</button>
           </div>
         </div>
       </article>

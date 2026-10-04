@@ -32,6 +32,7 @@
   function init() {
     const openBtns = [
       document.getElementById('join-team-btn-hero'),
+      document.getElementById('join-team-btn-menu'),
     ].filter(Boolean);
     const modal = document.getElementById('join-team-modal');
     const form = document.getElementById('join-team-form');

@@ -95,7 +95,7 @@
       const button = event.target.closest('[data-map-type]');
       if (!button) return;
       current = button.dataset.mapType;
-      document.querySelectorAll('[data-map-type]').forEach((item) => item.classList.toggle('is-on', item === button));
+      document.querySelectorAll('[data-map-type]').forEach((item) => item.classList.toggle('active', item === button));
       draw();
     });
     window.addEventListener('resize', () => map.invalidateSize(), { passive: true });

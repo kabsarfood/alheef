@@ -39,7 +39,7 @@
         const href = a.getAttribute('href');
         if (!href || href === '#') return;
 
-        if (href.startsWith('#')) {
+        if (href.startsWith('#') || a.target === '_blank') {
           setMenuOpen(false);
           return;
         }
