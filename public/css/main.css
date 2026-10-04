@@ -1956,6 +1956,17 @@ body.modal-open {
   height: auto;
 }
 
+@media (min-width: 769px) {
+  .home-page .hero__bg {
+    width: min(1120px, calc(100% - 3rem));
+    margin: 0.35rem auto 0;
+    aspect-ratio: auto;
+    height: clamp(280px, 26vw, 400px);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(30, 42, 56, 0.14);
+  }
+}
+
 .home-page .hero__bg picture,
 .home-page .hero__bg img {
   position: absolute;
