@@ -230,9 +230,12 @@ async function regenerateClientAccess(id) {
 }
 
 async function setClientActive(id, active) {
+  const existing = await getClientById(id);
+  const patch = { active: !!active, updated_at: new Date().toISOString() };
+  if (!active && existing) patch.access_epoch = await nextEpoch(existing);
   const { data, error } = await getAdmin()
     .from(CLIENTS_TABLE)
-    .update({ active: !!active, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq('id', id)
     .select()
     .single();

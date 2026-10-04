@@ -8,7 +8,7 @@ const {
 } = require('../lib/sessionStore');
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const PRIVATE_VIEWER_TTL_MS = 12 * 60 * 60 * 1000;
+const PRIVATE_VIEWER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getSecret() {
   const secret = getAuthSecret();

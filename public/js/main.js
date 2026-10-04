@@ -358,11 +358,6 @@
     window.AlheefNav?.close?.();
   }
 
-  const PRIVATE_ENTRY_LABEL = 'طلب دخول العروض الخاصة';
-  const PRIVATE_ENTRY_HREF = 'https://wa.me/966530792754?text=' + encodeURIComponent(
-    'السلام عليكم، أرغب في طلب الدخول إلى العروض العقارية الخاصة لدى مؤسسة الهيف للخدمات العقارية.\n\nالاسم:\nنوع العقار المطلوب: أرض / فيلا / شقة / عمارة\nالحي المطلوب:\nالمساحة:\nالميزانية:\nطريقة الشراء: كاش / تمويل'
-  );
-
   function isVisitorMapHref(href) {
     try {
       const url = new URL(href, location.origin);
@@ -373,42 +368,17 @@
     }
   }
 
-  function paintPrivateEntryLink(link) {
-    link.href = PRIVATE_ENTRY_HREF;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.title = PRIVATE_ENTRY_LABEL;
-    link.classList.add('nav__link', 'nav__link--private-entry');
-    link.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>طلب دخول العروض الخاصة</span>';
-  }
-
-  /** يستبدل روابط الخريطة القديمة في الصفحات المحفوظة بزر طلب الدخول */
+  /** يخفي روابط الخريطة العامة وطلب الدخول؛ العروض الخاصة بالدعوة فقط */
   function ensureMapNavLink() {
-    const nav = document.getElementById('nav');
-    if (!nav) return;
-    let link = document.getElementById('nav-private-entry') || document.getElementById('nav-map');
-    if (!link) {
-      link = Array.from(nav.querySelectorAll('a')).find((item) => isVisitorMapHref(item.getAttribute('href')));
-    }
-    if (!link) {
-      link = document.createElement('a');
-      const home = nav.querySelector('a[href="#hero"], a[href="/"], a[href="/#hero"]');
-      if (home?.nextSibling) home.after(link);
-      else nav.prepend(link);
-    }
-    link.id = 'nav-private-entry';
-    paintPrivateEntryLink(link);
-
-    document.querySelectorAll('a[href="/map.html"], a[href="/map"], a[href="/private-offers"], a[href="/board.html"]').forEach((item) => {
-      if (item.closest('.footer__links')) {
-        item.href = PRIVATE_ENTRY_HREF;
-        item.target = '_blank';
-        item.rel = 'noopener';
-        const label = item.querySelector('.footer__link-label');
-        if (label) label.textContent = PRIVATE_ENTRY_LABEL;
-        return;
-      }
-      if (item !== link) paintPrivateEntryLink(item);
+    document.querySelectorAll('#nav-private-entry, #nav-map, #footer-private-entry, .nav__link--private-entry, .footer__link-item--private-entry').forEach((el) => {
+      const item = el.closest('li') || el;
+      item.remove();
+    });
+    document.querySelectorAll('a[href]').forEach((item) => {
+      if (!isVisitorMapHref(item.getAttribute('href'))) return;
+      const parent = item.closest('li');
+      if (parent && parent.querySelectorAll('a').length === 1) parent.remove();
+      else item.remove();
     });
   }
 

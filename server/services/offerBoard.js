@@ -50,6 +50,8 @@ function card(row) {
     direction: row.direction || '',
     streetWidth: row.street_width || '',
     lengths: row.lengths || '',
+    street: row.street || '',
+    mapsUrl: String(row.maps_url || '').trim(),
     coverImage: coverOf(row),
     latitude: isValidCoord(row.latitude, row.longitude) ? Number(row.latitude) : null,
     longitude: isValidCoord(row.latitude, row.longitude) ? Number(row.longitude) : null,
@@ -82,6 +84,8 @@ function clientCard(row) {
     direction: item.direction,
     streetWidth: item.streetWidth,
     lengths: item.lengths,
+    street: item.street,
+    mapsUrl: item.mapsUrl,
     coverImage: item.coverImage,
     latitude: item.latitude,
     longitude: item.longitude,
@@ -168,6 +172,14 @@ async function listBoard(query = {}, options = {}) {
     page,
     limit,
   };
+}
+
+async function listClientCatalog() {
+  const rows = await loadRows(VISIBLE);
+  return rows
+    .filter((row) => row.show_on_private_offers !== false)
+    .slice(0, 200)
+    .map((row) => clientCard(row));
 }
 
 async function getBoardItem(id, { admin = false } = {}) {
@@ -329,6 +341,7 @@ module.exports = {
   clientCard,
   detail,
   listBoard,
+  listClientCatalog,
   getBoardItem,
   findConfirmedDuplicate,
   markVisible,

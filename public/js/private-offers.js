@@ -129,6 +129,7 @@
   let pdfBusy = false;
   let otpChallengeId = '';
   let gateReadyToSend = false;
+  let clientName = '';
 
   if (!slug) {
     document.body.innerHTML = '<p style="text-align:center;padding:3rem;font-family:Cairo,sans-serif">الرابط غير صالح</p>';
@@ -136,11 +137,17 @@
   }
 
   function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
   }
 
   function setToken(token) {
-    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+
+  function clearToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
   }
 
   function authHeaders() {
@@ -162,7 +169,7 @@
     offersView.hidden = false;
     offersView.classList.remove('is-hidden');
     offersView.setAttribute('aria-hidden', 'false');
-    document.title = 'عروض خاصة لك';
+    document.title = 'عروض الهيف العقارية الخاصة';
     initPrivatePushPrompt();
   }
 
@@ -275,6 +282,7 @@
       showBlocked(data.message || 'هذا الدخول مرتبط بجهاز آخر.');
       return;
     }
+    clientName = data.clientName || '';
     showActivation(data.state, data.phoneMasked);
   }
 
@@ -285,7 +293,10 @@
     if (!token) return false;
     const res = await fetch('/api/private-offers/session', { headers: authHeaders() });
     const data = await res.json().catch(() => ({}));
-    if (data.authenticated && data.token) setToken(data.token);
+    if (data.authenticated && data.token) {
+      setToken(data.token);
+      clientName = data.clientName || clientName;
+    }
     return !!data.authenticated;
   }
 
@@ -317,6 +328,7 @@
       throw err;
     }
     setToken(data.token);
+    clientName = data.clientName || clientName;
   }
 
   async function resendOtp() {
@@ -562,6 +574,7 @@
   }
 
   function bindToolbarEvents() {
+    if (!typeTabsEl || document.getElementById('po-board')) return;
     typeTabsEl.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-type]');
       if (!btn) return;
@@ -646,10 +659,22 @@
   });
 
   async function loadOffers() {
+    if (window.AlheefPrivateBoard && document.getElementById('po-board')) {
+      await window.AlheefPrivateBoard.open({
+        headers: authHeaders,
+        clientName,
+        onAuthFail: async () => {
+          clearToken();
+          showGate();
+          await loadGate();
+        },
+      });
+      return;
+    }
     offersContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     const res = await fetch('/api/private-offers', { headers: authHeaders() });
     if (res.status === 401 || res.status === 403) {
-      sessionStorage.removeItem(TOKEN_KEY);
+      clearToken();
       await loadGate();
       return;
     }

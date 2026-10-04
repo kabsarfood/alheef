@@ -36,6 +36,8 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   const marketerId = filters.marketerId || null;
   const query = { ...filters };
   delete query.marketerId;
+  const publicCatalog = query.publicCatalog === true;
+  delete query.publicCatalog;
   if (workflowFilter) query.status = dbStatusForWorkflowFilter(workflowFilter);
 
   const inMemoryFilter = !!(workflowFilter || marketerId);
@@ -59,6 +61,9 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
   if (query.featured != null) q = q.eq('featured', query.featured);
   if (query.minPrice) q = q.gte('price', query.minPrice);
   if (query.maxPrice) q = q.lte('price', query.maxPrice);
+  if (publicCatalog) {
+    q = q.or('homepage_published.eq.true,show_on_private_offers.eq.false');
+  }
 
   q = q.order('created_at', { ascending: false }).range(fetchOffset, fetchOffset + fetchLimit - 1);
 
@@ -86,7 +91,7 @@ async function list(filters = {}, { offset = 0, limit = 12 } = {}) {
 }
 
 async function listPublished(filters, pagination) {
-  return list({ ...filters, status: PUBLIC_STATUSES }, pagination);
+  return list({ ...filters, status: PUBLIC_STATUSES, publicCatalog: true }, pagination);
 }
 
 async function listByMarketer(marketerId, filters = {}, pagination = {}) {
@@ -97,7 +102,8 @@ async function listByMarketer(marketerId, filters = {}, pagination = {}) {
 async function listForMap(filters = {}) {
   if (!isEnabled()) return { rows: [], stats: { error: 'supabase_disabled' } };
 
-  let q = getAdmin().from(TABLE).select('*').in('status', PUBLIC_STATUSES);
+  let q = getAdmin().from(TABLE).select('*').in('status', PUBLIC_STATUSES)
+    .or('homepage_published.eq.true,show_on_private_offers.eq.false');
 
   if (filters.city) q = q.ilike('city', `%${filters.city}%`);
   if (filters.district) q = q.ilike('district', `%${filters.district}%`);
@@ -177,6 +183,7 @@ async function getBySlug(slug) {
     .in('status', PUBLIC_STATUSES)
     .maybeSingle();
   if (!data) return null;
+  if (data.show_on_private_offers !== false && data.homepage_published !== true) return null;
   if (data.license_expires_at && new Date(data.license_expires_at) < new Date()) return null;
   const images = await loadImages(data.id);
   await getAdmin().from(TABLE).update({ views_count: (data.views_count || 0) + 1 }).eq('id', data.id);

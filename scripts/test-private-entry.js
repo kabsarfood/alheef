@@ -21,17 +21,14 @@ async function main() {
   let clientId = '';
   try {
     const home = await fetch(`${base}/`).then((r) => r.text());
-    assert(home.includes('طلب دخول العروض الخاصة'), 'home has request button');
-    assert(home.includes('https://wa.me/966530792754?text='), 'home opens heef whatsapp');
+    assert(!home.includes('طلب دخول العروض الخاصة'), 'home has no self-serve request');
     assert(!home.includes('/map.html') && !home.includes('>الخريطة<'), 'home has no map link');
-    const decoded = decodeURIComponent(home.match(/wa\.me\/966530792754\?text=([^"']+)/)[1]);
-    assert(decoded.includes('الاسم:') && decoded.includes('كاش / تمويل') && !decoded.includes('/map'), 'message has the form and no map link');
 
     const gate = await fetch(`${base}/map.html`).then((r) => r.text());
-    assert(gate.includes('طلب دخول العروض الخاصة') && gate.includes('966530792754'), 'map url is the request gate');
+    assert(gate.includes('بدعوة من الهيف فقط') && !gate.includes('طلب دخول العروض الخاصة'), 'map url is invitation only');
     assert(!gate.includes('leaflet') && !gate.includes('ALHEEF_BOARD_MODE'), 'map url hides listings');
     const offersPath = await fetch(`${base}/private-offers`).then((r) => r.text());
-    assert(offersPath.includes('طلب دخول العروض الخاصة') && !offersPath.includes('leaflet'), 'private-offers path is the gate');
+    assert(offersPath.includes('بدعوة من الهيف فقط') && !offersPath.includes('leaflet'), 'private-offers path is the gate');
 
     const board = await fetch(`${base}/api/offer-board`);
     assert(board.status === 200, 'offer board api unchanged');

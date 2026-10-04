@@ -40,8 +40,9 @@ function renderShell() {
       <div class="ob-bar">
         <button type="button" data-view="map">الخريطة</button>
         <button type="button" data-view="list">القائمة</button>
-        ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button>' : ''}
+        ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
       </div>
+      ${ADMIN ? '<div id="ob-invites"></div>' : ''}
       <div class="ob-filters" id="ob-filters"></div>
       <div class="ob-layout" id="ob-layout">
         <div id="ob-map" class="ob-map"></div>
@@ -55,6 +56,7 @@ function renderShell() {
   document.getElementById('ob-filters').innerHTML = TYPES.map((item) =>
     `<button type="button" data-type="${item.key}">${item.label}</button>`).join('');
   syncButtons();
+  if (ADMIN) setupInvites();
 }
 
 function syncButtons() {
@@ -70,6 +72,10 @@ function syncButtons() {
 
 function bindShell() {
   getPageContent().addEventListener('click', (event) => {
+    if (event.target.closest('#ob-share')) {
+      openShareModal();
+      return;
+    }
     const viewBtn = event.target.closest('[data-view]');
     if (viewBtn) {
       view = viewBtn.dataset.view;
@@ -263,5 +269,173 @@ async function openDetail(id) {
       page = 1;
       await loadItems();
     });
+  });
+}
+
+const INVITE_LABELS = { unused: 'لم يستخدم', active: 'نشط', expired: 'منتهي', cancelled: 'ملغي' };
+
+function inviteLabel(client) {
+  return INVITE_LABELS[client.inviteStatus] || (client.active ? 'نشط' : 'ملغي');
+}
+
+function maskInvitePhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  let local = digits.startsWith('966') ? `0${digits.slice(3)}` : digits;
+  if (/^5\d{8}$/.test(local)) local = `0${local}`;
+  if (!/^05\d{8}$/.test(local)) return '05••• ••';
+  return `${local.slice(0, 2)}••• ••${local.slice(-2)}`;
+}
+
+function shareMessage(client) {
+  const name = client.clientLabel && client.clientLabel !== 'عميل' ? client.clientLabel : 'عميلنا';
+  return `مرحبًا ${name}،\n\nهذا رابط دخولك إلى العروض العقارية الخاصة لدى مؤسسة الهيف:\n\n${client.shareUrl}\n\nعند فتح الرابط يصل رمز التحقق إلى واتسابك. بعد إدخال الرمز يبقى دخولك على هذا الجهاز لمدة 30 يومًا.\n\nمؤسسة الهيف للخدمات العقارية`;
+}
+
+function whatsAppNumber(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  let number = digits.startsWith('00') ? digits.slice(2) : digits;
+  if (number.startsWith('0')) number = `966${number.slice(1)}`;
+  else if (/^5\d{8}$/.test(number)) number = `966${number}`;
+  return /^9665\d{8}$/.test(number) ? number : '';
+}
+
+async function setupInvites() {
+  const host = document.getElementById('ob-invites');
+  if (!host) return;
+  host.innerHTML = '<p class="ob-meta">جاري تحميل الدعوات…</p>';
+  try {
+    const clients = await DashboardAPI.getPrivateClients();
+    if (!clients.length) {
+      host.innerHTML = '<p class="ob-meta">لا توجد دعوات بعد.</p>';
+      return;
+    }
+    host.innerHTML = `<div class="ob-invites">${clients.map((client) => `
+      <article class="ob-invite">
+        <div>
+          <strong>${escapeHtml(client.clientLabel || 'عميل')}</strong>
+          <span dir="ltr">${escapeHtml(maskInvitePhone(client.phone))}</span>
+          <span class="ob-invite__status">${escapeHtml(inviteLabel(client))}</span>
+        </div>
+        <p>أُنشئت: ${escapeHtml(formatInviteDate(client.createdAt))} — الدخول: ${client.loginCount ? 'نعم' : 'لا'} — آخر دخول: ${escapeHtml(formatInviteDate(client.lastVisitAt))}</p>
+        <div class="ob-actions">
+          <button type="button" data-invite-copy="${escapeHtml(client.id)}">نسخ الرابط</button>
+          <button type="button" data-invite-wa="${escapeHtml(client.id)}">إعادة إرسال الرابط</button>
+          <button type="button" data-invite-stop="${escapeHtml(client.id)}">${client.active ? 'إلغاء الصلاحية' : 'تفعيل الدعوة'}</button>
+        </div>
+      </article>`).join('')}</div>`;
+    host._clients = clients;
+    host.querySelectorAll('[data-invite-copy]').forEach((btn) => btn.addEventListener('click', () => copyInvite(btn.dataset.inviteCopy)));
+    host.querySelectorAll('[data-invite-wa]').forEach((btn) => btn.addEventListener('click', () => sendInvite(btn.dataset.inviteWa)));
+    host.querySelectorAll('[data-invite-stop]').forEach((btn) => btn.addEventListener('click', () => stopInvite(btn.dataset.inviteStop)));
+  } catch {
+    host.innerHTML = '<p class="ob-meta">تعذر تحميل الدعوات.</p>';
+  }
+}
+
+function formatInviteDate(value) {
+  if (!value) return '—';
+  try { return new Date(value).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }); } catch { return '—'; }
+}
+
+function inviteById(id) {
+  return (document.getElementById('ob-invites')?._clients || []).find((client) => client.id === id);
+}
+
+async function copyInvite(id) {
+  const client = inviteById(id);
+  if (!client?.shareUrl) return;
+  await navigator.clipboard.writeText(client.shareUrl);
+}
+
+function sendInvite(id) {
+  const client = inviteById(id);
+  const number = whatsAppNumber(client?.phone);
+  if (!number || !client?.shareUrl) return;
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(shareMessage(client))}`, '_blank', 'noopener');
+}
+
+async function stopInvite(id) {
+  await DashboardAPI.request(`/private-offers/clients/${id}/active`, {
+    method: 'PUT',
+    headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ active: inviteById(id)?.active === false }),
+  });
+  await setupInvites();
+}
+
+function openShareModal() {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal active';
+  wrap.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog" aria-labelledby="ob-share-title">
+      <div class="modal__header">
+        <h3 class="modal__title" id="ob-share-title">مشاركة العروض الخاصة</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
+      <p>أدخل رقم جوال العميل. سيُنشأ رابط خاص مرتبط بهذا الرقم.</p>
+      <form id="ob-share-form">
+        <div class="form-group">
+          <label for="ob-share-name">اسم العميل، اختياري</label>
+          <input id="ob-share-name" name="clientLabel" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="ob-share-phone">رقم الجوال</label>
+          <input id="ob-share-phone" name="phone" dir="ltr" inputmode="tel" placeholder="05xxxxxxxx" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+          <button type="submit" class="btn btn-gold">إنشاء الرابط</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  wrap.querySelector('#ob-share-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const phone = String(new FormData(event.target).get('phone') || '').trim();
+    const clientLabel = String(new FormData(event.target).get('clientLabel') || '').trim();
+    if (!/^05\d{8}$/.test(phone)) return;
+    const submit = event.target.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const result = await DashboardAPI.createPrivateClient({ clientLabel, phone });
+      close();
+      showShareResult(result.client);
+      setupInvites();
+    } catch (err) {
+      submit.disabled = false;
+      submit.insertAdjacentHTML('afterend', `<p>${escapeHtml(err.message || 'تعذر إنشاء الرابط')}</p>`);
+    }
+  });
+}
+
+function showShareResult(client) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal active';
+  wrap.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__box" role="dialog">
+      <div class="modal__header">
+        <h3 class="modal__title">رابط العميل جاهز</h3>
+        <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
+      </div>
+      <p>الرابط مرتبط بالرقم ${escapeHtml(maskInvitePhone(client.phone))}. رمز التحقق يصل إلى هذا الرقم فقط.</p>
+      <input readonly dir="ltr" value="${escapeHtml(client.shareUrl || '')}" id="ob-share-url">
+      <div class="form-actions">
+        <button type="button" class="btn btn-gold" id="ob-copy-ready">نسخ الرابط</button>
+        <button type="button" class="btn btn-outline" id="ob-wa-ready">إرساله عبر واتساب</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', () => wrap.remove()));
+  wrap.querySelector('#ob-copy-ready').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(client.shareUrl || '');
+  });
+  wrap.querySelector('#ob-wa-ready').addEventListener('click', () => {
+    const number = whatsAppNumber(client.phone);
+    if (!number) return;
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(shareMessage(client))}`, '_blank', 'noopener');
   });
 }

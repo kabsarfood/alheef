@@ -194,6 +194,7 @@ function rowToProperty(row, images = []) {
     approvedBy: meta.approvedBy,
     approvedAt: meta.approvedAt,
     homepagePublished: meta.homepagePublished,
+    showOnPrivateOffers: row.show_on_private_offers !== false,
     inquiryCount: meta.inquiryCount,
   };
 }
@@ -674,7 +675,14 @@ function rowToPrivateClient(row) {
     lastDeviceAttemptKind: Array.isArray(row.device_attempts) && row.device_attempts.length
       ? String(row.device_attempts[row.device_attempts.length - 1].kind || '')
       : '',
+    inviteStatus: inviteStatusOf(row),
   };
+}
+
+function inviteStatusOf(row) {
+  if (row?.active === false) return 'cancelled';
+  const entered = (row?.login_count || 0) > 0 || row?.device_status === 'active';
+  return entered ? 'active' : 'unused';
 }
 
 function rowToTestimonial(row) {

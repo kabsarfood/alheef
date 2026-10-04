@@ -8,6 +8,7 @@ const appUsersRepo = require('../repositories/appUsersRepo');
 const privateOffersRepo = require('../repositories/privateOffersRepo');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const { toPublicPrivateOffer } = require('../services/mappers');
+const offerBoard = require('../services/offerBoard');
 const device = require('../services/privateDevice');
 
 const router = express.Router();
@@ -18,7 +19,7 @@ const GENERIC_DENY = 'تعذر التحقق — تأكد من الرقم أو ت
 function maskPhone(phone) {
   const local = normalizeAccountPhone(phone);
   if (!local) return '';
-  return `${local.slice(0, 2)}••• ••${local.slice(-3)}`;
+  return `${local.slice(0, 2)}••• ••${local.slice(-2)}`;
 }
 
 async function guardRow(clientId) {
@@ -26,7 +27,7 @@ async function guardRow(clientId) {
   const { getAdmin } = require('../lib/supabase');
   const { data } = await getAdmin()
     .from('private_client_access')
-    .select('id, phone, active, device_status, device_token_hash, access_epoch, page_slug')
+    .select('id, phone, active, device_status, device_token_hash, access_epoch, page_slug, client_label')
     .eq('id', clientId)
     .maybeSingle();
   return data || null;
@@ -224,7 +225,7 @@ router.post('/otp/verify', requireDb, async (req, res) => {
     await privateClientsRepo.recordClientLogin(loaded.client.id);
     const fresh = await guardRow(loaded.row.id);
     const token = createPrivateViewerToken(loaded.client.id, fresh?.access_epoch);
-    res.json({ success: true, token });
+    res.json({ success: true, token, clientName: loaded.client.clientLabel || '' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر التحقق من الرمز' });
   }
@@ -254,6 +255,7 @@ router.get('/gate', requireDb, async (req, res) => {
       success: true,
       state: state === 'same' ? 'same' : 'open',
       phoneMasked: maskPhone(loaded.row.phone),
+      clientName: loaded.client.clientLabel || '',
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر فتح الرابط' });
@@ -276,6 +278,7 @@ router.get('/session', requireDb, async (req, res) => {
   res.json({
     authenticated: true,
     token: createPrivateViewerToken(row.id, row.access_epoch),
+    clientName: row.client_label || '',
   });
 });
 
@@ -295,6 +298,25 @@ async function requireSameDevice(req, res, next) {
     return res.status(403).json({ success: false, message: device.OTHER_MESSAGE });
   }
 }
+
+router.get('/board', requireDb, requirePrivateViewer, requireSameDevice, async (_req, res) => {
+  try {
+    const items = await offerBoard.listClientCatalog();
+    res.json({ success: true, items });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر تحميل العروض' });
+  }
+});
+
+router.get('/board/:id', requireDb, requirePrivateViewer, requireSameDevice, async (req, res) => {
+  try {
+    const item = await offerBoard.getBoardItem(req.params.id, { admin: false });
+    if (!item) return res.status(404).json({ success: false, message: 'العرض غير متاح' });
+    res.json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر فتح العرض' });
+  }
+});
 
 router.get('/', requireDb, requirePrivateViewer, requireSameDevice, async (_req, res) => {
   try {

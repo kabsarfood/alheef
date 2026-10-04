@@ -36,6 +36,10 @@
   70% { box-shadow: 0 0 0 8px rgba(30, 42, 56, 0); }
   100% { box-shadow: 0 0 0 0 rgba(30, 42, 56, 0); }
 }
+.ob-invites { display: grid; gap: .6rem; margin-top: .4rem; }
+.ob-invite { background: #fff; border: 1px solid #e6ebf0; border-radius: 12px; padding: .75rem .85rem; }
+.ob-invite div { display: flex; flex-wrap: wrap; gap: .45rem .8rem; align-items: center; }
+.ob-invite__status { background: #f4f1ea; border-radius: 999px; padding: .15rem .55rem; font-size: .8rem; }
 .ob-modal { position: fixed; inset: 0; background: rgba(16, 24, 32, .45); z-index: 5000; display: grid; place-items: center; padding: 1rem; }
 .ob-sheet { position: relative; z-index: 1; width: min(640px, 100%); max-height: min(92vh, 920px); overflow: auto; background: #fff; border-radius: 16px; padding: 1rem; box-shadow: 0 18px 50px rgba(16, 24, 32, .28); }
 .ob-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .4rem; }

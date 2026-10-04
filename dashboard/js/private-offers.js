@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setTopbarActions(`
     <div class="po-topbar-actions">
       <button type="button" class="btn btn-outline btn-sm" id="btn-add-client">
-        <span class="po-btn-label po-btn-label--desktop">＋ عميل جديد</span>
-        <span class="po-btn-label po-btn-label--mobile">عميل جديد</span>
+        <span class="po-btn-label po-btn-label--desktop">مشاركة العروض الخاصة</span>
+        <span class="po-btn-label po-btn-label--mobile">مشاركة</span>
       </button>
       <button type="button" class="btn btn-gold btn-sm" id="btn-add">
         <span class="po-btn-label po-btn-label--desktop">＋ عرض خاص جديد</span>
@@ -99,8 +99,9 @@ async function loadClientsPanel() {
 
     el.innerHTML = `
       <div class="po-section-head">
-        <h3>عملاء العروض الخاصة</h3>
-        <p class="text-muted po-page-intro">الرابط مرتبط برقم العميل وجهاز واحد. التحقق عبر واتساب.</p>
+        <h3>مشاركة العروض الخاصة</h3>
+        <p class="text-muted po-page-intro">الدعوة ينشئها الأدمن وترتبط برقم العميل. الدخول: الرابط ثم رمز واتساب ثم جلسة الجهاز.</p>
+        <button type="button" class="btn btn-gold" id="add-client-btn">مشاركة العروض الخاصة</button>
       </div>
       ${!settingsInfo.active ? `
         <div class="access-warning">
@@ -119,6 +120,7 @@ async function loadClientsPanel() {
       <div id="clients-list"></div>
     `;
 
+    document.getElementById('add-client-btn')?.addEventListener('click', openAddClientModal);
     document.getElementById('global-active')?.addEventListener('change', async (e) => {
       await DashboardAPI.setPrivateGlobalActive(e.target.checked);
       settingsInfo.active = e.target.checked;
@@ -129,6 +131,10 @@ async function loadClientsPanel() {
   } catch {
     el.innerHTML = '<p class="empty-state">تعذر تحميل بيانات العملاء</p>';
   }
+}
+
+function inviteStatusLabel(client) {
+  return { unused: 'لم يستخدم', active: 'نشط', expired: 'منتهي', cancelled: 'ملغي' }[client.inviteStatus] || (client.active ? 'نشط' : 'ملغي');
 }
 
 function clientRequestLabel(v) {
@@ -175,8 +181,8 @@ function renderClientsList() {
               <span class="po-client-pill po-client-pill--${c.requestType === 'rent' ? 'rent' : 'buy'}">${escapeHtml(clientRequestLabel(c.requestType))}</span>
               <span class="po-client-pill">${escapeHtml(clientPropertyKindLabel(c.propertyKind))}</span>
               <span class="po-client-pill po-client-pill--area">${escapeHtml(formatClientArea(c.requiredArea))}</span>
-              <span class="po-client-card__badge ${c.active ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
-                ${c.active ? 'نشط' : 'موقوف'}
+              <span class="po-client-card__badge ${c.inviteStatus === 'active' ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
+                ${escapeHtml(inviteStatusLabel(c))}
               </span>
               <span class="po-client-accordion__chevron" aria-hidden="true">▾</span>
             </div>
@@ -216,8 +222,7 @@ function renderClientsList() {
                 </div>
               </div>
               <p class="po-client-card__meta">
-                <strong>${c.loginCount || 0}</strong> مرة دخول
-                ${c.lastVisitAt ? ` — آخر زيارة: ${formatVisitDate(c.lastVisitAt)}` : ''}
+                أُنشئت: ${formatVisitDate(c.createdAt)} — الحالة: ${escapeHtml(inviteStatusLabel(c))} — دخل: ${(c.loginCount || 0) > 0 ? 'نعم' : 'لا'} — آخر دخول: ${formatVisitDate(c.lastVisitAt)}
               </p>
               <p class="po-client-card__meta">
                 الجهاز: <strong>${escapeHtml(deviceStatusLabel(c.deviceStatus))}</strong>
@@ -227,13 +232,13 @@ function renderClientsList() {
                 ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
               </p>
               <div class="po-client-card__actions">
-                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ رابط الدخول</button>
-                <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إرسال رابط الدخول عبر واتساب</button>
+                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط</button>
+                <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إعادة إرسال الرابط</button>
                 <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
                 <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
                 <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}" ${c.deviceStatus === 'active' ? '' : 'disabled title="لا يوجد جهاز مفعّل لإلغائه"'}>إلغاء الجهاز الحالي</button>
                 <button type="button" class="btn btn-outline btn-sm" data-sessions="${c.id}">إنهاء جميع الجلسات</button>
-                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إيقاف الرابط' : 'تفعيل الرابط'}</button>
+                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إلغاء الصلاحية' : 'تفعيل الدعوة'}</button>
               </div>
             </form>
           </div>
@@ -316,7 +321,7 @@ function maskClientPhone(phone) {
   if (local.startsWith('966')) local = `0${local.slice(3)}`;
   if (/^5\d{8}$/.test(local)) local = `0${local}`;
   if (!/^05\d{8}$/.test(local)) return '05••• ••';
-  return `${local.slice(0, 2)}••• ••${local.slice(-3)}`;
+  return `${local.slice(0, 2)}••• ••${local.slice(-2)}`;
 }
 
 function clientWhatsAppNumber(phone) {
@@ -405,36 +410,20 @@ function openAddClientModal() {
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box modal__box--po" role="dialog" aria-labelledby="po-client-modal-title">
       <div class="modal__header">
-        <h3 class="modal__title" id="po-client-modal-title">عميل جديد</h3>
+        <h3 class="modal__title" id="po-client-modal-title">مشاركة العروض الخاصة</h3>
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <p class="po-modal-hint">
-        أدخل بيانات الطلب. سيتم إنشاء <strong>رابط دخول آمن</strong> مرتبط برقم العميل وجهاز واحد. التحقق عبر واتساب.
+        أدخل رقم جوال العميل. يُنشأ رابط خاص مرتبط بهذا الرقم، ورمز التحقق يصل إليه فقط.
       </p>
       <form id="client-form" class="po-modal-form">
         <div class="form-group">
-          <label for="client-label-input">اسم العميل *</label>
-          <input id="client-label-input" name="clientLabel" placeholder="مثال: أحمد" required autocomplete="off">
+          <label for="client-label-input">اسم العميل، اختياري</label>
+          <input id="client-label-input" name="clientLabel" placeholder="مثال: أحمد" autocomplete="off">
         </div>
         <div class="form-group">
           <label for="client-phone-input">رقم الجوال *</label>
           <input id="client-phone-input" name="phone" placeholder="05xxxxxxxx" required dir="ltr" autocomplete="tel">
-        </div>
-        <div class="form-group">
-          <label for="client-request-type">نوع الطلب *</label>
-          <select id="client-request-type" name="requestType" required>
-            ${optionHtml(CLIENT_REQUEST_TYPES, 'buy')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="client-property-kind">نوع العقار المطلوب *</label>
-          <select id="client-property-kind" name="propertyKind" required>
-            ${optionHtml(CLIENT_PROPERTY_KINDS, 'land')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="client-required-area">المساحة المطلوبة (م²) *</label>
-          <input id="client-required-area" name="requiredArea" type="number" min="1" step="0.01" placeholder="مثال: 500" required>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-outline" data-close>إلغاء</button>
