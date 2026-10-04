@@ -15,13 +15,38 @@ body.home-page {
 body.home-page .header {
   position: sticky;
   top: 0;
+  height: auto;
+  z-index: 1000;
   background: rgba(255, 255, 255, .95);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
   box-shadow: none;
 }
-body.home-page .header__inner { min-height: 72px; }
-body.home-page .logo__img { width: 148px; height: auto; }
+body.home-page .container { width: min(1180px, calc(100% - 32px)); }
+body.home-page .header__inner {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+body.home-page .nav { display: flex; align-items: center; gap: 4px; }
+body.home-page .nav__portal-label,
+body.home-page .nav__link--portal { display: none; }
+body.home-page .logo__img { width: 132px; height: auto; }
+body.home-page .header__actions { display: flex; align-items: center; gap: 8px; }
+body.home-page .header__login-toggle,
+body.home-page #header-whatsapp {
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-weight: 800;
+}
+body.home-page #header-whatsapp {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
 body.home-page .nav__link {
   border-radius: 11px;
   font-size: 13px;
@@ -122,8 +147,32 @@ body.home-page .pf-stat {
 body.home-page .pf-stat strong { display: block; font-size: 22px; color: var(--green); }
 body.home-page .pf-stat span { font-size: 11px; color: var(--muted); }
 
-body.home-page .pf-shortcut-grid,
-body.home-page .services__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+body.home-page .section,
+body.home-page .offers,
+body.home-page .services,
+body.home-page .about,
+body.home-page .testimonials { padding: 28px 0; }
+body.home-page .section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+body.home-page .section-title { font-size: clamp(24px, 4vw, 36px); margin: 0; color: #17211e; }
+body.home-page .section-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+body.home-page .section-label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #8a692e;
+  font-size: 11px;
+  font-weight: 800;
+}
+body.home-page .pf-shortcut-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+body.home-page .services__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 body.home-page .pf-shortcut,
 body.home-page .service-card {
   background: #fff;
@@ -139,10 +188,12 @@ body.home-page .service-card__icon {
   width: 46px;
   height: 46px;
   border-radius: 15px;
-  background: var(--green-soft);
   display: grid;
   place-items: center;
+  font-size: 20px;
 }
+body.home-page .pf-shortcut__icon { background: var(--green-soft); }
+body.home-page .service-card__icon { background: var(--gold-soft); }
 body.home-page .pf-shortcut h3,
 body.home-page .service-card__title { margin: 13px 0 6px; font-size: 18px; }
 body.home-page .pf-shortcut p,
@@ -295,13 +346,22 @@ body.home-page .pf-forms-wrap { display: grid; grid-template-columns: 1fr 1fr; g
 body.home-page .pf-forms-wrap .forms-section { padding: 0; }
 body.home-page .pf-forms-wrap .container,
 body.home-page .pf-forms-wrap .forms-grid { width: 100%; display: block; }
+body.home-page .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+body.home-page .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+body.home-page .form-group label { font-size: 11px; font-weight: 800; color: #44514c; }
 body.home-page .form-group input,
 body.home-page .form-group select,
 body.home-page .form-group textarea {
   border: 1px solid var(--line);
   border-radius: 13px;
+  padding: 12px 13px;
   background: #fafbfa;
+  width: 100%;
 }
+body.home-page .about__grid > div { background: #fff; }
+body.home-page .about-card h3 { margin: 0 0 6px; color: var(--green); font-size: 20px; }
+body.home-page .footer__grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 28px; }
+body.home-page .footer__bottom { border-top: 1px solid rgba(255,255,255,.1); margin-top: 28px; padding-top: 18px; color: rgba(255,255,255,.45); font-size: 11px; }
 
 body.home-page .about__grid { display: grid; grid-template-columns: 1fr .8fr; gap: 16px; }
 body.home-page .about__cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -355,14 +415,17 @@ body.home-page .pf-mobile-nav { display: none; }
   body.home-page .pf-hero__media picture { min-height: 360px; }
   body.home-page .pf-hero__copy { padding: 42px; }
   body.home-page .nav { display: none; }
-  body.home-page .nav.open { display: flex; flex-direction: column; position: fixed; inset: 72px 16px auto; background: #fff; border-radius: 18px; padding: 12px; z-index: 200; box-shadow: var(--shadow); }
+  body.home-page .nav.open { display: flex; flex-direction: column; position: fixed; inset: 72px 16px auto; background: #fff; border-radius: 18px; padding: 12px; z-index: 1200; box-shadow: var(--shadow); }
+  body.home-page .nav.open .nav__link--portal,
+  body.home-page .nav.open .nav__portal-label { display: block; }
   body.home-page .menu-toggle { display: inline-flex; }
 }
 
 @media (max-width: 640px) {
   body.home-page { padding-bottom: 78px; }
   body.home-page .header__inner { min-height: 62px; }
-  body.home-page .header__actions .btn-whatsapp { display: none; }
+  body.home-page .header__actions .btn-whatsapp__label { display: none; }
+  body.home-page .form-row { grid-template-columns: 1fr; }
   body.home-page .pf-hero { border-radius: 24px; }
   body.home-page .pf-hero__copy { padding: 28px 22px; }
   body.home-page .hero__title { font-size: 40px; }
@@ -386,7 +449,7 @@ body.home-page .pf-mobile-nav { display: none; }
   body.home-page .pf-map__canvas { min-height: 320px; }
   body.home-page .pf-mobile-nav {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     position: fixed;
     left: 0;
     right: 0;
@@ -399,4 +462,6 @@ body.home-page .pf-mobile-nav { display: none; }
   body.home-page .pf-mobile-nav a { text-align: center; font-size: 9px; color: var(--muted); text-decoration: none; }
   body.home-page .pf-mobile-nav b { display: block; font-size: 16px; color: var(--green); margin-bottom: 2px; }
   body.home-page .footer { padding-bottom: 96px; }
+  body.home-page .footer__grid { grid-template-columns: 1fr 1fr; gap: 18px; }
+  body.home-page .container { width: min(100% - 22px, 1180px); }
 }
