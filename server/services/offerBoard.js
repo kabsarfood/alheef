@@ -143,19 +143,9 @@ async function loadRows(statuses) {
   return data || [];
 }
 
-async function gatherIntoPrivateOffers() {
-  const { error } = await getAdmin()
-    .from('properties')
-    .update({ show_on_private_offers: true, updated_at: new Date().toISOString() })
-    .in('status', VISIBLE)
-    .eq('show_on_private_offers', false);
-  if (error) throw new Error(error.message);
-}
-
 async function listBoard(query = {}, options = {}) {
   const admin = options.admin === true;
   const archive = admin && (query.archive === '1' || query.archive === 'true');
-  if (admin && !archive) await gatherIntoPrivateOffers();
   const rows = await loadRows(archive ? ARCHIVE : VISIBLE);
   const bounds = ['north', 'south', 'east', 'west'].every((key) => query[key] != null && query[key] !== '')
     ? {
@@ -350,7 +340,6 @@ module.exports = {
   card,
   clientCard,
   detail,
-  gatherIntoPrivateOffers,
   listBoard,
   listClientCatalog,
   getBoardItem,

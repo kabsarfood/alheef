@@ -23,6 +23,7 @@
   let pendingSwWorker = null;
   let isReloadingForUpdate = false;
   let hasPendingUpdate = false;
+  let remoteBuildDiffers = false;
   let buttonMode = 'download';
 
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -293,7 +294,7 @@
   }
 
   function syncPendingUpdateState() {
-    hasPendingUpdate = !!(pendingSwWorker || swRegistration?.waiting);
+    hasPendingUpdate = hasPendingUpdate && remoteBuildDiffers;
   }
 
   async function fetchRemoteBuild() {
@@ -360,10 +361,19 @@
     const stored = getStoredBuild();
     if (!stored) {
       storeBuild(remote);
+      remoteBuildDiffers = false;
       return;
     }
 
-    if (remote !== stored && navigator.serviceWorker?.controller) {
+    remoteBuildDiffers = remote !== stored;
+    if (!remoteBuildDiffers) {
+      hasPendingUpdate = false;
+      dismissUpdateBanner();
+      refreshAppButtonState().catch(() => {});
+      return;
+    }
+
+    if (navigator.serviceWorker?.controller) {
       markUpdateAvailable();
       try {
         await swRegistration?.update();
@@ -378,6 +388,7 @@
 
     const stored = getStoredBuild();
     if (stored === remote) {
+      remoteBuildDiffers = false;
       hasPendingUpdate = false;
       dismissUpdateBanner();
       refreshAppButtonState().catch(() => {});
@@ -405,7 +416,7 @@
     buttonMode = installed ? 'update' : 'download';
 
     const showDownload = !installed && canShowInstallOption();
-    const visible = installed || showDownload;
+    const visible = installed ? hasPendingUpdate : showDownload;
 
     document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
       btn.hidden = !visible;
@@ -478,8 +489,7 @@
       });
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (isReloadingForUpdate) return;
-        isReloadingForUpdate = true;
+        if (!isReloadingForUpdate) return;
         window.location.reload();
       });
 
@@ -489,10 +499,7 @@
         trackSwUpdate(worker);
       });
 
-      if (reg.waiting) {
-        pendingSwWorker = reg.waiting;
-        markUpdateAvailable();
-      }
+      if (reg.waiting) pendingSwWorker = reg.waiting;
 
       reg.update().catch(() => {});
       await checkBuildUpdate();
@@ -521,7 +528,7 @@
     worker.addEventListener('statechange', () => {
       if (worker.state === 'installed' && navigator.serviceWorker.controller) {
         pendingSwWorker = worker;
-        markUpdateAvailable();
+        checkBuildUpdate().catch(() => {});
       }
     });
   }
