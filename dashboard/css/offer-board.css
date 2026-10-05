@@ -28,6 +28,12 @@
 .ob-meta { color: #5c6b7a; font-size: .85rem; margin: .15rem 0; }
 .ob-note { color: #8a6a2f; font-size: .75rem; }
 .ob-card__actions, .ob-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.ob-choice { border: 0; border-radius: 999px; padding: .45rem .85rem; cursor: pointer; font: inherit; font-weight: 700; }
+.ob-choice--home { background: #123524; color: #f7f3ea; }
+.ob-choice--share { background: #1E2A38; color: #fff; }
+.ob-choice:disabled { opacity: .6; cursor: wait; }
+.ob-badge { display: inline-block; margin-bottom: .35rem; padding: .15rem .55rem; border-radius: 999px; background: #e7f5ee; color: #123524; font-size: .75rem; font-weight: 700; }
+.ob-sheet select { width: 100%; min-height: 44px; margin: .35rem 0 .7rem; font: inherit; }
 .ob-pin span {
   display: block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff;
   box-shadow: 0 0 0 0 rgba(30, 42, 56, .35); animation: ob-pulse 2.4s ease-out infinite;

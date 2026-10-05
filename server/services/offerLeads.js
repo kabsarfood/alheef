@@ -166,15 +166,22 @@ async function recentShare(clientId, propertyId) {
   return Boolean(data && data.length);
 }
 
-async function shareListing({ clientId, propertyId }) {
+async function shareListing({ clientId, propertyId, audience } = {}) {
+  const forAdmin = audience === 'admin';
+  const sent = forAdmin ? 'تم إرسال الإعلان إلى واتساب العميل' : 'تم إرسال تفاصيل الإعلان إلى واتسابك';
   const client = await clientRow(clientId);
   if (!client || client.active === false) {
     return { status: 403, body: { success: false, message: 'الدعوة غير فعّالة' } };
   }
-  const item = await offerBoard.getBoardItem(propertyId, { admin: false });
-  if (!item) return { status: 404, body: { success: false, message: 'العرض غير متاح' } };
+  const item = await offerBoard.getBoardItem(propertyId, { admin: forAdmin });
+  if (!item || (forAdmin && !['published', 'approved_published'].includes(item.status))) {
+    return { status: 404, body: { success: false, message: 'العرض غير متاح' } };
+  }
+  if (forAdmin && item.showOnPrivateOffers === false) {
+    await offerBoard.applyAction(propertyId, 'offers_on');
+  }
   if (await recentShare(clientId, propertyId)) {
-    return { status: 200, body: { success: true, duplicate: true, message: 'تم إرسال تفاصيل الإعلان إلى واتسابك' } };
+    return { status: 200, body: { success: true, duplicate: true, message: sent } };
   }
   const now = new Date();
   const leadRow = {
@@ -199,7 +206,7 @@ async function shareListing({ clientId, propertyId }) {
     await getAdmin().from('private_offer_leads').delete().eq('id', inserted.data.id);
     return { status: 502, body: { success: false, message: 'تعذر إرسال الإعلان إلى واتساب' } };
   }
-  return { status: 200, body: { success: true, message: 'تم إرسال تفاصيل الإعلان إلى واتسابك' } };
+  return { status: 200, body: { success: true, message: sent } };
 }
 
 async function saveCodes(leadId, pairs) {

@@ -52,6 +52,7 @@ function renderShell() {
         </div>
       </div>
       <p class="ob-meta" id="ob-count"></p>
+      <p class="ob-note" id="ob-note" hidden></p>
     </section>`;
   document.getElementById('ob-filters').innerHTML = TYPES.map((item) =>
     `<button type="button" data-type="${item.key}">${item.label}</button>`).join('');
@@ -69,11 +70,21 @@ function syncButtons() {
   const layout = document.getElementById('ob-layout');
   layout.className = `ob-layout ${view === 'map' ? 'ob-layout--map' : 'ob-layout--list'}`;
   document.getElementById('ob-map').hidden = view !== 'map';
-  document.getElementById('ob-list').parentElement.hidden = view === 'map';
+  document.getElementById('ob-list').parentElement.hidden = !ADMIN && view === 'map';
   if (view === 'map') setTimeout(() => map && map.invalidateSize(), 60);
 }
 
 function bindShell() {
+  document.addEventListener('click', (event) => {
+    if (!ADMIN) return;
+    const homeBtn = event.target.closest('[data-home]');
+    if (homeBtn) {
+      toggleHomepage(homeBtn.dataset.home, homeBtn.dataset.homeOn === '1');
+      return;
+    }
+    const shareBtn = event.target.closest('[data-share-client]');
+    if (shareBtn) openClientShare(shareBtn.dataset.shareClient);
+  });
   getPageContent().addEventListener('click', (event) => {
     if (event.target.closest('#ob-share')) {
       openShareModal();
@@ -125,7 +136,8 @@ async function loadWhatsapp() {
 }
 
 async function loadItems(append) {
-  const data = await boardRequest(`?view=${view}&type=${type}&archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=24${view === 'map' ? '&map=1' : ''}`);
+  const mapFilter = !ADMIN && view === 'map' ? '&map=1' : '';
+  const data = await boardRequest(`?view=${view}&type=${type}&archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=24${mapFilter}`);
   items = append ? items.concat(data.items || []) : (data.items || []);
   document.getElementById('ob-count').textContent = `${data.total || 0} إعلان`;
   document.getElementById('ob-more').hidden = items.length >= (data.total || 0);
@@ -156,15 +168,35 @@ function facts(item) {
     ${meter}${plan}${face}<p class="ob-note">${escapeHtml(item.priceNote || '')}</p>`;
 }
 
+function adminChoiceButtons(item) {
+  if (!ADMIN || archive) return '';
+  const homeLabel = item.showOnHomepage ? 'إزالة من الرئيسية' : 'إرسال إلى الرئيسية';
+  return `<button type="button" class="ob-choice ob-choice--home" data-home="${escapeHtml(item.id)}" data-home-on="${item.showOnHomepage ? '1' : '0'}">${homeLabel}</button>
+    <button type="button" class="ob-choice ob-choice--share" data-share-client="${escapeHtml(item.id)}">مشاركة مع عميل</button>`;
+}
+
+function homeBadge(item) {
+  return ADMIN && item.showOnHomepage ? '<span class="ob-badge">على الرئيسية</span>' : '';
+}
+
+function showNote(text) {
+  const note = document.getElementById('ob-note');
+  if (!note) return;
+  note.hidden = !text;
+  note.textContent = text || '';
+}
+
 function drawList() {
   document.getElementById('ob-list').innerHTML = items.map((item) => `
     <article class="ob-card">
       ${photo(item)}
       <div class="ob-card__body">
+        ${homeBadge(item)}
         ${facts(item)}
         <div class="ob-card__actions">
+          ${adminChoiceButtons(item)}
           <button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>
-          <a class="btn btn-gold btn-sm" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>
+          ${ADMIN ? '' : `<a class="btn btn-gold btn-sm" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}
         </div>
       </div>
     </article>`).join('') || '<p>لا توجد إعلانات في هذا العرض.</p>';
@@ -193,7 +225,7 @@ function drawMap() {
         iconAnchor: [8, 8],
       }),
     });
-    marker.bindPopup(`<div class="ob-popup">${photo(item)}${facts(item)}<div class="ob-actions"><button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button><a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a></div></div>`, { maxWidth: 280 });
+    marker.bindPopup(`<div class="ob-popup">${photo(item)}${homeBadge(item)}${facts(item)}<div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div></div>`, { maxWidth: 280 });
     marker.on('popupopen', (event) => {
       event.popup.getElement().querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
     });
@@ -218,6 +250,83 @@ function heefLink(item) {
   return `https://wa.me/${heefWhatsapp}?text=${encodeURIComponent(text)}`;
 }
 
+let homeBusy = false;
+
+async function toggleHomepage(id, on) {
+  if (homeBusy) return;
+  homeBusy = true;
+  try {
+    await DashboardAPI.request(`/offer-board/${id}/action`, {
+      method: 'POST',
+      headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ action: on ? 'homepage_off' : 'homepage_on' }),
+    });
+    showNote(on ? 'أُزيل الإعلان من الصفحة الرئيسية' : 'ظهر الإعلان في الصفحة الرئيسية');
+    document.querySelectorAll('#ob-modal [data-home]').forEach((btn) => {
+      if (btn.dataset.home !== id) return;
+      const nextOn = !on;
+      btn.dataset.homeOn = nextOn ? '1' : '0';
+      btn.textContent = nextOn ? 'إزالة من الرئيسية' : 'إرسال إلى الرئيسية';
+    });
+    page = 1;
+    await loadItems();
+  } catch (error) {
+    showNote(error.message || 'تعذر تحديث الصفحة الرئيسية');
+  } finally {
+    homeBusy = false;
+  }
+}
+
+async function openClientShare(propertyId) {
+  const item = items.find((row) => row.id === propertyId);
+  let clients = [];
+  try {
+    clients = document.getElementById('ob-invites')?._clients || await DashboardAPI.getPrivateClients();
+  } catch {
+    clients = [];
+  }
+  const active = clients.filter((client) => client.active !== false);
+  const old = document.getElementById('ob-share-modal');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'ob-share-modal';
+  modal.className = 'ob-modal';
+  const options = active.map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.clientLabel || 'عميل')} — ${escapeHtml(maskInvitePhone(client.phone))}</option>`).join('');
+  modal.innerHTML = `
+    <div class="ob-sheet" role="dialog" aria-modal="true">
+      <button type="button" id="ob-share-close">إغلاق</button>
+      <h2>مشاركة الإعلان مع عميل</h2>
+      <p class="ob-meta">${escapeHtml(item?.internalRef || item?.title || item?.district || 'الإعلان')}</p>
+      ${active.length ? `<label class="ob-meta" for="ob-client">العميل</label>
+        <select id="ob-client">${options}</select>
+        <p class="ob-note">يُرسل الإعلان من واتساب الهيف إلى رقم العميل المسجّل، دون إظهار رقم المعلن.</p>
+        <button type="button" class="ob-choice ob-choice--share" id="ob-send-client">إرسال إلى واتساب العميل</button>
+        <p class="ob-note" id="ob-share-result" hidden></p>` : '<p>لا يوجد عميل نشط. أضف العميل أولًا من «مشاركة العروض الخاصة».</p>'}
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#ob-share-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (event) => { if (event.target === modal) modal.remove(); });
+  modal.querySelector('#ob-send-client')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const result = modal.querySelector('#ob-share-result');
+    try {
+      const data = await DashboardAPI.request(`/offer-board/${propertyId}/share`, {
+        method: 'POST',
+        headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ clientId: modal.querySelector('#ob-client').value }),
+      });
+      result.hidden = false;
+      result.textContent = data.message || 'تم إرسال الإعلان إلى واتساب العميل';
+      setupLeads();
+    } catch (error) {
+      result.hidden = false;
+      result.textContent = error.message || 'تعذر الإرسال';
+      button.disabled = false;
+    }
+  });
+}
+
 async function openDetail(id) {
   if (map) map.closePopup();
   const data = await boardRequest(`/${id}`);
@@ -238,7 +347,7 @@ async function openDetail(id) {
       <p class="ob-meta">الأطوال: ${escapeHtml(item.lengths || '—')}</p>
       <p class="ob-meta">الرقم الداخلي: ${escapeHtml(item.internalRef || '—')}</p>
       <p class="ob-meta">آخر تحديث: ${escapeHtml(item.updatedAt ? new Date(item.updatedAt).toLocaleString('ar-SA') : '—')}</p>
-      <a class="btn btn-gold" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>
+      ${ADMIN ? `<div class="ob-card__actions">${adminChoiceButtons(item)}</div>` : `<a class="btn btn-gold" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}
       ${ADMIN ? `<div class="ob-admin">
         <p>رقم المعلن: ${escapeHtml(item.advertiserPhone || '—')}</p>
         ${item.advertiserPhone ? `<a href="tel:${escapeHtml(item.advertiserPhone)}">اتصال</a> <a href="https://wa.me/${escapeHtml(item.advertiserPhone.replace(/^0/, '966'))}" target="_blank" rel="noopener">واتساب المعلن</a>` : ''}

@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
 const board = require('../services/offerBoard');
+const offerLeads = require('../services/offerLeads');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -46,6 +47,22 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     console.error('[offer-board]', err.message);
     res.status(500).json({ ok: false, message: 'تعذر تحميل التفاصيل' });
+  }
+});
+
+router.post('/:id/share', async (req, res) => {
+  try {
+    const clientId = String(req.body?.clientId || '').trim();
+    if (!clientId) return res.status(400).json({ success: false, message: 'اختر العميل' });
+    const outcome = await offerLeads.shareListing({
+      clientId,
+      propertyId: req.params.id,
+      audience: 'admin',
+    });
+    res.status(outcome.status).json(outcome.body);
+  } catch (err) {
+    console.warn('[offer-board] admin share failed');
+    res.status(500).json({ success: false, message: 'تعذر إرسال الإعلان' });
   }
 });
 
