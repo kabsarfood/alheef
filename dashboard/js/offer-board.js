@@ -84,7 +84,7 @@ function renderShell() {
           <div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>
         </div>
         <div class="ob-search">
-          <input id="ob-search" class="ob-field ob-field--wide" type="search" placeholder="ابحث بالحي، رقم المخطط، رقم القطعة أو نوع العقار…">
+          <input id="ob-search" class="ob-field ob-field--wide" type="search" inputmode="text" placeholder="ابحث برقم الإعلان أو جزء منه…" autocomplete="off">
           <select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
           <select id="ob-price" class="ob-field">
             <option value="all">كل الأسعار</option>
@@ -331,12 +331,19 @@ function streetLabel(item) {
   return [item.streetWidth && `${item.streetWidth}`, item.direction].filter(Boolean).join(' ') || item.street || '—';
 }
 
+function adNumberKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
+    .replace(/[\s-]/g, '');
+}
+
 function visibleItems() {
-  const q = (document.getElementById('ob-search')?.value || '').trim().toLowerCase();
+  const q = adNumberKey(document.getElementById('ob-search')?.value);
   const rows = items.filter((item) => {
     if (type !== 'all' && item.typeKey !== type) return false;
-    const hay = [item.title, item.district, item.city, item.planNumber, item.plotNumber, item.propertyType, item.internalRef].join(' ').toLowerCase();
-    if (q && !hay.includes(q)) return false;
+    if (q && !adNumberKey(item.internalRef).includes(q)) return false;
     const price = Number(item.price) || 0;
     if (priceBand === 'under1500' && !(price > 0 && price < 1500000)) return false;
     if (priceBand === '1500to2000' && !(price >= 1500000 && price <= 2000000)) return false;
