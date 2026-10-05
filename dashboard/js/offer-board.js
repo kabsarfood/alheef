@@ -206,6 +206,7 @@ function bindShell() {
     const viewBtn = event.target.closest('[data-view]');
     if (viewBtn) {
       setPageView(viewBtn.dataset.view);
+      if (viewBtn.dataset.view === 'map') requestAnimationFrame(() => enterMapFullscreen());
       return;
     }
     const archiveBtn = event.target.closest('[data-archive]');
@@ -562,7 +563,7 @@ function ensureMap() {
   if (map || !document.getElementById('ob-map') || !window.L) return;
   map = L.map('ob-map', { zoomControl: false }).setView(MAHDIA, 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri',
     maxZoom: 19,
   }).addTo(map);

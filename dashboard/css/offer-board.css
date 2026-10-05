@@ -201,6 +201,7 @@
 html.ob-map-fs,
 html.ob-map-fs body { overflow: hidden !important; overscroll-behavior: none; }
 body.ob-map-fs .ob-map-panel,
+body.ob-map-fs .ob-studio.is-view-map .ob-map-panel,
 body.ob-map-fs .ob-studio.is-view-list .ob-map-panel {
   display: block;
   position: fixed;
