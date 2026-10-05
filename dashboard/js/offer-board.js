@@ -15,6 +15,7 @@ const OTHER_TYPE_STYLE = { label: 'عقار', color: '#5C675F', ink: '#FFFFFF' }
 const MAHDIA = [24.6475, 46.5115];
 const VIEW_KEY = 'alheef-offer-view';
 const ADMIN = window.ALHEEF_BOARD_MODE === 'admin';
+const PRIVATE = window.ALHEEF_BOARD_MODE === 'private';
 const DASHBOARD = window.ALHEEF_BOARD_SHELL === 'dashboard';
 
 let view = 'map';
@@ -34,6 +35,7 @@ let scrollLockY = 0;
 let viewHold = 0;
 let viewObserver = null;
 let heefWhatsapp = '966530792754';
+let booted = false;
 
 function applyTypeColors() {
   const root = document.documentElement;
@@ -53,7 +55,13 @@ function markerKind(item) {
   return PROPERTY_TYPE_STYLES[item.typeKey] ? item.typeKey : 'other';
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function boot() {
+  if (booted) {
+    page = 1;
+    await loadItems();
+    return;
+  }
+  booted = true;
   applyTypeColors();
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
@@ -67,12 +75,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadWhatsapp();
   await loadItems();
   if (params.get('id')) openDetail(params.get('id'));
-});
+}
+
+if (PRIVATE) window.AlheefOfferBoard = { start: boot };
+else document.addEventListener('DOMContentLoaded', boot);
 
 function renderShell() {
   const chips = TYPES.map((item) =>
     `<button type="button" class="ob-chip" data-type="${item.key}">${item.label}</button>`).join('');
   getPageContent().innerHTML = `
+    <div class="ob-fit">
     <section class="ob-studio">
       <section class="ob-hero">
         <div class="ob-hero__top">
@@ -146,7 +158,8 @@ function renderShell() {
       </section>
       <button type="button" class="ob-map-fab" id="ob-map-fab">فتح الخريطة</button>
       ${ADMIN ? '<div id="ob-invites"></div><section id="ob-leads" class="ob-leads"></section>' : ''}
-    </section>`;
+    </section>
+    </div>`;
   syncButtons();
   if (ADMIN) {
     setupInvites();
@@ -228,6 +241,8 @@ function bindShell() {
     }
     const focusBtn = event.target.closest('[data-focus]');
     if (focusBtn) focusProperty(focusBtn.dataset.focus);
+    const privateShare = event.target.closest('[data-private-share]');
+    if (privateShare) sharePrivateListing(privateShare);
   });
   document.getElementById('ob-more').addEventListener('click', () => {
     page += 1;
@@ -279,9 +294,18 @@ async function loadWhatsapp() {
 }
 
 async function loadItems(append) {
-  const data = await boardRequest(`?archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=60`);
+  let data;
+  try {
+    data = await boardRequest(`?archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=60`);
+  } catch (error) {
+    if (error && error.code === 'auth') return;
+    showNote(error.message || 'تعذر تحميل العروض');
+    return;
+  }
   items = append ? items.concat(data.items || []) : (data.items || []);
-  document.getElementById('ob-more').hidden = items.length >= (data.total || 0);
+  const total = Number.isFinite(Number(data.total)) ? Number(data.total) : items.length;
+  const more = document.getElementById('ob-more');
+  if (more) more.hidden = items.length >= total;
   drawList();
   drawMap();
 }
@@ -314,6 +338,11 @@ function adminChoiceButtons(item) {
   const homeLabel = item.showOnHomepage ? 'إزالة من الرئيسية' : 'إرسال إلى الرئيسية';
   return `<button type="button" class="ob-choice ob-choice--home" data-home="${escapeHtml(item.id)}" data-home-on="${item.showOnHomepage ? '1' : '0'}">${homeLabel}</button>
     <button type="button" class="ob-choice ob-choice--share" data-share-client="${escapeHtml(item.id)}">مشاركة مع عميل</button>`;
+}
+
+function clientShareButton(item) {
+  if (!PRIVATE) return '';
+  return `<button type="button" class="ob-choice ob-choice--share" data-private-share="${escapeHtml(item.id)}">مشاركة الإعلان</button>`;
 }
 
 function homeBadge(item) {
@@ -395,6 +424,7 @@ function drawList() {
           <button type="button" class="ob-details" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>
           <button type="button" data-focus="${escapeHtml(item.id)}">⌖ على الخريطة</button>
           ${adminChoiceButtons(item)}
+          ${clientShareButton(item)}
           ${ADMIN ? '' : `<a class="btn btn-gold btn-sm" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}
         </div>
       </div>
@@ -424,7 +454,7 @@ function popupHtml(item) {
     <span class="ob-badge-type" data-kind="${markerKind(item)}">${escapeHtml(item.propertyType || style.label)}</span>
     ${homeBadge(item)}
     ${lines}
-    <div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div>
+    <div class="ob-actions">${adminChoiceButtons(item)}${clientShareButton(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div>
   </div>`;
 }
 
@@ -560,6 +590,11 @@ function onPopupOpen(event) {
   if (root.dataset.obBound) return;
   root.dataset.obBound = '1';
   root.addEventListener('click', (clickEvent) => {
+    const share = clickEvent.target.closest('[data-private-share]');
+    if (share) {
+      sharePrivateListing(share);
+      return;
+    }
     const button = clickEvent.target.closest('[data-open]');
     if (!button) return;
     openDetail(button.dataset.open);
@@ -698,13 +733,50 @@ function focusProperty(id) {
   });
 }
 
+function privateAuthHeaders(extra) {
+  const token = typeof window.ALHEEF_PRIVATE_TOKEN === 'function' ? window.ALHEEF_PRIVATE_TOKEN() : '';
+  return { Accept: 'application/json', Authorization: `Bearer ${token}`, ...(extra || {}) };
+}
+
+async function sharePrivateListing(button) {
+  if (!PRIVATE || !button || button.dataset.busy === '1') return;
+  const id = button.dataset.privateShare;
+  button.dataset.busy = '1';
+  const original = button.textContent;
+  button.textContent = 'جارٍ الإرسال…';
+  try {
+    const res = await fetch(`/api/private-offers/board/${encodeURIComponent(id)}/share`, {
+      method: 'POST',
+      headers: privateAuthHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 || res.status === 403) {
+      if (typeof window.ALHEEF_PRIVATE_AUTH_FAIL === 'function') window.ALHEEF_PRIVATE_AUTH_FAIL();
+      return;
+    }
+    button.textContent = data.success ? 'تم الإرسال إلى واتسابك' : (data.message || 'تعذر الإرسال');
+  } catch {
+    button.textContent = 'تعذر الإرسال';
+  }
+  window.setTimeout(() => {
+    button.dataset.busy = '';
+    button.textContent = original;
+  }, 4000);
+}
+
 async function boardRequest(path, options) {
   if (ADMIN) return DashboardAPI.request(`/offer-board${path}`, options);
-  const res = await fetch(`/api/offer-board${path}`, {
+  const res = await fetch(`${PRIVATE ? '/api/private-offers/board' : '/api/offer-board'}${path}`, {
     ...options,
-    headers: { Accept: 'application/json', ...(options && options.headers) },
+    headers: PRIVATE ? privateAuthHeaders(options && options.headers) : { Accept: 'application/json', ...(options && options.headers) },
   });
   const data = await res.json().catch(() => ({}));
+  if (PRIVATE && (res.status === 401 || res.status === 403)) {
+    if (typeof window.ALHEEF_PRIVATE_AUTH_FAIL === 'function') window.ALHEEF_PRIVATE_AUTH_FAIL();
+    const error = new Error(data.message || 'انتهت الجلسة');
+    error.code = 'auth';
+    throw error;
+  }
   if (!res.ok) throw new Error(data.message || 'تعذر التحميل');
   return data;
 }

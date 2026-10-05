@@ -688,16 +688,14 @@
   });
 
   async function loadOffers() {
-    if (window.AlheefPrivateBoard && document.getElementById('po-board')) {
-      await window.AlheefPrivateBoard.open({
-        headers: authHeaders,
-        clientName,
-        onAuthFail: async () => {
-          clearToken();
-          showGate();
-          await loadGate();
-        },
-      });
+    if (window.AlheefOfferBoard && document.getElementById('po-board')) {
+      window.ALHEEF_PRIVATE_TOKEN = getToken;
+      window.ALHEEF_PRIVATE_AUTH_FAIL = async () => {
+        clearToken();
+        showGate();
+        await loadGate();
+      };
+      await window.AlheefOfferBoard.start();
       return;
     }
     offersContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
