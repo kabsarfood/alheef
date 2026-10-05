@@ -5,10 +5,17 @@ const TYPES = [
   { key: 'apartment', label: 'شقة' },
   { key: 'building', label: 'عمارة' },
 ];
-const COLORS = { land: '#16A34A', villa: '#C5A46D', apartment: '#2563EB', building: '#7C3AED', all: '#1E2A38' };
+const PROPERTY_TYPE_STYLES = {
+  land: { label: 'أرض', color: '#C79A52', ink: '#1C1915' },
+  villa: { label: 'فيلا', color: '#1F5A48', ink: '#FFFFFF' },
+  apartment: { label: 'شقة', color: '#4678A8', ink: '#FFFFFF' },
+  building: { label: 'عمارة', color: '#76506F', ink: '#FFFFFF' },
+};
+const OTHER_TYPE_STYLE = { label: 'عقار', color: '#5C675F', ink: '#FFFFFF' };
 const MAHDIA = [24.6475, 46.5115];
 const VIEW_KEY = 'alheef-offer-view';
 const ADMIN = window.ALHEEF_BOARD_MODE === 'admin';
+const DASHBOARD = window.ALHEEF_BOARD_SHELL === 'dashboard';
 
 let view = 'map';
 let type = 'all';
@@ -21,15 +28,39 @@ let sortKey = 'latest';
 let map;
 let cluster;
 let markers = new Map();
+let activeId = null;
+let scrollLocked = false;
+let scrollLockY = 0;
+let viewHold = 0;
+let viewObserver = null;
 let heefWhatsapp = '966530792754';
 
+function applyTypeColors() {
+  const root = document.documentElement;
+  Object.entries(PROPERTY_TYPE_STYLES).forEach(([key, style]) => {
+    root.style.setProperty(`--${key}-color`, style.color);
+    root.style.setProperty(`--${key}-ink`, style.ink);
+  });
+  root.style.setProperty('--other-color', OTHER_TYPE_STYLE.color);
+  root.style.setProperty('--other-ink', OTHER_TYPE_STYLE.ink);
+}
+
+function typeStyle(key) {
+  return PROPERTY_TYPE_STYLES[key] || OTHER_TYPE_STYLE;
+}
+
+function markerKind(item) {
+  return PROPERTY_TYPE_STYLES[item.typeKey] ? item.typeKey : 'other';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  applyTypeColors();
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
   view = params.get('view') === 'list' || params.get('view') === 'map' ? params.get('view') : (saved || 'map');
-  if (ADMIN) {
+  if (ADMIN || DASHBOARD) {
     await initLayout('private-offers', 'العروض الخاصة');
-    setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
+    if (ADMIN) setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
   }
   renderShell();
   bindShell();
@@ -40,15 +71,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderShell() {
   const chips = TYPES.map((item) =>
-    `<button type="button" class="ob-chip" data-type="${item.key}">${item.key === 'land' ? 'أراضي' : item.key === 'villa' ? 'فلل' : item.key === 'apartment' ? 'شقق' : item.key === 'building' ? 'عمائر' : 'الكل'}</button>`).join('');
+    `<button type="button" class="ob-chip" data-type="${item.key}">${item.label}</button>`).join('');
   getPageContent().innerHTML = `
     <section class="ob-studio">
       <section class="ob-hero">
         <div class="ob-hero__top">
           <div>
-            <div class="ob-eyebrow"><span></span> عروض الهيف الخاصة</div>
-            <h1>العقار المناسب… أوضح وأقرب.</h1>
-            <p>تصفح العروض المختارة، قارن التفاصيل، وشاهد موقع العقار مباشرة على الخريطة.</p>
+            <div class="ob-eyebrow"><span></span> للعميل</div>
+            <h1>العروض الخاصة</h1>
+            <p>تصفح العروض المعتمدة للعميل، وقارن التفاصيل، وشاهد موقع العقار على الخريطة.</p>
           </div>
           <div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>
         </div>
@@ -92,13 +123,21 @@ function renderShell() {
         <aside class="ob-map-panel" id="mapPanel">
           <div class="ob-map-head">
             <div class="ob-map-title"><strong>الخريطة العقارية</strong><span>عروض الهيف العقارية</span></div>
+            <button type="button" class="ob-map-expand" id="ob-map-expand">فتح الخريطة</button>
             <button type="button" class="ob-map-close" id="ob-map-close" aria-label="إغلاق الخريطة">✕</button>
           </div>
+          <button type="button" class="ob-map-exit" id="ob-map-exit" aria-label="الرجوع للحجم الطبيعي">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>تصغير</span>
+          </button>
           <div id="ob-map" class="ob-map"></div>
+          <div class="ob-map-legend" id="ob-map-legend">${legendMarkup()}</div>
           <div class="ob-map-foot"><span>النقاط تمثل العروض المتاحة</span><strong>اضغط على أي عرض لعرض التفاصيل</strong></div>
         </aside>
       </section>
-      <button type="button" class="ob-map-fab" id="ob-map-fab">⌖ عرض الخريطة</button>
+      <button type="button" class="ob-map-fab" id="ob-map-fab">فتح الخريطة</button>
       ${ADMIN ? '<div id="ob-invites"></div><section id="ob-leads" class="ob-leads"></section>' : ''}
     </section>`;
   syncButtons();
@@ -113,7 +152,6 @@ function syncButtons() {
   document.querySelectorAll('[data-type]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.type === type));
   const typeSelect = document.getElementById('ob-type');
   if (typeSelect) typeSelect.value = type;
-  if (view === 'map' && window.innerWidth <= 880) document.body.classList.add('ob-map-open');
   setTimeout(() => map && map.invalidateSize(), 60);
 }
 
@@ -192,12 +230,18 @@ function bindShell() {
     sortKey = event.target.value;
     drawList();
   });
-  document.getElementById('ob-map-fab')?.addEventListener('click', () => {
-    document.body.classList.add('ob-map-open');
-    setTimeout(() => map && map.invalidateSize(), 80);
+  document.getElementById('ob-map-fab')?.addEventListener('click', () => enterMapFullscreen());
+  document.getElementById('ob-map-expand')?.addEventListener('click', () => enterMapFullscreen());
+  document.getElementById('ob-map-close')?.addEventListener('click', () => exitMapFullscreen());
+  document.getElementById('ob-map-exit')?.addEventListener('click', () => exitMapFullscreen());
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !document.body.classList.contains('ob-map-fs')) return;
+    if (document.getElementById('ob-modal') || document.getElementById('ob-share-modal') || document.querySelector('.modal.active')) return;
+    if (document.querySelector('#mapPanel .leaflet-popup')) return;
+    exitMapFullscreen();
   });
-  document.getElementById('ob-map-close')?.addEventListener('click', () => {
-    document.body.classList.remove('ob-map-open');
+  window.addEventListener('resize', () => {
+    if (map && document.body.classList.contains('ob-map-fs')) map.invalidateSize();
   });
 }
 
@@ -226,7 +270,7 @@ function escapeHtml(value) {
 }
 
 function photo(item) {
-  const kind = COLORS[item.typeKey] ? item.typeKey : 'all';
+  const kind = markerKind(item);
   if (item.coverImage) return `<img src="${escapeHtml(item.coverImage)}" alt="" loading="lazy">`;
   return `<div class="ob-ph ob-ph--${kind}">${escapeHtml(item.propertyType || 'عقار')}</div>`;
 }
@@ -294,10 +338,10 @@ function drawList() {
   const list = document.getElementById('ob-list');
   if (!list) return;
   list.innerHTML = rows.map((item) => `
-    <article class="ob-card">
+    <article class="ob-card${item.id === activeId ? ' is-active' : ''}">
       <div class="ob-media">
         ${photo(item)}
-        <span class="ob-badge-type">${escapeHtml(item.propertyType || 'عقار')}</span>
+        <span class="ob-badge-type" data-kind="${markerKind(item)}">${escapeHtml(item.propertyType || typeStyle(item.typeKey).label)}</span>
         ${homeBadge(item)}
         <div class="ob-media__place">⌖ ${escapeHtml(item.district || item.city || 'الرياض')}</div>
       </div>
@@ -309,8 +353,11 @@ function drawList() {
         <div class="ob-price">${money(item.price)}${item.price ? '<small>للبيع</small>' : ''}</div>
         <div class="ob-specs">
           <div class="ob-spec"><span>المساحة</span><strong>${item.area ? `${escapeHtml(item.area)} م²` : '—'}</strong></div>
-          <div class="ob-spec"><span>الشارع</span><strong>${escapeHtml(streetLabel(item))}</strong></div>
+          <div class="ob-spec"><span>الحي</span><strong>${escapeHtml(item.district || item.city || '—')}</strong></div>
+          <div class="ob-spec"><span>الاتجاه</span><strong>${escapeHtml(item.direction || '—')}</strong></div>
+          <div class="ob-spec"><span>عرض الشارع</span><strong>${escapeHtml(item.streetWidth || item.street || '—')}</strong></div>
           <div class="ob-spec"><span>المخطط</span><strong>${escapeHtml(item.planNumber || '—')}</strong></div>
+          <div class="ob-spec"><span>القطعة</span><strong>${escapeHtml(item.plotNumber || '—')}</strong></div>
         </div>
         <div class="ob-card__actions">
           <button type="button" class="ob-details" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>
@@ -323,14 +370,168 @@ function drawList() {
   list.querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => openDetail(btn.dataset.open)));
 }
 
-function shortPrice(item) {
-  const amount = Number(item.price);
-  if (!amount) return 'عند الطلب';
-  if (amount >= 1000000) {
-    const millions = amount / 1000000;
-    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)} م`;
+function legendMarkup() {
+  return Object.entries(PROPERTY_TYPE_STYLES).map(([key, style]) =>
+    `<span class="ob-legend__item"><i class="ob-legend__swatch property-marker--${key}"></i>${style.label}</span>`).join('');
+}
+
+function popupHtml(item) {
+  const style = typeStyle(item.typeKey);
+  const image = item.coverImage ? `<img src="${escapeHtml(item.coverImage)}" alt="" loading="lazy">` : '';
+  const rows = [
+    ['النوع', item.propertyType || style.label],
+    ['الحي', item.district || item.city || '—'],
+    item.area ? ['المساحة', `${item.area} م²`] : null,
+    item.price != null && item.price !== '' ? ['السعر', money(item.price)] : null,
+    item.planNumber ? ['المخطط', item.planNumber] : null,
+    item.plotNumber ? ['القطعة', item.plotNumber] : null,
+  ].filter(Boolean);
+  const lines = rows.map(([label, value]) =>
+    `<p class="ob-popup__line"><span>${label}</span><strong>${escapeHtml(value)}</strong></p>`).join('');
+  return `<div class="ob-popup ob-popup--card">${image}
+    <span class="ob-badge-type" data-kind="${markerKind(item)}">${escapeHtml(item.propertyType || style.label)}</span>
+    ${homeBadge(item)}
+    ${lines}
+    <div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div>
+  </div>`;
+}
+
+function markerIcon(item) {
+  const active = item.id === activeId ? ' is-active' : '';
+  return L.divIcon({
+    className: 'ob-pin',
+    html: `<span class="property-marker property-marker--${markerKind(item)}${active}"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -8],
+  });
+}
+
+function markerSignature(item) {
+  return [item.latitude, item.longitude, item.typeKey, item.price, item.area, item.coverImage, item.planNumber, item.plotNumber, item.district, item.city, item.propertyType, item.showOnHomepage].join('|');
+}
+
+function lockScroll() {
+  if (scrollLocked) return;
+  scrollLocked = true;
+  scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${scrollLockY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+
+function unlockScroll() {
+  if (!scrollLocked) return;
+  const y = scrollLockY;
+  scrollLocked = false;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, y);
+}
+
+function stopViewObserver() {
+  if (!viewObserver) return;
+  viewObserver.disconnect();
+  viewObserver = null;
+}
+
+function holdMapView(view) {
+  if (!map || !view) return;
+  stopViewObserver();
+  const token = ++viewHold;
+  const apply = () => {
+    if (token !== viewHold || !map) return;
+    map.invalidateSize({ pan: false });
+    map.setView(view.center, view.zoom, { animate: false });
+  };
+  const node = document.getElementById('ob-map');
+  if (node && window.ResizeObserver) {
+    viewObserver = new ResizeObserver(() => apply());
+    viewObserver.observe(node);
   }
-  return `${Math.round(amount / 1000)} ألف`;
+  apply();
+  setTimeout(() => {
+    if (token !== viewHold) return;
+    apply();
+    stopViewObserver();
+  }, 320);
+}
+
+function openMapShell() {
+  ensureMap();
+  if (!map || !document.getElementById('mapPanel')) return false;
+  if (!document.body.classList.contains('ob-map-fs')) {
+    document.documentElement.classList.add('ob-map-fs');
+    document.body.classList.add('ob-map-fs');
+    lockScroll();
+  }
+  return true;
+}
+
+function enterMapFullscreen() {
+  ensureMap();
+  if (!map) return;
+  const view = { center: map.getCenter(), zoom: map.getZoom() };
+  if (!openMapShell()) return;
+  holdMapView(view);
+}
+
+function exitMapFullscreen() {
+  if (!document.body.classList.contains('ob-map-fs')) return;
+  const view = map ? { center: map.getCenter(), zoom: map.getZoom() } : null;
+  document.documentElement.classList.remove('ob-map-fs');
+  document.body.classList.remove('ob-map-fs');
+  unlockScroll();
+  holdMapView(view);
+}
+
+function paintActiveCard(id) {
+  document.querySelectorAll('.ob-card.is-active').forEach((card) => card.classList.remove('is-active'));
+  if (!id || !window.CSS || !CSS.escape) return;
+  document.querySelector(`[data-focus="${CSS.escape(id)}"]`)?.closest('.ob-card')?.classList.add('is-active');
+}
+
+function refreshActiveIcons() {
+  markers.forEach((marker, markerId) => {
+    const want = markerId === activeId;
+    const dot = marker.getElement()?.querySelector('.property-marker');
+    if (dot) dot.classList.toggle('is-active', want);
+    else if (marker._obActive !== want) {
+      const item = items.find((row) => row.id === markerId);
+      if (item && !(marker.isPopupOpen && marker.isPopupOpen())) marker.setIcon(markerIcon(item));
+    }
+    marker._obActive = want;
+    if (marker.setZIndexOffset) marker.setZIndexOffset(want ? 1400 : 0);
+  });
+  paintActiveCard(activeId);
+}
+
+function onMapClick(event) {
+  const target = event.originalEvent && event.originalEvent.target;
+  if (target && target.closest && target.closest('.leaflet-control, .leaflet-popup, a, button')) return;
+  if (!document.body.classList.contains('ob-map-fs')) enterMapFullscreen();
+}
+
+function onPopupOpen(event) {
+  const root = event.popup.getElement();
+  if (!root) return;
+  const id = root.querySelector('[data-open]')?.dataset.open || '';
+  if (id) {
+    activeId = id;
+    refreshActiveIcons();
+  }
+  if (root.dataset.obBound) return;
+  root.dataset.obBound = '1';
+  root.addEventListener('click', (clickEvent) => {
+    const button = clickEvent.target.closest('[data-open]');
+    if (!button) return;
+    openDetail(button.dataset.open);
+  });
 }
 
 function ensureMap() {
@@ -338,34 +539,108 @@ function ensureMap() {
   map = L.map('ob-map', { zoomControl: false }).setView(MAHDIA, 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-  cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 42 });
+  cluster = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 28,
+    disableClusteringAtZoom: 15,
+    iconCreateFunction(group) {
+      const children = group.getAllChildMarkers();
+      const kinds = new Set(children.map((marker) => marker._obKind).filter(Boolean));
+      const kind = kinds.size === 1 ? [...kinds][0] : 'mixed';
+      return L.divIcon({
+        className: 'ob-cluster',
+        html: `<span class="ob-cluster__dot ob-cluster__dot--${kind}">${children.length}</span>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+      });
+    },
+  });
   map.addLayer(cluster);
+  map.on('click', onMapClick);
+  map.on('popupopen', onPopupOpen);
+  setTimeout(() => map && map.invalidateSize(), 0);
+}
+
+function createMarker(item) {
+  const marker = L.marker([item.latitude, item.longitude], { icon: markerIcon(item) });
+  marker._obKind = markerKind(item);
+  marker._obActive = item.id === activeId;
+  marker._obSig = markerSignature(item);
+  marker.bindPopup(popupHtml(item), {
+    className: 'ob-leaflet-popup',
+    maxWidth: 280,
+    minWidth: 210,
+    autoPan: true,
+    autoPanPaddingTopLeft: [58, 72],
+    autoPanPaddingBottomRight: [20, 78],
+  });
+  markers.set(item.id, marker);
+  return marker;
 }
 
 function drawMap() {
   ensureMap();
   if (!map || !cluster) return;
-  cluster.clearLayers();
-  markers = new Map();
-  visibleItems().forEach((item) => {
-    if (item.latitude == null || item.longitude == null) return;
-    const color = COLORS[item.typeKey] || COLORS.all;
-    const marker = L.marker([item.latitude, item.longitude], {
-      icon: L.divIcon({
-        className: 'ob-pin',
-        html: `<span class="ob-price-pin" style="background:${color}">${escapeHtml(shortPrice(item))}</span>`,
-        iconSize: [64, 32],
-        iconAnchor: [32, 32],
-      }),
-    });
-    marker.bindPopup(`<div class="ob-popup">${photo(item)}${homeBadge(item)}${facts(item)}<div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div></div>`, { maxWidth: 280, autoPan: false });
-    marker.on('popupopen', (event) => {
-      event.popup.getElement().querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
-    });
-    markers.set(item.id, marker);
-    cluster.addLayer(marker);
+  const rows = visibleItems().filter((item) => item.latitude != null && item.longitude != null);
+  const visible = new Set(rows.map((item) => item.id));
+  if (activeId && !visible.has(activeId)) {
+    activeId = null;
+    map.closePopup();
+  }
+  const fresh = [];
+  rows.forEach((item) => {
+    const existing = markers.get(item.id);
+    const signature = markerSignature(item);
+    if (!existing) {
+      fresh.push(createMarker(item));
+      return;
+    }
+    if (existing._obSig !== signature) {
+      existing.setLatLng([item.latitude, item.longitude]);
+      existing.setPopupContent(popupHtml(item));
+      existing._obKind = markerKind(item);
+      existing.setIcon(markerIcon(item));
+      existing._obSig = signature;
+      existing._obActive = item.id === activeId;
+    }
   });
-  map.invalidateSize();
+  if (fresh.length) {
+    if (cluster.addLayers) cluster.addLayers(fresh);
+    else fresh.forEach((marker) => cluster.addLayer(marker));
+  }
+  const stale = [];
+  Array.from(markers.keys()).forEach((id) => {
+    if (visible.has(id)) return;
+    stale.push(markers.get(id));
+    markers.delete(id);
+  });
+  if (stale.length) {
+    if (cluster.removeLayers) cluster.removeLayers(stale);
+    else stale.forEach((marker) => cluster.removeLayer(marker));
+  }
+  refreshActiveIcons();
+}
+
+function revealMarker(item) {
+  const marker = markers.get(item.id);
+  if (!map || !marker) return;
+  viewHold += 1;
+  stopViewObserver();
+  const latlng = L.latLng(item.latitude, item.longitude);
+  map.invalidateSize({ pan: false });
+  map.setView(latlng, Math.max(map.getZoom(), 16), { animate: false });
+  const open = () => {
+    refreshActiveIcons();
+    if (!marker.isPopupOpen()) marker.openPopup();
+  };
+  window.setTimeout(() => {
+    if (marker.getElement()) {
+      open();
+      return;
+    }
+    if (cluster && typeof cluster.zoomToShowLayer === 'function') cluster.zoomToShowLayer(marker, open);
+    else open();
+  }, 40);
 }
 
 function focusProperty(id) {
@@ -374,14 +649,17 @@ function focusProperty(id) {
     showNote('لا توجد إحداثيات لهذا العقار على الخريطة');
     return;
   }
-  if (window.innerWidth <= 880) document.body.classList.add('ob-map-open');
-  setTimeout(() => {
+  showNote('');
+  activeId = id;
+  drawMap();
+  if (!openMapShell()) return;
+  viewHold += 1;
+  stopViewObserver();
+  requestAnimationFrame(() => {
     if (!map) return;
-    map.invalidateSize();
-    map.setView([item.latitude, item.longitude], 16);
-    const marker = markers.get(id);
-    if (marker) marker.openPopup();
-  }, 90);
+    map.invalidateSize({ pan: false });
+    window.setTimeout(() => revealMarker(item), 60);
+  });
 }
 
 async function boardRequest(path, options) {
@@ -479,8 +757,18 @@ async function openClientShare(propertyId) {
 
 async function openDetail(id) {
   if (map) map.closePopup();
-  const data = await boardRequest(`/${id}`);
+  let data;
+  try {
+    data = await boardRequest(`/${id}`);
+  } catch (error) {
+    showNote(error.message || 'هذا العقار غير ظاهر في العروض الخاصة');
+    return;
+  }
   const item = data.item;
+  if (!item) {
+    showNote('هذا العقار غير ظاهر في العروض الخاصة');
+    return;
+  }
   const old = document.getElementById('ob-modal');
   if (old) old.remove();
   const gallery = (item.gallery || []).map((url) => `<img src="${escapeHtml(url)}" alt="" loading="lazy">`).join('');

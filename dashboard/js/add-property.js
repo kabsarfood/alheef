@@ -112,7 +112,7 @@ function renderForm() {
   const usageOptions = REQUEST_USAGE.map((u) => `<option value="${u.value}">${u.label}</option>`).join('');
 
   if (editId) {
-    setTopbarActions('<a href="/dashboard/offers.html" class="btn btn-outline btn-sm">← العودة للعروض</a>');
+    setTopbarActions('<a href="/dashboard/offers.html" class="btn btn-outline btn-sm">← العودة لإدارة العروض</a>');
   }
 
   content.innerHTML = `

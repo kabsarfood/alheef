@@ -1,4 +1,4 @@
-/* العروض الحالية — لوحة الأدمن */
+/* إدارة العروض — لوحة الأدمن */
 
 .offers-page-toolbar .btn-label--mobile {
   display: none;
@@ -226,5 +226,75 @@
 @media (max-width: 390px) {
   .offer-view-modal__price {
     font-size: 1.05rem;
+  }
+}
+
+.offers-role {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.offers-admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.offers-admin-bar select {
+  min-height: 40px;
+}
+
+.offers-admin-card .offer-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.offer-view-gallery {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin-bottom: 0.8rem;
+}
+
+.offer-view-gallery img {
+  width: 92px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.offer-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+}
+
+.offers-leads {
+  margin-top: 1.5rem;
+}
+
+.offers-leads__list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.offers-leads__list article {
+  border: 1px solid var(--border, #e6e1d8);
+  border-radius: 12px;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+@media (max-width: 720px) {
+  .offers-page-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 }

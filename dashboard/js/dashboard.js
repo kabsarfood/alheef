@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     '      </a>',
     '      <a href="/dashboard/offers.html" class="quick-action">',
     '        <div class="quick-action__icon">◇</div>',
-    '        <div class="quick-action__text"><strong>العروض</strong><span>إدارة الإعلانات</span></div>',
+    '        <div class="quick-action__text"><strong>إدارة العروض</strong><span>إضافة العقار وتعديله وظهوره</span></div>',
     '      </a>',
     '      <a href="/dashboard/news.html" class="quick-action">',
     '        <div class="quick-action__icon">◉</div>',
