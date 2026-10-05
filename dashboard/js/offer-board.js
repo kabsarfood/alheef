@@ -15,8 +15,12 @@ let type = 'all';
 let archive = false;
 let page = 1;
 let items = [];
+let priceBand = 'all';
+let areaBand = 'all';
+let sortKey = 'latest';
 let map;
 let cluster;
+let markers = new Map();
 let heefWhatsapp = '966530792754';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -35,27 +39,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function renderShell() {
+  const chips = TYPES.map((item) =>
+    `<button type="button" class="ob-chip" data-type="${item.key}">${item.key === 'land' ? 'أراضي' : item.key === 'villa' ? 'فلل' : item.key === 'apartment' ? 'شقق' : item.key === 'building' ? 'عمائر' : 'الكل'}</button>`).join('');
   getPageContent().innerHTML = `
-    <section class="ob-page">
-      <div class="ob-bar">
-        <button type="button" data-view="map">الخريطة</button>
-        <button type="button" data-view="list">القائمة</button>
-        ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
-      </div>
-      ${ADMIN ? '<div id="ob-invites"></div><section id="ob-leads" class="ob-leads"></section>' : ''}
-      <div class="ob-filters" id="ob-filters"></div>
-      <div class="ob-layout" id="ob-layout">
-        <div id="ob-map" class="ob-map"></div>
-        <div>
-          <div id="ob-list" class="ob-list"></div>
-          <button type="button" id="ob-more" hidden>مزيد</button>
+    <section class="ob-studio">
+      <section class="ob-hero">
+        <div class="ob-hero__top">
+          <div>
+            <div class="ob-eyebrow"><span></span> عروض الهيف الخاصة</div>
+            <h1>العقار المناسب… أوضح وأقرب.</h1>
+            <p>تصفح العروض المختارة، قارن التفاصيل، وشاهد موقع العقار مباشرة على الخريطة.</p>
+          </div>
+          <div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>
+        </div>
+        <div class="ob-search">
+          <input id="ob-search" class="ob-field ob-field--wide" type="search" placeholder="ابحث بالحي، رقم المخطط، رقم القطعة أو نوع العقار…">
+          <select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
+          <select id="ob-price" class="ob-field">
+            <option value="all">كل الأسعار</option>
+            <option value="under1500">أقل من 1.5 مليون</option>
+            <option value="1500to2000">1.5–2 مليون</option>
+            <option value="over2000">أكثر من 2 مليون</option>
+          </select>
+          <select id="ob-area" class="ob-field">
+            <option value="all">كل المساحات</option>
+            <option value="under350">أقل من 350 م²</option>
+            <option value="350to450">350–450 م²</option>
+            <option value="over450">أكثر من 450 م²</option>
+          </select>
+          <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>
+        </div>
+      </section>
+      <div class="ob-toolbar">
+        <div class="ob-chips" id="ob-filters">${chips}</div>
+        <div class="ob-toolbar__side">
+          ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
+          <span class="ob-count"><b id="ob-count">0</b> عروض مطابقة</span>
+          <select id="ob-sort" class="ob-sort">
+            <option value="latest">الأحدث أولًا</option>
+            <option value="priceAsc">السعر: الأقل</option>
+            <option value="priceDesc">السعر: الأعلى</option>
+            <option value="areaDesc">المساحة: الأكبر</option>
+          </select>
         </div>
       </div>
-      <p class="ob-meta" id="ob-count"></p>
       <p class="ob-note" id="ob-note" hidden></p>
+      <section class="ob-content" id="ob-layout">
+        <div>
+          <div id="ob-list" class="ob-listings"></div>
+          <button type="button" id="ob-more" hidden>مزيد</button>
+        </div>
+        <aside class="ob-map-panel" id="mapPanel">
+          <div class="ob-map-head">
+            <div class="ob-map-title"><strong>الخريطة العقارية</strong><span>عروض الهيف العقارية</span></div>
+            <button type="button" class="ob-map-close" id="ob-map-close" aria-label="إغلاق الخريطة">✕</button>
+          </div>
+          <div id="ob-map" class="ob-map"></div>
+          <div class="ob-map-foot"><span>النقاط تمثل العروض المتاحة</span><strong>اضغط على أي عرض لعرض التفاصيل</strong></div>
+        </aside>
+      </section>
+      <button type="button" class="ob-map-fab" id="ob-map-fab">⌖ عرض الخريطة</button>
+      ${ADMIN ? '<div id="ob-invites"></div><section id="ob-leads" class="ob-leads"></section>' : ''}
     </section>`;
-  document.getElementById('ob-filters').innerHTML = TYPES.map((item) =>
-    `<button type="button" data-type="${item.key}">${item.label}</button>`).join('');
   syncButtons();
   if (ADMIN) {
     setupInvites();
@@ -64,14 +109,12 @@ function renderShell() {
 }
 
 function syncButtons() {
-  document.querySelectorAll('[data-view]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.view === view));
   document.querySelectorAll('[data-archive]').forEach((btn) => btn.classList.toggle('is-on', (btn.dataset.archive === '1') === archive));
   document.querySelectorAll('[data-type]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.type === type));
-  const layout = document.getElementById('ob-layout');
-  layout.className = `ob-layout ${view === 'map' ? 'ob-layout--map' : 'ob-layout--list'}`;
-  document.getElementById('ob-map').hidden = view !== 'map';
-  document.getElementById('ob-list').parentElement.hidden = !ADMIN && view === 'map';
-  if (view === 'map') setTimeout(() => map && map.invalidateSize(), 60);
+  const typeSelect = document.getElementById('ob-type');
+  if (typeSelect) typeSelect.value = type;
+  if (view === 'map' && window.innerWidth <= 880) document.body.classList.add('ob-map-open');
+  setTimeout(() => map && map.invalidateSize(), 60);
 }
 
 function bindShell() {
@@ -115,15 +158,46 @@ function bindShell() {
     const typeBtn = event.target.closest('[data-type]');
     if (typeBtn) {
       type = typeBtn.dataset.type;
-      page = 1;
-      items = [];
       syncButtons();
-      loadItems();
+      drawList();
+      drawMap();
+      return;
     }
+    const focusBtn = event.target.closest('[data-focus]');
+    if (focusBtn) focusProperty(focusBtn.dataset.focus);
   });
   document.getElementById('ob-more').addEventListener('click', () => {
     page += 1;
     loadItems(true);
+  });
+  document.getElementById('ob-search')?.addEventListener('input', () => { drawList(); drawMap(); });
+  document.getElementById('ob-apply')?.addEventListener('click', () => { drawList(); drawMap(); });
+  document.getElementById('ob-type')?.addEventListener('change', (event) => {
+    type = event.target.value;
+    syncButtons();
+    drawList();
+    drawMap();
+  });
+  document.getElementById('ob-price')?.addEventListener('change', (event) => {
+    priceBand = event.target.value;
+    drawList();
+    drawMap();
+  });
+  document.getElementById('ob-area')?.addEventListener('change', (event) => {
+    areaBand = event.target.value;
+    drawList();
+    drawMap();
+  });
+  document.getElementById('ob-sort')?.addEventListener('change', (event) => {
+    sortKey = event.target.value;
+    drawList();
+  });
+  document.getElementById('ob-map-fab')?.addEventListener('click', () => {
+    document.body.classList.add('ob-map-open');
+    setTimeout(() => map && map.invalidateSize(), 80);
+  });
+  document.getElementById('ob-map-close')?.addEventListener('click', () => {
+    document.body.classList.remove('ob-map-open');
   });
 }
 
@@ -136,13 +210,11 @@ async function loadWhatsapp() {
 }
 
 async function loadItems(append) {
-  const mapFilter = !ADMIN && view === 'map' ? '&map=1' : '';
-  const data = await boardRequest(`?view=${view}&type=${type}&archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=24${mapFilter}`);
+  const data = await boardRequest(`?archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=60`);
   items = append ? items.concat(data.items || []) : (data.items || []);
-  document.getElementById('ob-count').textContent = `${data.total || 0} إعلان`;
   document.getElementById('ob-more').hidden = items.length >= (data.total || 0);
   drawList();
-  if (view === 'map') drawMap();
+  drawMap();
 }
 
 function money(value) {
@@ -186,52 +258,130 @@ function showNote(text) {
   note.textContent = text || '';
 }
 
+function streetLabel(item) {
+  return [item.streetWidth && `${item.streetWidth}`, item.direction].filter(Boolean).join(' ') || item.street || '—';
+}
+
+function visibleItems() {
+  const q = (document.getElementById('ob-search')?.value || '').trim().toLowerCase();
+  const rows = items.filter((item) => {
+    if (type !== 'all' && item.typeKey !== type) return false;
+    const hay = [item.title, item.district, item.city, item.planNumber, item.plotNumber, item.propertyType, item.internalRef].join(' ').toLowerCase();
+    if (q && !hay.includes(q)) return false;
+    const price = Number(item.price) || 0;
+    if (priceBand === 'under1500' && !(price > 0 && price < 1500000)) return false;
+    if (priceBand === '1500to2000' && !(price >= 1500000 && price <= 2000000)) return false;
+    if (priceBand === 'over2000' && !(price > 2000000)) return false;
+    const area = Number(item.area) || 0;
+    if (areaBand === 'under350' && !(area > 0 && area < 350)) return false;
+    if (areaBand === '350to450' && !(area >= 350 && area <= 450)) return false;
+    if (areaBand === 'over450' && !(area > 450)) return false;
+    return true;
+  });
+  const sorted = rows.slice();
+  if (sortKey === 'priceAsc') sorted.sort((a, b) => (Number(a.price) || Number.MAX_SAFE_INTEGER) - (Number(b.price) || Number.MAX_SAFE_INTEGER));
+  if (sortKey === 'priceDesc') sorted.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+  if (sortKey === 'areaDesc') sorted.sort((a, b) => (Number(b.area) || 0) - (Number(a.area) || 0));
+  return sorted;
+}
+
 function drawList() {
-  document.getElementById('ob-list').innerHTML = items.map((item) => `
+  const rows = visibleItems();
+  const count = document.getElementById('ob-count');
+  const hero = document.getElementById('ob-count-hero');
+  if (count) count.textContent = String(rows.length);
+  if (hero) hero.textContent = String(rows.length);
+  const list = document.getElementById('ob-list');
+  if (!list) return;
+  list.innerHTML = rows.map((item) => `
     <article class="ob-card">
-      ${photo(item)}
-      <div class="ob-card__body">
+      <div class="ob-media">
+        ${photo(item)}
+        <span class="ob-badge-type">${escapeHtml(item.propertyType || 'عقار')}</span>
         ${homeBadge(item)}
-        ${facts(item)}
+        <div class="ob-media__place">⌖ ${escapeHtml(item.district || item.city || 'الرياض')}</div>
+      </div>
+      <div class="ob-card__body">
+        <div class="ob-title-row">
+          <div class="ob-title">${escapeHtml(item.title || item.propertyType || 'عقار للبيع')}</div>
+          <div class="ob-ref" dir="ltr">${escapeHtml(item.internalRef || '')}</div>
+        </div>
+        <div class="ob-price">${money(item.price)}${item.price ? '<small>للبيع</small>' : ''}</div>
+        <div class="ob-specs">
+          <div class="ob-spec"><span>المساحة</span><strong>${item.area ? `${escapeHtml(item.area)} م²` : '—'}</strong></div>
+          <div class="ob-spec"><span>الشارع</span><strong>${escapeHtml(streetLabel(item))}</strong></div>
+          <div class="ob-spec"><span>المخطط</span><strong>${escapeHtml(item.planNumber || '—')}</strong></div>
+        </div>
         <div class="ob-card__actions">
+          <button type="button" class="ob-details" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>
+          <button type="button" data-focus="${escapeHtml(item.id)}">⌖ على الخريطة</button>
           ${adminChoiceButtons(item)}
-          <button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>
           ${ADMIN ? '' : `<a class="btn btn-gold btn-sm" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}
         </div>
       </div>
-    </article>`).join('') || '<p>لا توجد إعلانات في هذا العرض.</p>';
-  document.querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => openDetail(btn.dataset.open)));
+    </article>`).join('') || '<p class="ob-empty">لا توجد عروض مطابقة. جرّب تغيير الفلاتر أو البحث بكلمة أخرى.</p>';
+  list.querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => openDetail(btn.dataset.open)));
+}
+
+function shortPrice(item) {
+  const amount = Number(item.price);
+  if (!amount) return 'عند الطلب';
+  if (amount >= 1000000) {
+    const millions = amount / 1000000;
+    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)} م`;
+  }
+  return `${Math.round(amount / 1000)} ألف`;
 }
 
 function ensureMap() {
-  if (map) return;
-  map = L.map('ob-map', { zoomControl: true }).setView(MAHDIA, 13);
+  if (map || !document.getElementById('ob-map') || !window.L) return;
+  map = L.map('ob-map', { zoomControl: false }).setView(MAHDIA, 13);
+  L.control.zoom({ position: 'topleft' }).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-  cluster = L.markerClusterGroup();
+  cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 42 });
   map.addLayer(cluster);
 }
 
 function drawMap() {
   ensureMap();
+  if (!map || !cluster) return;
   cluster.clearLayers();
-  items.forEach((item) => {
+  markers = new Map();
+  visibleItems().forEach((item) => {
     if (item.latitude == null || item.longitude == null) return;
     const color = COLORS[item.typeKey] || COLORS.all;
     const marker = L.marker([item.latitude, item.longitude], {
       icon: L.divIcon({
         className: 'ob-pin',
-        html: `<span style="background:${color}"></span>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+        html: `<span class="ob-price-pin" style="background:${color}">${escapeHtml(shortPrice(item))}</span>`,
+        iconSize: [64, 32],
+        iconAnchor: [32, 32],
       }),
     });
-    marker.bindPopup(`<div class="ob-popup">${photo(item)}${homeBadge(item)}${facts(item)}<div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div></div>`, { maxWidth: 280 });
+    marker.bindPopup(`<div class="ob-popup">${photo(item)}${homeBadge(item)}${facts(item)}<div class="ob-actions">${adminChoiceButtons(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div></div>`, { maxWidth: 280, autoPan: false });
     marker.on('popupopen', (event) => {
       event.popup.getElement().querySelector('[data-open]')?.addEventListener('click', () => openDetail(item.id));
     });
+    markers.set(item.id, marker);
     cluster.addLayer(marker);
   });
   map.invalidateSize();
+}
+
+function focusProperty(id) {
+  const item = items.find((row) => row.id === id);
+  if (!item || item.latitude == null || item.longitude == null) {
+    showNote('لا توجد إحداثيات لهذا العقار على الخريطة');
+    return;
+  }
+  if (window.innerWidth <= 880) document.body.classList.add('ob-map-open');
+  setTimeout(() => {
+    if (!map) return;
+    map.invalidateSize();
+    map.setView([item.latitude, item.longitude], 16);
+    const marker = markers.get(id);
+    if (marker) marker.openPopup();
+  }, 90);
 }
 
 async function boardRequest(path, options) {
