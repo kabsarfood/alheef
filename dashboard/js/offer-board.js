@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyTypeColors();
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
-  view = params.get('view') === 'list' || params.get('view') === 'map' ? params.get('view') : (saved || 'map');
+  view = params.get('view') === 'list' || params.get('view') === 'map' ? params.get('view') : (saved || 'list');
   if (ADMIN || DASHBOARD) {
     await initLayout('private-offers', 'العروض الخاصة');
     if (ADMIN) setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
@@ -101,6 +101,13 @@ function renderShell() {
           <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>
         </div>
       </section>
+      <div class="ob-view-switch">
+        <p class="ob-view-switch__label">طريقة عرض الصفحة</p>
+        <div class="ob-view-switch__row" role="group" aria-label="طريقة عرض الصفحة">
+          <button type="button" class="ob-view-btn" data-view="list">قائمة</button>
+          <button type="button" class="ob-view-btn" data-view="map">خريطة</button>
+        </div>
+      </div>
       <div class="ob-toolbar">
         <div class="ob-chips" id="ob-filters">${chips}</div>
         <div class="ob-toolbar__side">
@@ -116,7 +123,7 @@ function renderShell() {
       </div>
       <p class="ob-note" id="ob-note" hidden></p>
       <section class="ob-content" id="ob-layout">
-        <div>
+        <div class="ob-list-col">
           <div id="ob-list" class="ob-listings"></div>
           <button type="button" id="ob-more" hidden>مزيد</button>
         </div>
@@ -147,12 +154,37 @@ function renderShell() {
   }
 }
 
+function setPageView(next) {
+  const mode = next === 'map' ? 'map' : 'list';
+  if (mode === 'list' && document.body.classList.contains('ob-map-fs')) exitMapFullscreen();
+  view = mode;
+  sessionStorage.setItem(VIEW_KEY, view);
+  const url = new URL(location.href);
+  url.searchParams.set('view', view);
+  history.replaceState(null, '', url);
+  applyPageView();
+}
+
+function applyPageView() {
+  const studio = document.querySelector('.ob-studio');
+  if (studio) {
+    studio.classList.toggle('is-view-list', view === 'list');
+    studio.classList.toggle('is-view-map', view === 'map');
+  }
+  document.querySelectorAll('.ob-view-btn').forEach((btn) => {
+    const on = btn.dataset.view === view;
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  if (view === 'map') setTimeout(() => map && map.invalidateSize(), 80);
+}
+
 function syncButtons() {
   document.querySelectorAll('[data-archive]').forEach((btn) => btn.classList.toggle('is-on', (btn.dataset.archive === '1') === archive));
   document.querySelectorAll('[data-type]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.type === type));
   const typeSelect = document.getElementById('ob-type');
   if (typeSelect) typeSelect.value = type;
-  setTimeout(() => map && map.invalidateSize(), 60);
+  applyPageView();
 }
 
 function bindShell() {
@@ -173,15 +205,7 @@ function bindShell() {
     }
     const viewBtn = event.target.closest('[data-view]');
     if (viewBtn) {
-      view = viewBtn.dataset.view;
-      sessionStorage.setItem(VIEW_KEY, view);
-      const url = new URL(location.href);
-      url.searchParams.set('view', view);
-      history.replaceState(null, '', url);
-      page = 1;
-      items = [];
-      syncButtons();
-      loadItems();
+      setPageView(viewBtn.dataset.view);
       return;
     }
     const archiveBtn = event.target.closest('[data-archive]');
@@ -538,7 +562,10 @@ function ensureMap() {
   if (map || !document.getElementById('ob-map') || !window.L) return;
   map = L.map('ob-map', { zoomControl: false }).setView(MAHDIA, 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 19,
+  }).addTo(map);
   cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 28,
@@ -651,6 +678,7 @@ function focusProperty(id) {
   }
   showNote('');
   activeId = id;
+  setPageView('map');
   drawMap();
   if (!openMapShell()) return;
   viewHold += 1;

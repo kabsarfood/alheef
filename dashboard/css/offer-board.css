@@ -84,6 +84,15 @@
 .ob-field, .ob-search__btn { height: 52px; border-radius: 13px; border: 0; width: 100%; }
 .ob-field { background: #fff; color: var(--text); padding: 0 15px; }
 .ob-search__btn { padding: 0 22px; background: #d3aa6b; color: #16241f; font-weight: 800; }
+.ob-view-switch { margin-top: 16px; }
+.ob-view-switch__label { margin: 0 0 10px; font-size: 14px; font-weight: 800; color: var(--muted); }
+.ob-view-switch__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ob-view-btn {
+  min-height: 64px; border-radius: 18px; border: 1px solid var(--line); background: #fffdfa;
+  color: var(--text); font: inherit; font-size: 20px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(31, 45, 39, .05);
+}
+.ob-view-btn.is-on { background: var(--brand); border-color: var(--brand); color: #fff; }
 .ob-toolbar { margin: 22px 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .ob-chips, .ob-toolbar__side { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
 .ob-chip, .ob-toolbar__side button, .ob-sort {
@@ -174,13 +183,25 @@
     display: block; position: relative; top: auto; order: -1;
     height: min(42dvh, 380px); min-height: 240px; border-radius: 20px;
   }
-  .ob-map-fab { display: block; }
   .ob-count { display: none; }
+  .ob-view-btn { min-height: 56px; font-size: 18px; }
+}
+.ob-studio.is-view-list .ob-map-panel { display: none; }
+.ob-studio.is-view-list .ob-content { grid-template-columns: 1fr; }
+.ob-studio.is-view-map .ob-list-col { display: none; }
+.ob-studio.is-view-map .ob-content { display: block; }
+.ob-studio.is-view-map .ob-map-panel {
+  display: block; position: relative; top: auto; width: 100%;
+  height: min(74dvh, 860px); min-height: 480px;
+}
+@media (max-width: 880px) {
+  .ob-studio.is-view-map .ob-map-panel { height: calc(100dvh - 250px); min-height: 340px; }
 }
 
 html.ob-map-fs,
 html.ob-map-fs body { overflow: hidden !important; overscroll-behavior: none; }
-body.ob-map-fs .ob-map-panel {
+body.ob-map-fs .ob-map-panel,
+body.ob-map-fs .ob-studio.is-view-list .ob-map-panel {
   display: block;
   position: fixed;
   inset: 0;
