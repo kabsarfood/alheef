@@ -108,6 +108,7 @@
   const gateStepPhone = document.getElementById('gate-step-phone');
   const gateStepOtp = document.getElementById('gate-step-otp');
   const gateResendBtn = document.getElementById('gate-resend-btn');
+  const gatePasteBtn = document.getElementById('gate-paste-btn');
   const gateConfirmBtn = document.getElementById('gate-confirm-btn');
   const gateSendBtn = document.getElementById('gate-send-btn');
   const gateWarning = document.getElementById('gate-warning');
@@ -230,6 +231,13 @@
     }
   }
 
+  function otpDigits(value) {
+    return String(value || '')
+      .replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
+      .replace(/\D/g, '')
+      .slice(0, 6);
+  }
+
   function showGateOtpStep() {
     if (gateStepPhone) gateStepPhone.hidden = true;
     if (gateStepOtp) gateStepOtp.hidden = false;
@@ -329,6 +337,27 @@
     }
     setToken(data.token);
     clientName = data.clientName || clientName;
+  }
+
+  async function redeemAutofill(fill) {
+    const res = await fetch('/api/private-offers/otp/autofill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ slug, fill }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.message || 'تعذر تعبئة الرمز');
+      err.code = data.code || '';
+      throw err;
+    }
+    return data;
+  }
+
+  async function finishVerifiedEntry() {
+    showOffers();
+    await loadOffers();
   }
 
   async function resendOtp() {
@@ -1001,10 +1030,10 @@
         await sendOtp();
         showGateOtpStep();
       } else {
-        const code = (gateOtpInput && gateOtpInput.value || '').trim();
+        const code = otpDigits(gateOtpInput && gateOtpInput.value);
+        if (gateOtpInput) gateOtpInput.value = code;
         await verifyOtp(code);
-        showOffers();
-        await loadOffers();
+        await finishVerifiedEntry();
       }
     } catch (err) {
       if (err.code === 'other_device') {
@@ -1024,6 +1053,35 @@
     });
   }
 
+  if (gateOtpInput) {
+    gateOtpInput.addEventListener('input', () => {
+      const next = otpDigits(gateOtpInput.value);
+      if (gateOtpInput.value !== next) gateOtpInput.value = next;
+    });
+  }
+
+  if (gatePasteBtn) {
+    gatePasteBtn.addEventListener('click', async () => {
+      gateError.hidden = true;
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+          throw new Error('انسخ الرمز من واتساب ثم الصقه داخل المربع');
+        }
+        const text = await navigator.clipboard.readText();
+        const code = otpDigits(text);
+        if (code.length !== 6) throw new Error('انسخ رمز الواتساب المكوّن من 6 أرقام ثم اضغط لصق');
+        if (gateOtpInput) {
+          gateOtpInput.value = code;
+          gateOtpInput.focus();
+        }
+      } catch (err) {
+        gateError.textContent = err && err.message ? err.message : 'تعذر لصق الرمز';
+        gateError.hidden = false;
+        if (gateOtpInput) gateOtpInput.focus();
+      }
+    });
+  }
+
   if (gateResendBtn) {
     gateResendBtn.addEventListener('click', async () => {
       gateError.hidden = true;
@@ -1040,13 +1098,48 @@
 
   bindToolbarEvents();
 
+  window.addEventListener('storage', (event) => {
+    if (event.key !== TOKEN_KEY || !event.newValue) return;
+    checkSession().then(async (ok) => {
+      if (!ok) return;
+      await finishVerifiedEntry();
+    }).catch(() => {});
+  });
+
   (async function init() {
     const ok = await checkSession();
     if (ok) {
       showOffers();
       await loadOffers();
-    } else {
-      await loadGate();
+      return;
     }
+    const fill = new URLSearchParams(location.search).get('fill') || '';
+    if (fill) {
+      try {
+        const data = await redeemAutofill(fill);
+        if (gateBlocked) gateBlocked.hidden = true;
+        if (gateForm) gateForm.hidden = false;
+        showGate();
+        otpChallengeId = data.challengeId;
+        gateReadyToSend = true;
+        showGateOtpStep();
+        if (gateOtpInput) gateOtpInput.value = otpDigits(data.code);
+        history.replaceState(null, '', location.pathname);
+        await verifyOtp(otpDigits(data.code));
+        await finishVerifiedEntry();
+        return;
+      } catch (err) {
+        history.replaceState(null, '', location.pathname);
+        if (err.code === 'other_device') {
+          showBlocked(err.message);
+          return;
+        }
+        await loadGate();
+        gateError.textContent = err.message || 'تعذر تعبئة الرمز. انسخه من واتساب والصقه في المربع';
+        gateError.hidden = false;
+        return;
+      }
+    }
+    await loadGate();
   })();
 })();

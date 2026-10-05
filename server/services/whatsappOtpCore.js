@@ -14,6 +14,7 @@ const {
   toWhatsAppNumber,
   maskPhone,
 } = require('../utils/phone');
+const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 
 const TTL_MS = 5 * 60 * 1000;
 const VERIFIED_TTL_MS = 2 * 60 * 60 * 1000;
@@ -82,7 +83,16 @@ function otpAutofillLine(code) {
   }
 }
 
-function buildMessage(purpose, code) {
+function hashFillToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+function privateFillUrl(slug, token) {
+  const page = buildPrivateShareUrl(slug);
+  return `${page}?fill=${encodeURIComponent(token)}`;
+}
+
+function buildMessage(purpose, code, fillUrl) {
   const autofill = otpAutofillLine(code);
   if (purpose === 'ejar') {
     return [
@@ -97,16 +107,19 @@ function buildMessage(purpose, code) {
     ].filter(Boolean).join('\n');
   }
   if (purpose === 'private_offer') {
-    return [
+    const lines = [
       'الهيف العقارية',
       '',
       'رمز التحقق لدخول العروض الخاصة:',
       String(code),
       '',
-      'صالح لمدة 5 دقائق.',
-      'لا تشارك هذا الرمز مع أي شخص.',
-      autofill,
-    ].filter(Boolean).join('\n');
+      'انسخ هذا الرقم والصقه في مربع التحقق.',
+    ];
+    if (fillUrl) {
+      lines.push('أو اضغط الرابط من نفس الجوال ليُلصق الرمز تلقائيًا:', String(fillUrl));
+    }
+    lines.push('', 'صالح لمدة 5 دقائق.', 'لا تشارك هذا الرمز مع أي شخص.', autofill);
+    return lines.filter(Boolean).join('\n');
   }
   return [
     'الهيف العقارية',
@@ -192,12 +205,15 @@ async function sendOtp({ purpose, phone, meta = {}, ip = '', userAgent = '' }) {
   const id = randomId();
   const code = generateCode();
   const now = Date.now();
+  const fillToken = purposeKey === 'private_offer' && meta.slug ? randomId() : '';
   const row = {
     id,
     purpose: purposeKey,
     phone: normalized,
     meta: { ...meta },
     codeHash: hashCode(id, code),
+    code: purposeKey === 'private_offer' ? code : '',
+    fillHash: fillToken ? hashFillToken(fillToken) : '',
     createdAt: now,
     expiresAt: now + TTL_MS,
     lastSentAt: now,
@@ -213,7 +229,11 @@ async function sendOtp({ purpose, phone, meta = {}, ip = '', userAgent = '' }) {
   challenges.set(id, row);
 
   try {
-    await sender(normalized, buildMessage(purposeKey, code));
+    await sender(normalized, buildMessage(
+      purposeKey,
+      code,
+      fillToken ? privateFillUrl(meta.slug, fillToken) : '',
+    ));
   } catch (err) {
     challenges.delete(id);
     if (err && err.code === 'not_configured') return { ok: false, reason: 'not_configured' };
@@ -241,14 +261,21 @@ async function resendOtp(challengeId) {
   if (!allowSend(row.phone, row.purpose, row.ip)) return { ok: false, reason: 'rate_limited' };
 
   const code = generateCode();
+  const fillToken = row.purpose === 'private_offer' && row.meta?.slug ? randomId() : '';
   row.codeHash = hashCode(row.id, code);
+  row.code = row.purpose === 'private_offer' ? code : '';
+  row.fillHash = fillToken ? hashFillToken(fillToken) : '';
   row.attempts = 0;
   row.resends += 1;
   row.lastSentAt = now;
   row.expiresAt = now + TTL_MS;
 
   try {
-    await sender(row.phone, buildMessage(row.purpose, code));
+    await sender(row.phone, buildMessage(
+      row.purpose,
+      code,
+      fillToken ? privateFillUrl(row.meta.slug, fillToken) : '',
+    ));
   } catch {
     return { ok: false, reason: 'send_failed' };
   }
@@ -286,6 +313,8 @@ function verifyOtp(challengeId, code) {
 
   const keep = KEEP_VERIFIED_PURPOSES.has(row.purpose);
   row.codeHash = '';
+  row.code = '';
+  row.fillHash = '';
   row.verifiedAt = new Date().toISOString();
 
   if (keep) {
@@ -317,6 +346,31 @@ function verifyOtp(challengeId, code) {
     marketerId: row.meta?.marketerId || null,
     userId: row.meta?.userId || null,
   };
+}
+
+function claimAutofill(token) {
+  const raw = String(token || '').trim();
+  if (raw.length < 16) return { ok: false, reason: 'invalid' };
+  prune();
+  const actual = hashFillToken(raw);
+  for (const row of challenges.values()) {
+    if (!row.fillHash || row.status !== 'pending' || row.purpose !== 'private_offer') continue;
+    if (row.fillHash.length !== actual.length) continue;
+    const match = crypto.timingSafeEqual(Buffer.from(row.fillHash), Buffer.from(actual));
+    if (!match) continue;
+    if (Date.now() > row.expiresAt || !/^\d{6}$/.test(row.code || '')) {
+      challenges.delete(row.id);
+      return { ok: false, reason: 'expired' };
+    }
+    return {
+      ok: true,
+      challengeId: row.id,
+      code: row.code,
+      purpose: row.purpose,
+      meta: { ...(row.meta || {}) },
+    };
+  }
+  return { ok: false, reason: 'invalid' };
 }
 
 function requireVerifiedSession(challengeId) {
@@ -431,6 +485,7 @@ module.exports = {
   sendOtp,
   resendOtp,
   verifyOtp,
+  claimAutofill,
   requireVerifiedSession,
   markConsumed,
   errorMessage,

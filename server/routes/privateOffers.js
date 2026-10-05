@@ -145,6 +145,46 @@ router.post('/otp/resend', requireDb, async (req, res) => {
   }
 });
 
+/** الرابط داخل رسالة واتساب — يعيد الرمز فقط لنفس الجهاز الذي طلب الدخول */
+router.post('/otp/autofill', requireDb, async (req, res) => {
+  try {
+    if (!otpRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: otpCore.errorMessage('rate_limited') });
+    }
+    const slug = String(req.body.slug || '').trim();
+    const fill = String(req.body.fill || '').trim();
+    if (!slug || fill.length < 16) {
+      return res.status(400).json({ success: false, message: 'تعذر تعبئة الرمز. انسخه من واتساب والصقه في المربع' });
+    }
+
+    const loaded = await guardBySlug(slug);
+    if (loaded.error) {
+      return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
+    }
+    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (state === 'other') {
+      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+    }
+
+    const claimed = otpCore.claimAutofill(fill);
+    if (!claimed.ok) {
+      return res.status(400).json({ success: false, message: 'انتهت صلاحية رابط التعبئة. انسخ الرمز من واتساب والصقه في المربع' });
+    }
+    if (claimed.purpose !== 'private_offer' || claimed.meta?.slug !== slug) {
+      return res.status(401).json({ success: false, message: GENERIC_DENY });
+    }
+
+    res.json({
+      success: true,
+      challengeId: claimed.challengeId,
+      code: claimed.code,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر تعبئة الرمز' });
+  }
+});
+
 /** بعد نجاح OTP: إنشاء/جلب app_users ثم منح دخول العرض إن طابق الرقم */
 router.post('/otp/verify', requireDb, async (req, res) => {
   try {

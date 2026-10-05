@@ -158,6 +158,18 @@
   box-sizing: border-box;
 }
 
+.private-gate__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  text-align: right;
+  color: #5c5348;
+}
+
+#gate-paste-btn {
+  margin-bottom: 0.5rem;
+}
+
 .private-gate__error {
   color: #c0392b;
   margin-top: 0.75rem;
