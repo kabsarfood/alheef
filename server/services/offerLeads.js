@@ -82,7 +82,18 @@ function shareImages(item) {
     seen.add(clean);
     images.push(clean);
   });
-  return images.slice(0, 6);
+  return images.slice(0, 8);
+}
+
+async function loadShareImages(item) {
+  const ready = shareImages(item);
+  if (ready.length || !item?.id) return ready;
+  const { data } = await getAdmin()
+    .from('property_images')
+    .select('image_url, sort_order')
+    .eq('property_id', item.id)
+    .order('sort_order', { ascending: true });
+  return shareImages({ gallery: (data || []).map((row) => row.image_url) });
 }
 
 function buildShareText(item) {
@@ -219,14 +230,12 @@ async function shareListing({ clientId, propertyId, audience } = {}) {
   const inserted = await getAdmin().from('private_offer_leads').insert(leadRow).select('id').single();
   if (inserted.error) return { status: 500, body: { success: false, message: 'تعذر تسجيل المشاركة' } };
   const text = buildShareText(item);
-  const images = shareImages(item);
+  const images = await loadShareImages(item);
   try {
     for (let index = 0; index < images.length; index += 1) {
-      try {
-        await evolution.sendImageUrl(client.phone, images[index], index === 0 ? 'صور العقار' : 'صورة العقار');
-      } catch {
-        /* صورة واحدة لا تمنع إرسال بقية الصور والمعلومات */
-      }
+      const photo = await evolution.sendImageUrl(client.phone, images[index], index === 0 ? 'صور العقار' : 'صورة العقار');
+      if (!photo?.ok) console.warn('[offer-leads] image was not delivered');
+      if (index < images.length - 1) await new Promise((resolve) => setTimeout(resolve, 400));
     }
     await evolution.sendText(client.phone, text);
   } catch (error) {
