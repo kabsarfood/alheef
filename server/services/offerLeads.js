@@ -57,33 +57,55 @@ function line(label, value) {
   return text ? `${label}: ${text}` : '';
 }
 
-function locationUrl(item) {
-  const maps = stripPhones(item.mapsUrl);
-  if (/^https?:\/\//i.test(maps)) return maps;
-  if (item.latitude != null && item.longitude != null) {
-    return `https://www.google.com/maps?q=${item.latitude},${item.longitude}`;
-  }
-  return '';
+function stripLinks(value) {
+  return String(value || '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\b(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}\/\S*/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function shareFacts(value) {
+  return stripLinks(stripPhones(value));
+}
+
+function shareImages(item) {
+  const urls = []
+    .concat(Array.isArray(item.gallery) ? item.gallery : [])
+    .concat(item.coverImage || []);
+  const seen = new Set();
+  const images = [];
+  urls.forEach((url) => {
+    const clean = String(url || '').trim();
+    if (!/^https?:\/\//i.test(clean) || seen.has(clean)) return;
+    seen.add(clean);
+    images.push(clean);
+  });
+  return images.slice(0, 6);
 }
 
 function buildShareText(item) {
   const lines = [
-    'تمت مشاركتك تفاصيل الإعلان 👇',
+    'تمت مشاركتك تفاصيل العقار 👇',
     '',
-    line('نوع العقار', item.propertyType),
-    line('الحي', item.district),
+    line('نوع العقار', shareFacts(item.propertyType)),
+    line('المدينة', shareFacts(item.city)),
+    line('الحي', shareFacts(item.district)),
     `السعر: ${money(item.price)}`,
     line('المساحة', item.area ? `${item.area} م²` : ''),
-    line('الاتجاه', item.direction),
-    line('عرض الشارع', item.streetWidth),
-    line('رقم المخطط', item.planNumber),
-    line('رقم القطعة', item.plotNumber),
+    item.pricePerMeter ? `سعر المتر: ${money(item.pricePerMeter)}` : '',
+    line('الاتجاه', shareFacts(item.direction)),
+    line('الشارع', shareFacts(item.street)),
+    line('عرض الشارع', shareFacts(item.streetWidth)),
+    line('الأطوال', shareFacts(item.lengths)),
+    line('رقم المخطط', shareFacts(item.planNumber)),
+    line('رقم القطعة', shareFacts(item.plotNumber)),
+    line('رقم العرض', shareFacts(item.internalRef)),
   ].filter(Boolean);
-  const details = stripPhones(item.description);
+  const details = shareFacts(item.description);
   if (details) lines.push('', 'التفاصيل:', details.slice(0, 2500));
-  const place = locationUrl(item);
-  if (place) lines.push('', 'رابط الموقع الدقيق:', place);
-  lines.push('', 'التواصل يتم عبر مؤسسة الهيف للخدمات العقارية.');
+  lines.push('', 'للتواصل أو التسويق أو الاستشارة عبر منصة الهيف فقط:', adminPhone() || '0530792754');
   return lines.join('\n');
 }
 
@@ -197,9 +219,14 @@ async function shareListing({ clientId, propertyId, audience } = {}) {
   const inserted = await getAdmin().from('private_offer_leads').insert(leadRow).select('id').single();
   if (inserted.error) return { status: 500, body: { success: false, message: 'تعذر تسجيل المشاركة' } };
   const text = buildShareText(item);
+  const images = shareImages(item);
   try {
-    if (item.coverImage && /^https?:\/\//i.test(item.coverImage)) {
-      await evolution.sendImageUrl(client.phone, item.coverImage, 'تمت مشاركتك تفاصيل الإعلان');
+    for (let index = 0; index < images.length; index += 1) {
+      try {
+        await evolution.sendImageUrl(client.phone, images[index], index === 0 ? 'صور العقار' : 'صورة العقار');
+      } catch {
+        /* صورة واحدة لا تمنع إرسال بقية الصور والمعلومات */
+      }
     }
     await evolution.sendText(client.phone, text);
   } catch (error) {

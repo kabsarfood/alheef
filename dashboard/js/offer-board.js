@@ -299,7 +299,7 @@ async function openClientShare(propertyId) {
       <p class="ob-meta">${escapeHtml(item?.internalRef || item?.title || item?.district || 'الإعلان')}</p>
       ${active.length ? `<label class="ob-meta" for="ob-client">العميل</label>
         <select id="ob-client">${options}</select>
-        <p class="ob-note">يُرسل الإعلان من واتساب الهيف إلى رقم العميل المسجّل، دون إظهار رقم المعلن.</p>
+        <p class="ob-note">تُرسل صور العقار ومعلوماته مع جوال المنصة فقط، دون رابط الإعلان ودون رقم المعلن.</p>
         <button type="button" class="ob-choice ob-choice--share" id="ob-send-client">إرسال إلى واتساب العميل</button>
         <p class="ob-note" id="ob-share-result" hidden></p>` : '<p>لا يوجد عميل نشط. أضف العميل أولًا من «مشاركة العروض الخاصة».</p>'}
     </div>`;
