@@ -804,9 +804,32 @@ async function boardRequest(path, options) {
   return data;
 }
 
+function heefMessage(item) {
+  const lines = ['مرحبًا، أود الاستفسار عن هذا الإعلان:', ''];
+  const add = (label, value) => {
+    const text = String(value ?? '').trim();
+    if (text && text !== '—') lines.push(`${label}: ${text}`);
+  };
+  add('رقم الإعلان', item.internalRef);
+  add('النوع', item.propertyType || item.title);
+  add('الحي', item.district || item.city);
+  if (item.area) add('المساحة', `${item.area} م²`);
+  if (item.price != null && item.price !== '') add('السعر', money(item.price));
+  add('المخطط', item.planNumber);
+  add('القطعة', item.plotNumber);
+  add('الاتجاه', item.direction);
+  const maps = String(item.mapsUrl || '').trim();
+  const lat = Number(item.latitude);
+  const lng = Number(item.longitude);
+  if (/^https?:\/\//i.test(maps)) add('الموقع', maps);
+  else if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+    add('الموقع', `https://www.google.com/maps?q=${lat},${lng}`);
+  }
+  return lines.join('\n');
+}
+
 function heefLink(item) {
-  const text = `مرحبًا، أود الاستفسار عن ${item.internalRef || item.title || 'إعلان'} في ${item.district || ''}`.trim();
-  return `https://wa.me/${heefWhatsapp}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${heefWhatsapp}?text=${encodeURIComponent(heefMessage(item))}`;
 }
 
 let homeBusy = false;
