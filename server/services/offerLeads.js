@@ -70,6 +70,17 @@ function shareFacts(value) {
   return stripLinks(stripPhones(value));
 }
 
+function shareLocation(item) {
+  const maps = String(item.mapsUrl || '').trim();
+  if (/^https?:\/\//i.test(maps) && !/property\.html|\/dashboard\/|\/v\/|\/p\//i.test(maps)) return maps;
+  const lat = Number(item.latitude);
+  const lng = Number(item.longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0)) {
+    return `https://www.google.com/maps?q=${lat},${lng}`;
+  }
+  return '';
+}
+
 function shareImages(item) {
   const urls = []
     .concat(Array.isArray(item.gallery) ? item.gallery : [])
@@ -97,12 +108,14 @@ async function loadShareImages(item) {
 }
 
 function buildShareText(item) {
+  const location = shareLocation(item);
   const lines = [
     'تمت مشاركتك تفاصيل العقار 👇',
     '',
     line('نوع العقار', shareFacts(item.propertyType)),
     line('المدينة', shareFacts(item.city)),
     line('الحي', shareFacts(item.district)),
+    location ? `الموقع: ${location}` : '',
     `السعر: ${money(item.price)}`,
     line('المساحة', item.area ? `${item.area} م²` : ''),
     item.pricePerMeter ? `سعر المتر: ${money(item.pricePerMeter)}` : '',

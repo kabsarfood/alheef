@@ -23,6 +23,7 @@ const checks = [
   ['type', text.includes('نوع العقار: أرض')],
   ['city', text.includes('المدينة: الرياض')],
   ['district', text.includes('الحي: المهدية')],
+  ['location', text.includes('الموقع: https://maps.google.com/?q=24.6,46.5')],
   ['price', text.includes('السعر:')],
   ['area', text.includes('المساحة: 450 م²')],
   ['direction', text.includes('الاتجاه: شمال')],
@@ -31,7 +32,7 @@ const checks = [
   ['plot', text.includes('رقم القطعة: 88')],
   ['details', text.includes('التفاصيل:')],
   ['platform-phone', text.includes('0530792754')],
-  ['no-ad-link', !/https?:\/\//i.test(text)],
+  ['no-ad-link', !text.includes('property.html')],
   ['no-owner-phone', !text.includes('0558391249')],
 ];
 

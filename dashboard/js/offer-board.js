@@ -35,6 +35,7 @@ let scrollLockY = 0;
 let viewHold = 0;
 let viewObserver = null;
 let heefWhatsapp = '966530792754';
+let photoState = { images: [], index: 0 };
 let booted = false;
 
 function applyTypeColors() {
@@ -274,8 +275,21 @@ function bindShell() {
   document.getElementById('ob-map-expand')?.addEventListener('click', () => enterMapFullscreen());
   document.getElementById('ob-map-close')?.addEventListener('click', () => exitMapFullscreen());
   document.getElementById('ob-map-exit')?.addEventListener('click', () => exitMapFullscreen());
+  document.addEventListener('click', (event) => {
+    const photos = event.target.closest('[data-photos]');
+    if (!photos) return;
+    event.preventDefault();
+    openListingPhotos(photos.dataset.photos);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!document.getElementById('ob-photos')) return;
+    if (event.key === 'Escape') closePhotoViewer();
+    if (event.key === 'ArrowLeft') stepPhoto(1);
+    if (event.key === 'ArrowRight') stepPhoto(-1);
+  });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || !document.body.classList.contains('ob-map-fs')) return;
+    if (document.getElementById('ob-photos')) return;
     if (document.getElementById('ob-modal') || document.getElementById('ob-share-modal') || document.querySelector('.modal.active')) return;
     if (document.querySelector('#mapPanel .leaflet-popup')) return;
     exitMapFullscreen();
@@ -441,7 +455,7 @@ function popupHtml(item) {
   const style = typeStyle(item.typeKey);
   const kind = markerKind(item);
   const image = item.coverImage
-    ? `<img src="${escapeHtml(item.coverImage)}" alt="" loading="lazy">`
+    ? `<button type="button" class="ob-popup__shot" data-photos="${escapeHtml(item.id)}"><img src="${escapeHtml(item.coverImage)}" alt=""><span class="ob-popup__shot-note">عرض الصور</span></button>`
     : `<div class="ob-ph ob-ph--${kind}">${escapeHtml(item.propertyType || style.label)}</div>`;
   const rows = [
     ['النوع', item.propertyType || style.label],
@@ -603,6 +617,7 @@ function onPopupOpen(event) {
       sharePrivateListing(share);
       return;
     }
+    if (clickEvent.target.closest('[data-photos]')) return;
     const button = clickEvent.target.closest('[data-open]');
     if (!button) return;
     openDetail(button.dataset.open);
@@ -646,8 +661,8 @@ function createMarker(item) {
   marker._obSig = markerSignature(item);
   marker.bindPopup(popupHtml(item), {
     className: 'ob-leaflet-popup',
-    maxWidth: 340,
-    minWidth: 268,
+    maxWidth: 289,
+    minWidth: 228,
     autoPan: true,
     autoPanPaddingTopLeft: [58, 72],
     autoPanPaddingBottomRight: [20, 78],
@@ -871,6 +886,90 @@ async function openClientShare(propertyId) {
   });
 }
 
+function closePhotoViewer() {
+  document.getElementById('ob-photos')?.remove();
+  photoState = { images: [], index: 0 };
+}
+
+function stepPhoto(delta) {
+  if (!photoState.images.length) return;
+  const count = photoState.images.length;
+  photoState.index = (photoState.index + delta + count) % count;
+  renderPhotoViewer();
+}
+
+function renderPhotoViewer() {
+  const shell = document.getElementById('ob-photos');
+  if (!shell) return;
+  const { images, index } = photoState;
+  const many = images.length > 1;
+  shell.innerHTML = `
+    <div class="ob-photos__bar">
+      <button type="button" class="ob-photos__close" data-photo-close>إغلاق</button>
+      <span>${index + 1} من ${images.length}</span>
+    </div>
+    <img class="ob-photos__img" src="${escapeHtml(images[index])}" alt="">
+    ${many ? `<div class="ob-photos__nav">
+      <button type="button" data-photo-step="-1">السابق</button>
+      <button type="button" data-photo-step="1">التالي</button>
+    </div>` : ''}
+  `;
+}
+
+function openPhotoViewer(images, startIndex) {
+  const list = (images || []).map((url) => String(url || '').trim()).filter(Boolean);
+  if (!list.length) return;
+  photoState = { images: list, index: Math.max(0, Math.min(startIndex || 0, list.length - 1)) };
+  let shell = document.getElementById('ob-photos');
+  if (!shell) {
+    shell = document.createElement('div');
+    shell.id = 'ob-photos';
+    shell.className = 'ob-photos';
+    shell.setAttribute('role', 'dialog');
+    shell.setAttribute('aria-modal', 'true');
+    shell.setAttribute('aria-label', 'صور الإعلان');
+    document.body.appendChild(shell);
+    let startX = 0;
+    shell.addEventListener('click', (event) => {
+      if (event.target.closest('[data-photo-close]') || event.target === shell) {
+        closePhotoViewer();
+        return;
+      }
+      const step = event.target.closest('[data-photo-step]');
+      if (step) stepPhoto(Number(step.dataset.photoStep) || 0);
+    });
+    shell.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('button')) return;
+      startX = event.clientX;
+    });
+    shell.addEventListener('pointerup', (event) => {
+      if (!startX || event.target.closest('button')) return;
+      const delta = event.clientX - startX;
+      startX = 0;
+      if (Math.abs(delta) < 40) return;
+      stepPhoto(delta < 0 ? 1 : -1);
+    });
+  }
+  renderPhotoViewer();
+}
+
+async function openListingPhotos(id) {
+  let data;
+  try {
+    data = await boardRequest(`/${encodeURIComponent(id)}`);
+  } catch (error) {
+    showNote(error.message || 'تعذر فتح الصور');
+    return;
+  }
+  const item = data.item;
+  const images = (item && item.gallery && item.gallery.length) ? item.gallery : (item && item.coverImage ? [item.coverImage] : []);
+  if (!images.length) {
+    showNote('لا توجد صور لهذا الإعلان');
+    return;
+  }
+  openPhotoViewer(images, 0);
+}
+
 async function openDetail(id) {
   if (map) map.closePopup();
   let data;
@@ -887,7 +986,8 @@ async function openDetail(id) {
   }
   const old = document.getElementById('ob-modal');
   if (old) old.remove();
-  const gallery = (item.gallery || []).map((url) => `<img src="${escapeHtml(url)}" alt="" loading="lazy">`).join('');
+  const galleryImages = (item.gallery && item.gallery.length) ? item.gallery : (item.coverImage ? [item.coverImage] : []);
+  const gallery = galleryImages.map((url, index) => `<button type="button" class="ob-gallery__shot" data-gallery-index="${index}"><img src="${escapeHtml(url)}" alt=""></button>`).join('');
   const modal = document.createElement('div');
   modal.id = 'ob-modal';
   modal.className = 'ob-modal';
@@ -922,6 +1022,9 @@ async function openDetail(id) {
     `<button type="button" data-action="${action}">${label}</button>`).join('')
     + `<a class="btn btn-outline btn-sm" href="/dashboard/add-property.html?id=${encodeURIComponent(item.id)}">تعديل</a>`;
   }
+  modal.querySelectorAll('[data-gallery-index]').forEach((button) => {
+    button.addEventListener('click', () => openPhotoViewer(galleryImages, Number(button.dataset.galleryIndex) || 0));
+  });
   modal.querySelector('#ob-close').addEventListener('click', () => modal.remove());
   modal.addEventListener('click', (event) => { if (event.target === modal) modal.remove(); });
   if (ADMIN) modal.querySelectorAll('[data-action]').forEach((btn) => {
