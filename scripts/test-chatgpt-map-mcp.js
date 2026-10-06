@@ -75,8 +75,9 @@ function toolText(outcome) {
   const tool = list.payload.result.tools[0];
   assert(list.payload.result.tools.length === 1 && tool.name === 'create_alheef_map_request', 'أداة واحدة فقط');
   assert(JSON.stringify(tool.inputSchema.required) === JSON.stringify(['details', 'source_type']), 'الإلزامي details وsource_type فقط');
-  ['property_type', 'area', 'plan_number', 'plot_number', 'street_width', 'location_url', 'price', 'contact_phone', 'images', 'source_name', 'source_url', 'idempotency_key']
+  ['property_type', 'district', 'area', 'plan_number', 'plot_number', 'direction', 'street_width', 'location_url', 'price', 'price_type', 'contact_phone', 'images', 'source_name', 'source_url', 'idempotency_key']
     .forEach((key) => assert(tool.inputSchema.properties[key], `الحقل ${key} ظاهر`));
+  assert(tool.description.includes('map-submit') === false || tool.description.includes('لا تستخدم /map-submit'), 'التعليمات تمنع الرجوع إلى map-submit');
   assert(tool.inputSchema.properties.images.maxItems === 8, 'حد الصور 8');
   assert(tool.inputSchema.properties.source_type.enum[0] === 'chatgpt', 'source_type = chatgpt');
   assert(tool.description.includes('pending_approval') && tool.description.includes('الهيف ماب'), 'وصف الأداة يوضح الموافقة');
@@ -148,6 +149,7 @@ function toolText(outcome) {
         request_number: 'MAP-000099',
         request_id: 'test-request',
         status: 'pending_approval',
+        approval_notification_status: 'sent',
         idempotent: repeat,
       },
     };
@@ -164,12 +166,13 @@ function toolText(outcome) {
         details: original,
         source_type: 'chatgpt',
         property_type: 'أرض',
+        district: 'المهدية',
         area: 450,
-        plan_number: '3214',
-        plot_number: '88',
-        street_width: '20',
+        plan_number: '2566/ب',
+        plot_number: '4599',
+        direction: 'جنوب',
+        street_width: '15',
         location_url: 'https://maps.google.com/?q=24.8,46.7',
-        contact_phone: '0530792754',
         images: [TINY_PNG, 'https://cdn.example.com/photo.jpg'],
         source_name: 'ChatGPT',
         idempotency_key: 'retry-same',
@@ -179,11 +182,11 @@ function toolText(outcome) {
   const safe = created.payload.result.structuredContent;
   assert(created.payload.result.isError === false, 'الاستدعاء المصرح ينجح في الاختبار');
   assert(safe.success === true && safe.request_number === 'MAP-000099' && safe.status === 'pending_approval', 'النتيجة المنظمة فيها رقم الطلب');
-  assert(safe.message === 'تم إرسال الإعلان إلى الهيف ماب وينتظر موافقة الأدمن عبر واتساب', 'الرسالة توضح انتظار واتساب');
+  assert(safe.approval_notification_status === 'sent' && safe.message.includes('إرسال إشعار الموافقة') && !safe.message.includes('تم نشر'), 'الرسالة تؤكد واتساب فقط عند الإرسال');
   assert(toolText(created).includes('MAP-000099'), 'النص يذكر رقم الطلب');
   assert(seen[0].details === original.trim(), 'details يبقى النص الأصلي');
-  assert(seen[0].area === 450 && seen[0].plan_number === '3214' && seen[0].plot_number === '88', 'الحقول المنظمة تُمرر');
-  assert(seen[0].price == null, 'غياب السعر لا يخترع قيمة');
+  assert(seen[0].area === 450 && seen[0].plan_number === '2566/ب' && seen[0].plot_number === '4599' && seen[0].district === 'المهدية' && seen[0].direction === 'جنوب', 'الحقول المنظمة تُمرر');
+  assert(seen[0].price == null && seen[0].price_type == null && seen[0].contact_phone == null, 'غياب السعر والجوال لا يخترع قيمة');
   assert(seen[0].images.length === 2, 'الصور الصالحة تُمرر');
   assert(seen[0].idempotency_key === 'retry-same', 'idempotency_key يُمرر');
 
@@ -219,8 +222,8 @@ function toolText(outcome) {
   assert(unknown.payload.error.code === -32601, 'طرق الموافقة غير مدعومة');
 
   const parsed = { area: 100, price: 1000000, priceType: 'auction', planNumber: '1', plotNumber: '2', streetWidth: '10' };
-  const overridden = gate.applyStructuredListing({ ...parsed }, { area: 450, plan_number: '3214', plot_number: '88', street_width: '20', price: 2500000 });
-  assert(overridden.area === 450 && overridden.planNumber === '3214' && overridden.price === 2500000 && overridden.priceType === 'fixed', 'الحقل المنظم يتقدم على النص');
+  const overridden = gate.applyStructuredListing({ ...parsed }, { area: 450, plan_number: '2566/ب', plot_number: '4599', street_width: '15', district: 'المهدية', direction: 'جنوب', price: 2500000, price_type: 'fixed' });
+  assert(overridden.area === 450 && overridden.planNumber === '2566/ب' && overridden.district === 'المهدية' && overridden.direction === 'جنوب' && overridden.price === 2500000 && overridden.priceType === 'fixed', 'الحقل المنظم يتقدم على النص');
   const kept = gate.applyStructuredListing({ ...parsed }, {});
   assert(kept.area === 100 && kept.price === 1000000 && kept.priceType === 'auction', 'غياب السعر والحقول يترك الاستخراج كما هو');
 

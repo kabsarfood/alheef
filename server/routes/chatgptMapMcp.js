@@ -43,7 +43,12 @@ router.post('/mcp', async (req, res) => {
 });
 
 router.get('/mcp', (_req, res) => {
-  res.status(405).json({ success: false, message: 'موصل ChatGPT يستقبل POST فقط' });
+  res.set('Allow', 'POST');
+  res.status(405).json({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code: -32601, message: 'موصل ChatGPT يستقبل POST فقط' },
+  });
 });
 
 module.exports = router;

@@ -9,20 +9,19 @@ const MAX_IMAGE_BYTES = 512 * 1024;
 const MAX_DATA_URL_CHARS = 720000;
 const MAX_IMAGES_TOTAL_BYTES = Math.floor(3.5 * 1024 * 1024);
 const MAX_DETAILS = 8000;
-const PENDING_MESSAGE = 'تم إرسال الإعلان إلى الهيف ماب وينتظر موافقة الأدمن عبر واتساب';
-
-const TOOL_DESCRIPTION = 'استخدم هذه الأداة عندما يطلب المستخدم إضافة إعلان إلى الهيف ماب أو يكتب «الهيف ماب». استخرج بيانات الإعلان المتوفرة وأرسل الطلب فورًا إلى بوابة موافقة الهيف. هذه الأداة لا تنشر العقار مباشرة؛ تنشئ طلبًا pending_approval فقط، وتبقى الموافقة النهائية للأدمن عبر واتساب.';
+const TOOL_DESCRIPTION = 'استخدم هذه الأداة مباشرة عندما يكتب المستخدم «الهيف ماب» أو يطلب إضافة إعلان إلى الهيف ماب، سواء كان النص من المستخدم أو من موقع خارجي. استخرج البيانات الموجودة فقط ولا تخترع الناقص. الأداة تحفظ طلب pending_approval ولا تنشر. الموافقة النهائية للأدمن عبر واتساب. إذا غابت الأداة أو فشل الاتصال، اشرح العطل ولا تستخدم /map-submit ولا تطلب رابط إضافة جديد.';
 
 const OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
     success: { type: 'boolean' },
-    request_number: { type: ['string', 'null'] },
-    status: { type: ['string', 'null'] },
+    request_number: { type: 'string' },
+    status: { type: 'string' },
+    approval_notification_status: { type: 'string', description: 'sent إذا تأكد إرسال واتساب، وfailed إذا حُفظ الطلب دون تأكيد الإشعار.' },
     message: { type: 'string' },
   },
-  required: ['success', 'request_number', 'status', 'message'],
+  required: ['success', 'request_number', 'status', 'approval_notification_status', 'message'],
 };
 
 const TOOL = {
@@ -43,12 +42,15 @@ const TOOL = {
         description: 'مصدر الطلب. القيمة الوحيدة المقبولة من هذه الأداة هي chatgpt.',
       },
       property_type: { type: 'string', description: 'نوع العقار إن ذُكر، مثل فيلا أو شقة أو أرض. لا تخترعه.' },
+      district: { type: 'string', description: 'الحي إن ذُكر. لا تخترعه.' },
       area: { type: 'number', description: 'المساحة بالمتر إن ذُكرت. لا تخترعها إن غابت.' },
       plan_number: { type: 'string', description: 'رقم المخطط إن ذُكر. لا تخترعه.' },
       plot_number: { type: 'string', description: 'رقم القطعة إن ذُكر. لا تخترعه.' },
+      direction: { type: 'string', description: 'الاتجاه إن ذُكر، مثل جنوب. لا تخترعه.' },
       street_width: { type: 'string', description: 'عرض الشارع إن ذُكر. لا تخترعه.' },
-      location_url: { type: 'string', description: 'رابط خرائط Google للموقع إن وُجد. لا تخترعه.' },
-      price: { type: 'number', description: 'السعر إن ذُكر. غيابه لا يمنع الطلب ويعني على السوم.' },
+      location_url: { type: 'string', description: 'رابط الموقع كما ورد. لا تستبدله ولا تخترعه.' },
+      price: { type: 'number', description: 'السعر إن ذُكر. غيابه لا يمنع الطلب ولا يعني رقمًا مخترعًا.' },
+      price_type: { type: 'string', enum: ['fixed', 'auction'], description: 'نوع السعر إن ذُكر فقط: fixed أو auction. لا تخترعه.' },
       contact_phone: {
         type: 'string',
         description: 'جوال صاحب الإعلان إن ذُكر. يُحفظ داخليًا ولا يُعرض للعملاء بدل رقم الهيف. لا تخترعه.',
@@ -176,6 +178,8 @@ function requestFrom(args) {
   if (args.property_type != null && String(args.property_type).trim()) {
     body.property_type = String(args.property_type).trim().slice(0, 40);
   }
+  if (args.district != null && String(args.district).trim()) body.district = String(args.district).trim().slice(0, 80);
+  if (args.direction != null && String(args.direction).trim()) body.direction = String(args.direction).trim().slice(0, 80);
   if (args.area != null && args.area !== '') {
     const area = finiteNumber(args.area);
     if (area == null || area <= 0) throw fail('المساحة غير صالحة');
@@ -197,6 +201,11 @@ function requestFrom(args) {
     if (price == null || price <= 0) throw fail('السعر غير صالح');
     body.price = price;
   }
+  if (args.price_type != null && String(args.price_type).trim()) {
+    const priceType = String(args.price_type).trim().toLowerCase();
+    if (priceType !== 'fixed' && priceType !== 'auction') throw fail('نوع السعر غير صالح');
+    body.price_type = priceType;
+  }
   if (args.contact_phone != null && String(args.contact_phone).trim()) {
     const phone = String(args.contact_phone).trim();
     if (!isValidSaudiMobile(phone)) throw fail('رقم الجوال غير صالح');
@@ -215,15 +224,24 @@ function requestFrom(args) {
 }
 
 function publicToolBody(body) {
-  const status = body?.status || null;
-  const requestNumber = body?.request_number || null;
+  const requestNumber = body?.request_number || '';
+  const saved = body?.success === true && !!requestNumber;
+  const status = body?.status || '';
+  const notice = saved ? (body?.approval_notification_status || 'failed') : 'not_sent';
+  let message = 'لم يُحفظ الطلب.';
+  if (saved && notice === 'sent' && status === 'pending_approval') {
+    message = 'تم حفظ الطلب وإرسال إشعار الموافقة إلى واتساب. بانتظار موافقة الأدمن، ولم يُنشر الإعلان.';
+  } else if (saved && status === 'pending_approval') {
+    message = 'تم حفظ الطلب، ولم يتأكد إرسال إشعار واتساب. لم يُنشر الإعلان.';
+  } else if (saved) {
+    message = `الطلب ${requestNumber} مسجّل بحالة ${status}. هذه الأداة لا توافق ولا تنشر.`;
+  }
   return {
-    success: body?.success === true && !!requestNumber,
+    success: saved,
     request_number: requestNumber,
     status,
-    message: status === 'pending_approval'
-      ? PENDING_MESSAGE
-      : `الطلب ${requestNumber || ''} مسجّل بحالة ${status || 'غير معروفة'}. هذه الأداة لا توافق ولا تنشر.`,
+    approval_notification_status: notice,
+    message,
   };
 }
 
@@ -267,7 +285,7 @@ async function handleMessage(message) {
         protocolVersion: protocolOf(message.params),
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'alheef-map', version: '1.1.0' },
-        instructions: `${TOOL_DESCRIPTION} أرسل details كما كتبه المستخدم وsource_type بقيمة chatgpt. الحقول المساحة ورقم المخطط ورقم القطعة وعرض الشارع ورابط الموقع والسعر والصور والجوال اختيارية: أرسل الموجود فقط ولا تخترع المفقود. غياب السعر يعني على السوم. عند إعادة المحاولة أعد idempotency_key نفسه. لا توافق ولا تنشر ولا تطلب نموذجًا أو OTP أو جلسة أدمن.`,
+        instructions: `${TOOL_DESCRIPTION} أرسل details كما ورد وsource_type بقيمة chatgpt. الحقول الاختيارية: نوع العقار، الحي، المساحة، رقم المخطط، رقم القطعة، الاتجاه، عرض الشارع، رابط الموقع كما ورد، السعر، نوع السعر، الصور، وجوال المعلن. اترك الغائب فارغًا. أعد idempotency_key نفسه عند انقطاع الاتصال. لا توافق ولا تنشر ولا تطلب نموذجًا أو OTP أو جلسة أدمن.`,
       },
     };
   }

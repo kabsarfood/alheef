@@ -200,12 +200,23 @@ function structuredListingFields(body) {
     }
     out.area = area;
   }
-  ['plan_number', 'plot_number', 'street_width'].forEach((key) => {
+  ['plan_number', 'plot_number', 'street_width', 'district', 'direction'].forEach((key) => {
     if (body?.[key] == null || body[key] === '') return;
     const text = String(body[key]).trim();
     if (!text) return;
     out[key] = text.slice(0, 80);
   });
+  if (body?.price_type != null && body.price_type !== '') {
+    const priceType = String(body.price_type).trim().toLowerCase();
+    const auction = priceType === 'auction' || priceType === 'سوم' || priceType === 'على السوم';
+    const fixed = priceType === 'fixed' || priceType === 'ثابت';
+    if (!auction && !fixed) {
+      const error = new Error('نوع السعر غير صالح');
+      error.status = 400;
+      throw error;
+    }
+    out.price_type = auction ? 'auction' : 'fixed';
+  }
   if (body?.price != null && body.price !== '') {
     const price = finiteNumber(body.price);
     if (price == null || price <= 0) {
@@ -224,10 +235,11 @@ function applyStructuredListing(body, payload) {
   if (payload.plan_number) body.planNumber = String(payload.plan_number);
   if (payload.plot_number) body.plotNumber = String(payload.plot_number);
   if (payload.street_width) body.streetWidth = String(payload.street_width);
-  if (payload.price != null && payload.price !== '') {
-    body.price = Number(payload.price);
-    body.priceType = 'fixed';
-  }
+  if (payload.district) body.district = String(payload.district);
+  if (payload.direction) body.direction = String(payload.direction);
+  if (payload.price != null && payload.price !== '') body.price = Number(payload.price);
+  if (payload.price_type) body.priceType = payload.price_type;
+  else if (payload.price != null && payload.price !== '') body.priceType = 'fixed';
   return body;
 }
 
@@ -556,6 +568,36 @@ async function propertyLink(propertyId) {
   };
 }
 
+async function approvalAlreadySent(row) {
+  if (!row?.id) return false;
+  const { data, error } = await getAdmin()
+    .from('map_publish_audit')
+    .select('event')
+    .eq('request_id', row.id)
+    .in('event', ['whatsapp_approval', 'whatsapp_approval_resend'])
+    .limit(1);
+  if (error) return false;
+  return (data || []).length > 0;
+}
+
+async function withApprovalNotice(status, row, extra = {}) {
+  const linked = extra.internalRef || extra.propertyUrl || extra.property
+    ? extra
+    : { ...extra, ...(await propertyLink(row?.published_property_id)) };
+  let notice = 'not_sent';
+  if (row?.status === 'pending_approval' && !row.published_property_id) {
+    if (await approvalAlreadySent(row)) notice = 'sent';
+    else {
+      const again = await resendPendingApproval(row.request_number);
+      notice = again.ok ? 'sent' : 'failed';
+    }
+  } else if (await approvalAlreadySent(row)) notice = 'sent';
+  return {
+    status,
+    body: { ...publicRequest(row, linked), approval_notification_status: notice },
+  };
+}
+
 async function createRequest(body) {
   cleanupExpiredStaging().catch(() => {});
   if (!isEnabled()) {
@@ -604,20 +646,13 @@ async function createRequest(body) {
 
   if (idempotencyKey) {
     const { data } = await getAdmin().from('map_publish_requests').select('*').eq('idempotency_key', idempotencyKey).limit(1);
-    if (data?.[0]) {
-      const linked = await propertyLink(data[0].published_property_id);
-      return { status: 200, body: publicRequest(data[0], { idempotent: true, ...linked }) };
-    }
+    if (data?.[0]) return withApprovalNotice(200, data[0], { idempotent: true });
   }
 
   const existing = await findActiveByHash(payloadHash);
   if (existing) {
-    const linked = await propertyLink(existing.published_property_id);
     await audit(existing, 'duplicate', { payload_hash: payloadHash });
-    return {
-      status: 200,
-      body: publicRequest(existing, { duplicate: true, ...linked }),
-    };
+    return withApprovalNotice(200, existing, { duplicate: true });
   }
 
   const approveCode = shortCode();
@@ -645,13 +680,13 @@ async function createRequest(body) {
     }
     if (/payload_hash|idx_map_publish_hash_active/i.test(error.message || '')) {
       const raced = await findActiveByHash(payloadHash);
-      if (raced) return { status: 200, body: publicRequest(raced, { duplicate: true }) };
+      if (raced) return withApprovalNotice(200, raced, { duplicate: true });
     }
     if (idempotencyKey && /idempotency|idx_map_publish_idempotency/i.test(error.message || '')) {
       const again = await getAdmin().from('map_publish_requests').select('*').eq('idempotency_key', idempotencyKey).limit(1);
       if (again.data?.[0]) {
         const linked = await propertyLink(again.data[0].published_property_id);
-        return { status: 200, body: publicRequest(again.data[0], { idempotent: true, ...linked }) };
+        return withApprovalNotice(200, again.data[0], { idempotent: true, ...linked });
       }
     }
     if (!/duplicate|unique/i.test(error.message || '') || attempt === 3) throw new Error(error.message);
@@ -664,16 +699,23 @@ async function createRequest(body) {
     external_reference: created.external_reference,
     payload_hash: payloadHash,
   });
+  let notice = 'failed';
   try {
     const sent = await withDeadline(
       notify(created, approvalMessage(created, { approve: approveCode, reject: rejectCode }), 'whatsapp_approval'),
       12000,
     );
+    notice = sent?.ok ? 'sent' : 'failed';
     await audit(created, 'whatsapp_approval_result', { ok: !!sent?.ok });
   } catch (error) {
+    notice = 'failed';
     await audit(created, 'whatsapp_approval_failed', { reason: safeReason(error) });
   }
-  return { status: 201, body: publicRequest(created) };
+  if (notice !== 'sent') {
+    const again = await resendPendingApproval(created.request_number);
+    if (again.ok) notice = 'sent';
+  }
+  return { status: 201, body: { ...publicRequest(created), approval_notification_status: notice } };
 }
 
 async function getRequest(id) {
@@ -769,6 +811,7 @@ async function finishPublish(row) {
     if (explicit) prepared.body.propertyType = explicit;
     prepared.body.description = payload.details;
     applyStructuredListing(prepared.body, payload);
+    prepared.body.contactPhone = adminPhone();
     const duplicate = await offerBoard.findConfirmedDuplicate({
       referenceNo: prepared.body.referenceNo || prepared.body.licenseNumber,
       source: prepared.body.source,
