@@ -182,14 +182,64 @@ function safeReason(error) {
   return text.slice(0, 180);
 }
 
+function finiteNumber(value) {
+  if (value == null || value === '') return undefined;
+  const n = Number(String(value).replace(/,/g, '').trim());
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
+function structuredListingFields(body) {
+  const out = {};
+  if (body?.area != null && body.area !== '') {
+    const area = finiteNumber(body.area);
+    if (area == null || area <= 0) {
+      const error = new Error('المساحة غير صالحة');
+      error.status = 400;
+      throw error;
+    }
+    out.area = area;
+  }
+  ['plan_number', 'plot_number', 'street_width'].forEach((key) => {
+    if (body?.[key] == null || body[key] === '') return;
+    const text = String(body[key]).trim();
+    if (!text) return;
+    out[key] = text.slice(0, 80);
+  });
+  if (body?.price != null && body.price !== '') {
+    const price = finiteNumber(body.price);
+    if (price == null || price <= 0) {
+      const error = new Error('السعر غير صالح');
+      error.status = 400;
+      throw error;
+    }
+    out.price = price;
+  }
+  return out;
+}
+
+function applyStructuredListing(body, payload) {
+  if (!body || !payload) return body;
+  if (payload.area != null && payload.area !== '') body.area = Number(payload.area);
+  if (payload.plan_number) body.planNumber = String(payload.plan_number);
+  if (payload.plot_number) body.plotNumber = String(payload.plot_number);
+  if (payload.street_width) body.streetWidth = String(payload.street_width);
+  if (payload.price != null && payload.price !== '') {
+    body.price = Number(payload.price);
+    body.priceType = 'fixed';
+  }
+  return body;
+}
+
 function summaryFrom(payload) {
   const parsed = parseListingPaste(payload.details || '');
+  const listed = applyStructuredListing({ area: parsed.area, price: parsed.price, priceType: parsed.priceType }, payload);
   return {
     propertyType: normalizePropertyType(payload.property_type || '') || parsed.propertyType || 'عقار',
     district: parsed.district || '',
-    area: parsed.area,
-    price: parsed.price,
-    priceType: parsed.priceType,
+    area: listed.area,
+    price: listed.price,
+    priceType: listed.priceType,
     imageCount: (payload.images || []).length,
   };
 }
@@ -547,6 +597,7 @@ async function createRequest(body) {
     source_url: sourceUrl,
     external_reference: String(body?.external_reference || '').trim(),
     images,
+    ...structuredListingFields(body),
   };
   const payloadHash = fingerprint(payload);
   const idempotencyKey = String(body?.idempotency_key || '').trim();
@@ -717,6 +768,7 @@ async function finishPublish(row) {
     const explicit = normalizePropertyType(payload.property_type || '');
     if (explicit) prepared.body.propertyType = explicit;
     prepared.body.description = payload.details;
+    applyStructuredListing(prepared.body, payload);
     const duplicate = await offerBoard.findConfirmedDuplicate({
       referenceNo: prepared.body.referenceNo || prepared.body.licenseNumber,
       source: prepared.body.source,
@@ -1335,6 +1387,8 @@ module.exports = {
   setWhatsAppSender,
   rateLimiter,
   fingerprint,
+  structuredListingFields,
+  applyStructuredListing,
   safeReason,
   hooks,
   adminPhone,

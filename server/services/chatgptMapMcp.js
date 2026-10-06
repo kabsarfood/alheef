@@ -1,37 +1,74 @@
 const gate = require('./mapApproval');
+const { isValidSaudiMobile } = require('../utils/phone');
 
-const PROTOCOL_VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-06-18']);
+const PROTOCOL_VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-06-18', '2025-11-25']);
 const DEFAULT_PROTOCOL = '2025-03-26';
 const TOOL_NAME = 'create_alheef_map_request';
+const MAX_IMAGES = 8;
+const MAX_IMAGE_BYTES = 512 * 1024;
+const MAX_DATA_URL_CHARS = 720000;
+const MAX_IMAGES_TOTAL_BYTES = Math.floor(3.5 * 1024 * 1024);
+const MAX_DETAILS = 8000;
+const PENDING_MESSAGE = 'تم إرسال الإعلان إلى الهيف ماب وينتظر موافقة الأدمن عبر واتساب';
+
+const TOOL_DESCRIPTION = 'استخدم هذه الأداة عندما يطلب المستخدم إضافة إعلان إلى الهيف ماب أو يكتب «الهيف ماب». استخرج بيانات الإعلان المتوفرة وأرسل الطلب فورًا إلى بوابة موافقة الهيف. هذه الأداة لا تنشر العقار مباشرة؛ تنشئ طلبًا pending_approval فقط، وتبقى الموافقة النهائية للأدمن عبر واتساب.';
+
+const OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    success: { type: 'boolean' },
+    request_number: { type: ['string', 'null'] },
+    status: { type: ['string', 'null'] },
+    message: { type: 'string' },
+  },
+  required: ['success', 'request_number', 'status', 'message'],
+};
 
 const TOOL = {
   name: TOOL_NAME,
   title: 'إنشاء طلب خريطة الهيف',
-  description: 'ينشئ طلب إضافة عقار إلى خريطة الهيف بحالة pending_approval فقط. لا يوافق على الطلب، ولا ينشر إعلانًا، ولا يمنح جلسة أدمن. استخدم source_type بقيمة chatgpt عندما يأتي الطلب من المحادثة.',
+  description: TOOL_DESCRIPTION,
   inputSchema: {
     type: 'object',
     additionalProperties: false,
     properties: {
-      property_type: { type: 'string', description: 'نوع العقار، مثل فيلا أو شقة أو أرض.' },
-      details: { type: 'string', description: 'نص الإعلان كما كتبه المستخدم.' },
-      location_url: { type: 'string', description: 'رابط خرائط الموقع إن وُجد.' },
-      contact_phone: { type: 'string', description: 'جوال التواصل السعودي إن وُجد.' },
+      details: {
+        type: 'string',
+        description: 'النص الأصلي للإعلان كاملًا كما كتبه المستخدم. لا تختصره ولا تخترع ما ينقصه.',
+      },
       source_type: {
         type: 'string',
-        enum: [...gate.SOURCES],
-        description: 'مصدر الطلب. استخدم chatgpt لمحادثة ChatGPT.',
+        enum: ['chatgpt'],
+        description: 'مصدر الطلب. القيمة الوحيدة المقبولة من هذه الأداة هي chatgpt.',
       },
-      source_name: { type: 'string', description: 'اسم المصدر الظاهر للأدمن.' },
-      source_url: { type: 'string', description: 'رابط HTTPS عام لصفحة المصدر إن وُجد.' },
+      property_type: { type: 'string', description: 'نوع العقار إن ذُكر، مثل فيلا أو شقة أو أرض. لا تخترعه.' },
+      area: { type: 'number', description: 'المساحة بالمتر إن ذُكرت. لا تخترعها إن غابت.' },
+      plan_number: { type: 'string', description: 'رقم المخطط إن ذُكر. لا تخترعه.' },
+      plot_number: { type: 'string', description: 'رقم القطعة إن ذُكر. لا تخترعه.' },
+      street_width: { type: 'string', description: 'عرض الشارع إن ذُكر. لا تخترعه.' },
+      location_url: { type: 'string', description: 'رابط خرائط Google للموقع إن وُجد. لا تخترعه.' },
+      price: { type: 'number', description: 'السعر إن ذُكر. غيابه لا يمنع الطلب ويعني على السوم.' },
+      contact_phone: {
+        type: 'string',
+        description: 'جوال صاحب الإعلان إن ذُكر. يُحفظ داخليًا ولا يُعرض للعملاء بدل رقم الهيف. لا تخترعه.',
+      },
       images: {
         type: 'array',
-        maxItems: 8,
+        maxItems: MAX_IMAGES,
         items: { type: 'string' },
-        description: 'حتى 8 صور، كل عنصر رابط https عام أو data URL لصورة.',
+        description: 'حتى 8 صور. كل عنصر رابط https عام، أو data URL بصيغة jpeg أو png أو webp وبحد 512 ك.ب للصورة. فشل صورة واحدة يرفض الطلب كاملًا.',
+      },
+      source_name: { type: 'string', description: 'اسم المصدر الظاهر للأدمن. استخدم ChatGPT.' },
+      source_url: { type: 'string', description: 'رابط HTTPS عام لصفحة المصدر إن وُجد.' },
+      idempotency_key: {
+        type: 'string',
+        description: 'مفتاح اختياري ثابت لنفس الإعلان. أعد إرساله عند انقطاع الاتصال حتى لا يُنشأ طلب ثانٍ.',
       },
     },
     required: ['details', 'source_type'],
   },
+  outputSchema: OUTPUT_SCHEMA,
   annotations: {
     readOnlyHint: false,
     destructiveHint: false,
@@ -58,44 +95,150 @@ function argumentsOf(params) {
   return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
 }
 
+function fail(text) {
+  const error = new Error(text);
+  error.status = 400;
+  return error;
+}
+
+function isPublicHttps(value) {
+  try {
+    const url = new URL(String(value || ''));
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    if (!host || host === 'localhost' || host.endsWith('.local') || host === '0.0.0.0') return false;
+    if (/^(127\.|10\.|192\.168\.|169\.254\.)/.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function finiteNumber(value) {
+  if (value == null || value === '') return undefined;
+  const n = Number(String(value).replace(/,/g, '').trim());
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
+function imageKindOf(buffer) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
+  if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'png';
+  if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return '';
+}
+
+function checkImages(images) {
+  if (images == null) return [];
+  if (!Array.isArray(images)) throw fail('حقل الصور يجب أن يكون قائمة');
+  if (images.length > MAX_IMAGES) throw fail(`الحد الأقصى ${MAX_IMAGES} صور`);
+  let total = 0;
+  const clean = [];
+  images.forEach((item, index) => {
+    const label = `الصورة ${index + 1}`;
+    const text = String(item || '').trim();
+    if (!text) throw fail(`${label} فارغة. أصلح الصور ثم أعد الإرسال؛ لن يُنشأ طلب ناقص`);
+    if (text.startsWith('data:')) {
+      if (text.length > MAX_DATA_URL_CHARS) {
+        throw fail(`${label} تتجاوز 512 ك.ب. أرسل رابط https أو صورة أصغر`);
+      }
+      const match = text.match(/^data:image\/(?:jpeg|jpg|png|webp);base64,([a-z0-9+/=\s]+)$/i);
+      if (!match) throw fail(`${label} يجب أن تكون jpeg أو png أو webp`);
+      const buffer = Buffer.from(match[1].replace(/\s/g, ''), 'base64');
+      if (!buffer.length || !imageKindOf(buffer)) throw fail(`${label} غير صالحة`);
+      if (buffer.length > MAX_IMAGE_BYTES) throw fail(`${label} تتجاوز 512 ك.ب. أرسل رابط https أو صورة أصغر`);
+      total += buffer.length;
+      if (total > MAX_IMAGES_TOTAL_BYTES) throw fail('مجموع الصور يتجاوز الحد. أرسل روابط https أو صورًا أصغر');
+      clean.push(text);
+      return;
+    }
+    if (text.length > 2000 || !isPublicHttps(text)) throw fail(`${label}: رابط الصورة غير مسموح. استخدم https عامًا`);
+    clean.push(text);
+  });
+  return clean;
+}
+
 function requestFrom(args) {
-  return {
-    property_type: args.property_type,
-    details: args.details,
-    location_url: args.location_url,
-    contact_phone: args.contact_phone,
-    source_type: args.source_type,
-    source_name: args.source_name,
-    source_url: args.source_url,
-    images: args.images,
+  const details = String(args.details || '');
+  const trimmed = details.trim();
+  if (!trimmed) throw fail('تفاصيل الإعلان مطلوبة');
+  if (trimmed.length > MAX_DETAILS) throw fail('نص الإعلان يتجاوز الحد');
+  const sourceType = String(args.source_type || '').trim().toLowerCase();
+  if (sourceType !== 'chatgpt') throw fail('مصدر هذه الأداة يجب أن يكون chatgpt');
+
+  const body = {
+    details: trimmed,
+    source_type: 'chatgpt',
+    source_name: String(args.source_name || 'ChatGPT').trim().slice(0, 120) || 'ChatGPT',
   };
+
+  if (args.property_type != null && String(args.property_type).trim()) {
+    body.property_type = String(args.property_type).trim().slice(0, 40);
+  }
+  if (args.area != null && args.area !== '') {
+    const area = finiteNumber(args.area);
+    if (area == null || area <= 0) throw fail('المساحة غير صالحة');
+    body.area = area;
+  }
+  ['plan_number', 'plot_number', 'street_width'].forEach((key) => {
+    if (args[key] == null || args[key] === '') return;
+    const text = String(args[key]).trim();
+    if (!text) return;
+    body[key] = text.slice(0, 80);
+  });
+  if (args.location_url != null && String(args.location_url).trim()) {
+    const location = String(args.location_url).trim();
+    if (location.length > 2000 || !/^https:\/\//i.test(location)) throw fail('رابط الموقع يجب أن يكون https');
+    body.location_url = location;
+  }
+  if (args.price != null && args.price !== '') {
+    const price = finiteNumber(args.price);
+    if (price == null || price <= 0) throw fail('السعر غير صالح');
+    body.price = price;
+  }
+  if (args.contact_phone != null && String(args.contact_phone).trim()) {
+    const phone = String(args.contact_phone).trim();
+    if (!isValidSaudiMobile(phone)) throw fail('رقم الجوال غير صالح');
+    body.contact_phone = phone;
+  }
+  if (args.source_url != null && String(args.source_url).trim()) {
+    const sourceUrl = String(args.source_url).trim();
+    if (!isPublicHttps(sourceUrl)) throw fail('رابط المصدر غير مسموح');
+    body.source_url = sourceUrl;
+  }
+  if (args.idempotency_key != null && String(args.idempotency_key).trim()) {
+    body.idempotency_key = String(args.idempotency_key).trim().slice(0, 200);
+  }
+  body.images = checkImages(args.images);
+  return body;
 }
 
 function publicToolBody(body) {
   const status = body?.status || null;
+  const requestNumber = body?.request_number || null;
   return {
-    success: body?.success === true,
-    request_number: body?.request_number || null,
-    request_id: body?.request_id || null,
+    success: body?.success === true && !!requestNumber,
+    request_number: requestNumber,
     status,
-    duplicate: body?.duplicate === true,
-    idempotent: body?.idempotent === true,
     message: status === 'pending_approval'
-      ? 'تم حفظ الطلب بانتظار موافقة الأدمن. هذه الأداة لا توافق ولا تنشر.'
-      : 'لم تُنفَّذ موافقة أو نشر من هذه الأداة.',
+      ? PENDING_MESSAGE
+      : `الطلب ${requestNumber || ''} مسجّل بحالة ${status || 'غير معروفة'}. هذه الأداة لا توافق ولا تنشر.`,
   };
 }
 
 async function callTool(params) {
   if (params?.name !== TOOL_NAME) {
-    return { isError: true, text: 'الأداة غير متاحة' };
+    return { isError: true, text: 'الأداة غير متاحة. هذه الأداة لا توافق ولا ترفض ولا تنشر.' };
   }
-  const args = argumentsOf(params);
-  if (args.images != null && !Array.isArray(args.images)) {
-    return { isError: true, text: 'حقل الصور يجب أن يكون قائمة' };
+  let request;
+  try {
+    request = requestFrom(argumentsOf(params));
+  } catch (error) {
+    return { isError: true, text: gate.safeReason(error) };
   }
   try {
-    const outcome = await gate.createRequest(requestFrom(args));
+    const outcome = await gate.createRequest(request);
     const safe = publicToolBody(outcome.body);
     console.info(JSON.stringify({
       scope: 'chatgpt-map-tool',
@@ -103,9 +246,10 @@ async function callTool(params) {
       tool: TOOL_NAME,
       status: safe.status,
       requestNumber: safe.request_number,
-      duplicate: safe.duplicate,
+      duplicate: outcome.body?.duplicate === true,
+      idempotent: outcome.body?.idempotent === true,
     }));
-    return { isError: false, text: JSON.stringify(safe) };
+    return { isError: false, text: JSON.stringify(safe), structured: safe };
   } catch (error) {
     const status = error.status || 500;
     return { isError: true, text: status === 500 ? 'تعذر استقبال الطلب' : gate.safeReason(error) };
@@ -122,8 +266,8 @@ async function handleMessage(message) {
       result: {
         protocolVersion: protocolOf(message.params),
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'alheef-map', version: '1.0.0' },
-        instructions: 'أداة create_alheef_map_request تنشئ طلب موافقة فقط. لا تستخدمها للموافقة أو النشر.',
+        serverInfo: { name: 'alheef-map', version: '1.1.0' },
+        instructions: `${TOOL_DESCRIPTION} أرسل details كما كتبه المستخدم وsource_type بقيمة chatgpt. الحقول المساحة ورقم المخطط ورقم القطعة وعرض الشارع ورابط الموقع والسعر والصور والجوال اختيارية: أرسل الموجود فقط ولا تخترع المفقود. غياب السعر يعني على السوم. عند إعادة المحاولة أعد idempotency_key نفسه. لا توافق ولا تنشر ولا تطلب نموذجًا أو OTP أو جلسة أدمن.`,
       },
     };
   }
@@ -131,13 +275,12 @@ async function handleMessage(message) {
   if (method === 'tools/list') return { id, result: { tools: [TOOL] } };
   if (method === 'tools/call') {
     const called = await callTool(message.params || {});
-    return {
-      id,
-      result: {
-        content: [{ type: 'text', text: called.text }],
-        isError: called.isError,
-      },
+    const result = {
+      content: [{ type: 'text', text: called.text }],
+      isError: called.isError,
     };
+    if (!called.isError && called.structured) result.structuredContent = called.structured;
+    return { id, result };
   }
   return { id, error: { code: -32601, message: 'الطريقة غير مدعومة' } };
 }
@@ -160,5 +303,8 @@ async function handleRpc(body) {
 
 module.exports = {
   TOOL_NAME,
+  TOOL,
+  MAX_IMAGES,
+  MAX_IMAGE_BYTES,
   handleRpc,
 };
