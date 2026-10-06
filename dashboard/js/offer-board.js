@@ -439,7 +439,10 @@ function legendMarkup() {
 
 function popupHtml(item) {
   const style = typeStyle(item.typeKey);
-  const image = item.coverImage ? `<img src="${escapeHtml(item.coverImage)}" alt="" loading="lazy">` : '';
+  const kind = markerKind(item);
+  const image = item.coverImage
+    ? `<img src="${escapeHtml(item.coverImage)}" alt="" loading="lazy">`
+    : `<div class="ob-ph ob-ph--${kind}">${escapeHtml(item.propertyType || style.label)}</div>`;
   const rows = [
     ['النوع', item.propertyType || style.label],
     ['الحي', item.district || item.city || '—'],
@@ -450,11 +453,16 @@ function popupHtml(item) {
   ].filter(Boolean);
   const lines = rows.map(([label, value]) =>
     `<p class="ob-popup__line"><span>${label}</span><strong>${escapeHtml(value)}</strong></p>`).join('');
-  return `<div class="ob-popup ob-popup--card">${image}
-    <span class="ob-badge-type" data-kind="${markerKind(item)}">${escapeHtml(item.propertyType || style.label)}</span>
-    ${homeBadge(item)}
-    ${lines}
-    <div class="ob-actions">${adminChoiceButtons(item)}${clientShareButton(item)}<button type="button" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${ADMIN ? '' : `<a href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}</div>
+  const heef = ADMIN ? '' : `<a class="ob-popup__btn ob-popup__btn--light" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`;
+  return `<div class="ob-popup ob-popup--card">
+    <div class="ob-popup__media">${image}<span class="ob-badge-type" data-kind="${kind}">${escapeHtml(item.propertyType || style.label)}</span></div>
+    <div class="ob-popup__body">
+      <div class="ob-popup__title">${escapeHtml(item.title || item.district || style.label)}</div>
+      ${item.internalRef ? `<div class="ob-popup__ref" dir="ltr">${escapeHtml(item.internalRef)}</div>` : ''}
+      ${homeBadge(item)}
+      <div class="ob-popup__facts">${lines}</div>
+    </div>
+    <div class="ob-actions ob-popup__actions">${adminChoiceButtons(item)}${clientShareButton(item)}<button type="button" class="ob-popup__btn ob-popup__btn--dark" data-open="${escapeHtml(item.id)}">عرض التفاصيل</button>${heef}</div>
   </div>`;
 }
 
@@ -638,8 +646,8 @@ function createMarker(item) {
   marker._obSig = markerSignature(item);
   marker.bindPopup(popupHtml(item), {
     className: 'ob-leaflet-popup',
-    maxWidth: 280,
-    minWidth: 210,
+    maxWidth: 340,
+    minWidth: 268,
     autoPan: true,
     autoPanPaddingTopLeft: [58, 72],
     autoPanPaddingBottomRight: [20, 78],
