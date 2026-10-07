@@ -952,7 +952,9 @@ function decisionPage(outcome) {
   const link = body.property_url && body.property_status === 'published'
     ? `<p><a href="${escapeHtml(body.property_url)}">فتح الإعلان</a></p>`
     : '';
-  return { status: outcome.status, html: mobileShell('نتيجة القرار', `<h1>${escapeHtml(message)}</h1>${link}`) };
+  const home = `${publicBase()}/`;
+  const goHome = `<script>setTimeout(function(){location.replace(${JSON.stringify(home)});},2000);</script>`;
+  return { status: outcome.status, html: mobileShell('نتيجة القرار', `<h1>${escapeHtml(message)}</h1>${link}${goHome}`) };
 }
 
 async function applyDecision(row, action, actor) {
