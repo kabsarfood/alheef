@@ -178,11 +178,12 @@ function pageHtml(choice, state) {
   const spec = CHOICES[choice] || CHOICES.yes;
   const waiting = state === 'confirm';
   const label = waiting ? spec.label : spec.done;
+  const home = `${publicBase()}/`;
   const button = waiting
     ? `<form method="post"><button type="submit" class="go">${spec.label}</button></form><script>
 (function(){var f=document.querySelector('form');var b=f.querySelector('button');var sent=false;b.addEventListener('pointerdown',function(){b.classList.add('pressed');});f.addEventListener('submit',function(e){if(sent){e.preventDefault();return;}sent=true;b.textContent=${JSON.stringify(spec.wait)};});})();
 </script>`
-    : `<p class="done">${spec.done}</p>`;
+    : `<p class="done">${spec.done}</p><script>setTimeout(function(){location.replace(${JSON.stringify(home)});},2000);</script>`;
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${spec.title}</title><style>
 *{box-sizing:border-box}body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:#f3f6f1;color:#142016;font-family:Tahoma,"Segoe UI",sans-serif;text-align:center}
 main{width:min(100%,26rem)}h1{font-size:1.55rem;line-height:1.45;margin:0 0 1rem}button,.done{width:100%;min-height:5rem;border:0;border-radius:1.1rem;font:inherit;font-size:1.45rem;font-weight:800}
