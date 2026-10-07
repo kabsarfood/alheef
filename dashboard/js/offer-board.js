@@ -120,6 +120,13 @@ else document.addEventListener('DOMContentLoaded', boot);
 function renderShell() {
   const chips = TYPES.map((item) =>
     `<button type="button" class="ob-chip" data-type="${item.key}">${item.label}</button>`).join('');
+  const sortSelect = `<select id="ob-sort" class="ob-sort">
+            <option value="latest">الأحدث أولًا</option>
+            <option value="priceAsc">السعر: الأقل</option>
+            <option value="priceDesc">السعر: الأعلى</option>
+            <option value="areaDesc">المساحة: الأكبر</option>
+          </select>`;
+  const typeRow = `<div class="ob-search-tools"><div class="ob-chips" id="ob-filters">${chips}</div>${sortSelect}</div>`;
   getPageContent().innerHTML = `
     <div class="ob-fit">
     <section class="ob-studio">
@@ -150,6 +157,7 @@ function renderShell() {
             <option value="over450">أكثر من 450 م²</option>
           </select>
           <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>`}
+          ${PRIVATE ? typeRow : ''}
         </div>
       </section>
       <div class="ob-view-switch">
@@ -160,16 +168,11 @@ function renderShell() {
         </div>
       </div>
       <div class="ob-toolbar">
-        <div class="ob-chips" id="ob-filters">${chips}</div>
+        ${PRIVATE ? '' : `<div class="ob-chips" id="ob-filters">${chips}</div>`}
         <div class="ob-toolbar__side">
           ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
           <span class="ob-count"><b id="ob-count">0</b> عروض مطابقة</span>
-          <select id="ob-sort" class="ob-sort">
-            <option value="latest">الأحدث أولًا</option>
-            <option value="priceAsc">السعر: الأقل</option>
-            <option value="priceDesc">السعر: الأعلى</option>
-            <option value="areaDesc">المساحة: الأكبر</option>
-          </select>
+          ${PRIVATE ? '' : sortSelect}
         </div>
       </div>
       <p class="ob-note" id="ob-note" hidden></p>
