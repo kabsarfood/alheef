@@ -6,6 +6,7 @@ const { createRateLimiter } = require('../utils/rateLimit');
 
 const CODE_BYTES = 32;
 const TTL_MS = 24 * 60 * 60 * 1000;
+const OPEN_UNTIL = '2099-01-01T00:00:00.000Z';
 const MAX_IMAGES = 6;
 const TYPES = new Set(['أرض', 'فيلا', 'شقة', 'عمارة']);
 const CODE_RE = /^[A-Za-z0-9_-]{43}$/;
@@ -45,28 +46,41 @@ function logLink(linkId, result) {
   }));
 }
 
-async function createSubmitLink() {
+async function insertSubmitLink({ reusable, expiresAt }) {
   const code = crypto.randomBytes(CODE_BYTES).toString('base64url');
-  const expiresAt = new Date(Date.now() + TTL_MS).toISOString();
   const { data, error } = await getAdmin().from('map_submit_links').insert({
     code_hash: hashCode(code),
     status: 'new',
+    reusable: !!reusable,
     expires_at: expiresAt,
-  }).select('id,status,created_at,expires_at').single();
+  }).select('id,status,created_at,expires_at,reusable').single();
   if (error) throw new Error(error.message);
   await gateAudit(data.id, 'submit_link_created');
   logLink(data.id, 'created');
   return {
     status: 201,
+    code,
     body: {
       success: true,
       id: data.id,
       url: `${publicBase()}/map-submit/${code}`,
       status: 'new',
+      reusable: !!data.reusable,
       createdAt: data.created_at,
       expiresAt: data.expires_at,
     },
   };
+}
+
+async function createSubmitLink() {
+  return insertSubmitLink({
+    reusable: false,
+    expiresAt: new Date(Date.now() + TTL_MS).toISOString(),
+  });
+}
+
+async function createOpenSubmitLink() {
+  return insertSubmitLink({ reusable: true, expiresAt: OPEN_UNTIL });
 }
 
 async function gateAudit(linkId, event) {
@@ -83,12 +97,13 @@ async function gateAudit(linkId, event) {
 }
 
 function viewOf(row, requestNumber) {
-  const expired = row.status === 'new' && new Date(row.expires_at).getTime() <= Date.now();
+  const expired = !row.reusable && row.status === 'new' && new Date(row.expires_at).getTime() <= Date.now();
   return {
     id: row.id,
     status: expired ? 'expired' : row.status,
     createdAt: row.created_at,
-    expiresAt: row.expires_at,
+    expiresAt: row.reusable ? null : row.expires_at,
+    reusable: !!row.reusable,
     usedAt: row.used_at,
     cancelledAt: row.cancelled_at,
     requestNumber: requestNumber || null,
@@ -98,7 +113,7 @@ function viewOf(row, requestNumber) {
 async function listSubmitLinks() {
   const { data, error } = await getAdmin()
     .from('map_submit_links')
-    .select('id,status,created_at,expires_at,used_at,cancelled_at,request_id')
+    .select('id,status,created_at,expires_at,used_at,cancelled_at,request_id,reusable')
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) throw new Error(error.message);
@@ -108,7 +123,7 @@ async function listSubmitLinks() {
     const found = await getAdmin().from('map_publish_requests').select('id,request_number').in('id', ids);
     (found.data || []).forEach((row) => numbers.set(row.id, row.request_number));
   }
-  const stale = (data || []).filter((row) => row.status === 'new' && new Date(row.expires_at).getTime() <= Date.now());
+  const stale = (data || []).filter((row) => !row.reusable && row.status === 'new' && new Date(row.expires_at).getTime() <= Date.now());
   if (stale.length) {
     await getAdmin().from('map_submit_links').update({ status: 'expired' }).in('id', stale.map((row) => row.id)).eq('status', 'new');
   }
@@ -136,14 +151,14 @@ async function loadLink(code) {
   if (!CODE_RE.test(String(code || ''))) return { state: 'missing' };
   const { data, error } = await getAdmin()
     .from('map_submit_links')
-    .select('id,status,expires_at,request_id,code_hash')
+    .select('id,status,expires_at,request_id,code_hash,reusable')
     .eq('code_hash', hashCode(code))
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return { state: 'missing' };
   if (data.status === 'cancelled') return { state: 'cancelled', row: data };
   if (data.status === 'used') return { state: 'used', row: data };
-  if (data.status !== 'new' || new Date(data.expires_at).getTime() <= Date.now()) {
+  if (data.status !== 'new' || (!data.reusable && new Date(data.expires_at).getTime() <= Date.now())) {
     await getAdmin().from('map_submit_links').update({ status: 'expired' }).eq('id', data.id).eq('status', 'new');
     return { state: 'expired', row: data };
   }
@@ -157,7 +172,7 @@ function messageFor(state) {
   return 'الرابط غير صالح.';
 }
 
-function pageHtml(state, code) {
+function pageHtml(state, code, reusable) {
   if (state !== 'new') {
     return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>رابط الإضافة</title></head><body style="font-family:sans-serif;padding:1.5rem;line-height:1.8"><p>${messageFor(state)}</p></body></html>`;
   }
@@ -167,7 +182,8 @@ function pageHtml(state, code) {
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>إرسال إعلان للموافقة</title></head><body style="font-family:sans-serif;padding:1rem;line-height:1.7;max-width:40rem;margin:auto">
 <h1 style="font-size:1.3rem">إرسال إعلان إلى خريطة الهيف</h1>
 <p>يُرسل الطلب للموافقة فقط، ولا يُنشر مباشرة.</p>
-<form id="submit-form" method="post" enctype="multipart/form-data" action="${action}" novalidate>
+${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان يصل لرسالة الموافقة.</p>' : ''}
+<form id="submit-form" method="post" enctype="multipart/form-data" action="${action}" data-reusable="${reusable ? '1' : '0'}" novalidate>
 <label>نوع العقار<br><select name="property_type" required><option value="أرض">أرض</option><option value="فيلا">فيلا</option><option value="شقة">شقة</option><option value="عمارة">عمارة</option></select></label><br><br>
 <label>تفاصيل الإعلان<br><textarea name="details" required rows="8" maxlength="8000"></textarea></label><br><br>
 <label>رابط الموقع<br><input name="location_url" inputmode="url"></label><br><br>
@@ -320,6 +336,13 @@ function pageHtml(state, code) {
         result.textContent = data.message || 'تعذر إرسال الإعلان.';
         return;
       }
+      if (form.getAttribute('data-reusable') === '1') {
+        button.disabled = false;
+        button.textContent = 'إرسال للموافقة';
+        form.reset();
+        result.textContent = 'تم إرسال الإعلان للموافقة. رقم الطلب: ' + String(data.request_number || '');
+        return;
+      }
       form.remove();
       var title = document.createElement('p');
       var number = document.createElement('p');
@@ -350,7 +373,7 @@ function pageHtml(state, code) {
 async function pageForCode(code) {
   const loaded = await loadLink(code);
   if (loaded.state === 'missing') return { status: 404, html: pageHtml('missing') };
-  return { status: 200, html: pageHtml(loaded.state, code) };
+  return { status: 200, html: pageHtml(loaded.state, code, !!loaded.row?.reusable) };
 }
 
 function validate(body) {
@@ -429,7 +452,7 @@ async function submitOnce(code, body) {
   } catch (error) {
     return { status: error.status || 400, body: { success: false, message: gate.safeReason(error) } };
   }
-  payload.idempotency_key = `map-submit:${loaded.row.code_hash}`;
+  if (!loaded.row.reusable) payload.idempotency_key = `map-submit:${loaded.row.code_hash}`;
   let outcome;
   try {
     outcome = await gate.createRequest(payload);
@@ -442,9 +465,12 @@ async function submitOnce(code, body) {
     return { status: outcome.status || 500, body: { success: false, message: 'تعذر إرسال الإعلان' } };
   }
   const now = new Date().toISOString();
+  const patch = loaded.row.reusable
+    ? { used_at: now, request_id: requestId }
+    : { status: 'used', used_at: now, request_id: requestId };
   await getAdmin()
     .from('map_submit_links')
-    .update({ status: 'used', used_at: now, request_id: requestId })
+    .update(patch)
     .eq('id', loaded.row.id)
     .eq('status', 'new');
   await gateAudit(loaded.row.id, 'submit_link_used');
@@ -460,6 +486,7 @@ async function submitOnce(code, body) {
 module.exports = {
   allow,
   createSubmitLink,
+  createOpenSubmitLink,
   listSubmitLinks,
   cancelSubmitLink,
   pageForCode,

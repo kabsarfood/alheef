@@ -127,7 +127,7 @@ async function loadSubmitLinks() {
       ${items.map((item) => `<tr>
         <td>${escapeHtml(formatWhen(item.createdAt))}</td>
         <td>${escapeHtml(formatWhen(item.expiresAt))}</td>
-        <td>${escapeHtml(LINK_STATUS[item.status] || item.status)}</td>
+        <td>${escapeHtml(item.reusable ? 'مفتوح دائم' : (LINK_STATUS[item.status] || item.status))}</td>
         <td>${item.status === 'new' ? `<button type="button" class="btn btn-sm btn-outline" data-cancel-link="${escapeHtml(item.id)}">إلغاء</button>` : ''}</td>
       </tr>`).join('')}
     </tbody></table>`;

@@ -423,6 +423,26 @@ async function ensurePrivateClientRequestFields() {
   };
 }
 
+async function ensureOpenSubmitLinkColumn() {
+  const admin = getAdminClient();
+  if (admin) {
+    const { error } = await admin.from('map_submit_links').select('reusable').limit(1);
+    if (!error) return { ok: true, already: true };
+  }
+  const cfg = getConnectionConfig();
+  if (!cfg) return { ok: false, skipped: 'no_password' };
+  const pg = require('pg');
+  const client = new pg.Client(cfg);
+  await client.connect();
+  try {
+    await runSqlFile(client, path.join(__dirname, '..', '..', 'supabase', 'migrations', '027_open_submit_link.sql'), '027_open_submit_link');
+    await reloadPostgrestSchema(client);
+  } finally {
+    await client.end();
+  }
+  return { ok: true, applied: true };
+}
+
 async function ensureChatgptOAuthSchema() {
   const admin = getAdminClient();
   if (admin) {
@@ -450,6 +470,7 @@ function isSchemaCacheColumnError(message) {
 module.exports = {
   applyMigrationsIfNeeded,
   ensureChatgptOAuthSchema,
+  ensureOpenSubmitLinkColumn,
   ensurePrivateClientRequestFields,
   isSchemaCacheColumnError,
   isMarketerSchemaReady,

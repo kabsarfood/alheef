@@ -178,7 +178,9 @@ publicRouter.get('/preview-image', async (req, res) => {
 
 adminRouter.post('/submit-links', async (req, res) => {
   try {
-    const outcome = await submitLinks.createSubmitLink();
+    const outcome = req.body?.reusable
+      ? await submitLinks.createOpenSubmitLink()
+      : await submitLinks.createSubmitLink();
     res.status(outcome.status).json(outcome.body);
   } catch (error) {
     res.status(500).json({ success: false, message: gate.safeReason(error) });

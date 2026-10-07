@@ -116,8 +116,9 @@ if (supabaseReady) {
   } catch (err) {
     console.warn('[Push] تهيئة VAPID:', err.message);
   }
-  const { applyMigrationsIfNeeded, ensureChatgptOAuthSchema } = require('./server/lib/sqlMigrations');
+  const { applyMigrationsIfNeeded, ensureChatgptOAuthSchema, ensureOpenSubmitLinkColumn } = require('./server/lib/sqlMigrations');
   ensureChatgptOAuthSchema().catch((err) => console.warn('[Schema] OAuth:', err.message));
+  ensureOpenSubmitLinkColumn().catch((err) => console.warn('[Schema] submit link:', err.message));
   applyMigrationsIfNeeded({ silent: false })
     .then((r) => {
       if (r.applied) console.log('[Schema] ✓ تم تفعيل جداول فريق المسوقين وطلبات الانضمام');
