@@ -183,7 +183,6 @@ function renderShell() {
         </div>
         <aside class="ob-map-panel" id="mapPanel">
           <div class="ob-map-head">
-            <div class="ob-map-title"><strong>الخريطة العقارية</strong></div>
             <button type="button" class="ob-map-expand" id="ob-map-expand">فتح الخريطة</button>
             <button type="button" class="ob-map-close" id="ob-map-close" aria-label="إغلاق الخريطة">✕</button>
           </div>
