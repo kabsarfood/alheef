@@ -872,3 +872,48 @@ body.lightbox-open {
     font-size: 0.64rem;
   }
 }
+
+.ob-logout {
+  border: 1px solid #e4ddd2;
+  background: #fff;
+  color: #1E2A38;
+  border-radius: 999px;
+  padding: .45rem .9rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ob-news {
+  margin-top: .8rem;
+  background: #fff8ee;
+  border: 1px solid #e6d3ae;
+  border-radius: 14px;
+  padding: .8rem 1rem;
+}
+
+.ob-news p { margin: 0 0 .4rem; }
+
+.ob-news ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ob-news button {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: #1E2A38;
+  font-weight: 700;
+  cursor: pointer;
+  padding: .25rem 0;
+}
+
+.ob-news #ob-news-seen {
+  margin-top: .4rem;
+  background: #1E2A38;
+  color: #fff;
+  border-radius: 999px;
+  padding: .35rem .8rem;
+}

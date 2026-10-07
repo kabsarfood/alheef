@@ -1,6 +1,6 @@
 const express = require('express');
 const { isEnabled } = require('../lib/supabase');
-const { createPrivateViewerToken, requirePrivateViewer, parseToken } = require('../middleware/auth');
+const { createPrivateViewerToken, requirePrivateViewer, parseToken, revokeToken } = require('../middleware/auth');
 const { createRateLimiter } = require('../utils/rateLimit');
 const { phonesEqual, isValidSaudiMobile, normalizeAccountPhone } = require('../utils/phone');
 const otpCore = require('../services/whatsappOtpCore');
@@ -320,7 +320,107 @@ router.get('/session', requireDb, async (req, res) => {
     authenticated: true,
     token: createPrivateViewerToken(row.id, row.access_epoch),
     clientName: row.client_label || '',
+    slug: row.page_slug || '',
   });
+});
+
+router.post('/portal/otp/send', requireDb, async (req, res) => {
+  try {
+    if (!otpRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: otpCore.errorMessage('rate_limited') });
+    }
+    const phone = normalizeAccountPhone(req.body?.phone);
+    if (!phone || !isValidSaudiMobile(phone)) {
+      return res.status(400).json({ success: false, message: 'أدخل رقم جوال سعودي صحيح' });
+    }
+    const client = await privateClientsRepo.findActiveClientByPhone(phone);
+    if (!client) {
+      return res.status(403).json({
+        success: false,
+        code: 'not_activated',
+        message: 'أول دخول يتم من الرابط الذي يصلك من الهيف. بعد تفعيل واتساب يمكنك الدخول من هنا.',
+      });
+    }
+    const row = await guardRow(client.id);
+    const state = device.deviceState(row, device.readDeviceCookie(req));
+    if (state !== 'same') {
+      const message = state === 'open'
+        ? 'فعّل الدخول أول مرة من الرابط على هذا الجهاز، ثم عد من بوابة المستخدم.'
+        : device.OTHER_MESSAGE;
+      return res.status(403).json({ success: false, code: 'other_device', message });
+    }
+    const sent = await otpCore.sendOtp({
+      purpose: 'user_portal',
+      phone,
+      meta: { clientAccessId: client.id, slug: row.page_slug },
+      ip: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '',
+      userAgent: String(req.headers['user-agent'] || '').slice(0, 300),
+    });
+    if (!sent.ok) {
+      const status = sent.reason === 'rate_limited' || sent.reason === 'cooldown' ? 429
+        : sent.reason === 'not_configured' ? 503 : 400;
+      return res.status(status).json({ success: false, message: otpCore.errorMessage(sent.reason) });
+    }
+    res.json({
+      success: true,
+      challengeId: sent.challengeId,
+      cooldownSec: sent.cooldownSec,
+      expiresInSec: sent.expiresInSec,
+      message: 'تم إرسال رمز التحقق إلى واتساب',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر إرسال رمز التحقق' });
+  }
+});
+
+router.post('/portal/otp/verify', requireDb, async (req, res) => {
+  try {
+    if (!otpRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: otpCore.errorMessage('rate_limited') });
+    }
+    const phone = normalizeAccountPhone(req.body?.phone);
+    const challengeId = String(req.body?.challengeId || '').trim();
+    const code = String(req.body?.code || '').trim();
+    if (!phone || !challengeId || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, message: 'أدخل رمز التحقق المكوّن من 6 أرقام' });
+    }
+    const result = otpCore.verifyOtp(challengeId, code);
+    if (!result.ok) {
+      const status = result.reason === 'bad_code' ? 401 : 400;
+      return res.status(status).json({ success: false, message: otpCore.errorMessage(result.reason) });
+    }
+    if (result.purpose !== 'user_portal' || !phonesEqual(result.phone, phone)) {
+      return res.status(401).json({ success: false, message: GENERIC_DENY });
+    }
+    const client = await privateClientsRepo.findActiveClientByPhone(phone);
+    const row = client ? await guardRow(client.id) : null;
+    if (!row || result.meta?.clientAccessId !== row.id) {
+      return res.status(401).json({ success: false, message: GENERIC_DENY });
+    }
+    const state = device.deviceState(row, device.readDeviceCookie(req));
+    if (state !== 'same') {
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+    }
+    device.setDeviceCookie(req, res, device.readDeviceCookie(req));
+    await privateClientsRepo.touchClientDevice(row.id);
+    await privateClientsRepo.recordClientLogin(row.id);
+    const fresh = await guardRow(row.id);
+    res.json({
+      success: true,
+      token: createPrivateViewerToken(row.id, fresh?.access_epoch),
+      slug: row.page_slug || '',
+      clientName: row.client_label || '',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر التحقق من الرمز' });
+  }
+});
+
+router.post('/logout', requireDb, (req, res) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  revokeToken(token);
+  res.json({ success: true });
 });
 
 async function requireSameDevice(req, res, next) {

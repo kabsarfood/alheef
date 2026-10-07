@@ -75,7 +75,43 @@ async function boot() {
   bindShell();
   loadWhatsapp();
   await loadItems();
+  if (PRIVATE) window.setInterval(() => { loadItems().catch(() => {}); }, 45000);
   if (params.get('id')) openDetail(params.get('id'));
+}
+
+function renderPrivateNews() {
+  if (!PRIVATE) return;
+  const box = document.getElementById('ob-news');
+  if (!box) return;
+  const seenKey = 'alheef_user_seen_at';
+  const seenRaw = localStorage.getItem(seenKey);
+  if (!seenRaw) {
+    localStorage.setItem(seenKey, new Date().toISOString());
+    box.hidden = true;
+    return;
+  }
+  const since = new Date(seenRaw).getTime();
+  const fresh = items.filter((item) => item.publishedAt && new Date(item.publishedAt).getTime() > since);
+  if (!fresh.length) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `
+    <p><strong>${fresh.length}</strong> ${fresh.length === 1 ? 'عقار جديد سُجّل' : 'عقارات جديدة سُجّلت'}</p>
+    <ul>${fresh.slice(0, 8).map((item) => `<li><button type="button" data-news-open="${escapeHtml(item.id)}">${escapeHtml(item.title || item.propertyType || 'عقار')}${item.district ? ` — ${escapeHtml(item.district)}` : ''}</button></li>`).join('')}</ul>
+    <button type="button" id="ob-news-seen">تم الاطلاع</button>`;
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    const notified = sessionStorage.getItem('alheef_user_notified') || '';
+    const unseen = fresh.filter((item) => !notified.includes(item.id));
+    if (unseen.length) {
+      sessionStorage.setItem('alheef_user_notified', `${notified},${unseen.map((item) => item.id).join(',')}`);
+      try {
+        new Notification('عقار جديد في الهيف', { body: unseen[0].title || unseen[0].propertyType || 'عرض جديد' });
+      } catch { /* المتصفح رفض الإشعار */ }
+    }
+  }
 }
 
 if (PRIVATE) window.AlheefOfferBoard = { start: boot };
@@ -95,7 +131,9 @@ function renderShell() {
             <p>تصفح العروض المعتمدة للعميل، وقارن التفاصيل، وشاهد موقع العقار على الخريطة.</p>
           </div>
           <div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>
+          ${PRIVATE ? '<button type="button" class="ob-logout" id="ob-logout">تسجيل الخروج</button>' : ''}
         </div>
+        ${PRIVATE ? '<div id="ob-news" class="ob-news" hidden></div>' : ''}
         <div class="ob-search">
           <input id="ob-search" class="ob-field ob-field--wide" type="search" inputmode="text" placeholder="ابحث برقم الإعلان أو جزء منه…" autocomplete="off">
           <select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
@@ -244,6 +282,17 @@ function bindShell() {
     if (focusBtn) focusProperty(focusBtn.dataset.focus);
     const privateShare = event.target.closest('[data-private-share]');
     if (privateShare) sharePrivateListing(privateShare);
+    if (event.target.closest('#ob-logout') && typeof window.ALHEEF_PRIVATE_AUTH_FAIL === 'function') {
+      window.ALHEEF_PRIVATE_AUTH_FAIL();
+      return;
+    }
+    if (event.target.closest('#ob-news-seen')) {
+      localStorage.setItem('alheef_user_seen_at', new Date().toISOString());
+      renderPrivateNews();
+      return;
+    }
+    const newsOpen = event.target.closest('[data-news-open]');
+    if (newsOpen) openDetail(newsOpen.dataset.newsOpen);
   });
   document.getElementById('ob-more').addEventListener('click', () => {
     page += 1;
@@ -317,6 +366,7 @@ async function loadItems(append) {
     return;
   }
   items = append ? items.concat(data.items || []) : (data.items || []);
+  renderPrivateNews();
   const total = Number.isFinite(Number(data.total)) ? Number(data.total) : items.length;
   const more = document.getElementById('ob-more');
   if (more) more.hidden = items.length >= total;

@@ -144,11 +144,15 @@
   function setToken(token) {
     localStorage.setItem(TOKEN_KEY, token);
     sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.setItem('alheef_user_token', token);
+    localStorage.setItem('alheef_user_slug', slug);
   }
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('alheef_user_token');
+    localStorage.removeItem('alheef_user_slug');
   }
 
   function authHeaders() {
@@ -691,7 +695,14 @@
     if (window.AlheefOfferBoard && document.getElementById('po-board')) {
       window.ALHEEF_PRIVATE_TOKEN = getToken;
       window.ALHEEF_PRIVATE_AUTH_FAIL = async () => {
+        const token = getToken();
         clearToken();
+        if (token) {
+          fetch('/api/private-offers/logout', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }
         showGate();
         await loadGate();
       };

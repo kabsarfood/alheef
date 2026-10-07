@@ -3,7 +3,7 @@ const { getAdmin, isEnabled } = require('../lib/supabase');
 const { rowToPrivateClient } = require('../services/mappers');
 const { hashPassword } = require('../utils/password');
 const { generatePrivateSlug } = require('../utils/privateOffersPath');
-const { normalizeAccountPhone } = require('../utils/phone');
+const { normalizeAccountPhone, phonesEqual } = require('../utils/phone');
 
 const SETTINGS_TABLE = 'private_offers_settings';
 const CLIENTS_TABLE = 'private_client_access';
@@ -66,6 +66,13 @@ async function listClients() {
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return (data || []).map(rowToPrivateClient);
+}
+
+async function findActiveClientByPhone(phone) {
+  if (!isEnabled()) return null;
+  const { data, error } = await getAdmin().from(CLIENTS_TABLE).select('*').eq('active', true);
+  if (error) throw new Error(error.message);
+  return (data || []).map(rowToPrivateClient).find((row) => phonesEqual(row.phone, phone) && row.deviceStatus === 'active') || null;
 }
 
 async function getClientById(id) {
@@ -430,6 +437,7 @@ module.exports = {
   isGlobalActive,
   listClients,
   getClientById,
+  findActiveClientByPhone,
   getClientBySlug,
   getClientBySlugAny,
   getClientCodeHash,

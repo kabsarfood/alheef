@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1E2A38">
+  <title>دخول المستخدم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1.5rem;
+      background: #f6f3ee;
+      color: #1E2A38;
+      font-family: Cairo, sans-serif;
+    }
+    .card {
+      width: min(100%, 440px);
+      background: #fff;
+      border-radius: 18px;
+      padding: 2rem 1.4rem;
+      box-shadow: 0 16px 40px rgba(30, 42, 56, 0.08);
+    }
+    h1 { margin: 0 0 .4rem; font-size: 1.45rem; text-align: center; }
+    p { margin: 0 0 1rem; line-height: 1.8; color: #3d4b5c; text-align: center; }
+    label { display: block; font-weight: 700; margin-bottom: .35rem; }
+    input {
+      width: 100%;
+      padding: .75rem .8rem;
+      border: 1px solid #e4ddd2;
+      border-radius: 12px;
+      font: inherit;
+      margin-bottom: .8rem;
+    }
+    button, .link {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: .8rem 1rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: #1E2A38;
+      color: #fff;
+    }
+    .link { display: inline-block; text-align: center; text-decoration: none; margin-top: .6rem; background: transparent; color: #1E2A38; }
+    .error { color: #8a1f1f; min-height: 1.4em; text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>دخول المستخدم</h1>
+    <p>بعد تفعيل الدخول من رابط الهيف عبر واتساب، ادخل من هنا برقمك. تبقى الجلسة حتى تسجيل الخروج.</p>
+    <form id="user-login">
+      <div id="phone-step">
+        <label for="phone">رقم الجوال</label>
+        <input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="05xxxxxxxx" dir="ltr" required>
+        <button type="submit">إرسال رمز واتساب</button>
+      </div>
+      <div id="otp-step" hidden>
+        <label for="otp">رمز التحقق</label>
+        <input id="otp" name="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 أرقام" dir="ltr">
+        <button type="submit">دخول</button>
+        <button type="button" class="link" id="resend">إعادة إرسال الرمز</button>
+      </div>
+      <p id="login-error" class="error" role="status"></p>
+    </form>
+    <a class="link" href="/">العودة للرئيسية</a>
+  </main>
+  <script src="/user/login.js?v=1"></script>
+</body>
+</html>
