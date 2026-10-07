@@ -82,10 +82,10 @@
 .ob-hero__stat span { font-size: 12px; color: rgba(255, 255, 255, .72); }
 .ob-search { margin-top: 24px; display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(130px, .55fr)) auto; gap: 10px; background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .15); padding: 10px; border-radius: 19px; }
 .ob-search--solo { grid-template-columns: 1fr; }
-.ob-search-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; min-width: 0; grid-column: 1 / -1; }
-.ob-search-tools .ob-chips { flex: 1 1 260px; min-width: 0; flex-wrap: wrap; overflow: visible; }
-.ob-search .ob-chip { background: #fff; color: #1c2924; border-color: transparent; }
-.ob-search .ob-sort { flex: 0 0 auto; background: #fff; color: #1c2924; }
+.ob-search-tools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; grid-column: 1 / -1; }
+.ob-search-tools .ob-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; overflow: visible; }
+.ob-search .ob-chip { width: 100%; height: 44px; padding: 0 8px; font-size: 16px; min-width: 0; background: #fff; color: #1c2924; border-color: transparent; }
+.ob-search .ob-sort { width: 100%; height: 44px; font-size: 16px; background: #fff; color: #1c2924; }
 .ob-field, .ob-search__btn { height: 52px; border-radius: 13px; border: 0; width: 100%; }
 .ob-field { background: #fff; color: var(--text); padding: 0 15px; }
 .ob-search__btn { padding: 0 22px; background: #d3aa6b; color: #16241f; font-weight: 800; }
@@ -93,8 +93,8 @@
 .ob-view-switch__label { margin: 0 0 10px; font-size: 14px; font-weight: 800; color: var(--muted); }
 .ob-view-switch__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ob-view-btn {
-  min-height: 64px; border-radius: 18px; border: 1px solid var(--line); background: #fffdfa;
-  color: var(--text); font: inherit; font-size: 20px; font-weight: 800; cursor: pointer;
+  min-height: 48px; border-radius: 14px; border: 1px solid var(--line); background: #fffdfa;
+  color: var(--text); font: inherit; font-size: 17px; font-weight: 800; cursor: pointer;
   box-shadow: 0 6px 18px rgba(31, 45, 39, .05);
 }
 .ob-view-btn.is-on { background: var(--brand); border-color: var(--brand); color: #fff; }
@@ -486,19 +486,14 @@ body.private-page #po-board {
   .ob-hero { padding: 22px 16px; border-radius: 22px; }
   .ob-hero__top { flex-direction: column; }
   .ob-hero__stat { display: none; }
-  .ob-view-btn { min-height: 44px; font-size: 16px; border-radius: 14px; }
+  .ob-view-btn { min-height: 44px; font-size: 16px; }
   .ob-view-switch { margin-top: 12px; }
   .ob-view-switch__label { margin-bottom: 6px; font-size: 13px; }
   .ob-view-switch__row { gap: 8px; }
-  .ob-search-tools { flex-direction: column; align-items: stretch; gap: 8px; }
-  .ob-search-tools .ob-chips {
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px; width: 100%; flex: none; overflow: visible;
-  }
-  .ob-search .ob-chip {
-    width: 100%; height: 36px; padding: 0 2px; font-size: 13px; min-width: 0;
-  }
-  .ob-search .ob-sort { width: 100%; height: 40px; font-size: 14px; }
+  .ob-search-tools { gap: 8px; }
+  .ob-search-tools .ob-chips { gap: 6px; }
+  .ob-search .ob-chip { height: 36px; padding: 0 2px; font-size: 13px; }
+  .ob-search .ob-sort { height: 40px; font-size: 14px; }
   .ob-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ob-map-panel { position: relative; top: auto; height: min(48dvh, 420px); min-height: 280px; }
   .ob-studio.is-view-map .ob-map-panel { height: calc(100dvh - 220px); min-height: 320px; }

@@ -157,7 +157,7 @@ function renderShell() {
             <option value="over450">أكثر من 450 م²</option>
           </select>
           <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>`}
-          ${PRIVATE ? typeRow : ''}
+          ${typeRow}
         </div>
       </section>
       <div class="ob-view-switch">
@@ -168,11 +168,9 @@ function renderShell() {
         </div>
       </div>
       <div class="ob-toolbar">
-        ${PRIVATE ? '' : `<div class="ob-chips" id="ob-filters">${chips}</div>`}
         <div class="ob-toolbar__side">
           ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
           <span class="ob-count"><b id="ob-count">0</b> عروض مطابقة</span>
-          ${PRIVATE ? '' : sortSelect}
         </div>
       </div>
       <p class="ob-note" id="ob-note" hidden></p>
