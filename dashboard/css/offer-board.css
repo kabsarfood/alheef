@@ -486,7 +486,19 @@ body.private-page #po-board {
   .ob-hero { padding: 22px 16px; border-radius: 22px; }
   .ob-hero__top { flex-direction: column; }
   .ob-hero__stat { display: none; }
-  .ob-view-btn { min-height: 56px; }
+  .ob-view-btn { min-height: 44px; font-size: 16px; border-radius: 14px; }
+  .ob-view-switch { margin-top: 12px; }
+  .ob-view-switch__label { margin-bottom: 6px; font-size: 13px; }
+  .ob-view-switch__row { gap: 8px; }
+  .ob-search-tools { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ob-search-tools .ob-chips {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px; width: 100%; flex: none; overflow: visible;
+  }
+  .ob-search .ob-chip {
+    width: 100%; height: 36px; padding: 0 2px; font-size: 13px; min-width: 0;
+  }
+  .ob-search .ob-sort { width: 100%; height: 40px; font-size: 14px; }
   .ob-specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ob-map-panel { position: relative; top: auto; height: min(48dvh, 420px); min-height: 280px; }
   .ob-studio.is-view-map .ob-map-panel { height: calc(100dvh - 220px); min-height: 320px; }
