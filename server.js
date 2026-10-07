@@ -37,6 +37,7 @@ let mapApprovalRoutes;
 let mapDirectRoutes;
 let offerBoardRoutes;
 let chatgptMapMcpRoutes;
+let chatgptOAuthRoutes;
 let authRoutes;
 let marketerRoutes;
 let pushRoutes;
@@ -58,6 +59,7 @@ try {
   mapDirectRoutes = require('./server/routes/mapDirectSubmit');
   offerBoardRoutes = require('./server/routes/offerBoard');
   chatgptMapMcpRoutes = require('./server/routes/chatgptMapMcp');
+  chatgptOAuthRoutes = require('./server/routes/chatgptOAuth');
   authRoutes = require('./server/routes/auth');
   marketerRoutes = require('./server/routes/marketer');
   pushRoutes = require('./server/routes/push');
@@ -114,7 +116,8 @@ if (supabaseReady) {
   } catch (err) {
     console.warn('[Push] تهيئة VAPID:', err.message);
   }
-  const { applyMigrationsIfNeeded } = require('./server/lib/sqlMigrations');
+  const { applyMigrationsIfNeeded, ensureChatgptOAuthSchema } = require('./server/lib/sqlMigrations');
+  ensureChatgptOAuthSchema().catch((err) => console.warn('[Schema] OAuth:', err.message));
   applyMigrationsIfNeeded({ silent: false })
     .then((r) => {
       if (r.applied) console.log('[Schema] ✓ تم تفعيل جداول فريق المسوقين وطلبات الانضمام');
@@ -148,6 +151,7 @@ app.use(express.json({
   },
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(chatgptOAuthRoutes);
 
 /** PWA — معرّف البناء و Service Worker ديناميكي (يتغيّر مع كل نشر) */
 app.get('/api/pwa-meta', (_req, res) => {

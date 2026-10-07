@@ -423,12 +423,33 @@ async function ensurePrivateClientRequestFields() {
   };
 }
 
+async function ensureChatgptOAuthSchema() {
+  const admin = getAdminClient();
+  if (admin) {
+    const { error } = await admin.from('chatgpt_oauth_tokens').select('token_hash').limit(1);
+    if (!error) return { ok: true, already: true };
+  }
+  const cfg = getConnectionConfig();
+  if (!cfg) return { ok: false, skipped: 'no_password' };
+  const pg = require('pg');
+  const client = new pg.Client(cfg);
+  await client.connect();
+  try {
+    await runSqlFile(client, path.join(__dirname, '..', '..', 'supabase', 'migrations', '026_chatgpt_oauth.sql'), '026_chatgpt_oauth');
+    await reloadPostgrestSchema(client);
+  } finally {
+    await client.end();
+  }
+  return { ok: true, applied: true };
+}
+
 function isSchemaCacheColumnError(message) {
   return /schema cache|Could not find the .* column/i.test(String(message || ''));
 }
 
 module.exports = {
   applyMigrationsIfNeeded,
+  ensureChatgptOAuthSchema,
   ensurePrivateClientRequestFields,
   isSchemaCacheColumnError,
   isMarketerSchemaReady,

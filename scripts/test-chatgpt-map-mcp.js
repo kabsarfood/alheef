@@ -40,10 +40,10 @@ function callRoute({ token, body }) {
       headersOut: {},
       status(code) { this.statusCode = code; return this; },
       set(name, value) { this.headersOut[String(name).toLowerCase()] = value; return this; },
-      json(payload) { resolve({ status: this.statusCode, json: payload, cookie: this.headersOut['set-cookie'] || null }); return this; },
+      json(payload) { resolve({ status: this.statusCode, json: payload, headers: this.headersOut, cookie: this.headersOut['set-cookie'] || null }); return this; },
       type() { return this; },
-      send() { resolve({ status: this.statusCode, json: null, cookie: this.headersOut['set-cookie'] || null }); return this; },
-      end() { resolve({ status: this.statusCode, json: null, cookie: this.headersOut['set-cookie'] || null }); return this; },
+      send() { resolve({ status: this.statusCode, json: null, headers: this.headersOut, cookie: this.headersOut['set-cookie'] || null }); return this; },
+      end() { resolve({ status: this.statusCode, json: null, headers: this.headersOut, cookie: this.headersOut['set-cookie'] || null }); return this; },
     };
     router(req, res, (error) => resolve({ status: 500, json: { error: String(error && error.message || error) } }));
   });
@@ -86,6 +86,7 @@ function toolText(outcome) {
     body: { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'create_alheef_map_request', arguments: { details: 'اختبار', source_type: 'chatgpt' } } },
   });
   assert(denied.status === 401 && denied.json?.error?.code === -32002, 'tools/call بدون مفتاح يرجع 401');
+  assert(String(denied.headers?.['www-authenticate'] || '').includes('resource_metadata='), '401 يعلن عنوان OAuth ولا يفتح المسار');
   assert(!denied.cookie, 'لا تُضبط cookies');
 
   const blocked = [];
