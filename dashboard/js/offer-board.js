@@ -141,22 +141,8 @@ function renderShell() {
           ${PRIVATE ? '<button type="button" class="ob-logout" id="ob-logout">تسجيل الخروج</button>' : ''}
         </div>
         ${PRIVATE ? '<div id="ob-news" class="ob-news" hidden></div>' : ''}
-        <div class="ob-search${PRIVATE ? ' ob-search--solo' : ''}">
+        <div class="ob-search ob-search--solo">
           <input id="ob-search" class="ob-field ob-field--wide" type="search" inputmode="text" placeholder="ابحث برقم الإعلان أو جزء منه…" autocomplete="off">
-          ${PRIVATE ? '' : `<select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
-          <select id="ob-price" class="ob-field">
-            <option value="all">كل الأسعار</option>
-            <option value="under1500">أقل من 1.5 مليون</option>
-            <option value="1500to2000">1.5–2 مليون</option>
-            <option value="over2000">أكثر من 2 مليون</option>
-          </select>
-          <select id="ob-area" class="ob-field">
-            <option value="all">كل المساحات</option>
-            <option value="under350">أقل من 350 م²</option>
-            <option value="350to450">350–450 م²</option>
-            <option value="over450">أكثر من 450 م²</option>
-          </select>
-          <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>`}
           ${typeRow}
         </div>
       </section>
@@ -234,8 +220,6 @@ function applyPageView() {
 function syncButtons() {
   document.querySelectorAll('[data-archive]').forEach((btn) => btn.classList.toggle('is-on', (btn.dataset.archive === '1') === archive));
   document.querySelectorAll('[data-type]').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.type === type));
-  const typeSelect = document.getElementById('ob-type');
-  if (typeSelect) typeSelect.value = type;
   applyPageView();
 }
 
@@ -299,23 +283,6 @@ function bindShell() {
     loadItems(true);
   });
   document.getElementById('ob-search')?.addEventListener('input', () => { drawList(); drawMap(); });
-  document.getElementById('ob-apply')?.addEventListener('click', () => { drawList(); drawMap(); });
-  document.getElementById('ob-type')?.addEventListener('change', (event) => {
-    type = event.target.value;
-    syncButtons();
-    drawList();
-    drawMap();
-  });
-  document.getElementById('ob-price')?.addEventListener('change', (event) => {
-    priceBand = event.target.value;
-    drawList();
-    drawMap();
-  });
-  document.getElementById('ob-area')?.addEventListener('change', (event) => {
-    areaBand = event.target.value;
-    drawList();
-    drawMap();
-  });
   document.getElementById('ob-sort')?.addEventListener('change', (event) => {
     sortKey = event.target.value;
     drawList();
