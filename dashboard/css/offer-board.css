@@ -81,6 +81,7 @@
 .ob-hero__stat strong { display: block; font-size: 26px; }
 .ob-hero__stat span { font-size: 12px; color: rgba(255, 255, 255, .72); }
 .ob-search { margin-top: 24px; display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(130px, .55fr)) auto; gap: 10px; background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .15); padding: 10px; border-radius: 19px; }
+.ob-search--solo { grid-template-columns: 1fr; }
 .ob-field, .ob-search__btn { height: 52px; border-radius: 13px; border: 0; width: 100%; }
 .ob-field { background: #fff; color: var(--text); padding: 0 15px; }
 .ob-search__btn { padding: 0 22px; background: #d3aa6b; color: #16241f; font-weight: 800; }

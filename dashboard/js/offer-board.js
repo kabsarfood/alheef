@@ -126,17 +126,17 @@ function renderShell() {
       <section class="ob-hero">
         <div class="ob-hero__top">
           <div>
-            <div class="ob-eyebrow"><span></span> للعميل</div>
+            ${PRIVATE ? '' : '<div class="ob-eyebrow"><span></span> للعميل</div>'}
             <h1>العروض الخاصة</h1>
-            <p>تصفح العروض المعتمدة للعميل، وقارن التفاصيل، وشاهد موقع العقار على الخريطة.</p>
+            ${PRIVATE ? '' : '<p>تصفح العروض المعتمدة للعميل، وقارن التفاصيل، وشاهد موقع العقار على الخريطة.</p>'}
           </div>
-          <div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>
+          ${PRIVATE ? '' : '<div class="ob-hero__stat"><strong id="ob-count-hero">0</strong><span>عرض متاح حاليًا</span></div>'}
           ${PRIVATE ? '<button type="button" class="ob-logout" id="ob-logout">تسجيل الخروج</button>' : ''}
         </div>
         ${PRIVATE ? '<div id="ob-news" class="ob-news" hidden></div>' : ''}
-        <div class="ob-search">
+        <div class="ob-search${PRIVATE ? ' ob-search--solo' : ''}">
           <input id="ob-search" class="ob-field ob-field--wide" type="search" inputmode="text" placeholder="ابحث برقم الإعلان أو جزء منه…" autocomplete="off">
-          <select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
+          ${PRIVATE ? '' : `<select id="ob-type" class="ob-field">${TYPES.map((item) => `<option value="${item.key}">${item.key === 'all' ? 'كل العقارات' : item.label}</option>`).join('')}</select>
           <select id="ob-price" class="ob-field">
             <option value="all">كل الأسعار</option>
             <option value="under1500">أقل من 1.5 مليون</option>
@@ -149,7 +149,7 @@ function renderShell() {
             <option value="350to450">350–450 م²</option>
             <option value="over450">أكثر من 450 م²</option>
           </select>
-          <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>
+          <button type="button" class="ob-search__btn" id="ob-apply">عرض النتائج</button>`}
         </div>
       </section>
       <div class="ob-view-switch">
