@@ -699,6 +699,16 @@ async function createRequest(body) {
     external_reference: created.external_reference,
     payload_hash: payloadHash,
   });
+  const noticeTask = sendNewApprovalNotice(created, approveCode, rejectCode);
+  if (body?.defer_notice === true) {
+    noticeTask.catch((error) => audit(created, 'whatsapp_approval_failed', { reason: safeReason(error) }));
+    return { status: 201, body: { ...publicRequest(created), approval_notification_status: 'queued' } };
+  }
+  const notice = await noticeTask;
+  return { status: 201, body: { ...publicRequest(created), approval_notification_status: notice } };
+}
+
+async function sendNewApprovalNotice(created, approveCode, rejectCode) {
   let notice = 'failed';
   try {
     const sent = await withDeadline(
@@ -715,7 +725,7 @@ async function createRequest(body) {
     const again = await resendPendingApproval(created.request_number);
     if (again.ok) notice = 'sent';
   }
-  return { status: 201, body: { ...publicRequest(created), approval_notification_status: notice } };
+  return notice;
 }
 
 async function getRequest(id) {

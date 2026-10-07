@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const gate = require('./mapApproval');
 const { getAdmin } = require('../lib/supabase');
 const { normalizeListingPhone } = require('../utils/phone');
+const { parseListingPaste } = require('../utils/listingPaste');
 const { createRateLimiter } = require('../utils/rateLimit');
 
 const CODE_BYTES = 32;
@@ -200,10 +201,15 @@ function pageHtml(state, code, reusable) {
     : '';
   return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>إرسال إعلان للموافقة</title></head><body style="font-family:sans-serif;padding:1rem;line-height:1.7;max-width:40rem;margin:auto">
 <h1 style="font-size:1.3rem">إرسال إعلان إلى خريطة الهيف</h1>
-<p>يُرسل الطلب للموافقة فقط، ولا يُنشر مباشرة.</p>
-${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان يصل لرسالة الموافقة.</p>' : ''}
+${reusable
+    ? '<p>الصق نص الإعلان كما وصل من رسالتك أو بعد جلبه. يُجهَّز ويُرفع خلال لحظات، ثم تصلك الموافقة على واتساب، ولا يُنشر قبلها.</p>'
+    : '<p>يُرسل الطلب للموافقة فقط، ولا يُنشر مباشرة.</p>'}
 <form id="submit-form" method="post" enctype="multipart/form-data" action="${action}" data-reusable="${reusable ? '1' : '0'}" novalidate>
-<label>نوع العقار<br><select name="property_type" required><option value="أرض">أرض</option><option value="فيلا">فيلا</option><option value="شقة">شقة</option><option value="عمارة">عمارة</option></select></label><br><br>
+${reusable
+    ? `<label>نص الإعلان<br><textarea name="details" required rows="10" maxlength="8000" placeholder="الصق الإعلان كاملًا كما هو"></textarea></label><br><br>
+<label>الصور إن وُجدت، حتى 6<br><input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><br><br>
+<button type="submit" id="send-approval">تجهيز ورفع الآن</button>`
+    : `<label>نوع العقار<br><select name="property_type" required><option value="أرض">أرض</option><option value="فيلا">فيلا</option><option value="شقة">شقة</option><option value="عمارة">عمارة</option></select></label><br><br>
 <label>تفاصيل الإعلان<br><textarea name="details" required rows="8" maxlength="8000"></textarea></label><br><br>
 <label>رابط الموقع<br><input name="location_url" inputmode="url"></label><br><br>
 <label>رقم التواصل<br><input name="contact_phone" inputmode="tel" autocomplete="tel" maxlength="32"></label>
@@ -211,7 +217,7 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
 <label>رابط المصدر الخارجي، اختياري<br><input name="source_url" inputmode="url"></label><br><br>
 <label>اسم المصدر، اختياري<br><input name="source_name" maxlength="120"></label><br><br>
 <label>الصور، حتى 6<br><input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><br><br>
-<button type="submit" id="send-approval">إرسال للموافقة</button>
+<button type="submit" id="send-approval">إرسال للموافقة</button>`}
 </form>
 <div id="submit-result" style="min-height:1.4em;font-weight:700"></div>
 <script>
@@ -220,7 +226,7 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
   var phoneInput = form.querySelector('[name=contact_phone]');
   var phoneError = document.getElementById('phone-error');
   var fileInput = form.querySelector('input[type=file]');
-  if (!phoneInput || !fileInput) return;
+  if (!fileInput) return;
   function digitsOf(value) { return String(value || '').replace(/\\D/g, ''); }
   function accountPhone(digits) {
     var d = digits;
@@ -246,6 +252,7 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
     return '';
   }
   function syncPhone(event) {
+    if (!phoneInput) return '';
     var phone = normalizePhone(phoneInput.value);
     if (phone) {
       if (phoneInput.value !== phone) phoneInput.value = phone;
@@ -257,9 +264,9 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
     phoneError.textContent = show && String(phoneInput.value || '').trim() ? 'رقم الجوال غير صالح' : '';
     return '';
   }
-  phoneInput.addEventListener('input', syncPhone);
-  phoneInput.addEventListener('change', syncPhone);
-  phoneInput.addEventListener('paste', function (event) {
+  if (phoneInput) phoneInput.addEventListener('input', syncPhone);
+  if (phoneInput) phoneInput.addEventListener('change', syncPhone);
+  if (phoneInput) phoneInput.addEventListener('paste', function (event) {
     event.preventDefault();
     var text = event.clipboardData ? event.clipboardData.getData('text') : '';
     phoneInput.value = text;
@@ -313,7 +320,7 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
       result.textContent = 'تفاصيل الإعلان مطلوبة';
       return;
     }
-    if (String(phoneInput.value || '').trim() && !phone) {
+    if (phoneInput && String(phoneInput.value || '').trim() && !phone) {
       result.textContent = 'رقم الجوال غير صالح';
       return;
     }
@@ -326,8 +333,11 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
     var signal = controller ? controller.signal : { aborted: false, addEventListener: function () {} };
     var timer = setTimeout(function () { if (controller) controller.abort(); }, 90000);
     try {
-      var images = [];
-      for (var i = 0; i < files.length; i += 1) images.push(await compressImage(files[i], signal));
+      function readyImage(file) {
+        var small = file.size <= 1200000 && /image\\/(jpeg|png|webp)/.test(file.type || '');
+        return small ? Promise.resolve(file) : compressImage(file, signal);
+      }
+      var images = await Promise.all(Array.prototype.map.call(files, readyImage));
       var payload = new FormData();
       payload.append('property_type', field('property_type'));
       payload.append('details', field('details'));
@@ -359,7 +369,7 @@ ${reusable ? '<p>يبقى هذا الرابط مفتوحًا، وكل إعلان
         button.disabled = false;
         button.textContent = 'إرسال للموافقة';
         form.reset();
-        result.textContent = 'تم إرسال الإعلان للموافقة. رقم الطلب: ' + String(data.request_number || '');
+        result.textContent = 'تم تجهيز الإعلان ورفعه. رقم الطلب: ' + String(data.request_number || '');
         return;
       }
       form.remove();
@@ -395,19 +405,62 @@ async function pageForCode(code) {
   return { status: 200, html: pageHtml(loaded.state, code, !!loaded.row?.reusable) };
 }
 
+function propertyTypeOf(explicit, parsedType) {
+  const given = plain(explicit, 40);
+  if (TYPES.has(given)) return given;
+  if (/أرض/.test(parsedType)) return 'أرض';
+  if (parsedType === 'شقة') return 'شقة';
+  if (parsedType === 'عمارة' || parsedType === 'برج' || parsedType === 'محل' || parsedType === 'مكتب') return 'عمارة';
+  if (parsedType === 'فيلا' || parsedType === 'دوبلكس' || parsedType === 'قصر' || parsedType === 'استراحة') return 'فيلا';
+  return '';
+}
+
+function locationFromText(text) {
+  const match = String(text || '').match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[^\s/]+|www\.google\.[^\s/]+\/maps|google\.[^\s/]+\/maps)[^\s<>"']*/i);
+  return match ? match[0].replace(/[)\].,]+$/, '') : '';
+}
+
+function imagesFromText(text, locationUrl) {
+  const urls = String(text || '').match(/https:\/\/[^\s<>"')\]]+/g) || [];
+  const images = [];
+  urls.forEach((raw) => {
+    if (images.length >= MAX_IMAGES) return;
+    const url = raw.replace(/[)\].,]+$/, '');
+    if (!url || url === locationUrl || images.includes(url)) return;
+    if (/maps\.|goo\.gl|google\.[^/]+\/maps/i.test(url)) return;
+    if (!/\.(jpe?g|png|webp)(?:\?|#|$)/i.test(url)) return;
+    images.push(url);
+  });
+  return images;
+}
+
+function prepareAd(body) {
+  const details = plain(body?.details, 8000);
+  const parsed = parseListingPaste(details);
+  const locationUrl = String(body?.location_url || '').trim() || locationFromText(details);
+  const givenImages = Array.isArray(body?.images) ? body.images.filter(Boolean) : [];
+  const images = givenImages.length ? givenImages.slice(0, MAX_IMAGES) : imagesFromText(details, locationUrl);
+  const prepared = {
+    property_type: propertyTypeOf(body?.property_type, parsed.propertyType),
+    details,
+    location_url: locationUrl,
+    images,
+  };
+  if (parsed.area) prepared.area = parsed.area;
+  if (parsed.planNumber) prepared.plan_number = parsed.planNumber;
+  if (parsed.plotNumber) prepared.plot_number = parsed.plotNumber;
+  if (parsed.streetWidth) prepared.street_width = parsed.streetWidth;
+  if (parsed.district) prepared.district = parsed.district;
+  if (parsed.direction) prepared.direction = parsed.direction;
+  return prepared;
+}
+
 function validate(body) {
-  const propertyType = plain(body?.property_type, 40);
   const details = plain(body?.details, 8000);
   const sourceName = plain(body?.source_name, 120);
   const sourceUrl = String(body?.source_url || '').trim();
-  const locationUrl = String(body?.location_url || '').trim();
   const rawPhone = String(body?.contact_phone || '').trim();
   const phone = normalizeListingPhone(rawPhone);
-  if (!TYPES.has(propertyType)) {
-    const error = new Error('نوع العقار غير مدعوم');
-    error.status = 400;
-    throw error;
-  }
   if (!details) {
     const error = new Error('تفاصيل الإعلان مطلوبة');
     error.status = 400;
@@ -429,14 +482,11 @@ function validate(body) {
     throw error;
   }
   return {
-    property_type: propertyType,
-    details,
-    location_url: locationUrl,
+    ...prepareAd(body),
     contact_phone: phone,
     source_type: 'chatgpt',
     source_name: sourceName || 'ChatGPT',
     source_url: sourceUrl,
-    images: body?.images || [],
   };
 }
 
@@ -471,7 +521,8 @@ async function submitOnce(code, body) {
   } catch (error) {
     return { status: error.status || 400, body: { success: false, message: gate.safeReason(error) } };
   }
-  if (!loaded.row.reusable) payload.idempotency_key = `map-submit:${loaded.row.code_hash}`;
+  if (loaded.row.reusable) payload.defer_notice = true;
+  else payload.idempotency_key = `map-submit:${loaded.row.code_hash}`;
   let outcome;
   try {
     outcome = await gate.createRequest(payload);
@@ -511,5 +562,6 @@ module.exports = {
   pageForCode,
   renderSubmitForm: (code) => pageHtml('new', code),
   submitOnce,
+  prepareAd,
   hashCode,
 };
