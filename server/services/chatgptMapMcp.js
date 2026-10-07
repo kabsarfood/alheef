@@ -1,4 +1,3 @@
-const gate = require('./mapApproval');
 const { isValidSaudiMobile } = require('../utils/phone');
 
 const PROTOCOL_VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-06-18', '2025-11-25']);
@@ -9,7 +8,7 @@ const MAX_IMAGE_BYTES = 512 * 1024;
 const MAX_DATA_URL_CHARS = 720000;
 const MAX_IMAGES_TOTAL_BYTES = Math.floor(3.5 * 1024 * 1024);
 const MAX_DETAILS = 8000;
-const TOOL_DESCRIPTION = 'استخدم هذه الأداة مباشرة عندما يكتب المستخدم «الهيف ماب» أو يطلب إضافة إعلان إلى الهيف ماب، سواء كان النص من المستخدم أو من موقع خارجي. استخرج البيانات الموجودة فقط ولا تخترع الناقص. الأداة تحفظ طلب pending_approval ولا تنشر. الموافقة النهائية للأدمن عبر واتساب. إذا غابت الأداة أو فشل الاتصال، اشرح العطل ولا تستخدم /map-submit ولا تطلب رابط إضافة جديد.';
+const TOOL_DESCRIPTION = 'مسار إعلانات شات جي بي تي الوحيد هو رابط الإضافة المفتوح الدائم على /map-submit/ الذي يبقى مفتوحًا. عندما يكتب المستخدم «الهيف ماب» أو يطلب إضافة إعلان، أرسل الإعلان عبر ذلك الرابط نفسه. لا تطلب رابطًا جديدًا، ولا تستخدم رابطًا لمرة واحدة، ولا تنتقل إلى طريقة أخرى. كل إعلان يبقى pending_approval حتى موافقة الأدمن في واتساب، ولا يُنشر من الشات. استخرج البيانات الموجودة فقط ولا تخترع السعر أو جوال المعلن.';
 
 const OUTPUT_SCHEMA = {
   type: 'object',
@@ -249,29 +248,10 @@ async function callTool(params) {
   if (params?.name !== TOOL_NAME) {
     return { isError: true, text: 'الأداة غير متاحة. هذه الأداة لا توافق ولا ترفض ولا تنشر.' };
   }
-  let request;
-  try {
-    request = requestFrom(argumentsOf(params));
-  } catch (error) {
-    return { isError: true, text: gate.safeReason(error) };
-  }
-  try {
-    const outcome = await gate.createRequest(request);
-    const safe = publicToolBody(outcome.body);
-    console.info(JSON.stringify({
-      scope: 'chatgpt-map-tool',
-      at: new Date().toISOString(),
-      tool: TOOL_NAME,
-      status: safe.status,
-      requestNumber: safe.request_number,
-      duplicate: outcome.body?.duplicate === true,
-      idempotent: outcome.body?.idempotent === true,
-    }));
-    return { isError: false, text: JSON.stringify(safe), structured: safe };
-  } catch (error) {
-    const status = error.status || 500;
-    return { isError: true, text: status === 500 ? 'تعذر استقبال الطلب' : gate.safeReason(error) };
-  }
+  return {
+    isError: true,
+    text: 'إعلانات شات جي بي تي تُرسل فقط عبر رابط الإضافة المفتوح الدائم. استخدم الرابط نفسه لكل إعلان، ولا تطلب رابطًا جديدًا.',
+  };
 }
 
 async function handleMessage(message) {
@@ -285,7 +265,7 @@ async function handleMessage(message) {
         protocolVersion: protocolOf(message.params),
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'alheef-map', version: '1.1.0' },
-        instructions: `${TOOL_DESCRIPTION} أرسل details كما ورد وsource_type بقيمة chatgpt. الحقول الاختيارية: نوع العقار، الحي، المساحة، رقم المخطط، رقم القطعة، الاتجاه، عرض الشارع، رابط الموقع كما ورد، السعر، نوع السعر، الصور، وجوال المعلن. اترك الغائب فارغًا. أعد idempotency_key نفسه عند انقطاع الاتصال. لا توافق ولا تنشر ولا تطلب نموذجًا أو OTP أو جلسة أدمن.`,
+        instructions: TOOL_DESCRIPTION,
       },
     };
   }

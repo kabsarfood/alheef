@@ -8,8 +8,6 @@ const gate = require('../server/services/mapApproval');
 const mcp = require('../server/services/chatgptMapMcp');
 const router = require('../server/routes/chatgptMapMcp');
 
-const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-
 gate.createRequest = async () => {
   throw new Error('live createRequest blocked');
 };
@@ -77,7 +75,8 @@ function toolText(outcome) {
   assert(JSON.stringify(tool.inputSchema.required) === JSON.stringify(['details', 'source_type']), 'الإلزامي details وsource_type فقط');
   ['property_type', 'district', 'area', 'plan_number', 'plot_number', 'direction', 'street_width', 'location_url', 'price', 'price_type', 'contact_phone', 'images', 'source_name', 'source_url', 'idempotency_key']
     .forEach((key) => assert(tool.inputSchema.properties[key], `الحقل ${key} ظاهر`));
-  assert(tool.description.includes('map-submit') === false || tool.description.includes('لا تستخدم /map-submit'), 'التعليمات تمنع الرجوع إلى map-submit');
+  assert(tool.description.includes('رابط الإضافة المفتوح الدائم') && tool.description.includes('لا تطلب رابطًا جديدًا'), 'التعليمات تثبّت الرابط المفتوح مسارًا وحيدًا');
+  assert(!tool.description.includes('لا تستخدم /map-submit'), 'التعليمات لا تمنع المسار الدائم');
   assert(tool.inputSchema.properties.images.maxItems === 8, 'حد الصور 8');
   assert(tool.inputSchema.properties.source_type.enum[0] === 'chatgpt', 'source_type = chatgpt');
   assert(tool.description.includes('pending_approval') && tool.description.includes('الهيف ماب'), 'وصف الأداة يوضح الموافقة');
@@ -94,123 +93,14 @@ function toolText(outcome) {
     blocked.push(body);
     throw new Error('should not run');
   };
-  const missing = await rpc({
+  const redirected = await rpc({
     jsonrpc: '2.0',
     id: 4,
     method: 'tools/call',
-    params: { name: 'create_alheef_map_request', arguments: { source_type: 'chatgpt' } },
+    params: { name: 'create_alheef_map_request', arguments: { details: 'أرض في النرجس', source_type: 'chatgpt' } },
   });
-  assert(missing.payload.result.isError === true && toolText(missing).includes('تفاصيل'), 'غياب details يرفض الطلب');
-  const nine = await rpc({
-    jsonrpc: '2.0',
-    id: 5,
-    method: 'tools/call',
-    params: {
-      name: 'create_alheef_map_request',
-      arguments: { details: 'أرض في النرجس', source_type: 'chatgpt', images: Array.from({ length: 9 }, (_, i) => `https://cdn.example.com/${i}.jpg`) },
-    },
-  });
-  assert(nine.payload.result.isError === true && toolText(nine).includes('8'), 'تسع صور ترفض');
-  const badImage = await rpc({
-    jsonrpc: '2.0',
-    id: 6,
-    method: 'tools/call',
-    params: {
-      name: 'create_alheef_map_request',
-      arguments: {
-        details: 'أرض في النرجس',
-        source_type: 'chatgpt',
-        images: ['https://cdn.example.com/a.jpg', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=', 'https://cdn.example.com/b.jpg'],
-      },
-    },
-  });
-  assert(badImage.payload.result.isError === true && !badImage.payload.result.structuredContent, 'صورة غير مسموحة ترفض الطلب كاملًا');
-  const huge = Buffer.alloc((512 * 1024) + 8);
-  huge[0] = 0xff; huge[1] = 0xd8; huge[2] = 0xff;
-  const oversized = await rpc({
-    jsonrpc: '2.0',
-    id: 7,
-    method: 'tools/call',
-    params: {
-      name: 'create_alheef_map_request',
-      arguments: { details: 'أرض في النرجس', source_type: 'chatgpt', images: [`data:image/jpeg;base64,${huge.toString('base64')}`] },
-    },
-  });
-  assert(oversized.payload.result.isError === true && toolText(oversized).includes('512'), 'الصورة الكبيرة ترجع خطأ مفهوم');
-  assert(blocked.length === 0, 'فشل الصور أو الحقول لا ينشئ طلبًا');
-
-  const seen = [];
-  gate.createRequest = async (body) => {
-    seen.push(body);
-    const repeat = body.idempotency_key === 'retry-same' && seen.filter((item) => item.idempotency_key === 'retry-same').length > 1;
-    return {
-      status: repeat ? 200 : 201,
-      body: {
-        success: true,
-        request_number: 'MAP-000099',
-        request_id: 'test-request',
-        status: 'pending_approval',
-        approval_notification_status: 'sent',
-        idempotent: repeat,
-      },
-    };
-  };
-
-  const original = 'الهيف ماب\nأرض في النرجس للبيع. النص الأصلي كامل.';
-  const created = await rpc({
-    jsonrpc: '2.0',
-    id: 8,
-    method: 'tools/call',
-    params: {
-      name: 'create_alheef_map_request',
-      arguments: {
-        details: original,
-        source_type: 'chatgpt',
-        property_type: 'أرض',
-        district: 'المهدية',
-        area: 450,
-        plan_number: '2566/ب',
-        plot_number: '4599',
-        direction: 'جنوب',
-        street_width: '15',
-        location_url: 'https://maps.google.com/?q=24.8,46.7',
-        images: [TINY_PNG, 'https://cdn.example.com/photo.jpg'],
-        source_name: 'ChatGPT',
-        idempotency_key: 'retry-same',
-      },
-    },
-  });
-  const safe = created.payload.result.structuredContent;
-  assert(created.payload.result.isError === false, 'الاستدعاء المصرح ينجح في الاختبار');
-  assert(safe.success === true && safe.request_number === 'MAP-000099' && safe.status === 'pending_approval', 'النتيجة المنظمة فيها رقم الطلب');
-  assert(safe.approval_notification_status === 'sent' && safe.message.includes('إرسال إشعار الموافقة') && !safe.message.includes('تم نشر'), 'الرسالة تؤكد واتساب فقط عند الإرسال');
-  assert(toolText(created).includes('MAP-000099'), 'النص يذكر رقم الطلب');
-  assert(seen[0].details === original.trim(), 'details يبقى النص الأصلي');
-  assert(seen[0].area === 450 && seen[0].plan_number === '2566/ب' && seen[0].plot_number === '4599' && seen[0].district === 'المهدية' && seen[0].direction === 'جنوب', 'الحقول المنظمة تُمرر');
-  assert(seen[0].price == null && seen[0].price_type == null && seen[0].contact_phone == null, 'غياب السعر والجوال لا يخترع قيمة');
-  assert(seen[0].images.length === 2, 'الصور الصالحة تُمرر');
-  assert(seen[0].idempotency_key === 'retry-same', 'idempotency_key يُمرر');
-
-  const partial = await rpc({
-    jsonrpc: '2.0',
-    id: 9,
-    method: 'tools/call',
-    params: { name: 'create_alheef_map_request', arguments: { details: 'شقة في الملقا للبيع', source_type: 'chatgpt' } },
-  });
-  assert(partial.payload.result.isError === false && partial.payload.result.structuredContent.request_number === 'MAP-000099', 'غياب أحد الحقول الستة لا يمنع الطلب');
-  assert(seen.at(-1).area == null && seen.at(-1).location_url == null && seen.at(-1).images.length === 0, 'الحقول الغائبة لا تُخترع');
-
-  const again = await rpc({
-    jsonrpc: '2.0',
-    id: 10,
-    method: 'tools/call',
-    params: {
-      name: 'create_alheef_map_request',
-      arguments: { details: original, source_type: 'chatgpt', idempotency_key: 'retry-same' },
-    },
-  });
-  assert(again.payload.result.structuredContent.request_number === 'MAP-000099', 'إعادة المفتاح تعيد رقم الطلب نفسه');
-  assert(seen.filter((item) => item.idempotency_key === 'retry-same').length === 2, 'المفتاح يُرسل في المحاولتين');
+  assert(redirected.payload.result.isError === true && toolText(redirected).includes('رابط الإضافة المفتوح الدائم'), 'استدعاء الأداة لا ينشئ طلبًا ويعيد إلى الرابط الدائم');
+  assert(blocked.length === 0, 'أداة الشات لا تنشئ طلب خريطة');
 
   const approve = await rpc({
     jsonrpc: '2.0',

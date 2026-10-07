@@ -14,8 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const content = getPageContent();
   content.innerHTML = `
     <div class="card" style="padding:1rem;margin-bottom:1rem">
-      <button type="button" class="btn btn-gold" id="create-submit-link">إنشاء رابط إضافة آمن</button>
-      <p id="submit-link-once" style="display:none;margin-top:0.8rem"></p>
+      <p>مسار شات جي بي تي هو الرابط المفتوح الدائم فقط. لا يُنشأ رابط جديد، وكل إعلان يبقى بانتظار الموافقة في واتساب.</p>
       <div id="submit-link-list" style="margin-top:1rem">جاري تحميل الروابط...</div>
     </div>
     <div class="card" style="padding:1rem">
@@ -40,7 +39,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   load('pending_approval');
   loadSubmitLinks();
-  document.getElementById('create-submit-link').addEventListener('click', createSubmitLink);
 });
 
 async function load(status) {
@@ -128,7 +126,7 @@ async function loadSubmitLinks() {
         <td>${escapeHtml(formatWhen(item.createdAt))}</td>
         <td>${escapeHtml(formatWhen(item.expiresAt))}</td>
         <td>${escapeHtml(item.reusable ? 'مفتوح دائم' : (LINK_STATUS[item.status] || item.status))}</td>
-        <td>${item.status === 'new' ? `<button type="button" class="btn btn-sm btn-outline" data-cancel-link="${escapeHtml(item.id)}">إلغاء</button>` : ''}</td>
+        <td>${item.status === 'new' && !item.reusable ? `<button type="button" class="btn btn-sm btn-outline" data-cancel-link="${escapeHtml(item.id)}">إلغاء</button>` : ''}</td>
       </tr>`).join('')}
     </tbody></table>`;
     list.querySelectorAll('[data-cancel-link]').forEach((button) => {
@@ -136,31 +134,6 @@ async function loadSubmitLinks() {
     });
   } catch (error) {
     list.textContent = error.message || 'تعذر تحميل الروابط';
-  }
-}
-
-async function createSubmitLink() {
-  const button = document.getElementById('create-submit-link');
-  const once = document.getElementById('submit-link-once');
-  button.disabled = true;
-  try {
-    const data = await DashboardAPI.request('/map-approvals/submit-links', { method: 'POST' });
-    once.style.display = 'block';
-    once.innerHTML = '';
-    const text = document.createElement('span');
-    text.textContent = data.url;
-    const copy = document.createElement('button');
-    copy.type = 'button';
-    copy.className = 'btn btn-sm btn-outline';
-    copy.textContent = 'نسخ';
-    copy.style.marginInlineStart = '0.5rem';
-    copy.addEventListener('click', () => navigator.clipboard.writeText(data.url));
-    once.append(text, copy);
-    await loadSubmitLinks();
-  } catch (error) {
-    window.alert(error.message || 'تعذر إنشاء الرابط');
-  } finally {
-    button.disabled = false;
   }
 }
 

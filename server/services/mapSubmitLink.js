@@ -80,6 +80,16 @@ async function createSubmitLink() {
 }
 
 async function createOpenSubmitLink() {
+  const { data, error } = await getAdmin()
+    .from('map_submit_links')
+    .select('id')
+    .eq('reusable', true)
+    .eq('status', 'new')
+    .limit(1);
+  if (error) throw new Error(error.message);
+  if ((data || []).length) {
+    return { status: 409, body: { success: false, message: 'الرابط الدائم موجود. لا يُنشأ رابط آخر لإعلانات شات جي بي تي.' } };
+  }
   return insertSubmitLink({ reusable: true, expiresAt: OPEN_UNTIL });
 }
 
@@ -132,6 +142,15 @@ async function listSubmitLinks() {
 
 async function cancelSubmitLink(id) {
   const now = new Date().toISOString();
+  const current = await getAdmin()
+    .from('map_submit_links')
+    .select('id,reusable')
+    .eq('id', String(id || ''))
+    .maybeSingle();
+  if (current.error) throw new Error(current.error.message);
+  if (current.data?.reusable) {
+    return { status: 409, body: { success: false, message: 'الرابط الدائم لشات جي بي تي لا يُلغى.' } };
+  }
   const { data, error } = await getAdmin()
     .from('map_submit_links')
     .update({ status: 'cancelled', cancelled_at: now })
