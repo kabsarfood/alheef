@@ -80,6 +80,9 @@ router.post('/otp/send', requireDb, async (req, res) => {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
     const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
+      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
+    }
     if (state === 'other') {
       await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
@@ -162,6 +165,9 @@ router.post('/otp/autofill', requireDb, async (req, res) => {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
     const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
+      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
+    }
     if (state === 'other') {
       await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
@@ -226,6 +232,9 @@ router.post('/otp/verify', requireDb, async (req, res) => {
       return res.status(401).json({ success: false, message: GENERIC_DENY });
     }
     const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
+    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
+      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
+    }
     if (state === 'other') {
       await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
@@ -291,6 +300,15 @@ router.get('/gate', requireDb, async (req, res) => {
     if (state === 'other') {
       await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
       return res.json({ success: true, state: 'other', message: device.OTHER_MESSAGE });
+    }
+    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
+      return res.json({
+        success: true,
+        state: 'safari',
+        message: device.SAFARI_MESSAGE,
+        phoneMasked: maskPhone(loaded.row.phone),
+        clientName: loaded.client.clientLabel || '',
+      });
     }
     res.json({
       success: true,

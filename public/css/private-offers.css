@@ -186,6 +186,31 @@
   line-height: 1.7;
   text-align: right;
 }
+.private-gate__safari {
+  background: #fff8ee;
+  border: 1px solid #e2c48a;
+  border-radius: 16px;
+  padding: 16px 14px;
+  margin: 0 0 0.75rem;
+  line-height: 1.7;
+  text-align: right;
+}
+.private-gate__safari .private-gate__notice-label {
+  margin: 0 0 6px;
+  color: #8d6b32;
+  font-size: 14px;
+  font-weight: 800;
+}
+.private-gate__safari ol {
+  margin: 0.35rem 1.2rem 0.85rem 0;
+  padding: 0;
+}
+#gate-otp {
+  letter-spacing: 0.28em;
+  font-size: 1.35rem;
+  font-weight: 800;
+  text-align: center;
+}
 .private-gate__blocked {
   background: #fff8ee;
   border: 1px solid #e2c48a;

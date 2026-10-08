@@ -236,10 +236,29 @@
   }
 
   function otpDigits(value) {
-    return String(value || '')
+    const normalized = String(value || '')
       .replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
-      .replace(/\D/g, '')
-      .slice(0, 6);
+      .replace(/[۰-۹]/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit));
+    const match = normalized.match(/\d{6}/);
+    if (match) return match[0];
+    return normalized.replace(/\D/g, '').slice(0, 6);
+  }
+
+  function isIosEmbeddedBrowser() {
+    const ua = navigator.userAgent || '';
+    if (!/iPhone|iPad|iPod/i.test(ua)) return false;
+    if (/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return false;
+    return !(/Version\/[\d.]+/i.test(ua) && /Safari/i.test(ua));
+  }
+
+  function showSafariHelp() {
+    if (gateBlocked) gateBlocked.hidden = true;
+    if (gateForm) gateForm.hidden = false;
+    if (gateStepPhone) gateStepPhone.hidden = true;
+    if (gateStepOtp) gateStepOtp.hidden = true;
+    const box = document.getElementById('gate-safari');
+    if (box) box.hidden = false;
+    showGate();
   }
 
   function showGateOtpStep() {
@@ -292,6 +311,10 @@
     }
     if (data.state === 'other') {
       showBlocked(data.message || 'هذا الدخول مرتبط بجهاز آخر.');
+      return;
+    }
+    if (data.state === 'safari' || isIosEmbeddedBrowser()) {
+      showSafariHelp();
       return;
     }
     clientName = data.clientName || '';
@@ -1049,6 +1072,10 @@
         showBlocked(err.message);
         return;
       }
+      if (err.code === 'open_safari') {
+        showSafariHelp();
+        return;
+      }
       gateError.textContent = err.message;
       gateError.hidden = false;
     }
@@ -1064,10 +1091,33 @@
 
   if (gateOtpInput) {
     gateOtpInput.addEventListener('input', () => {
-      const next = otpDigits(gateOtpInput.value);
+      const raw = gateOtpInput.value;
+      if (/^\d{0,6}$/.test(raw)) return;
+      const next = otpDigits(raw);
       if (gateOtpInput.value !== next) gateOtpInput.value = next;
     });
+    gateOtpInput.addEventListener('paste', (event) => {
+      const text = event.clipboardData && event.clipboardData.getData('text');
+      if (!text) return;
+      const code = otpDigits(text);
+      if (code.length !== 6) return;
+      event.preventDefault();
+      gateOtpInput.value = code;
+    });
   }
+
+  document.getElementById('gate-copy-link')?.addEventListener('click', async () => {
+    gateError.hidden = true;
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('copy');
+      await navigator.clipboard.writeText(location.href);
+      gateError.textContent = 'تم نسخ الرابط. الصقه في Safari ثم افتحه.';
+      gateError.hidden = false;
+    } catch {
+      gateError.textContent = 'اضغط ⋯ ثم «فتح في Safari» من الصفحة الحالية.';
+      gateError.hidden = false;
+    }
+  });
 
   if (gatePasteBtn) {
     gatePasteBtn.addEventListener('click', async () => {
@@ -1120,6 +1170,10 @@
     if (ok) {
       showOffers();
       await loadOffers();
+      return;
+    }
+    if (isIosEmbeddedBrowser()) {
+      showSafariHelp();
       return;
     }
     const fill = new URLSearchParams(location.search).get('fill') || '';

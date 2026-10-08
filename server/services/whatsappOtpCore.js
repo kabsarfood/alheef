@@ -117,6 +117,7 @@ function buildMessage(purpose, code, fillUrl) {
     ];
     if (fillUrl) {
       lines.push('أو اضغط الرابط من نفس الجوال ليُلصق الرمز تلقائيًا:', String(fillUrl));
+      lines.push('على الآيفون افتح الرابط في Safari إذا كان داخل واتساب.');
     }
     lines.push('', 'صالح لمدة 5 دقائق.', 'لا تشارك هذا الرمز مع أي شخص.', autofill);
     return lines.filter(Boolean).join('\n');
