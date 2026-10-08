@@ -1100,7 +1100,7 @@ function maskInvitePhone(phone) {
 
 function shareMessage(client) {
   const name = client.clientLabel && client.clientLabel !== 'عميل' ? client.clientLabel : 'عميلنا';
-  return `مرحبًا ${name}،\n\nهذا رابط دخولك إلى العروض العقارية الخاصة لدى مؤسسة الهيف:\n\n${client.shareUrl}\n\nعند فتح الرابط يصل رمز التحقق إلى واتسابك. بعد إدخال الرمز يبقى دخولك على هذا الجهاز لمدة 30 يومًا.\n\nمؤسسة الهيف للخدمات العقارية`;
+  return `مرحبًا ${name}،\n\nالدخول عبر رمز التحقق في واتساب للعروض العقارية الخاصة لدى الهيف العقارية.\nمن فضلك انقر على الرابط:\n${client.shareUrl}`;
 }
 
 function whatsAppNumber(phone) {
