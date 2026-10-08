@@ -67,8 +67,8 @@ async function boot() {
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
   const requested = params.get('view');
-  if (requested === 'list' || requested === 'map') view = requested;
-  else if (PRIVATE) view = 'map';
+  if (PRIVATE) view = 'map';
+  else if (requested === 'list' || requested === 'map') view = requested;
   else view = saved || 'list';
   if (ADMIN || DASHBOARD) {
     await initLayout('private-offers', 'العروض الخاصة');
@@ -78,6 +78,9 @@ async function boot() {
   bindShell();
   loadWhatsapp();
   await loadItems();
+  if (PRIVATE && view === 'map' && !document.getElementById('offers-view')?.classList.contains('is-hidden')) {
+    requestAnimationFrame(() => enterMapFullscreen());
+  }
   if (PRIVATE) window.setInterval(() => { loadItems().catch(() => {}); }, 45000);
   if (params.get('id')) openDetail(params.get('id'));
 }
@@ -180,7 +183,7 @@ function renderShell() {
             <span>تصغير</span>
           </button>
           <div id="ob-map" class="ob-map"></div>
-          <div class="ob-map-legend" id="ob-map-legend">${legendMarkup()}</div>
+          <div class="ob-map-legend" id="ob-map-legend" role="group" aria-label="خيارات البحث">${legendMarkup()}</div>
           <div class="ob-map-foot"><span>النقاط تمثل العروض المتاحة</span><strong>اضغط على أي عرض لعرض التفاصيل</strong></div>
         </aside>
       </section>
@@ -467,8 +470,10 @@ function drawList() {
 }
 
 function legendMarkup() {
-  return Object.entries(PROPERTY_TYPE_STYLES).map(([key, style]) =>
-    `<span class="ob-legend__item"><i class="ob-legend__swatch property-marker--${key}"></i>${style.label}</span>`).join('');
+  const all = '<button type="button" class="ob-chip ob-legend__btn" data-type="all">الكل</button>';
+  const cats = Object.entries(PROPERTY_TYPE_STYLES).map(([key, style]) =>
+    `<button type="button" class="ob-chip ob-legend__btn" data-type="${key}"><i class="ob-legend__swatch property-marker--${key}" aria-hidden="true"></i><span>${style.label}</span></button>`).join('');
+  return all + cats;
 }
 
 function popupHtml(item) {
@@ -685,7 +690,7 @@ function createMarker(item) {
     minWidth: 228,
     autoPan: true,
     autoPanPaddingTopLeft: [58, 72],
-    autoPanPaddingBottomRight: [20, 78],
+    autoPanPaddingBottomRight: [24, 108],
   });
   markers.set(item.id, marker);
   return marker;
@@ -1100,7 +1105,7 @@ function maskInvitePhone(phone) {
 
 function shareMessage(client) {
   const name = client.clientLabel && client.clientLabel !== 'عميل' ? client.clientLabel : 'عميلنا';
-  return `مرحبًا ${name}،\n\nالدخول عبر رمز التحقق في واتساب للعروض العقارية الخاصة لدى الهيف العقارية.\nمن فضلك انقر على الرابط:\n${client.shareUrl}`;
+  return `مرحبًا ${name} 👋\n\nيمكنك الدخول إلى العروض العقارية الخاصة لدى *الهيف العقارية* عبر التحقق من رقم واتساب.\n\nاضغط على الرابط التالي لإتمام الدخول:\n${client.shareUrl}\n\n*فرص عقارية مختارة بعناية… قد يكون عرضك القادم بانتظارك 🏡✨*`;
 }
 
 function whatsAppNumber(phone) {

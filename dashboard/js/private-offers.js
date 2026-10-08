@@ -335,7 +335,7 @@ function clientWhatsAppNumber(phone) {
 
 function clientEntryMessage(client) {
   const name = client.clientLabel || 'عميلنا';
-  return `مرحبًا ${name}،\n\nالدخول عبر رمز التحقق في واتساب للعروض العقارية الخاصة لدى الهيف العقارية.\nمن فضلك انقر على الرابط:\n${client.shareUrl}`;
+  return `مرحبًا ${name} 👋\n\nيمكنك الدخول إلى العروض العقارية الخاصة لدى *الهيف العقارية* عبر التحقق من رقم واتساب.\n\nاضغط على الرابط التالي لإتمام الدخول:\n${client.shareUrl}\n\n*فرص عقارية مختارة بعناية… قد يكون عرضك القادم بانتظارك 🏡✨*`;
 }
 
 function openClientWhatsApp(client) {
