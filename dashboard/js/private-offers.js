@@ -224,9 +224,11 @@ function clientAccordion(client) {
             ${c.deviceLastSeenAt ? ` — آخر نشاط: ${formatVisitDate(c.deviceLastSeenAt)}` : ''}
             ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
           </p>
-          <div class="po-client-card__actions">
+          <div class="po-link-actions">
+            <button type="button" class="btn btn-gold btn-sm" data-wa="${c.id}">إعادة إرسال الرابط</button>
             <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط</button>
-            <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إعادة إرسال الرابط</button>
+          </div>
+          <div class="po-client-card__actions">
             <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
             <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
             <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}" ${c.deviceStatus === 'active' ? '' : 'disabled title="لا يوجد جهاز مفعّل لإلغائه"'}>إلغاء الجهاز الحالي</button>
@@ -319,7 +321,7 @@ function renderClientsList() {
   list.querySelectorAll('[data-wa]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const client = clientsCache.find((c) => c.id === btn.dataset.wa);
-      if (client) openClientWhatsApp(client);
+      if (client) showClientLinkModal(client, 'resend');
     });
   });
 
@@ -489,20 +491,26 @@ function openAddClientModal() {
 }
 
 function showClientSuccessModal(client) {
+  showClientLinkModal(client, 'create');
+}
+
+function showClientLinkModal(client, mode) {
+  const resend = mode === 'resend';
   const wrap = document.createElement('div');
   wrap.className = 'modal active';
   wrap.innerHTML = `
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box modal__box--po" role="dialog">
       <div class="modal__header">
-        <h3 class="modal__title">تم إنشاء رابط الدخول</h3>
+        <h3 class="modal__title">${resend ? 'إعادة إرسال الرابط' : 'تم إنشاء رابط الدخول'}</h3>
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <div class="po-success-panel">
-        <div class="po-success-panel__icon" aria-hidden="true">✓</div>
+        <div class="po-success-panel__icon" aria-hidden="true">${resend ? '↻' : '✓'}</div>
         <p class="po-modal-hint" style="margin:0;text-align:center">
-          تم إنشاء رابط الدخول للعميل بنجاح.<br>
-          سيتم التحقق من رقم العميل عبر واتساب عند فتح الرابط، ثم اعتماد أول متصفح يُفعّل عليه.
+          ${resend
+            ? 'الرسالة جاهزة باسم العميل والرابط في سطر مستقل.<br>اضغط الإرسال لفتح واتساب، ثم أرسلها كما هي.'
+            : 'تم إنشاء رابط الدخول للعميل بنجاح.<br>سيتم التحقق من رقم العميل عبر واتساب عند فتح الرابط.'}
         </p>
         <div class="po-credential-box">
           <label>اسم العميل</label>
@@ -516,10 +524,10 @@ function showClientSuccessModal(client) {
           <label>رابط الدخول</label>
           <input readonly dir="ltr" value="${escapeHtml(client.shareUrl)}" id="po-success-url">
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-gold" id="po-copy-link">نسخ رابط الدخول</button>
-          <button type="button" class="btn btn-outline" id="po-send-wa">إرسال رابط الدخول عبر واتساب</button>
-          <button type="button" class="btn btn-outline" data-close>تم</button>
+        <div class="po-link-actions po-link-actions--modal">
+          <button type="button" class="btn btn-gold" id="po-send-wa">${resend ? 'إرسال مرة أخرى عبر واتساب' : 'إرسال رابط الدخول عبر واتساب'}</button>
+          <button type="button" class="btn btn-outline" id="po-copy-link">نسخ رابط الدخول</button>
+          <button type="button" class="btn btn-outline" data-close>إغلاق</button>
         </div>
       </div>
     </div>

@@ -307,6 +307,22 @@
   border-top: 1px solid var(--border);
 }
 
+.po-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0.35rem;
+}
+
+.po-link-actions .btn {
+  flex: 1 1 11rem;
+  min-height: 44px;
+}
+
+.po-link-actions--modal {
+  margin-top: 0.35rem;
+}
+
 .po-client-card__actions .btn {
   flex: 1 1 auto;
   min-width: 7rem;
