@@ -3,14 +3,6 @@ const crypto = require('crypto');
 const COOKIE = 'alheef_pd';
 const MAX_AGE = 400 * 24 * 60 * 60;
 const OTHER_MESSAGE = 'هذا الدخول مرتبط بجهاز آخر.';
-const SAFARI_MESSAGE = 'على الآيفون افتح الرابط في Safari ثم أكمل التحقق عبر واتساب.';
-
-function isIosEmbeddedBrowser(userAgent) {
-  const ua = String(userAgent || '');
-  if (!/iPhone|iPad|iPod/i.test(ua)) return false;
-  if (/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return false;
-  return !(/Version\/[\d.]+/i.test(ua) && /Safari/i.test(ua));
-}
 
 function hashDevice(secret) {
   return crypto.createHash('sha256').update(String(secret || '')).digest('hex');
@@ -81,8 +73,6 @@ function deviceState(row, cookieSecret) {
 module.exports = {
   COOKIE,
   OTHER_MESSAGE,
-  SAFARI_MESSAGE,
-  isIosEmbeddedBrowser,
   hashDevice,
   newDeviceSecret,
   readDeviceCookie,

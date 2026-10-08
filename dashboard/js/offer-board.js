@@ -1115,7 +1115,7 @@ function maskInvitePhone(phone) {
 
 function shareMessage(client) {
   const name = client.clientLabel && client.clientLabel !== 'عميل' ? client.clientLabel : 'عميلنا';
-  return `مرحبًا ${name} 👋\n\nيمكنك الدخول إلى العروض العقارية الخاصة لدى *الهيف العقارية* عبر التحقق من رقم واتساب.\n\nاضغط على الرابط التالي لإتمام الدخول:\n${client.shareUrl}\n\nعلى الآيفون: بعد فتح الرابط اختر «فتح في Safari» ثم أكمل التحقق عبر واتساب.\n\n*فرص عقارية مختارة بعناية… قد يكون عرضك القادم بانتظارك 🏡✨*`;
+  return `مرحبًا ${name} 👋\n\nيمكنك الدخول إلى العروض العقارية الخاصة لدى *الهيف العقارية* عبر التحقق من رقم واتساب.\n\nاضغط على الرابط التالي لإتمام الدخول:\n${client.shareUrl}\n\n*فرص عقارية مختارة بعناية… قد يكون عرضك القادم بانتظارك 🏡✨*`;
 }
 
 function whatsAppNumber(phone) {
