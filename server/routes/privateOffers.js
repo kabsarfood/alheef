@@ -79,12 +79,7 @@ router.post('/otp/send', requireDb, async (req, res) => {
     if (loaded.error) {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
-    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
-    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
-      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
-    }
-    if (state === 'other') {
-      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+    if (loaded.row.device_status === 'revoked') {
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
     }
 
@@ -164,12 +159,7 @@ router.post('/otp/autofill', requireDb, async (req, res) => {
     if (loaded.error) {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
-    const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
-    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
-      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
-    }
-    if (state === 'other') {
-      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+    if (loaded.row.device_status === 'revoked') {
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
     }
 
@@ -232,20 +222,22 @@ router.post('/otp/verify', requireDb, async (req, res) => {
       return res.status(401).json({ success: false, message: GENERIC_DENY });
     }
     const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
-    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
-      return res.status(409).json({ success: false, code: 'open_safari', message: device.SAFARI_MESSAGE });
-    }
-    if (state === 'other') {
+    if (loaded.row.device_status === 'revoked') {
       await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
     }
-    if (state === 'open') {
+    if (state === 'same') {
+      device.setDeviceCookie(req, res, device.readDeviceCookie(req));
+      await privateClientsRepo.touchClientDevice(loaded.row.id);
+    } else {
       const secret = device.newDeviceSecret();
+      const payload = {
+        tokenHash: device.hashDevice(secret),
+        label: device.deviceLabel(req.headers['user-agent']),
+      };
       try {
-        await privateClientsRepo.bindClientDevice(loaded.row.id, {
-          tokenHash: device.hashDevice(secret),
-          label: device.deviceLabel(req.headers['user-agent']),
-        });
+        if (state === 'other') await privateClientsRepo.rebindClientDevice(loaded.row.id, payload);
+        else await privateClientsRepo.bindClientDevice(loaded.row.id, payload);
       } catch (err) {
         if (err.code === 'DEVICE_BOUND') {
           return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
@@ -253,9 +245,6 @@ router.post('/otp/verify', requireDb, async (req, res) => {
         throw err;
       }
       device.setDeviceCookie(req, res, secret);
-    } else {
-      device.setDeviceCookie(req, res, device.readDeviceCookie(req));
-      await privateClientsRepo.touchClientDevice(loaded.row.id);
     }
 
     try {
@@ -297,18 +286,8 @@ router.get('/gate', requireDb, async (req, res) => {
       return res.status(loaded.error.status).json({ success: false, message: loaded.error.message });
     }
     const state = device.deviceState(loaded.row, device.readDeviceCookie(req));
-    if (state === 'other') {
-      await privateClientsRepo.noteDeviceAttempt(loaded.row.id, device.deviceKind(req.headers['user-agent']));
+    if (loaded.row.device_status === 'revoked') {
       return res.json({ success: true, state: 'other', message: device.OTHER_MESSAGE });
-    }
-    if (device.isIosEmbeddedBrowser(req.headers['user-agent']) && state !== 'same') {
-      return res.json({
-        success: true,
-        state: 'safari',
-        message: device.SAFARI_MESSAGE,
-        phoneMasked: maskPhone(loaded.row.phone),
-        clientName: loaded.client.clientLabel || '',
-      });
     }
     res.json({
       success: true,

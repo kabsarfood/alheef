@@ -353,6 +353,32 @@ async function bindClientDevice(id, { tokenHash, label }) {
   return rowToPrivateClient(data[0]);
 }
 
+async function rebindClientDevice(id, { tokenHash, label }) {
+  const existing = await getClientById(id);
+  if (!existing) throw new Error('العميل غير موجود');
+  if (existing.deviceStatus === 'revoked') {
+    const err = new Error('DEVICE_BOUND');
+    err.code = 'DEVICE_BOUND';
+    throw err;
+  }
+  const now = new Date().toISOString();
+  const { data, error } = await getAdmin()
+    .from(CLIENTS_TABLE)
+    .update({
+      device_status: 'active',
+      device_token_hash: tokenHash,
+      device_bound_at: now,
+      device_last_seen_at: now,
+      device_label: label || null,
+      updated_at: now,
+    })
+    .eq('id', id)
+    .select();
+  if (error) throw new Error(error.message);
+  if (!data || !data.length) throw new Error('العميل غير موجود');
+  return rowToPrivateClient(data[0]);
+}
+
 async function touchClientDevice(id) {
   const now = new Date().toISOString();
   await getAdmin().from(CLIENTS_TABLE).update({
@@ -450,6 +476,7 @@ module.exports = {
   recordClientLogin,
   getClientsVisitSummary,
   bindClientDevice,
+  rebindClientDevice,
   touchClientDevice,
   noteDeviceAttempt,
   revokeClientDevice,

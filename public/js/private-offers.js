@@ -324,6 +324,27 @@
     }
     clientName = data.clientName || '';
     showActivation(data.state, data.phoneMasked);
+    try {
+      gateReadyToSend = true;
+      await sendOtp();
+      showGateOtpStep();
+      if (gateError) {
+        gateError.textContent = 'أُرسل رمز التحقق إلى واتساب. اضغط الرابط في الرسالة لإتمام الدخول.';
+        gateError.hidden = false;
+      }
+    } catch (err) {
+      if (err.code === 'other_device') {
+        showBlocked(err.message);
+        return;
+      }
+      if (gateError) {
+        gateError.textContent = err.message || 'تعذر إرسال رمز التحقق';
+        gateError.hidden = false;
+      }
+      if (gateConfirmBtn) gateConfirmBtn.hidden = true;
+      if (gateSendBtn) gateSendBtn.hidden = false;
+      gateReadyToSend = true;
+    }
   }
 
   showGate();
@@ -1150,10 +1171,6 @@
     if (ok) {
       showOffers();
       await loadOffers();
-      return;
-    }
-    if (isIosInAppBrowser()) {
-      showSafariHandoff();
       return;
     }
     const fill = new URLSearchParams(location.search).get('fill') || '';

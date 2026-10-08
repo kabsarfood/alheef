@@ -77,8 +77,8 @@ async function main() {
     assert(verified.status === 200 && verifiedBody.token, '1 first device binds');
     assert(!verifiedBody.phone, 'verify hides phone');
     assert(cookie.raw.includes('HttpOnly') && cookie.raw.includes('SameSite=Lax') && cookie.raw.includes('Path=/'), 'cookie flags');
-    const token = verifiedBody.token;
-    const deviceCookie = `alheef_pd=${encodeURIComponent(cookie.value)}`;
+    let token = verifiedBody.token;
+    let deviceCookie = `alheef_pd=${encodeURIComponent(cookie.value)}`;
 
     const offers = await fetch(`${base}/api/private-offers`, {
       headers: { Authorization: `Bearer ${token}`, Cookie: deviceCookie },
@@ -100,9 +100,28 @@ async function main() {
       body: JSON.stringify({ slug }),
     });
     const otherBody = await otherSend.json();
-    assert(otherSend.status === 403 && otherBody.code === 'other_device', '3 second browser rejected');
-    assert(sendCount === beforeOther, '6 otp does not bypass device');
-    assert(!JSON.stringify(otherBody).includes('11111001'), 'other device hides phone');
+    assert(otherSend.status === 200, '3 whatsapp code is sent in any browser');
+    assert(sendCount === beforeOther + 1, '3 otp is sent for the new browser');
+    const otherChallenge = otherBody.challengeId;
+    const otherVerify = await fetch(`${base}/api/private-offers/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: otherCookie, 'User-Agent': 'Mozilla/5.0 Firefox/120.0' },
+      body: JSON.stringify({ slug, challengeId: otherChallenge, code: lastCode }),
+    });
+    const otherVerified = await otherVerify.json();
+    const rebound = cookieOf(otherVerify);
+    assert(otherVerify.status === 200 && otherVerified.token && rebound.value, '3 whatsapp login works in the new browser');
+    const oldOffers = await fetch(`${base}/api/private-offers`, {
+      headers: { Authorization: `Bearer ${token}`, Cookie: deviceCookie },
+    });
+    assert(oldOffers.status === 403, '3 previous browser is no longer the active device');
+    const reboundCookie = `alheef_pd=${encodeURIComponent(rebound.value)}`;
+    const reboundOffers = await fetch(`${base}/api/private-offers`, {
+      headers: { Authorization: `Bearer ${otherVerified.token}`, Cookie: reboundCookie },
+    });
+    assert(reboundOffers.status === 200, '3 new browser lists offers');
+    deviceCookie = reboundCookie;
+    token = otherVerified.token;
 
     const noCookieOffers = await fetch(`${base}/api/private-offers`, {
       headers: { Authorization: `Bearer ${token}` },
