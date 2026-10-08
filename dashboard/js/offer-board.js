@@ -65,13 +65,8 @@ async function boot() {
   }
   booted = true;
   applyTypeColors();
+  view = 'map';
   const params = new URLSearchParams(location.search);
-  const saved = sessionStorage.getItem(VIEW_KEY);
-  const requested = params.get('view');
-  const mapFirst = PRIVATE || (ADMIN && DASHBOARD);
-  if (mapFirst) view = 'map';
-  else if (requested === 'list' || requested === 'map') view = requested;
-  else view = saved || 'list';
   if (ADMIN || DASHBOARD) {
     await initLayout('private-offers', 'العروض الخاصة');
     if (ADMIN) setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
@@ -80,7 +75,7 @@ async function boot() {
   bindShell();
   loadWhatsapp();
   await loadItems();
-  if ((PRIVATE || (ADMIN && DASHBOARD)) && view === 'map') {
+  if (PRIVATE || (ADMIN && DASHBOARD)) {
     requestAnimationFrame(() => enterMapFullscreen());
   }
   if (PRIVATE) window.setInterval(() => { loadItems().catch(() => {}); }, 45000);
@@ -137,7 +132,7 @@ function renderShell() {
   const typeRow = `<div class="ob-search-tools"><div class="ob-chips" id="ob-filters">${chips}</div>${sortSelect}</div>`;
   getPageContent().innerHTML = `
     <div class="ob-fit">
-    <section class="ob-studio">
+    <section class="ob-studio is-view-map">
       <section class="ob-hero">
         <div class="ob-hero__top">
           <div>
@@ -154,13 +149,6 @@ function renderShell() {
           ${typeRow}
         </div>
       </section>
-      <div class="ob-view-switch">
-        <p class="ob-view-switch__label">طريقة عرض الصفحة</p>
-        <div class="ob-view-switch__row" role="group" aria-label="طريقة عرض الصفحة">
-          <button type="button" class="ob-view-btn" data-view="map">خريطة</button>
-          <button type="button" class="ob-view-btn" data-view="list">قائمة</button>
-        </div>
-      </div>
       <div class="ob-toolbar">
         <div class="ob-toolbar__side">
           ${ADMIN ? '<button type="button" data-archive="0">النشطة</button><button type="button" data-archive="1">الأرشيف</button><button type="button" id="ob-share">مشاركة العروض الخاصة</button>' : ''}
@@ -169,10 +157,6 @@ function renderShell() {
       </div>
       <p class="ob-note" id="ob-note" hidden></p>
       <section class="ob-content" id="ob-layout">
-        <div class="ob-list-col">
-          <div id="ob-list" class="ob-listings"></div>
-          <button type="button" id="ob-more" hidden>مزيد</button>
-        </div>
         <aside class="ob-map-panel" id="mapPanel">
           <div class="ob-map-head">
             <button type="button" class="ob-map-expand" id="ob-map-expand">فتح الخريطة</button>
@@ -242,12 +226,6 @@ function bindShell() {
       openShareModal();
       return;
     }
-    const viewBtn = event.target.closest('[data-view]');
-    if (viewBtn) {
-      setPageView(viewBtn.dataset.view);
-      if (viewBtn.dataset.view === 'map') requestAnimationFrame(() => enterMapFullscreen());
-      return;
-    }
     const archiveBtn = event.target.closest('[data-archive]');
     if (archiveBtn) {
       archive = archiveBtn.dataset.archive === '1';
@@ -280,10 +258,6 @@ function bindShell() {
     }
     const newsOpen = event.target.closest('[data-news-open]');
     if (newsOpen) openDetail(newsOpen.dataset.newsOpen);
-  });
-  document.getElementById('ob-more').addEventListener('click', () => {
-    page += 1;
-    loadItems(true);
   });
   document.getElementById('ob-search')?.addEventListener('input', () => { drawList(); drawMap(); });
   document.getElementById('ob-sort')?.addEventListener('change', (event) => {
@@ -327,6 +301,7 @@ async function loadWhatsapp() {
 }
 
 async function loadItems(append) {
+  if (!append) page = 1;
   let data;
   try {
     data = await boardRequest(`?archive=${ADMIN && archive ? '1' : '0'}&page=${page}&limit=60`);
@@ -338,8 +313,11 @@ async function loadItems(append) {
   items = append ? items.concat(data.items || []) : (data.items || []);
   renderPrivateNews();
   const total = Number.isFinite(Number(data.total)) ? Number(data.total) : items.length;
-  const more = document.getElementById('ob-more');
-  if (more) more.hidden = items.length >= total;
+  if (items.length < total && page < 20) {
+    page += 1;
+    await loadItems(true);
+    return;
+  }
   drawList();
   drawMap();
 }
