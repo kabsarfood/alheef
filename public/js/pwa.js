@@ -335,12 +335,11 @@
     banner.id = 'pwa-update-banner';
     banner.className = 'pwa-update-banner';
     banner.innerHTML = `
-      <div class="pwa-update-banner__inner">
-        <p class="pwa-update-banner__text">يتوفر تحديث جديد لتطبيق الهيف — اضغط «تحديث الآن» لعرض آخر التعديلات.</p>
-        <div class="pwa-update-banner__actions">
-          <button type="button" class="btn btn-gold btn-sm" data-update-apply>تحديث الآن</button>
-          <button type="button" class="btn btn-outline btn-sm" data-update-later>لاحقاً</button>
-        </div>
+      <div class="pwa-update-card" role="dialog" aria-labelledby="pwa-update-title">
+        <p class="pwa-update-card__kicker">تطبيق الهيف</p>
+        <p id="pwa-update-title" class="pwa-update-card__text">يتوفر تحديث جديد لتطبيق الهيف — اضغط <span class="pwa-update-card__phrase">«تحديث الآن»</span> لعرض آخر التعديلات.</p>
+        <button type="button" class="pwa-update-card__apply" data-update-apply>تحديث الآن</button>
+        <button type="button" class="pwa-update-card__later" data-update-later>لاحقاً</button>
       </div>
     `;
     document.body.appendChild(banner);
