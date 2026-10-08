@@ -35,6 +35,7 @@ const STATUS_OPTIONS = [
 let settingsInfo = { active: true };
 let clientsCache = [];
 let offersCache = [];
+let selectedClientId = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.classList.add('po-admin-page');
@@ -95,7 +96,6 @@ async function loadClientsPanel() {
     const data = await DashboardAPI.getPrivateOffersSettings();
     settingsInfo = data.settings || { active: true };
     clientsCache = await DashboardAPI.getPrivateClients();
-    const summary = data.summary || {};
 
     el.innerHTML = `
       <div class="po-section-head">
@@ -111,11 +111,6 @@ async function loadClientsPanel() {
       ` : ''}
       <div class="form-group" style="margin:.75rem 0">
         <label><input type="checkbox" id="global-active" ${settingsInfo.active ? 'checked' : ''}> تفعيل صفحة العروض الخاصة (عام)</label>
-      </div>
-      <div class="stats-grid po-stats">
-        <div class="stat-card"><p class="stat-card__label">عملاء</p><p class="stat-card__value">${summary.totalClients || 0}</p></div>
-        <div class="stat-card"><p class="stat-card__label">نشطون</p><p class="stat-card__value">${summary.activeClients || 0}</p></div>
-        <div class="stat-card"><p class="stat-card__label">مرات الدخول</p><p class="stat-card__value">${summary.totalLogins || 0}</p></div>
       </div>
       <div id="clients-list"></div>
     `;
@@ -160,6 +155,89 @@ function optionHtml(list, selected) {
   return list.map((t) => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
 }
 
+function clientOption(client) {
+  const name = client.clientLabel || 'عميل';
+  const phone = client.phone || 'بدون رقم';
+  return `<option value="${escapeHtml(client.id)}" ${client.id === selectedClientId ? 'selected' : ''}>${escapeHtml(name)} — ${escapeHtml(phone)}</option>`;
+}
+
+function clientAccordion(client) {
+  const c = client;
+  return `
+    <details class="po-client-accordion" data-client="${c.id}" open>
+      <summary class="po-client-accordion__summary">
+        <div class="po-client-accordion__summary-main">
+          <strong class="po-client-accordion__name">${escapeHtml(c.clientLabel || 'عميل')}</strong>
+          <span class="po-client-accordion__phone" dir="ltr">${escapeHtml(c.phone || 'بدون رقم')}</span>
+        </div>
+        <div class="po-client-accordion__summary-meta">
+          <span class="po-client-pill po-client-pill--${c.requestType === 'rent' ? 'rent' : 'buy'}">${escapeHtml(clientRequestLabel(c.requestType))}</span>
+          <span class="po-client-pill">${escapeHtml(clientPropertyKindLabel(c.propertyKind))}</span>
+          <span class="po-client-pill po-client-pill--area">${escapeHtml(formatClientArea(c.requiredArea))}</span>
+          <span class="po-client-card__badge ${c.inviteStatus === 'active' ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
+            ${escapeHtml(inviteStatusLabel(c))}
+          </span>
+          <span class="po-client-accordion__chevron" aria-hidden="true">▾</span>
+        </div>
+      </summary>
+      <div class="po-client-accordion__body">
+        <form class="po-client-details-form" data-id="${c.id}">
+          <div class="po-client-details-grid">
+            <div class="form-group">
+              <label>اسم العميل</label>
+              <input name="clientLabel" value="${escapeHtml(c.clientLabel || '')}" placeholder="اسم العميل" required>
+            </div>
+            <div class="form-group">
+              <label>رقم الجوال</label>
+              <input name="phone" value="${escapeHtml(c.phone || '')}" placeholder="05xxxxxxxx" dir="ltr">
+            </div>
+            <div class="form-group">
+              <label>نوع الطلب</label>
+              <select name="requestType">
+                ${optionHtml(CLIENT_REQUEST_TYPES, c.requestType || 'buy')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>نوع العقار المطلوب</label>
+              <select name="propertyKind">
+                ${optionHtml(CLIENT_PROPERTY_KINDS, c.propertyKind || 'land')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>المساحة المطلوبة (م²)</label>
+              <input name="requiredArea" type="number" min="1" step="0.01" value="${c.requiredArea != null ? escapeHtml(String(c.requiredArea)) : ''}" placeholder="مثال: 500">
+            </div>
+            <div class="form-group po-client-details-grid__full">
+              <label>رابط الدخول</label>
+              <div class="po-client-card__url-row">
+                <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
+              </div>
+            </div>
+          </div>
+          <p class="po-client-card__meta">
+            أُنشئت: ${formatVisitDate(c.createdAt)} — الحالة: ${escapeHtml(inviteStatusLabel(c))} — دخل: ${(c.loginCount || 0) > 0 ? 'نعم' : 'لا'} — آخر دخول: ${formatVisitDate(c.lastVisitAt)}
+          </p>
+          <p class="po-client-card__meta">
+            الجهاز: <strong>${escapeHtml(deviceStatusLabel(c.deviceStatus))}</strong>
+            ${c.deviceLabel ? ` — ${escapeHtml(c.deviceLabel)}` : ''}
+            ${c.deviceBoundAt ? ` — أول تفعيل: ${formatVisitDate(c.deviceBoundAt)}` : ''}
+            ${c.deviceLastSeenAt ? ` — آخر نشاط: ${formatVisitDate(c.deviceLastSeenAt)}` : ''}
+            ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
+          </p>
+          <div class="po-client-card__actions">
+            <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط</button>
+            <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إعادة إرسال الرابط</button>
+            <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
+            <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
+            <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}" ${c.deviceStatus === 'active' ? '' : 'disabled title="لا يوجد جهاز مفعّل لإلغائه"'}>إلغاء الجهاز الحالي</button>
+            <button type="button" class="btn btn-outline btn-sm" data-sessions="${c.id}">إنهاء جميع الجلسات</button>
+            <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إلغاء الصلاحية' : 'تفعيل الدعوة'}</button>
+          </div>
+        </form>
+      </div>
+    </details>`;
+}
+
 function renderClientsList() {
   const list = document.getElementById('clients-list');
   if (!list) return;
@@ -168,84 +246,31 @@ function renderClientsList() {
     return;
   }
 
+  const active = clientsCache.filter((client) => client.active);
+  const inactive = clientsCache.filter((client) => !client.active);
+  const logins = clientsCache.reduce((total, client) => total + (client.loginCount || 0), 0);
+  if (selectedClientId && !clientsCache.some((client) => client.id === selectedClientId)) selectedClientId = '';
+  const selected = clientsCache.find((client) => client.id === selectedClientId);
+
   list.innerHTML = `
+    <div class="po-active-select">
+      <label for="po-active-clients">عملاء نشطون</label>
+      <select id="po-active-clients">
+        <option value="">اختر عميلاً</option>
+        ${active.map(clientOption).join('')}
+        ${inactive.length ? `<optgroup label="غير النشطين">${inactive.map(clientOption).join('')}</optgroup>` : ''}
+      </select>
+      <p class="po-active-select__meta">${active.length} نشطون من ${clientsCache.length} عملاء — ${logins} مرة دخول</p>
+    </div>
     <div class="po-clients-list">
-      ${clientsCache.map((c) => `
-        <details class="po-client-accordion" data-client="${c.id}">
-          <summary class="po-client-accordion__summary">
-            <div class="po-client-accordion__summary-main">
-              <strong class="po-client-accordion__name">${escapeHtml(c.clientLabel || 'عميل')}</strong>
-              <span class="po-client-accordion__phone" dir="ltr">${escapeHtml(c.phone || 'بدون رقم')}</span>
-            </div>
-            <div class="po-client-accordion__summary-meta">
-              <span class="po-client-pill po-client-pill--${c.requestType === 'rent' ? 'rent' : 'buy'}">${escapeHtml(clientRequestLabel(c.requestType))}</span>
-              <span class="po-client-pill">${escapeHtml(clientPropertyKindLabel(c.propertyKind))}</span>
-              <span class="po-client-pill po-client-pill--area">${escapeHtml(formatClientArea(c.requiredArea))}</span>
-              <span class="po-client-card__badge ${c.inviteStatus === 'active' ? 'po-client-card__badge--active' : 'po-client-card__badge--inactive'}">
-                ${escapeHtml(inviteStatusLabel(c))}
-              </span>
-              <span class="po-client-accordion__chevron" aria-hidden="true">▾</span>
-            </div>
-          </summary>
-          <div class="po-client-accordion__body">
-            <form class="po-client-details-form" data-id="${c.id}">
-              <div class="po-client-details-grid">
-                <div class="form-group">
-                  <label>اسم العميل</label>
-                  <input name="clientLabel" value="${escapeHtml(c.clientLabel || '')}" placeholder="اسم العميل" required>
-                </div>
-                <div class="form-group">
-                  <label>رقم الجوال</label>
-                  <input name="phone" value="${escapeHtml(c.phone || '')}" placeholder="05xxxxxxxx" dir="ltr">
-                </div>
-                <div class="form-group">
-                  <label>نوع الطلب</label>
-                  <select name="requestType">
-                    ${optionHtml(CLIENT_REQUEST_TYPES, c.requestType || 'buy')}
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>نوع العقار المطلوب</label>
-                  <select name="propertyKind">
-                    ${optionHtml(CLIENT_PROPERTY_KINDS, c.propertyKind || 'land')}
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>المساحة المطلوبة (م²)</label>
-                  <input name="requiredArea" type="number" min="1" step="0.01" value="${c.requiredArea != null ? escapeHtml(String(c.requiredArea)) : ''}" placeholder="مثال: 500">
-                </div>
-                <div class="form-group po-client-details-grid__full">
-                  <label>رابط الدخول</label>
-                  <div class="po-client-card__url-row">
-                    <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
-                  </div>
-                </div>
-              </div>
-              <p class="po-client-card__meta">
-                أُنشئت: ${formatVisitDate(c.createdAt)} — الحالة: ${escapeHtml(inviteStatusLabel(c))} — دخل: ${(c.loginCount || 0) > 0 ? 'نعم' : 'لا'} — آخر دخول: ${formatVisitDate(c.lastVisitAt)}
-              </p>
-              <p class="po-client-card__meta">
-                الجهاز: <strong>${escapeHtml(deviceStatusLabel(c.deviceStatus))}</strong>
-                ${c.deviceLabel ? ` — ${escapeHtml(c.deviceLabel)}` : ''}
-                ${c.deviceBoundAt ? ` — أول تفعيل: ${formatVisitDate(c.deviceBoundAt)}` : ''}
-                ${c.deviceLastSeenAt ? ` — آخر نشاط: ${formatVisitDate(c.deviceLastSeenAt)}` : ''}
-                ${c.lastDeviceAttemptAt ? ` — محاولة أخرى: ${formatVisitDate(c.lastDeviceAttemptAt)} (${escapeHtml(c.lastDeviceAttemptKind || '')})` : ''}
-              </p>
-              <div class="po-client-card__actions">
-                <button type="button" class="btn btn-outline btn-sm" data-copy="${c.id}">نسخ الرابط</button>
-                <button type="button" class="btn btn-outline btn-sm" data-wa="${c.id}">إعادة إرسال الرابط</button>
-                <button type="submit" class="btn btn-gold btn-sm">حفظ البيانات</button>
-                <button type="button" class="btn btn-outline btn-sm" data-regen="${c.id}">السماح بتفعيل جهاز جديد</button>
-                <button type="button" class="btn btn-outline btn-sm" data-revoke="${c.id}" ${c.deviceStatus === 'active' ? '' : 'disabled title="لا يوجد جهاز مفعّل لإلغائه"'}>إلغاء الجهاز الحالي</button>
-                <button type="button" class="btn btn-outline btn-sm" data-sessions="${c.id}">إنهاء جميع الجلسات</button>
-                <button type="button" class="btn btn-outline btn-sm" data-toggle="${c.id}">${c.active ? 'إلغاء الصلاحية' : 'تفعيل الدعوة'}</button>
-              </div>
-            </form>
-          </div>
-        </details>
-      `).join('')}
+      ${selected ? clientAccordion(selected) : ''}
     </div>
   `;
+
+  document.getElementById('po-active-clients')?.addEventListener('change', (event) => {
+    selectedClientId = event.target.value;
+    renderClientsList();
+  });
 
   list.querySelectorAll('.po-client-details-form').forEach((form) => {
     form.addEventListener('submit', async (e) => {
