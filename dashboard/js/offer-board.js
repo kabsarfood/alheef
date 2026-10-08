@@ -66,7 +66,10 @@ async function boot() {
   applyTypeColors();
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
-  view = params.get('view') === 'list' || params.get('view') === 'map' ? params.get('view') : (saved || 'list');
+  const requested = params.get('view');
+  if (requested === 'list' || requested === 'map') view = requested;
+  else if (PRIVATE) view = 'map';
+  else view = saved || 'list';
   if (ADMIN || DASHBOARD) {
     await initLayout('private-offers', 'العروض الخاصة');
     if (ADMIN) setTopbarActions('<a class="btn btn-outline btn-sm" href="/dashboard/private-offers-legacy.html">عملاء العروض</a>');
@@ -149,8 +152,8 @@ function renderShell() {
       <div class="ob-view-switch">
         <p class="ob-view-switch__label">طريقة عرض الصفحة</p>
         <div class="ob-view-switch__row" role="group" aria-label="طريقة عرض الصفحة">
-          <button type="button" class="ob-view-btn" data-view="list">قائمة</button>
           <button type="button" class="ob-view-btn" data-view="map">خريطة</button>
+          <button type="button" class="ob-view-btn" data-view="list">قائمة</button>
         </div>
       </div>
       <div class="ob-toolbar">
