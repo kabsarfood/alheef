@@ -34,6 +34,7 @@ let scrollLocked = false;
 let scrollLockY = 0;
 let viewHold = 0;
 let viewObserver = null;
+let mapMotion = 0;
 let heefWhatsapp = '966530792754';
 let photoState = { images: [], index: 0 };
 let booted = false;
@@ -67,7 +68,8 @@ async function boot() {
   const params = new URLSearchParams(location.search);
   const saved = sessionStorage.getItem(VIEW_KEY);
   const requested = params.get('view');
-  if (PRIVATE) view = 'map';
+  const mapFirst = PRIVATE || (ADMIN && DASHBOARD);
+  if (mapFirst) view = 'map';
   else if (requested === 'list' || requested === 'map') view = requested;
   else view = saved || 'list';
   if (ADMIN || DASHBOARD) {
@@ -78,7 +80,7 @@ async function boot() {
   bindShell();
   loadWhatsapp();
   await loadItems();
-  if (PRIVATE && view === 'map' && !document.getElementById('offers-view')?.classList.contains('is-hidden')) {
+  if ((PRIVATE || (ADMIN && DASHBOARD)) && view === 'map') {
     requestAnimationFrame(() => enterMapFullscreen());
   }
   if (PRIVATE) window.setInterval(() => { loadItems().catch(() => {}); }, 45000);
@@ -470,7 +472,7 @@ function drawList() {
 }
 
 function legendMarkup() {
-  const all = '<button type="button" class="ob-chip ob-legend__btn" data-type="all">الكل</button>';
+  const all = '<button type="button" class="ob-chip ob-legend__btn ob-legend__btn--all" data-type="all"><i class="ob-legend__swatch ob-legend__swatch--all" aria-hidden="true"></i><span>الكل</span></button>';
   const cats = Object.entries(PROPERTY_TYPE_STYLES).map(([key, style]) =>
     `<button type="button" class="ob-chip ob-legend__btn" data-type="${key}"><i class="ob-legend__swatch property-marker--${key}" aria-hidden="true"></i><span>${style.label}</span></button>`).join('');
   return all + cats;
@@ -574,10 +576,20 @@ function holdMapView(view) {
 function openMapShell() {
   ensureMap();
   if (!map || !document.getElementById('mapPanel')) return false;
+  window.clearTimeout(mapMotion);
+  document.body.classList.remove('ob-map-leave');
   if (!document.body.classList.contains('ob-map-fs')) {
+    let fog = document.getElementById('ob-map-fog');
+    if (!fog) {
+      fog = document.createElement('div');
+      fog.id = 'ob-map-fog';
+      fog.className = 'ob-map-fog';
+      document.body.appendChild(fog);
+    }
     document.documentElement.classList.add('ob-map-fs');
-    document.body.classList.add('ob-map-fs');
+    document.body.classList.add('ob-map-fs', 'ob-map-enter');
     lockScroll();
+    mapMotion = window.setTimeout(() => document.body.classList.remove('ob-map-enter'), 480);
   }
   return true;
 }
@@ -593,10 +605,16 @@ function enterMapFullscreen() {
 function exitMapFullscreen() {
   if (!document.body.classList.contains('ob-map-fs')) return;
   const view = map ? { center: map.getCenter(), zoom: map.getZoom() } : null;
-  document.documentElement.classList.remove('ob-map-fs');
-  document.body.classList.remove('ob-map-fs');
-  unlockScroll();
-  holdMapView(view);
+  window.clearTimeout(mapMotion);
+  document.body.classList.remove('ob-map-enter');
+  document.body.classList.add('ob-map-leave');
+  mapMotion = window.setTimeout(() => {
+    document.documentElement.classList.remove('ob-map-fs');
+    document.body.classList.remove('ob-map-fs', 'ob-map-leave');
+    document.getElementById('ob-map-fog')?.remove();
+    unlockScroll();
+    holdMapView(view);
+  }, 320);
 }
 
 function paintActiveCard(id) {
