@@ -35,6 +35,7 @@ let scrollLockY = 0;
 let viewHold = 0;
 let viewObserver = null;
 let mapMotion = 0;
+let mapPresented = false;
 let heefWhatsapp = '966530792754';
 let photoState = { images: [], index: 0 };
 let booted = false;
@@ -73,11 +74,9 @@ async function boot() {
   }
   renderShell();
   bindShell();
+  ensureMap();
   loadWhatsapp();
   await loadItems();
-  if (PRIVATE || (ADMIN && DASHBOARD)) {
-    requestAnimationFrame(() => enterMapFullscreen());
-  }
   if (PRIVATE) window.setInterval(() => { loadItems().catch(() => {}); }, 45000);
   if (params.get('id')) openDetail(params.get('id'));
 }
@@ -288,7 +287,7 @@ function bindShell() {
     exitMapFullscreen();
   });
   window.addEventListener('resize', () => {
-    if (map && document.body.classList.contains('ob-map-fs')) map.invalidateSize();
+    if (map) map.invalidateSize({ animate: false });
   });
 }
 
@@ -312,14 +311,17 @@ async function loadItems(append) {
   }
   items = append ? items.concat(data.items || []) : (data.items || []);
   renderPrivateNews();
+  drawList();
+  drawMap();
+  if (!mapPresented) {
+    mapPresented = true;
+    if (PRIVATE || (ADMIN && DASHBOARD)) requestAnimationFrame(() => enterMapFullscreen());
+  }
   const total = Number.isFinite(Number(data.total)) ? Number(data.total) : items.length;
   if (items.length < total && page < 20) {
     page += 1;
     await loadItems(true);
-    return;
   }
-  drawList();
-  drawMap();
 }
 
 function money(value) {
@@ -524,14 +526,13 @@ function stopViewObserver() {
   viewObserver = null;
 }
 
-function holdMapView(view) {
-  if (!map || !view) return;
+function holdMapView() {
+  if (!map) return;
   stopViewObserver();
   const token = ++viewHold;
   const apply = () => {
     if (token !== viewHold || !map) return;
-    map.invalidateSize({ pan: false });
-    map.setView(view.center, view.zoom, { animate: false });
+    map.invalidateSize({ pan: false, animate: false });
   };
   const node = document.getElementById('ob-map');
   if (node && window.ResizeObserver) {
@@ -543,7 +544,7 @@ function holdMapView(view) {
     if (token !== viewHold) return;
     apply();
     stopViewObserver();
-  }, 320);
+  }, 420);
 }
 
 function openMapShell() {
@@ -562,7 +563,7 @@ function openMapShell() {
     document.documentElement.classList.add('ob-map-fs');
     document.body.classList.add('ob-map-fs', 'ob-map-enter');
     lockScroll();
-    mapMotion = window.setTimeout(() => document.body.classList.remove('ob-map-enter'), 480);
+    mapMotion = window.setTimeout(() => document.body.classList.remove('ob-map-enter'), 560);
   }
   return true;
 }
@@ -570,14 +571,12 @@ function openMapShell() {
 function enterMapFullscreen() {
   ensureMap();
   if (!map) return;
-  const view = { center: map.getCenter(), zoom: map.getZoom() };
   if (!openMapShell()) return;
-  holdMapView(view);
+  holdMapView();
 }
 
 function exitMapFullscreen() {
   if (!document.body.classList.contains('ob-map-fs')) return;
-  const view = map ? { center: map.getCenter(), zoom: map.getZoom() } : null;
   window.clearTimeout(mapMotion);
   document.body.classList.remove('ob-map-enter');
   document.body.classList.add('ob-map-leave');
@@ -586,8 +585,8 @@ function exitMapFullscreen() {
     document.body.classList.remove('ob-map-fs', 'ob-map-leave');
     document.getElementById('ob-map-fog')?.remove();
     unlockScroll();
-    holdMapView(view);
-  }, 320);
+    holdMapView();
+  }, 420);
 }
 
 function paintActiveCard(id) {
@@ -642,16 +641,36 @@ function onPopupOpen(event) {
 
 function ensureMap() {
   if (map || !document.getElementById('ob-map') || !window.L) return;
-  map = L.map('ob-map', { zoomControl: false }).setView(MAHDIA, 13);
+  map = L.map('ob-map', {
+    zoomControl: false,
+    zoomSnap: 0.5,
+    zoomDelta: 0.5,
+    wheelPxPerZoomLevel: 150,
+    wheelDebounceTime: 60,
+    inertia: true,
+    inertiaDeceleration: 2000,
+    inertiaMaxSpeed: 1200,
+    easeLinearity: 0.12,
+    zoomAnimation: true,
+    fadeAnimation: true,
+    markerZoomAnimation: true,
+    bounceAtZoomLimits: false,
+  }).setView(MAHDIA, 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri',
     maxZoom: 19,
+    updateWhenIdle: false,
+    updateWhenZooming: false,
+    keepBuffer: 4,
+    updateInterval: 180,
   }).addTo(map);
   cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     maxClusterRadius: 28,
     disableClusteringAtZoom: 15,
+    animateAddingMarkers: false,
+    removeOutsideVisibleBounds: false,
     iconCreateFunction(group) {
       const children = group.getAllChildMarkers();
       const kinds = new Set(children.map((marker) => marker._obKind).filter(Boolean));

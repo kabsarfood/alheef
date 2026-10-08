@@ -14,7 +14,8 @@
 .ob-layout { display: grid; gap: .75rem; }
 .ob-layout--map { grid-template-columns: 1fr; }
 .ob-layout--list { grid-template-columns: 1fr; }
-.ob-map { position: relative; z-index: 0; isolation: isolate; height: min(70vh, 640px); min-height: 320px; border-radius: 12px; overflow: hidden; background: #eef2f6; }
+.ob-map { position: relative; z-index: 0; isolation: isolate; height: min(70vh, 640px); min-height: 320px; border-radius: 12px; overflow: hidden; background: #1c2824; }
+.leaflet-container { background: #1c2824; font-family: inherit; }
 .ob-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .75rem; }
 .ob-card, .ob-popup { background: #fff; border: 1px solid #e6ebf0; border-radius: 12px; overflow: hidden; }
 .ob-card img, .ob-popup img, .ob-photo { width: 100%; height: 140px; object-fit: cover; display: block; background: #f4f1ea; }
@@ -240,18 +241,18 @@ body.ob-map-fs .ob-studio.is-view-list .ob-map-panel {
 body.ob-map-fs .ob-map-fog { opacity: 1; }
 body.ob-map-leave .ob-map-fog { opacity: 0; }
 body.ob-map-enter .ob-map-panel {
-  animation: ob-map-open .42s ease;
+  animation: ob-map-open .55s cubic-bezier(.22, .8, .3, 1);
 }
 body.ob-map-leave .ob-map-panel {
-  animation: ob-map-close .32s ease forwards;
+  animation: ob-map-close .4s cubic-bezier(.22, .8, .3, 1) forwards;
 }
 @keyframes ob-map-open {
-  from { opacity: .2; clip-path: inset(10% 7% round 28px); }
-  to { opacity: 1; clip-path: inset(0 round 0); }
+  from { opacity: .88; }
+  to { opacity: 1; }
 }
 @keyframes ob-map-close {
-  from { opacity: 1; clip-path: inset(0 round 0); }
-  to { opacity: .15; clip-path: inset(10% 7% round 28px); }
+  from { opacity: 1; }
+  to { opacity: .88; }
 }
 body.ob-map-fs .ob-map-fab,
 body.ob-map-fs .ob-map-expand,
