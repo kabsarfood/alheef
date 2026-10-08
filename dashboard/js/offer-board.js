@@ -190,11 +190,9 @@ function renderShell() {
         </aside>
       </section>
       <button type="button" class="ob-map-fab" id="ob-map-fab">فتح الخريطة</button>
-      ${ADMIN ? '<section id="ob-leads" class="ob-leads"></section>' : ''}
     </section>
     </div>`;
   syncButtons();
-  if (ADMIN) setupLeads();
 }
 
 function setPageView(next) {
