@@ -177,8 +177,7 @@
   white-space: pre-line;
 }
 
-.private-gate__warn,
-.private-gate__blocked {
+.private-gate__warn {
   background: #f7f1e6;
   border: 1px solid #e2d3b4;
   border-radius: 10px;
@@ -187,10 +186,27 @@
   line-height: 1.7;
   text-align: right;
 }
-
+.private-gate__blocked {
+  background: #fff8ee;
+  border: 1px solid #e2c48a;
+  border-radius: 16px;
+  padding: 16px 14px;
+  margin: 0;
+  line-height: 1.6;
+  text-align: center;
+}
+.private-gate__blocked .private-gate__notice-label {
+  margin: 0 0 6px;
+  color: #8d6b32;
+  font-size: 14px;
+  font-weight: 800;
+}
 .private-gate__blocked p {
-  margin: 0 0 0.85rem;
+  margin: 0;
   white-space: pre-line;
+  color: #1c2924;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 #gate-external {

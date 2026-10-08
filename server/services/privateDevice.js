@@ -2,7 +2,7 @@ const crypto = require('crypto');
 
 const COOKIE = 'alheef_pd';
 const MAX_AGE = 400 * 24 * 60 * 60;
-const OTHER_MESSAGE = 'هذا الدخول مرتبط بجهاز آخر.\n\nلتغيير الجهاز، تواصل مع مؤسسة الهيف لإلغاء الجهاز السابق وتفعيل جهاز جديد.';
+const OTHER_MESSAGE = 'هذا الدخول مرتبط بجهاز آخر.';
 
 function hashDevice(secret) {
   return crypto.createHash('sha256').update(String(secret || '')).digest('hex');

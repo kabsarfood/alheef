@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="/dashboard/css/offer-board.css?v=27">
-  <link rel="stylesheet" href="/css/private-offers.css?v=17">
+  <link rel="stylesheet" href="/css/private-offers.css?v=18">
   <link rel="stylesheet" href="/css/private-board.css?v=3">
   <link rel="stylesheet" href="/css/pwa.css?v=3">
 </head>
@@ -38,9 +38,9 @@
       <p class="private-brand__welcome">_ أهلاً بكم _</p>
       <h1>العروض الخاصة</h1>
       <p id="gate-lead">الرابط مرتبط برقمك. سيصلك رمز التحقق على واتساب، وبعد التفعيل يبقى دخولك على هذا الجهاز حتى تسجيل الخروج، ولو بقيت سنة. ويمكنك لاحقًا الدخول من بوابة المستخدم.</p>
-      <div id="gate-blocked" class="private-gate__blocked" hidden>
+      <div id="gate-blocked" class="private-gate__blocked" hidden role="status">
+        <p class="private-gate__notice-label">تنبيه</p>
         <p id="gate-blocked-text"></p>
-        <a id="gate-contact" class="btn btn-gold btn-block" href="https://wa.me/966530792754" target="_blank" rel="noopener">تواصل مع الهيف</a>
       </div>
       <form id="gate-form" hidden>
         <div id="gate-step-phone">
