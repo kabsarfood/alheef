@@ -410,11 +410,11 @@ body.ob-map-fs .ob-map-legend {
   height: 9px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 1.5px solid #7A1010;
+  border: 1.5px solid #C2410C;
   box-shadow:
-    0 0 0 1px rgba(122, 16, 16, .7),
-    0 0 6px 1px rgba(176, 18, 18, .95),
-    0 0 12px 2px rgba(90, 6, 6, .55);
+    0 0 0 1px rgba(194, 65, 12, .7),
+    0 0 6px 1px rgba(255, 140, 26, .95),
+    0 0 12px 2px rgba(234, 88, 12, .55);
 }
 .property-marker::before {
   content: "";
@@ -422,10 +422,10 @@ body.ob-map-fs .ob-map-legend {
   inset: -5px;
   border-radius: 50%;
   background: transparent;
-  border: 2px solid #8E1414;
+  border: 2px solid #F97316;
   box-shadow:
-    0 0 4px 1px rgba(190, 22, 22, .95),
-    0 0 12px 3px rgba(110, 8, 8, .75);
+    0 0 4px 1px rgba(255, 149, 32, .95),
+    0 0 12px 3px rgba(234, 88, 12, .75);
   opacity: .95;
   animation: propertyPulse 2.4s ease-out infinite;
   pointer-events: none;
@@ -433,11 +433,11 @@ body.ob-map-fs .ob-map-legend {
 .property-marker.is-active {
   width: 12px;
   height: 12px;
-  border-color: #9A1212;
+  border-color: #EA580C;
   box-shadow:
-    0 0 0 1.5px #7A1010,
-    0 0 8px 2px rgba(190, 22, 22, 1),
-    0 0 16px 4px rgba(90, 6, 6, .7);
+    0 0 0 1.5px #C2410C,
+    0 0 8px 2px rgba(255, 140, 26, 1),
+    0 0 16px 4px rgba(234, 88, 12, .7);
 }
 .property-marker.is-active::before { inset: -6px; border-width: 2px; animation-duration: 1.7s; }
 @keyframes propertyPulse {
