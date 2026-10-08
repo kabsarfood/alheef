@@ -138,21 +138,31 @@
   }
 
   function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
+    try {
+      const saved = localStorage.getItem(TOKEN_KEY);
+      if (saved) return saved;
+    } catch { /* متصفح الآيفون داخل واتساب قد يمنع التخزين */ }
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
   }
 
   function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.setItem('alheef_user_token', token);
-    localStorage.setItem('alheef_user_slug', slug);
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem('alheef_user_token', token);
+      localStorage.setItem('alheef_user_slug', slug);
+      sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      try { sessionStorage.setItem(TOKEN_KEY, token); } catch { /* يبقى الدخول عبر الكوكي */ }
+    }
   }
 
   function clearToken() {
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('alheef_user_token');
-    localStorage.removeItem('alheef_user_slug');
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('alheef_user_token');
+      localStorage.removeItem('alheef_user_slug');
+    } catch { /* ignore */ }
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
   }
 
   function authHeaders() {
@@ -236,29 +246,10 @@
   }
 
   function otpDigits(value) {
-    const normalized = String(value || '')
+    return String(value || '')
       .replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
-      .replace(/[۰-۹]/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit));
-    const match = normalized.match(/\d{6}/);
-    if (match) return match[0];
-    return normalized.replace(/\D/g, '').slice(0, 6);
-  }
-
-  function isIosEmbeddedBrowser() {
-    const ua = navigator.userAgent || '';
-    if (!/iPhone|iPad|iPod/i.test(ua)) return false;
-    if (/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return false;
-    return !(/Version\/[\d.]+/i.test(ua) && /Safari/i.test(ua));
-  }
-
-  function showSafariHelp() {
-    if (gateBlocked) gateBlocked.hidden = true;
-    if (gateForm) gateForm.hidden = false;
-    if (gateStepPhone) gateStepPhone.hidden = true;
-    if (gateStepOtp) gateStepOtp.hidden = true;
-    const box = document.getElementById('gate-safari');
-    if (box) box.hidden = false;
-    showGate();
+      .replace(/\D/g, '')
+      .slice(0, 6);
   }
 
   function showGateOtpStep() {
@@ -268,6 +259,24 @@
       gateOtpInput.required = true;
       gateOtpInput.focus();
     }
+  }
+
+  function isIosInAppBrowser() {
+    const ua = navigator.userAgent || '';
+    const ios = /iPhone|iPad|iPod/i.test(ua);
+    if (!ios) return false;
+    if (/WhatsApp|Instagram|FBAN|FBAV|Line\/|TikTok|Snapchat|MicroMessenger/i.test(ua)) return true;
+    return !/Safari/i.test(ua);
+  }
+
+  function showSafariHandoff() {
+    if (gateForm) gateForm.hidden = true;
+    if (gateBlocked) gateBlocked.hidden = true;
+    const box = document.getElementById('gate-safari');
+    const link = document.getElementById('gate-safari-link');
+    if (link) link.href = location.href;
+    if (box) box.hidden = false;
+    showGate();
   }
 
   function externalBrowserHref() {
@@ -313,10 +322,6 @@
       showBlocked(data.message || 'هذا الدخول مرتبط بجهاز آخر.');
       return;
     }
-    if (data.state === 'safari' || isIosEmbeddedBrowser()) {
-      showSafariHelp();
-      return;
-    }
     clientName = data.clientName || '';
     showActivation(data.state, data.phoneMasked);
   }
@@ -338,6 +343,7 @@
   async function sendOtp() {
     const res = await fetch('/api/private-offers/otp/send', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug }),
     });
@@ -353,6 +359,7 @@
   async function verifyOtp(code) {
     const res = await fetch('/api/private-offers/otp/verify', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug, challengeId: otpChallengeId, code }),
     });
@@ -1072,10 +1079,6 @@
         showBlocked(err.message);
         return;
       }
-      if (err.code === 'open_safari') {
-        showSafariHelp();
-        return;
-      }
       gateError.textContent = err.message;
       gateError.hidden = false;
     }
@@ -1091,33 +1094,10 @@
 
   if (gateOtpInput) {
     gateOtpInput.addEventListener('input', () => {
-      const raw = gateOtpInput.value;
-      if (/^\d{0,6}$/.test(raw)) return;
-      const next = otpDigits(raw);
+      const next = otpDigits(gateOtpInput.value);
       if (gateOtpInput.value !== next) gateOtpInput.value = next;
     });
-    gateOtpInput.addEventListener('paste', (event) => {
-      const text = event.clipboardData && event.clipboardData.getData('text');
-      if (!text) return;
-      const code = otpDigits(text);
-      if (code.length !== 6) return;
-      event.preventDefault();
-      gateOtpInput.value = code;
-    });
   }
-
-  document.getElementById('gate-copy-link')?.addEventListener('click', async () => {
-    gateError.hidden = true;
-    try {
-      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('copy');
-      await navigator.clipboard.writeText(location.href);
-      gateError.textContent = 'تم نسخ الرابط. الصقه في Safari ثم افتحه.';
-      gateError.hidden = false;
-    } catch {
-      gateError.textContent = 'اضغط ⋯ ثم «فتح في Safari» من الصفحة الحالية.';
-      gateError.hidden = false;
-    }
-  });
 
   if (gatePasteBtn) {
     gatePasteBtn.addEventListener('click', async () => {
@@ -1172,8 +1152,8 @@
       await loadOffers();
       return;
     }
-    if (isIosEmbeddedBrowser()) {
-      showSafariHelp();
+    if (isIosInAppBrowser()) {
+      showSafariHandoff();
       return;
     }
     const fill = new URLSearchParams(location.search).get('fill') || '';

@@ -116,8 +116,9 @@ function buildMessage(purpose, code, fillUrl) {
       'انسخ هذا الرقم والصقه في مربع التحقق.',
     ];
     if (fillUrl) {
-      lines.push('أو اضغط الرابط من نفس الجوال ليُلصق الرمز تلقائيًا:', String(fillUrl));
-      lines.push('على الآيفون افتح الرابط في Safari إذا كان داخل واتساب.');
+      lines.push('اضغط الرابط لإتمام الدخول:');
+      lines.push(String(fillUrl));
+      lines.push('على الآيفون: إذا فُتح الرابط داخل واتساب فاضغط ⋯ ثم «فتح في Safari».');
     }
     lines.push('', 'صالح لمدة 5 دقائق.', 'لا تشارك هذا الرمز مع أي شخص.', autofill);
     return lines.filter(Boolean).join('\n');

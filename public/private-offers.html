@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="/dashboard/css/offer-board.css?v=33">
-  <link rel="stylesheet" href="/css/private-offers.css?v=19">
+  <link rel="stylesheet" href="/css/private-offers.css?v=18">
   <link rel="stylesheet" href="/css/private-board.css?v=3">
   <link rel="stylesheet" href="/css/pwa.css?v=3">
 </head>
@@ -42,17 +42,13 @@
         <p class="private-gate__notice-label">تنبيه</p>
         <p id="gate-blocked-text"></p>
       </div>
+      <div id="gate-safari" class="private-gate__blocked" hidden>
+        <p class="private-gate__notice-label">الآيفون</p>
+        <p>التحقق عبر واتساب لا يعمل داخل تطبيق واتساب. افتح الرابط في Safari ثم أكمل الدخول.</p>
+        <a id="gate-safari-link" class="btn btn-gold btn-block" target="_blank" rel="noopener noreferrer">فتح في Safari</a>
+        <p class="private-gate__hint">إذا بقيت الصفحة داخل واتساب: اضغط ⋯ أعلى الشاشة ثم «فتح في Safari».</p>
+      </div>
       <form id="gate-form" hidden>
-        <div id="gate-safari" class="private-gate__safari" hidden>
-          <p class="private-gate__notice-label">للآيفون</p>
-          <p>التحقق عبر واتساب لا يعمل داخل متصفح واتساب. افتح الرابط في Safari ثم أكمل الدخول.</p>
-          <ol>
-            <li>اضغط زر المشاركة أو ⋯ أعلى الصفحة</li>
-            <li>اختر «فتح في Safari»</li>
-            <li>من Safari اضغط «إرسال رمز التحقق»</li>
-          </ol>
-          <button type="button" class="btn btn-gold btn-block" id="gate-copy-link">نسخ الرابط لفتحه في Safari</button>
-        </div>
         <div id="gate-step-phone">
           <p id="gate-warning" class="private-gate__warn" hidden>فعّل الدخول من المتصفح الذي ستستخدمه دائمًا. بعد التفعيل لن يعمل الرابط في متصفح أو جهاز آخر إلا بعد إعادة الضبط بواسطة الهيف.</p>
           <label for="gate-phone">رقم الجوال</label>
@@ -63,8 +59,8 @@
         </div>
         <div id="gate-step-otp" hidden>
           <label for="gate-otp">رمز التحقق</label>
-          <p class="private-gate__hint">من نفس الجوال اضغط رابط التعبئة في رسالة واتساب ليُلصق الرمز هنا. أو انسخ الرقم من الرسالة ثم اضغط «لصق الرمز».</p>
-          <input id="gate-otp" name="otp" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="6 أرقام">
+          <p class="private-gate__hint">انسخ الرمز من رسالة واتساب، ثم اضغط مطولاً داخل المربع واختر «لصق».</p>
+          <input id="gate-otp" name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6 أرقام">
           <button type="button" class="btn btn-block" id="gate-paste-btn">لصق الرمز</button>
           <button type="submit" class="btn btn-gold btn-block" id="gate-verify-btn">تأكيد الدخول</button>
           <button type="button" class="btn btn-block" id="gate-resend-btn" style="margin-top:0.5rem">إعادة إرسال الرمز</button>
@@ -95,7 +91,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
   <script>window.ALHEEF_BOARD_MODE = 'private'; window.getPageContent = function () { return document.getElementById('po-board'); };</script>
-  <script src="/dashboard/js/offer-board.js?v=38"></script>
+  <script src="/dashboard/js/offer-board.js?v=37"></script>
   <script src="/js/private-offers.js?v=23"></script>
 </body>
 </html>
