@@ -34,13 +34,16 @@
     navigator.credentials.get({
       otp: { transport: ['sms'] },
       signal: otpAbort.signal,
-    }).then((cred) => {
-      const code = digits(cred?.code).slice(0, 6);
-      if (code.length === 6) {
-        otpInput.value = code;
-        verifyCode(code);
-      }
-    }).catch(() => {});
+    }).then((cred) => offerCode(cred?.code)).catch(() => {});
+  }
+
+  async function offerCode(code) {
+    const accepted = window.AlheefOtpConsent
+      ? await window.AlheefOtpConsent.ask(code)
+      : digits(code).slice(0, 6);
+    if (accepted.length !== 6) return;
+    otpInput.value = accepted;
+    await verifyCode(accepted);
   }
 
   function showOtpStep(id, message) {
@@ -101,7 +104,8 @@
       });
       const data = await res.json();
       if (!res.ok || !data.challengeId) throw new Error(data.message || 'تعذر إرسال الرمز');
-      showOtpStep(data.challengeId, data.message);
+      showOtpStep(data.challengeId, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
+      offerCode(data.code);
     } catch (err) {
       showMsg(msg, err.message);
     } finally {
@@ -126,8 +130,9 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
       if (data.challengeId) challengeId = data.challengeId;
-      showMsg(msg, data.message || 'أُعيد إرسال الرمز', 'success');
+      showMsg(msg, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.', 'success');
       startOtpAutofill();
+      offerCode(data.code);
     } catch (err) {
       showMsg(msg, err.message);
     }
@@ -144,9 +149,8 @@
     }).then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
         if (!ok || data.purpose !== 'marketer' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
-        showOtpStep(data.challengeId, 'تم وضع الرمز في مربع التوثيق');
-        otpInput.value = data.code;
-        verifyCode(data.code);
+        showOtpStep(data.challengeId, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
+        offerCode(data.code);
       })
       .catch((err) => showMsg(document.getElementById('login-message'), err.message));
   }

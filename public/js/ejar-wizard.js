@@ -1248,6 +1248,17 @@
     return otpUi;
   }
 
+  function offerEjarCode(code) {
+    var consent = window.AlheefOtpConsent;
+    if (!consent || !code) return;
+    consent.ask(code).then(function (accepted) {
+      if (!/^\d{6}$/.test(accepted)) return;
+      var input = root && root.querySelector('#ejar-verify-code');
+      if (input) input.value = accepted;
+      confirmVerifyOtp();
+    });
+  }
+
   function sendVerifyOtp() {
     if (otpUi.sending) return;
     verifyPhoneFromUi();
@@ -1276,6 +1287,7 @@
         otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
         otpUi.error = '';
         attachVerify();
+        offerEjarCode(result.data && result.data.code);
         return;
       }
       otpUi.error = (result.data && result.data.message) || 'تعذر إرسال رمز التحقق عبر واتساب';
@@ -1303,6 +1315,7 @@
         otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
         otpUi.error = '';
         attachVerify();
+        offerEjarCode(result.data && result.data.code);
         return;
       }
       if (result.data && result.data.retryAfter) {

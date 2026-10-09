@@ -128,6 +128,7 @@ router.post('/otp/send', (req, res) => {
     res.json({
       success: true,
       verificationId: sent.verificationId,
+      code: sent.code,
       cooldownSec: sent.cooldownSec,
       expiresInSec: sent.expiresInSec,
     });
@@ -153,6 +154,7 @@ router.post('/otp/resend', (req, res) => {
     res.json({
       success: true,
       verificationId: sent.verificationId,
+      code: sent.code,
       cooldownSec: sent.cooldownSec,
       expiresInSec: sent.expiresInSec,
     });

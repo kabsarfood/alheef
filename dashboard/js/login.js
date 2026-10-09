@@ -56,17 +56,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           otp: { transport: ['sms'] },
           signal: otpAbort.signal,
         })
-        .then((cred) => {
-          const code = String(cred?.code || '').replace(/\D/g, '').slice(0, 6);
-          if (code.length === 6) {
-            otpCodeInput.value = code;
-            otpForm?.requestSubmit();
-          }
-        })
+        .then((cred) => offerCode(cred?.code))
         .catch(() => {
           /* المستخدم أغلق الاقتراح أو غير مدعوم */
         });
     }
+  }
+
+  async function offerCode(code) {
+    const accepted = window.AlheefOtpConsent
+      ? await window.AlheefOtpConsent.ask(code)
+      : String(code || '').replace(/\D/g, '').slice(0, 6);
+    if (accepted.length !== 6) return;
+    otpCodeInput.value = accepted;
+    await verifyOtpCode(accepted);
   }
 
   async function verifyOtpCode(code) {
@@ -155,6 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error(data.message || 'تعذر إرسال رمز التحقق');
       }
       showOtpStep(data.challengeId);
+      offerCode(data.code);
       btn.disabled = false;
       btn.textContent = 'إرسال رمز التحقق عبر واتساب';
     } catch (err) {
@@ -182,7 +186,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (data.challengeId) challengeId = data.challengeId;
       otpCodeInput.value = '';
       startOtpAutofill();
-      showError(otpError, data.message || 'تم إعادة إرسال الرمز إلى واتساب');
+      offerCode(data.code);
+      showError(otpError, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
       otpCodeInput.focus();
     } catch (err) {
       showError(otpError, err.message);
@@ -202,8 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!ok || data.purpose !== 'admin' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
         lastPhone = data.phone || '';
         showOtpStep(data.challengeId);
-        otpCodeInput.value = data.code;
-        verifyOtpCode(data.code);
+        offerCode(data.code);
       })
       .catch((err) => showError(errorEl, err.message));
   }

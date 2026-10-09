@@ -17,13 +17,13 @@ async function sendLoginOtp({ purpose, phone, marketerId = null, userId = null }
     },
   });
   if (!result.ok) return result;
-  return { ok: true, challengeId: result.challengeId };
+  return { ok: true, challengeId: result.challengeId, code: result.code };
 }
 
 async function resend(challengeId) {
   const result = await core.resendOtp(challengeId);
   if (!result.ok) return result;
-  return { ok: true, challengeId: result.challengeId };
+  return { ok: true, challengeId: result.challengeId, code: result.code };
 }
 
 function claimFill(token) {

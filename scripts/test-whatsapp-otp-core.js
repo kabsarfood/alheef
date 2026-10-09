@@ -22,6 +22,7 @@ async function main() {
   const login = await otpLogin.sendLoginOtp({ purpose: 'admin', phone: '0530792754' });
   assert(login.ok, login.reason);
   const loginCode = codeFrom(last);
+  assert.strictEqual(login.code, loginCode);
   assert.strictEqual(otpLogin.verify(login.challengeId, '000000').ok, false);
   const loginOk = otpLogin.verify(login.challengeId, loginCode);
   assert(loginOk.ok && loginOk.purpose === 'admin');
@@ -35,6 +36,7 @@ async function main() {
     meta: { slug: 'abc12345' },
   });
   assert(priv.ok, priv.reason);
+  assert.strictEqual(priv.code, codeFrom(last));
   assert(last.includes('العروض الخاصة'));
   assert(last.includes('انسخ هذا الرقم'));
   assert(!/https?:\/\//.test(last), 'رسالة التوثيق فيها رابط');

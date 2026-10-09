@@ -326,12 +326,13 @@
     showActivation(data.state, data.phoneMasked);
     try {
       gateReadyToSend = true;
-      await sendOtp();
+      const sent = await sendOtp();
       showGateOtpStep();
       if (gateError) {
-        gateError.textContent = 'أُرسل رمز التحقق إلى واتساب. اضغط الرابط في الرسالة لإتمام الدخول.';
+        gateError.textContent = 'وصل رمز واتساب. اضغط موافق لينزل في المربع.';
         gateError.hidden = false;
       }
+      await offerGateCode(sent && sent.code);
     } catch (err) {
       if (err.code === 'other_device') {
         showBlocked(err.message);
@@ -375,6 +376,17 @@
       throw err;
     }
     otpChallengeId = data.challengeId;
+    return data;
+  }
+
+  async function offerGateCode(code) {
+    const accepted = window.AlheefOtpConsent
+      ? await window.AlheefOtpConsent.ask(code)
+      : otpDigits(code);
+    if (accepted.length !== 6) return;
+    if (gateOtpInput) gateOtpInput.value = accepted;
+    await verifyOtp(accepted);
+    await finishVerifiedEntry();
   }
 
   async function verifyOtp(code) {
@@ -424,6 +436,7 @@
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
     otpChallengeId = data.challengeId || otpChallengeId;
+    return data;
   }
 
   function offerImages(o) {
@@ -1087,8 +1100,9 @@
     try {
       if (!otpChallengeId) {
         if (!gateReadyToSend) return;
-        await sendOtp();
+        const sent = await sendOtp();
         showGateOtpStep();
+        await offerGateCode(sent && sent.code);
       } else {
         const code = otpDigits(gateOtpInput && gateOtpInput.value);
         if (gateOtpInput) gateOtpInput.value = code;
@@ -1146,9 +1160,10 @@
     gateResendBtn.addEventListener('click', async () => {
       gateError.hidden = true;
       try {
-        await resendOtp();
-        gateError.textContent = 'تم إعادة إرسال الرمز';
+        const sent = await resendOtp();
+        gateError.textContent = 'وصل رمز واتساب. اضغط موافق لينزل في المربع.';
         gateError.hidden = false;
+        await offerGateCode(sent && sent.code);
       } catch (err) {
         gateError.textContent = err.message;
         gateError.hidden = false;
@@ -1183,10 +1198,8 @@
         otpChallengeId = data.challengeId;
         gateReadyToSend = true;
         showGateOtpStep();
-        if (gateOtpInput) gateOtpInput.value = otpDigits(data.code);
         history.replaceState(null, '', location.pathname);
-        await verifyOtp(otpDigits(data.code));
-        await finishVerifiedEntry();
+        await offerGateCode(data.code);
         return;
       } catch (err) {
         history.replaceState(null, '', location.pathname);

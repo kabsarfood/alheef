@@ -38,6 +38,7 @@ async function startOtpChallenge(res, { purpose, phone, marketerId, userId, pend
     success: true,
     needsOtp: true,
     challengeId: sent.challengeId,
+    code: sent.code,
     message: pendingMessage || 'تم إرسال رمز التحقق إلى واتساب',
   });
 }
@@ -438,6 +439,7 @@ router.post('/otp/resend', async (req, res) => {
     return res.json({
       success: true,
       challengeId: sent.challengeId,
+      code: sent.code,
       message: 'تم إعادة إرسال رمز التحقق إلى واتساب',
     });
   } catch (err) {

@@ -270,7 +270,7 @@ async function sendOtp({ purpose, phone, meta = {}, ip = '', userAgent = '' }) {
   }
 
   console.info('[otp] sent', { purpose: purposeKey, phone: maskPhone(normalized) });
-  return { ok: true, ...publicPending(row) };
+  return { ok: true, code, ...publicPending(row) };
 }
 
 async function resendOtp(challengeId) {
@@ -309,7 +309,7 @@ async function resendOtp(challengeId) {
     return { ok: false, reason: 'send_failed' };
   }
   console.info('[otp] resent', { purpose: row.purpose, phone: maskPhone(row.phone) });
-  return { ok: true, ...publicPending(row) };
+  return { ok: true, code, ...publicPending(row) };
 }
 
 function verifyOtp(challengeId, code) {

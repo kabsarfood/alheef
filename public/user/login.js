@@ -57,13 +57,16 @@
     navigator.credentials.get({
       otp: { transport: ['sms'] },
       signal: otpAbort.signal,
-    }).then((cred) => {
-      const code = digits(cred?.code).slice(0, 6);
-      if (code.length === 6) {
-        otpInput.value = code;
-        verifyCode();
-      }
-    }).catch(() => {});
+    }).then((cred) => offerCode(cred?.code)).catch(() => {});
+  }
+
+  async function offerCode(code) {
+    const accepted = window.AlheefOtpConsent
+      ? await window.AlheefOtpConsent.ask(code)
+      : digits(code).slice(0, 6);
+    if (accepted.length !== 6) return;
+    otpInput.value = accepted;
+    await verifyCode();
   }
 
   async function resume() {
@@ -97,7 +100,8 @@
     otpInput.value = '';
     otpInput.focus();
     startOtpAutofill();
-    showError('أُرسل الرمز إلى واتساب. سيُكتب في المربع إن سمح الجوال.');
+    showError('وصل رمز واتساب. اضغط موافق لينزل في المربع.');
+    offerCode(data.code);
   }
 
   async function verifyCode() {
@@ -139,8 +143,7 @@
     challengeId = data.challengeId;
     phoneStep.hidden = true;
     otpStep.hidden = false;
-    otpInput.value = data.code;
-    await verifyCode();
+    await offerCode(data.code);
   }
 
   form.addEventListener('submit', async (event) => {
