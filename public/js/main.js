@@ -121,6 +121,7 @@
       await loadOffers();
       await loadTestimonials();
       setupForms();
+      setupPropertyChoices();
       setupFileUpload();
       setupModal();
       setupServicesReel();
@@ -275,6 +276,14 @@
         </article>
       `).join('');
       grid.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+      const toggle = document.getElementById('testimonials-toggle');
+      toggle?.addEventListener('click', () => {
+        const open = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+        const hint = toggle.querySelector('.testimonials__toggle-hint');
+        if (hint) hint.textContent = open ? 'فتح التعليقات' : 'إغلاق التعليقات';
+        grid.hidden = open;
+      });
     } catch {
       grid.closest('section')?.remove();
     }
@@ -761,6 +770,73 @@
   }
 
   // ─── Forms ───
+  function setupPropertyChoices() {
+    const choices = [...document.querySelectorAll('.property-choice')];
+    if (!choices.length) return;
+    let closeTimer = 0;
+
+    function formOf(name) {
+      return document.getElementById(name === 'list' ? 'list-form' : 'request-form');
+    }
+
+    function hasValue(form) {
+      if (!form) return false;
+      return [...form.querySelectorAll('input, select, textarea')].some((field) => {
+        if (field.type === 'file') return field.files && field.files.length > 0;
+        return String(field.value || '').trim() !== '';
+      });
+    }
+
+    function closeAll() {
+      window.clearTimeout(closeTimer);
+      choices.forEach((choice) => {
+        choice.classList.remove('is-open');
+        choice.setAttribute('aria-expanded', 'false');
+      });
+      document.querySelectorAll('.property-choice__form').forEach((form) => {
+        form.hidden = true;
+      });
+    }
+
+    function armClose(form) {
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(() => {
+        if (hasValue(form)) return;
+        closeAll();
+      }, 5000);
+    }
+
+    function openChoice(name) {
+      const choice = choices.find((item) => item.dataset.choice === name);
+      const form = formOf(name);
+      if (!choice || !form) return;
+      const already = choice.getAttribute('aria-expanded') === 'true';
+      closeAll();
+      if (already) return;
+      choice.classList.add('is-open');
+      choice.setAttribute('aria-expanded', 'true');
+      form.hidden = false;
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      armClose(form);
+    }
+
+    choices.forEach((choice) => {
+      choice.addEventListener('click', () => openChoice(choice.dataset.choice));
+    });
+    document.querySelectorAll('.property-choice__form').forEach((form) => {
+      form.addEventListener('input', () => window.clearTimeout(closeTimer));
+      form.addEventListener('change', () => window.clearTimeout(closeTimer));
+    });
+    document.querySelectorAll('a[href="#request"], a[href="#list"]').forEach((link) => {
+      link.addEventListener('click', () => {
+        const name = link.getAttribute('href') === '#list' ? 'list' : 'request';
+        window.setTimeout(() => openChoice(name), 0);
+      });
+    });
+    const hash = location.hash;
+    if (hash === '#request' || hash === '#list') openChoice(hash.slice(1));
+  }
+
   function setupForms() {
     bindForm('request-form', '/api/request-property', 'request-message', collectJson);
     bindForm('subscribe-form', '/api/subscribe', 'subscribe-message', collectJson);

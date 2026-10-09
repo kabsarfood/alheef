@@ -476,6 +476,19 @@
   }
 
   /* ─── Forms ─── */
+  .property-choices {
+    gap: 0.55rem;
+  }
+
+  .property-choice {
+    padding: 0.9rem 0.75rem;
+  }
+
+  .property-choice__text {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
   .forms-grid {
     gap: 2rem;
   }
@@ -1400,5 +1413,72 @@
 @media (prefers-reduced-motion: reduce) {
   .home-page .services__grid {
     transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-page {
+    --section-pad: 2.75rem;
+  }
+
+  .home-page .section-header {
+    margin-bottom: 1.35rem;
+  }
+
+  .home-page .hero__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    width: 100%;
+  }
+
+  .home-page .hero__actions .btn {
+    width: 100%;
+    flex: none;
+    white-space: normal;
+    min-height: 46px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .home-page .offer-card__actions {
+    flex-direction: row;
+    gap: 0.4rem;
+  }
+
+  .home-page .offer-card__actions .btn {
+    width: auto;
+    flex: 1;
+    min-height: 36px;
+    padding: 0.35rem 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .home-page .property-choices {
+    gap: 0.65rem;
+  }
+
+  .home-page .property-choice {
+    min-height: 100%;
+    padding: 0.95rem 0.8rem;
+  }
+
+  .home-page .property-choice__title {
+    font-size: 1.02rem;
+  }
+
+  .home-page .property-choice__text {
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .home-page .testimonials,
+  .home-page .forms-section {
+    padding-block: 2.25rem;
+  }
+
+  .home-page .about__grid {
+    gap: 1.15rem;
   }
 }

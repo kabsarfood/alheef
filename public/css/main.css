@@ -1109,6 +1109,56 @@ button.offer-card__image {
 }
 
 /* ─── Forms Section ─── */
+.property-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.property-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 100%;
+  padding: 1.15rem 1rem;
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  text-align: right;
+  cursor: pointer;
+  font: inherit;
+}
+
+.property-choice__title {
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.property-choice__text {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.property-choice.is-open {
+  border-color: #123524;
+  box-shadow: 0 8px 22px rgba(18, 53, 36, 0.12);
+}
+
+.property-choice__form {
+  grid-column: 1 / -1;
+}
+
+.property-choice__form[hidden] {
+  display: none;
+}
+
 .forms-section {
   padding: var(--section-pad) 0;
   background: var(--white);
@@ -1945,7 +1995,45 @@ body.modal-open {
   padding: var(--section-pad) 0;
 }
 
+.testimonials__toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: min(100%, 28rem);
+  margin: 0 auto;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(30, 42, 56, 0.12);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  font: inherit;
+}
+
+.testimonials__toggle-title {
+  font-size: var(--fs-section, 1.75rem);
+  font-weight: var(--fw-heading, 800);
+  line-height: 1.3;
+}
+
+.testimonials__toggle-hint {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.testimonials__toggle[aria-expanded="true"] .testimonials__toggle-hint {
+  color: #123524;
+}
+
+.testimonials__grid[hidden] {
+  display: none;
+}
+
 .testimonials__grid {
+  margin-top: 1.25rem;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.25rem;
@@ -2006,7 +2094,7 @@ body.modal-open {
   }
 }
 
-/* غلاف اليوم الوطني: الصورة كاملة دون قص، والأزرار أسفلها */
+/* الغلاف والأزرار بطاقة واحدة بعرض محتوى الصفحة */
 .home-page .hero {
   min-height: 0;
   max-height: none;
@@ -2015,24 +2103,21 @@ body.modal-open {
   align-items: stretch;
   justify-content: flex-start;
   padding-inline: 0;
+  padding-top: calc(var(--header-h) + var(--ejar-ticker-h) + var(--ejar-offer-h) + 1rem);
+  padding-bottom: 0.25rem;
+  background: var(--ivory);
 }
 
 .home-page .hero__bg {
   position: relative;
   inset: auto;
-  aspect-ratio: 16 / 9;
-  height: auto;
-}
-
-@media (min-width: 769px) {
-  .home-page .hero__bg {
-    width: min(1120px, calc(100% - 3rem));
-    margin: 0.35rem auto 0;
-    aspect-ratio: auto;
-    height: clamp(280px, 26vw, 400px);
-    border-radius: 16px;
-    box-shadow: 0 12px 32px rgba(30, 42, 56, 0.14);
-  }
+  width: min(1200px, calc(100% - 2 * clamp(1.25rem, 4vw, 2.5rem)));
+  margin: 0 auto;
+  aspect-ratio: auto;
+  height: clamp(210px, 42vw, 420px);
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  box-shadow: none;
 }
 
 .home-page .hero__bg picture,
@@ -2070,15 +2155,19 @@ body.modal-open {
   right: auto;
   bottom: auto;
   z-index: 2;
-  width: 100%;
-  max-width: var(--max-w);
+  width: min(1200px, calc(100% - 2 * clamp(1.25rem, 4vw, 2.5rem)));
+  max-width: none;
   margin-inline: auto;
-  padding: 0.95rem 1rem 1.15rem;
+  padding: 1rem 1.1rem 1.15rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background: var(--ivory);
+  background: var(--white);
+  border: 1px solid rgba(30, 42, 56, 0.08);
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 16px 36px rgba(30, 42, 56, 0.08);
 }
 
 .home-page .hero__actions {
@@ -2112,10 +2201,15 @@ body.modal-open {
   }
 }
 
-.home-page .hero__actions .btn-outline:hover,
-.home-page .hero__actions .btn-primary:hover {
+.home-page .hero__actions .btn-outline:hover {
   color: #123524;
-  background: #fff;
+  background: #f7f3ea;
+  border-color: rgba(18, 53, 36, 0.28);
+}
+
+.home-page .hero__actions .btn-primary:hover {
+  color: #f7f3ea;
+  background: #1a4a32;
 }
 
 .home-page .hero__actions .btn-primary.is-alert {
@@ -2136,4 +2230,82 @@ body.modal-open {
     animation: none;
     box-shadow: 0 0 0 2px #b11212, 0 0 14px rgba(177, 18, 18, 0.7);
   }
+}
+
+/* إيقاع واحد لأقسام الرئيسية */
+.home-page {
+  --section-pad: clamp(3.25rem, 5.5vw, 5rem);
+}
+
+.home-page .section-header {
+  margin-bottom: clamp(1.6rem, 3vw, 2.35rem);
+}
+
+.home-page .section-subtitle {
+  max-width: 38rem;
+}
+
+.home-page .offers__grid,
+.home-page .services__grid,
+.home-page .testimonials__grid {
+  gap: 1.25rem;
+}
+
+.home-page .offer-card,
+.home-page .service-card,
+.home-page .about-card,
+.home-page .property-choice,
+.home-page .testimonials__toggle,
+.home-page .testimonial-card,
+.home-page .subscribe .form-card {
+  border-radius: 16px;
+}
+
+.home-page .offer-card {
+  border: 1px solid rgba(30, 42, 56, 0.08);
+}
+
+.home-page .about {
+  background: var(--ivory-dark);
+}
+
+.home-page .about__grid {
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.home-page .about-card {
+  padding: 1.35rem 1.25rem;
+  border: 1px solid rgba(30, 42, 56, 0.08);
+}
+
+.home-page .testimonials {
+  background: var(--white);
+  padding-block: clamp(2.5rem, 4.5vw, 3.5rem);
+}
+
+.home-page .testimonials__toggle {
+  width: min(100%, 40rem);
+  padding: 1.25rem 1.35rem;
+  border-color: rgba(30, 42, 56, 0.08);
+}
+
+.home-page .forms-section {
+  background: var(--ivory);
+  padding-block: clamp(2.5rem, 4.5vw, 3.5rem);
+}
+
+.home-page .property-choices {
+  gap: 1rem;
+}
+
+.home-page .property-choice {
+  padding: 1.35rem 1.25rem 1.2rem;
+  gap: 0.45rem;
+  border-color: rgba(30, 42, 56, 0.08);
+}
+
+.home-page .subscribe__inner {
+  gap: clamp(1.75rem, 4vw, 3rem);
+  align-items: center;
 }

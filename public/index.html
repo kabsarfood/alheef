@@ -25,8 +25,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=36">
-  <link rel="stylesheet" href="/css/mobile.css?v=32">
+  <link rel="stylesheet" href="/css/main.css?v=39">
+  <link rel="stylesheet" href="/css/mobile.css?v=34">
   <script src="/js/national-offer.js?v=1"></script>
   <link rel="stylesheet" href="/css/pwa.css?v=3">
 </head>
@@ -244,25 +244,31 @@
 
   <section class="testimonials" id="testimonials">
     <div class="container">
-      <header class="section-header reveal">
-        <p class="section-label">آراء العملاء</p>
-        <h2 class="section-title">ثقة عملائنا</h2>
-      </header>
-      <div id="testimonials-grid" class="testimonials__grid"></div>
+      <button type="button" class="testimonials__toggle" id="testimonials-toggle" aria-expanded="false" aria-controls="testimonials-grid">
+        <span class="section-label">آراء العملاء</span>
+        <span class="testimonials__toggle-title">ثقة عملائنا</span>
+        <span class="testimonials__toggle-hint">فتح التعليقات</span>
+      </button>
+      <div id="testimonials-grid" class="testimonials__grid" hidden></div>
     </div>
   </section>
 
-  <!-- REQUEST PROPERTY -->
+  <!-- REQUEST / LIST PROPERTY -->
   <section class="forms-section" id="request">
     <div class="container">
-      <div class="forms-grid">
-        <div class="form-panel__intro reveal">
-          <p class="section-label">طلب خاص</p>
-          <h2 class="section-title">اطلب عقارك</h2>
-          <p class="section-subtitle">أخبرنا بما تبحث عنه وسيبحث فريقنا عن العقار المناسب لك في أسرع وقت</p>
-        </div>
+      <div class="property-choices">
+        <button type="button" class="property-choice" data-choice="request" aria-expanded="false" aria-controls="request-form">
+          <span class="section-label">طلب خاص</span>
+          <span class="property-choice__title">اطلب عقارك</span>
+          <span class="property-choice__text">أخبرنا بما تبحث عنه وسيبحث فريقنا عن العقار المناسب لك</span>
+        </button>
+        <button type="button" class="property-choice" id="list" data-choice="list" aria-expanded="false" aria-controls="list-form">
+          <span class="section-label">للملاك</span>
+          <span class="property-choice__title">اعرض عقارك</span>
+          <span class="property-choice__text">وكّلنا بتسويق عقارك بأسلوب يحافظ على خصوصيتك</span>
+        </button>
 
-        <form class="form-card reveal" id="request-form">
+        <form class="form-card property-choice__form" id="request-form" hidden>
           <div id="request-message" class="form-message"></div>
           <div class="form-row">
             <div class="form-group">
@@ -302,21 +308,8 @@
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%">إرسال الطلب</button>
         </form>
-      </div>
-    </div>
-  </section>
 
-  <!-- LIST PROPERTY -->
-  <section class="forms-section forms-section--alt" id="list">
-    <div class="container">
-      <div class="forms-grid">
-        <div class="form-panel__intro reveal">
-          <p class="section-label">للملاك</p>
-          <h2 class="section-title">اعرض عقارك للبيع</h2>
-          <p class="section-subtitle">وكّلنا بتسويق عقارك بأسلوب احترافي يحافظ على خصوصيتك ويصل بالمشتري المناسب</p>
-        </div>
-
-        <form class="form-card reveal" id="list-form" enctype="multipart/form-data">
+        <form class="form-card property-choice__form" id="list-form" enctype="multipart/form-data" hidden>
           <div id="list-message" class="form-message"></div>
           <div class="form-row">
             <div class="form-group">
@@ -624,6 +617,6 @@
   <script src="/js/user-nav.js?v=4" defer></script>
   <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/join-team.js?v=5" defer></script>
-  <script src="/js/main.js?v=23" defer></script>
+  <script src="/js/main.js?v=25" defer></script>
 </body>
 </html>
