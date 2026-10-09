@@ -120,7 +120,7 @@
     if (!button) return;
     button.textContent = 'العروض الخاصة';
     button.href = '/user/login.html';
-    button.classList.remove('is-alert');
+    button.classList.add('is-alert');
     button.title = 'العروض الخاصة تفتح بعد تسجيل الدخول وموافقة الأدمن';
   }
 
