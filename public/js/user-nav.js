@@ -115,7 +115,26 @@
     });
   }
 
+  function lockHero() {
+    const button = document.getElementById('hero-btn-offers');
+    if (!button) return;
+    button.textContent = 'العروض الخاصة';
+    button.href = '/user/login.html';
+    button.classList.remove('is-alert');
+    button.title = 'العروض الخاصة تفتح بعد تسجيل الدخول وموافقة الأدمن';
+  }
+
+  function armHero(href) {
+    const button = document.getElementById('hero-btn-offers');
+    if (!button) return;
+    button.textContent = 'العروض الخاصة';
+    button.href = href;
+    button.classList.add('is-alert');
+    button.title = 'افتح العروض الخاصة';
+  }
+
   async function run() {
+    lockHero();
     const token = localStorage.getItem(TOKEN_KEY);
     const slug = localStorage.getItem(SLUG_KEY);
     if (!token || !slug) return;
@@ -136,6 +155,7 @@
     rememberIdentity(data.clientName, data.phone);
     showIdentity(data.clientName, data.phone);
     const href = `/v/${encodeURIComponent(data.slug)}`;
+    armHero(href);
     addLink(href);
     addLogout(document.getElementById('nav'));
   }

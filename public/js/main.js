@@ -215,7 +215,6 @@
     setText('hero-label', s.hero?.label);
     setText('hero-title', s.hero?.title);
     setText('hero-desc', s.hero?.description);
-    setText('hero-btn-offers', s.hero?.btnOffers);
     setText('hero-btn-request', s.hero?.btnRequest);
 
     applyHeroBanner(s, v);
@@ -471,12 +470,16 @@
   function renderOfferCard(offer, index) {
     const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location}`;
     const img = offer.image || '';
+    const imageOpen = img
+      ? `<button type="button" class="offer-card__image" data-offer-id="${escapeAttr(offer.id)}" aria-label="تفاصيل ${escapeAttr(offer.title)}">`
+      : '<div class="offer-card__image">';
+    const imageClose = img ? '</button>' : '</div>';
     return `
       <article class="offer-card" style="transition-delay:${index * 0.08}s">
-        <div class="offer-card__image">
+        ${imageOpen}
           <img src="${escapeAttr(img)}" alt="${escapeAttr(offer.title)}" loading="lazy" decoding="async" width="640" height="400">
           <span class="offer-card__badge">${escapeHtml(offer.type)}</span>
-        </div>
+        ${imageClose}
         <div class="offer-card__body">
           <h3 class="offer-card__title">${escapeHtml(offer.title)}</h3>
           <p class="offer-card__location">📍 ${escapeHtml(offer.location)}</p>
@@ -494,21 +497,145 @@
   }
 
   // ─── Modal ───
+  const gallery = {
+    images: [],
+    index: 0,
+    tracking: false,
+    dragging: false,
+    startX: 0,
+    startY: 0,
+    dx: 0,
+  };
+
+  function offerImageList(offer) {
+    const list = [];
+    const push = (url) => {
+      const value = String(url || '').trim();
+      if (value && !list.includes(value)) list.push(value);
+    };
+    if (Array.isArray(offer.gallery)) offer.gallery.forEach((item) => push(item && item.url ? item.url : item));
+    if (Array.isArray(offer.images)) offer.images.forEach((item) => push(item && item.url ? item.url : item));
+    push(offer.coverImage);
+    push(offer.image);
+    return list;
+  }
+
+  function galleryWidth() {
+    return document.getElementById('modal-gallery')?.clientWidth || 0;
+  }
+
+  function placeGallery(offset) {
+    const track = document.getElementById('modal-gallery-track');
+    if (!track) return;
+    const shift = (-gallery.index * galleryWidth()) + (offset || 0);
+    track.style.transform = `translateX(${shift}px)`;
+  }
+
+  function updateGalleryCount() {
+    const count = document.getElementById('modal-gallery-count');
+    const stage = document.getElementById('modal-gallery');
+    if (!count || !stage) return;
+    const many = gallery.images.length > 1;
+    stage.classList.toggle('is-swipeable', many);
+    count.hidden = !many;
+    count.textContent = many ? `${gallery.index + 1} / ${gallery.images.length}` : '';
+  }
+
+  function renderGallery(offer) {
+    const track = document.getElementById('modal-gallery-track');
+    if (!track) return;
+    gallery.images = offerImageList(offer);
+    gallery.index = 0;
+    gallery.tracking = false;
+    gallery.dragging = false;
+    gallery.dx = 0;
+    track.classList.remove('is-dragging');
+    track.innerHTML = gallery.images.map((url) => `
+      <div class="modal__gallery-slide">
+        <img src="${escapeAttr(url)}" alt="${escapeAttr(offer.title || '')}" draggable="false">
+      </div>
+    `).join('');
+    placeGallery(0);
+    updateGalleryCount();
+  }
+
+  function finishGalleryDrag() {
+    const track = document.getElementById('modal-gallery-track');
+    gallery.tracking = false;
+    gallery.dragging = false;
+    track?.classList.remove('is-dragging');
+    const width = galleryWidth();
+    if (gallery.images.length > 1 && width) {
+      if (gallery.dx < -48 && gallery.index < gallery.images.length - 1) gallery.index += 1;
+      else if (gallery.dx > 48 && gallery.index > 0) gallery.index -= 1;
+    }
+    gallery.dx = 0;
+    placeGallery(0);
+    updateGalleryCount();
+  }
+
   function setupModal() {
     const modal = document.getElementById('offer-modal');
     if (!modal) return;
 
     const close = () => {
+      finishGalleryDrag();
       modal.classList.remove('active');
       document.body.classList.remove('modal-open');
     };
+
+    const track = document.getElementById('modal-gallery-track');
+    track?.addEventListener('pointerdown', (event) => {
+      if (gallery.images.length < 2 || event.button > 0) return;
+      gallery.tracking = true;
+      gallery.dragging = false;
+      gallery.startX = event.clientX;
+      gallery.startY = event.clientY;
+      gallery.dx = 0;
+    });
+    track?.addEventListener('pointermove', (event) => {
+      if (!gallery.tracking) return;
+      const mx = event.clientX - gallery.startX;
+      const my = event.clientY - gallery.startY;
+      if (!gallery.dragging) {
+        if (Math.abs(my) > Math.abs(mx) && Math.abs(my) > 8) {
+          gallery.tracking = false;
+          return;
+        }
+        if (Math.abs(mx) < 8) return;
+        gallery.dragging = true;
+        track.classList.add('is-dragging');
+        try { track.setPointerCapture(event.pointerId); } catch { /* السحب يبقى على العنصر */ }
+      }
+      gallery.dx = mx;
+      const atStart = gallery.index === 0 && mx > 0;
+      const atEnd = gallery.index === gallery.images.length - 1 && mx < 0;
+      placeGallery(atStart || atEnd ? mx * 0.35 : mx);
+    });
+    track?.addEventListener('pointerup', finishGalleryDrag);
+    track?.addEventListener('pointercancel', finishGalleryDrag);
+    window.addEventListener('resize', () => {
+      if (modal.classList.contains('active')) placeGallery(0);
+    });
 
     document.getElementById('modal-close')?.addEventListener('click', close);
     document.getElementById('modal-close-btn')?.addEventListener('click', close);
     document.getElementById('modal-backdrop')?.addEventListener('click', close);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('active')) close();
+      if (!modal.classList.contains('active')) return;
+      if (e.key === 'Escape') close();
+      if (gallery.images.length < 2) return;
+      if (e.key === 'ArrowLeft') {
+        gallery.index = Math.min(gallery.images.length - 1, gallery.index + 1);
+        placeGallery(0);
+        updateGalleryCount();
+      }
+      if (e.key === 'ArrowRight') {
+        gallery.index = Math.max(0, gallery.index - 1);
+        placeGallery(0);
+        updateGalleryCount();
+      }
     });
   }
 
@@ -531,6 +658,7 @@
       area,
       price: p.price || offer.price,
       image: p.coverImage || p.image || offer.image,
+      gallery: Array.isArray(p.gallery) ? p.gallery : offer.gallery,
       description,
       bedrooms: p.bedrooms ?? offer.bedrooms,
       bathrooms: p.bathrooms ?? offer.bathrooms,
@@ -577,12 +705,7 @@
 
     offer = await fetchFullOffer(offer);
 
-    const imgEl = document.getElementById('modal-img');
-    if (imgEl) {
-      imgEl.src = offer.image || '';
-      imgEl.alt = offer.title || '';
-      imgEl.style.display = offer.image ? '' : 'none';
-    }
+    renderGallery(offer);
 
     setModalText('modal-title', offer.title);
 
