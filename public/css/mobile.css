@@ -407,8 +407,8 @@
 
   /* ─── Offer cards ─── */
   .offers__grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
   }
 
   .offer-card {
@@ -878,6 +878,36 @@
 }
 
 /* ─── iPhone Plus / Pro Max ~430px ─── */
+@media (max-width: 430px) {
+  .offer-card__body {
+    padding: 0.7rem 0.65rem 0.8rem;
+  }
+
+  .offer-card__title {
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  .offer-card__location,
+  .offer-card__area {
+    font-size: 0.75rem;
+  }
+
+  .offer-card__price {
+    font-size: 0.95rem;
+  }
+
+  .offer-card__actions {
+    gap: 0.35rem;
+  }
+
+  .offer-card__actions .btn {
+    min-height: 36px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.35rem;
+  }
+}
+
 @media (min-width: 391px) and (max-width: 430px) {
   .hero {
     min-height: 68vh;
@@ -1326,5 +1356,49 @@
 @media (max-width: 768px) {
   .nav__link--private-entry {
     white-space: normal;
+  }
+
+  .home-page .services > .container {
+    overflow: hidden;
+  }
+
+  .home-page .services__grid {
+    display: flex;
+    direction: ltr;
+    justify-content: flex-end;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .home-page .services__track {
+    display: flex;
+    flex-direction: row-reverse;
+    flex: 0 0 auto;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .home-page .services__grid .service-card {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 1.35rem 1.15rem;
+  }
+
+  .home-page .services__grid .service-card--clone {
+    display: block;
+  }
+}
+
+.services__track {
+  display: contents;
+}
+
+.service-card--clone {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .services__grid {
+    transition: none;
   }
 }

@@ -123,6 +123,7 @@
       setupForms();
       setupFileUpload();
       setupModal();
+      setupServicesReel();
     } catch (err) {
       console.error('[الهيف] init:', err);
       showAllRevealsFallback();
@@ -816,6 +817,80 @@
 
   function hideMessage(el) {
     el.className = 'form-message';
+  }
+
+  function setupServicesReel() {
+    const grid = document.querySelector('.home-page .services__grid');
+    if (!grid || grid.dataset.reel === '1') return;
+    const cards = [...grid.children].filter((card) => card.classList.contains('service-card'));
+    if (cards.length < 2) return;
+    grid.dataset.reel = '1';
+    const track = document.createElement('div');
+    track.className = 'services__track';
+    cards.forEach((card) => track.appendChild(card));
+    const clone = cards[0].cloneNode(true);
+    clone.classList.add('service-card--clone');
+    clone.setAttribute('aria-hidden', 'true');
+    track.appendChild(clone);
+    grid.appendChild(track);
+
+    const media = window.matchMedia('(max-width: 768px)');
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let index = 0;
+    let timer = 0;
+    let paused = false;
+
+    function place(animate) {
+      const cardWidth = grid.clientWidth;
+      const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
+      track.querySelectorAll('.service-card').forEach((card) => {
+        card.style.width = cardWidth ? `${cardWidth}px` : '';
+      });
+      track.style.transition = animate ? 'transform .45s ease' : 'none';
+      track.style.transform = media.matches && !motion.matches ? `translateX(${index * (cardWidth + gap)}px)` : '';
+    }
+
+    function schedule() {
+      window.clearTimeout(timer);
+      if (!media.matches || motion.matches) {
+        index = 0;
+        place(false);
+        return;
+      }
+      timer = window.setTimeout(() => {
+        if (paused || document.hidden) {
+          schedule();
+          return;
+        }
+        const total = grid.querySelectorAll('.service-card').length;
+        index += 1;
+        place(true);
+        window.setTimeout(() => {
+          if (index >= total - 1) {
+            index = 0;
+            place(false);
+          }
+          schedule();
+        }, 460);
+      }, 1000);
+    }
+
+    grid.addEventListener('pointerdown', () => { paused = true; });
+    grid.addEventListener('pointerup', () => { paused = false; });
+    grid.addEventListener('pointercancel', () => { paused = false; });
+    media.addEventListener('change', () => {
+      index = 0;
+      place(false);
+      schedule();
+    });
+    window.addEventListener('resize', () => {
+      if (media.matches) place(false);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) schedule();
+    });
+    place(false);
+    schedule();
   }
 
   // ─── File Upload ───

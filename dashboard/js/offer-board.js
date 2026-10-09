@@ -39,6 +39,45 @@ let mapPresented = false;
 let heefWhatsapp = '966530792754';
 let photoState = { images: [], index: 0 };
 let booted = false;
+let viewingId = '';
+
+function seenStoreKey() {
+  let slug = '';
+  try { slug = localStorage.getItem('alheef_user_slug') || ''; } catch { slug = ''; }
+  return `alheef_seen_offers:${slug || 'client'}`;
+}
+
+function loadSeen() {
+  if (ADMIN) return new Set();
+  try {
+    const raw = JSON.parse(localStorage.getItem(seenStoreKey()) || '[]');
+    return new Set((Array.isArray(raw) ? raw : []).map((id) => String(id)));
+  } catch {
+    return new Set();
+  }
+}
+
+let seenIds = loadSeen();
+
+function rememberSeen(id) {
+  const key = String(id || '');
+  if (ADMIN || !key || seenIds.has(key)) return false;
+  seenIds.add(key);
+  try { localStorage.setItem(seenStoreKey(), JSON.stringify([...seenIds].slice(-500))); } catch { /* يبقى خلال هذه الزيارة */ }
+  return true;
+}
+
+function hasSeen(id) {
+  return !ADMIN && seenIds.has(String(id || ''));
+}
+
+function paintSeenMarker(id) {
+  const marker = markers.get(id);
+  const item = items.find((row) => row.id === id);
+  if (!marker || !item || (marker.isPopupOpen && marker.isPopupOpen())) return;
+  marker.setIcon(markerIcon(item));
+  marker._obSig = markerSignature(item);
+}
 
 function applyTypeColors() {
   const root = document.documentElement;
@@ -489,9 +528,12 @@ function popupHtml(item) {
 
 function markerIcon(item) {
   const active = item.id === activeId ? ' is-active' : '';
+  const seen = hasSeen(item.id)
+    ? '<span class="ob-seen">شاهدته</span>'
+    : '';
   return L.divIcon({
     className: 'ob-pin',
-    html: `<span class="property-marker property-marker--${markerKind(item)}${active}"></span>`,
+    html: `<span class="ob-pin__body"><span class="property-marker property-marker--${markerKind(item)}${active}"></span>${seen}</span>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
     popupAnchor: [0, -8],
@@ -499,7 +541,7 @@ function markerIcon(item) {
 }
 
 function markerSignature(item) {
-  return [item.latitude, item.longitude, item.typeKey, item.price, item.area, item.coverImage, item.planNumber, item.plotNumber, item.district, item.city, item.propertyType, item.showOnHomepage].join('|');
+  return [item.latitude, item.longitude, item.typeKey, item.price, item.area, item.coverImage, item.planNumber, item.plotNumber, item.district, item.city, item.propertyType, item.showOnHomepage, hasSeen(item.id) ? 'seen' : ''].join('|');
 }
 
 function lockScroll() {
@@ -627,6 +669,7 @@ function onPopupOpen(event) {
   const id = root.querySelector('[data-open]')?.dataset.open || '';
   if (id) {
     activeId = id;
+    viewingId = id;
     refreshActiveIcons();
   }
   if (root.dataset.obBound) return;
@@ -691,6 +734,13 @@ function ensureMap() {
   map.addLayer(cluster);
   map.on('click', onMapClick);
   map.on('popupopen', onPopupOpen);
+  map.on('popupclose', () => {
+    const id = viewingId;
+    viewingId = '';
+    if (!id) return;
+    rememberSeen(id);
+    paintSeenMarker(id);
+  });
   setTimeout(() => map && map.invalidateSize(), 0);
 }
 
@@ -1034,7 +1084,9 @@ async function openListingPhotos(id) {
 }
 
 async function openDetail(id) {
+  rememberSeen(id);
   if (map) map.closePopup();
+  paintSeenMarker(id);
   let data;
   try {
     data = await boardRequest(`/${id}`);
