@@ -138,21 +138,17 @@ function buildMessage(purpose, code, fillUrl) {
         : purpose === 'private_offer'
           ? 'رمز التحقق لدخول العروض الخاصة:'
           : 'رمز التحقق لدخول العروض العقارية:';
-    const lines = [
+    return [
       'الهيف العقارية',
       '',
       title,
       String(code),
       '',
-    ];
-    if (fillUrl) {
-      lines.push('اضغط الرابط ليُكتب الرمز في مربع التوثيق:');
-      lines.push(String(fillUrl));
-    } else {
-      lines.push('انسخ هذا الرقم والصقه في مربع التحقق.');
-    }
-    lines.push('', 'صالح لمدة 5 دقائق.', 'لا تشارك هذا الرمز مع أي شخص.', autofill);
-    return lines.filter(Boolean).join('\n');
+      'انسخ هذا الرقم والصقه في مربع التحقق.',
+      '',
+      'صالح لمدة 5 دقائق.',
+      'لا تشارك هذا الرمز مع أي شخص.',
+    ].join('\n');
   }
   return [
     'الهيف العقارية',

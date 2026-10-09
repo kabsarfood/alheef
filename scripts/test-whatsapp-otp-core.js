@@ -36,11 +36,8 @@ async function main() {
   });
   assert(priv.ok, priv.reason);
   assert(last.includes('العروض الخاصة'));
-  assert(last.includes('ليُكتب الرمز في مربع التوثيق'));
-  const fillMatch = last.match(/[?&]fill=([A-Za-z0-9_-]+)/);
-  assert(fillMatch, 'رابط التعبئة غير موجود');
-  const claimed = core.claimAutofill(fillMatch[1]);
-  assert(claimed.ok && claimed.code === codeFrom(last) && claimed.challengeId === priv.challengeId);
+  assert(last.includes('انسخ هذا الرقم'));
+  assert(!/https?:\/\//.test(last), 'رسالة التوثيق فيها رابط');
   assert.strictEqual(core.claimAutofill('not-the-token-value').ok, false);
   const privOk = core.verifyOtp(priv.challengeId, codeFrom(last));
   assert(privOk.ok && privOk.purpose === 'private_offer' && privOk.meta.slug === 'abc12345');
