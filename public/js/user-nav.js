@@ -1,6 +1,8 @@
 (function () {
   const TOKEN_KEY = 'alheef_user_token';
   const SLUG_KEY = 'alheef_user_slug';
+  const NAME_KEY = 'alheef_user_name';
+  const PHONE_KEY = 'alheef_user_phone';
 
   function addLink(href) {
     const nav = document.getElementById('nav');
@@ -25,6 +27,42 @@
       item.textContent = 'العروض الخاصة';
       menu.prepend(item);
     });
+  }
+
+  function identityLabel(name, phone) {
+    const label = String(name || '').trim() || String(phone || '').trim();
+    return label;
+  }
+
+  function showIdentity(name, phone) {
+    const label = identityLabel(name, phone);
+    if (!label) return;
+    document.querySelectorAll('.header__login').forEach((box) => {
+      box.classList.add('is-signed-in');
+      const summary = box.querySelector('.header__login-toggle');
+      if (summary) {
+        summary.textContent = label;
+        summary.title = label;
+      }
+    });
+  }
+
+  function clearIdentity() {
+    document.querySelectorAll('.header__login').forEach((box) => {
+      box.classList.remove('is-signed-in');
+      const summary = box.querySelector('.header__login-toggle');
+      if (summary) {
+        summary.textContent = 'دخول';
+        summary.removeAttribute('title');
+      }
+    });
+  }
+
+  function rememberIdentity(name, phone) {
+    if (name) localStorage.setItem(NAME_KEY, name);
+    else localStorage.removeItem(NAME_KEY);
+    if (phone) localStorage.setItem(PHONE_KEY, phone);
+    else localStorage.removeItem(PHONE_KEY);
   }
 
   function addLogout(nav) {
@@ -53,26 +91,50 @@
       }
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(SLUG_KEY);
+      localStorage.removeItem(NAME_KEY);
+      localStorage.removeItem(PHONE_KEY);
       if (slug) localStorage.removeItem(`alheef_private_token_${slug}`);
       location.reload();
     });
     nav.appendChild(button);
+    document.querySelectorAll('.header__login-menu').forEach((menu) => {
+      if (menu.querySelector('[data-user-logout]')) return;
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'header__login-item';
+      item.dataset.userLogout = '1';
+      item.textContent = 'خروج';
+      item.style.width = '100%';
+      item.style.textAlign = 'right';
+      item.style.background = 'transparent';
+      item.style.border = '0';
+      item.style.cursor = 'pointer';
+      item.style.font = 'inherit';
+      item.addEventListener('click', () => button.click());
+      menu.appendChild(item);
+    });
   }
 
   async function run() {
     const token = localStorage.getItem(TOKEN_KEY);
     const slug = localStorage.getItem(SLUG_KEY);
     if (!token || !slug) return;
+    showIdentity(localStorage.getItem(NAME_KEY), localStorage.getItem(PHONE_KEY));
     const res = await fetch('/api/private-offers/session', {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json().catch(() => ({}));
-    if (!data.authenticated || !data.slug) return;
+    if (!data.authenticated || !data.slug) {
+      clearIdentity();
+      return;
+    }
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(`alheef_private_token_${data.slug}`, data.token);
     }
     localStorage.setItem(SLUG_KEY, data.slug);
+    rememberIdentity(data.clientName, data.phone);
+    showIdentity(data.clientName, data.phone);
     const href = `/v/${encodeURIComponent(data.slug)}`;
     addLink(href);
     addLogout(document.getElementById('nav'));

@@ -106,8 +106,17 @@
     height: 16px;
   }
 
+  .header__actions .btn-whatsapp {
+    order: 1;
+  }
+
   .header__actions .header__login {
-    display: none !important;
+    display: block !important;
+    order: 2;
+  }
+
+  .header__actions .menu-toggle {
+    order: 3;
   }
 
   .nav__portal-label {
@@ -974,8 +983,17 @@
     z-index: 1005;
   }
 
+  .header__actions .btn-whatsapp {
+    order: 1;
+  }
+
   .header__actions .header__login {
-    display: none !important;
+    display: block !important;
+    order: 2;
+  }
+
+  .header__actions .menu-toggle {
+    order: 3;
   }
 
   .header__actions .btn-whatsapp--icon .btn-whatsapp__label {
@@ -1270,6 +1288,22 @@
     background: linear-gradient(180deg, #4a6353, #3d5244);
     color: var(--white);
     border-color: #3d5244;
+  }
+}
+
+@media (max-width: 1099px) {
+  .header__login > summary.header__login-toggle {
+    min-height: 44px;
+    max-width: 8.2rem;
+    padding: 0.4rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header__login-menu {
+    left: 0;
+    right: auto;
   }
 }
 

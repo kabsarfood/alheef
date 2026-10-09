@@ -1750,6 +1750,16 @@ body.modal-open {
   color: var(--text-primary);
 }
 
+.header__login.is-signed-in > summary {
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header__login.is-signed-in .header__login-menu > a:not([data-private-offers]) {
+  display: none;
+}
+
 /* روابط الدخول — قائمة الجوال */
 .nav__portal-label,
 .nav__link--portal {

@@ -35,6 +35,9 @@
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(SLUG_KEY, data.slug);
     localStorage.setItem(`alheef_private_token_${data.slug}`, data.token);
+    if (data.clientName) localStorage.setItem('alheef_user_name', data.clientName);
+    else localStorage.removeItem('alheef_user_name');
+    if (data.phone) localStorage.setItem('alheef_user_phone', data.phone);
   }
 
   function enterSite() {

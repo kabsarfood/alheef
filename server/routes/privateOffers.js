@@ -317,6 +317,7 @@ router.get('/session', requireDb, async (req, res) => {
     authenticated: true,
     token: createPrivateViewerToken(row.id, row.access_epoch),
     clientName: row.client_label || '',
+    phone: row.phone || '',
     slug: row.page_slug || '',
   });
 });
@@ -448,6 +449,7 @@ router.post('/portal/otp/verify', requireDb, async (req, res) => {
       token: createPrivateViewerToken(row.id, fresh?.access_epoch),
       slug: row.page_slug || '',
       clientName: row.client_label || '',
+      phone: row.phone || '',
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر التحقق من الرمز' });
