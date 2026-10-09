@@ -2,13 +2,12 @@
   'use strict';
 
   const loginForm = document.getElementById('login-form');
-  const setupForm = document.getElementById('setup-form');
-  const forgotForm = document.getElementById('forgot-form');
   const otpForm = document.getElementById('otp-form');
-  const tabs = document.querySelectorAll('.login-tab');
-  const tabsBar = document.querySelector('.login-tabs');
+  const phoneInput = document.getElementById('login-phone');
+  const otpInput = document.getElementById('otp-code');
   let challengeId = '';
-  let otpReturnTab = 'login';
+  let otpAbort = null;
+  let verifying = false;
 
   function showMsg(el, text, type) {
     if (!el) return;
@@ -16,166 +15,108 @@
     el.className = `login-message ${type || ''}`;
   }
 
+  function digits(value) {
+    return String(value || '')
+      .replace(/[٠-٩]/g, (digit) => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
+      .replace(/\D/g, '');
+  }
+
+  function stopOtpAutofill() {
+    if (!otpAbort) return;
+    try { otpAbort.abort(); } catch { /* ignore */ }
+    otpAbort = null;
+  }
+
+  function startOtpAutofill() {
+    stopOtpAutofill();
+    if (!otpInput || !('OTPCredential' in window) || !navigator.credentials?.get) return;
+    otpAbort = new AbortController();
+    navigator.credentials.get({
+      otp: { transport: ['sms'] },
+      signal: otpAbort.signal,
+    }).then((cred) => {
+      const code = digits(cred?.code).slice(0, 6);
+      if (code.length === 6) {
+        otpInput.value = code;
+        verifyCode(code);
+      }
+    }).catch(() => {});
+  }
+
   function showOtpStep(id, message) {
     challengeId = id;
-    otpReturnTab = setupForm && !setupForm.hidden ? 'setup' : 'login';
+    verifying = false;
     loginForm.hidden = true;
-    setupForm.hidden = true;
-    forgotForm.hidden = true;
     otpForm.hidden = false;
-    if (tabsBar) tabsBar.hidden = true;
-    const msg = document.getElementById('otp-message');
-    showMsg(msg, message || 'تم إرسال رمز التحقق إلى واتساب', 'success');
-    const input = document.getElementById('otp-code');
-    if (input) {
-      input.value = '';
-      input.focus();
-    }
+    showMsg(document.getElementById('otp-message'), message || 'تم إرسال رمز التحقق إلى واتساب', 'success');
+    otpInput.value = '';
+    otpInput.focus();
+    startOtpAutofill();
   }
 
   function hideOtpStep() {
+    stopOtpAutofill();
     challengeId = '';
     otpForm.hidden = true;
-    if (tabsBar) tabsBar.hidden = false;
-    if (otpReturnTab === 'setup' && tabs[1]) tabs[1].click();
-    else if (tabs[0]) tabs[0].click();
-    else loginForm.hidden = false;
+    loginForm.hidden = false;
   }
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      tabs.forEach((t) => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      const tabName = tab.dataset.tab;
-      if (otpForm) otpForm.hidden = true;
-      if (tabsBar) tabsBar.hidden = false;
-      loginForm.hidden = tabName !== 'login';
-      setupForm.hidden = tabName !== 'setup';
-      forgotForm.hidden = tabName !== 'forgot';
-    });
-  });
-
-  loginForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('login-message');
-    const fd = new FormData(loginForm);
-    const btn = loginForm.querySelector('[type="submit"]');
-    btn.disabled = true;
-    showMsg(msg, '');
-    try {
-      const res = await fetch('/api/auth/marketer/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: fd.get('login'), password: fd.get('password') }),
-      });
-      const data = await res.json();
-      if (data.needsPasswordSetup) {
-        tabs[1].click();
-        setupForm.querySelector('[name="phone"]').value = String(fd.get('login') || '').includes('@') ? '' : fd.get('login');
-        showMsg(msg, data.message);
-        return;
-      }
-      if (data.needsOtp && data.challengeId) {
-        showOtpStep(data.challengeId, data.message);
-        return;
-      }
-      if (!res.ok) throw new Error(data.message);
-      MarketerAuth.setToken(data.token);
-      window.location.href = '/marketer/';
-    } catch (err) {
-      showMsg(msg, err.message);
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  setupForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('setup-message');
-    const fd = new FormData(setupForm);
-    const btn = setupForm.querySelector('[type="submit"]');
-    btn.disabled = true;
-    try {
-      const res = await fetch('/api/auth/marketer/setup-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: fd.get('phone'),
-          nationalId: fd.get('nationalId'),
-          password: fd.get('password'),
-          confirmPassword: fd.get('confirmPassword'),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      if (data.needsOtp && data.challengeId) {
-        showOtpStep(data.challengeId, data.message);
-        return;
-      }
-      MarketerAuth.setToken(data.token);
-      window.location.href = '/marketer/';
-    } catch (err) {
-      showMsg(msg, err.message);
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  forgotForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('forgot-message');
-    const fd = new FormData(forgotForm);
-    const btn = forgotForm.querySelector('[type="submit"]');
-    btn.disabled = true;
-    btn.textContent = 'جاري الإرسال...';
-    try {
-      const res = await fetch('/api/auth/marketer/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: fd.get('email') }),
-      });
-      const data = await res.json();
-      showMsg(msg, data.message || 'تحقق من بريدك الإلكتروني', 'success');
-      forgotForm.reset();
-    } catch (err) {
-      showMsg(msg, err.message || 'تعذر الإرسال', 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'إرسال رابط الاستعادة';
-    }
-  });
-
-  otpForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('otp-message');
+  async function verifyCode(code) {
+    const cleaned = digits(code).slice(0, 6);
+    if (!challengeId || cleaned.length !== 6 || verifying) return;
+    verifying = true;
     const btn = document.getElementById('otp-btn');
-    btn.disabled = true;
+    const msg = document.getElementById('otp-message');
+    if (btn) btn.disabled = true;
+    stopOtpAutofill();
     try {
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId,
-          code: document.getElementById('otp-code').value.trim(),
-        }),
+        body: JSON.stringify({ challengeId, code: cleaned }),
       });
       const data = await res.json();
-      if (!res.ok || !data.token) throw new Error(data.message || 'رمز التحقق غير صحيح');
+      if (!res.ok || !data.token || data.role !== 'marketer') throw new Error(data.message || 'رمز غير صحيح');
       MarketerAuth.setToken(data.token);
       window.location.href = '/marketer/';
     } catch (err) {
-      showMsg(msg, err.message, 'error');
+      verifying = false;
+      if (btn) btn.disabled = false;
+      showMsg(msg, err.message);
+      startOtpAutofill();
+    }
+  }
+
+  loginForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('login-message');
+    const btn = loginForm.querySelector('[type="submit"]');
+    btn.disabled = true;
+    showMsg(msg, '');
+    try {
+      const res = await fetch('/api/auth/marketer/otp/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneInput.value }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.challengeId) throw new Error(data.message || 'تعذر إرسال الرمز');
+      showOtpStep(data.challengeId, data.message);
+    } catch (err) {
+      showMsg(msg, err.message);
     } finally {
       btn.disabled = false;
     }
   });
 
+  otpForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    verifyCode(otpInput.value);
+  });
+
   document.getElementById('otp-resend')?.addEventListener('click', async () => {
     const msg = document.getElementById('otp-message');
+    if (!challengeId) return;
     try {
       const res = await fetch('/api/auth/otp/resend', {
         method: 'POST',
@@ -185,13 +126,28 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
       if (data.challengeId) challengeId = data.challengeId;
-      showMsg(msg, data.message || 'تم إعادة إرسال الرمز', 'success');
+      showMsg(msg, data.message || 'أُعيد إرسال الرمز', 'success');
+      startOtpAutofill();
     } catch (err) {
-      showMsg(msg, err.message, 'error');
+      showMsg(msg, err.message);
     }
   });
 
   document.getElementById('otp-back')?.addEventListener('click', hideOtpStep);
 
-  MarketerAuth.requireAuth();
+  const fill = new URLSearchParams(location.search).get('fill') || '';
+  if (fill) {
+    fetch('/api/auth/otp/autofill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fill }),
+    }).then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok || data.purpose !== 'marketer' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
+        showOtpStep(data.challengeId, 'تم وضع الرمز في مربع التوثيق');
+        otpInput.value = data.code;
+        verifyCode(data.code);
+      })
+      .catch((err) => showMsg(document.getElementById('login-message'), err.message));
+  }
 })();

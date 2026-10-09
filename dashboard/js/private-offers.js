@@ -210,7 +210,7 @@ function clientAccordion(client) {
             <div class="form-group po-client-details-grid__full">
               <label>رابط الدخول</label>
               <div class="po-client-card__url-row">
-                <input readonly value="${escapeHtml(c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
+                <input readonly value="${escapeHtml(c.portalUrl || c.shareUrl)}" dir="ltr" aria-label="رابط العميل">
               </div>
             </div>
           </div>
@@ -361,13 +361,13 @@ function clientWhatsAppNumber(phone) {
 }
 
 function clientEntryMessage(client) {
-  const name = client.clientLabel || 'عميلنا';
-  return `مرحبًا ${name} 👋\n\nيمكنك الدخول إلى العروض العقارية الخاصة لدى *الهيف العقارية* عبر التحقق من رقم واتساب.\n\nاضغط على الرابط التالي لإتمام الدخول:\n${client.shareUrl}\n\n*فرص عقارية مختارة بعناية… قد يكون عرضك القادم بانتظارك 🏡✨*`;
+  const url = client.portalUrl || client.shareUrl || '';
+  return `أهلاً بكم في الهيف العقارية — أبو فهد الشمالي.\nبإمكانكم الدخول إلى العروض العقارية من خلال الرابط:\n${url}`;
 }
 
 function openClientWhatsApp(client) {
   const number = clientWhatsAppNumber(client && client.phone);
-  if (!number || !client.shareUrl) {
+  if (!number || !(client.portalUrl || client.shareUrl)) {
     showToast('تعذر فتح واتساب — تأكد من رقم العميل', 'error');
     return;
   }
@@ -377,8 +377,8 @@ function openClientWhatsApp(client) {
 
 async function copyClientLink(id) {
   const client = clientsCache.find((c) => c.id === id);
-  if (!client || !client.shareUrl) return;
-  await navigator.clipboard.writeText(client.shareUrl);
+  if (!client || !(client.portalUrl || client.shareUrl)) return;
+  await navigator.clipboard.writeText(client.portalUrl || client.shareUrl);
   showToast('تم نسخ رابط الدخول');
 }
 
@@ -478,9 +478,9 @@ function openAddClientModal() {
         propertyKind: fd.get('propertyKind'),
         requiredArea: fd.get('requiredArea'),
       });
-      clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl });
+      clientsCache.unshift({ ...r.client, shareUrl: r.client.shareUrl, portalUrl: r.client.portalUrl });
       renderClientsList();
-      showClientSuccessModal(r.client);
+      showClientSuccessModal({ ...r.client, welcomeSent: r.welcomeSent });
       wrap.remove();
     } catch (err) {
       submitBtn.disabled = false;
@@ -502,15 +502,17 @@ function showClientLinkModal(client, mode) {
     <div class="modal__backdrop" data-close></div>
     <div class="modal__box modal__box--po" role="dialog">
       <div class="modal__header">
-        <h3 class="modal__title">${resend ? 'إعادة إرسال الرابط' : 'تم إنشاء رابط الدخول'}</h3>
+        <h3 class="modal__title">${resend ? 'إعادة إرسال الرابط' : (client.welcomeSent ? 'أُرسلت رسالة الترحيب' : 'تم إنشاء الدخول')}</h3>
         <button type="button" class="modal__close" data-close aria-label="إغلاق">×</button>
       </div>
       <div class="po-success-panel">
         <div class="po-success-panel__icon" aria-hidden="true">${resend ? '↻' : '✓'}</div>
         <p class="po-modal-hint" style="margin:0;text-align:center">
           ${resend
-            ? 'الرسالة جاهزة باسم العميل والرابط في سطر مستقل.<br>اضغط الإرسال لفتح واتساب، ثم أرسلها كما هي.'
-            : 'تم إنشاء رابط الدخول للعميل بنجاح.<br>سيتم التحقق من رقم العميل عبر واتساب عند فتح الرابط.'}
+            ? 'الرسالة جاهزة والرابط يفتح بطاقة الدخول برقمه.<br>اضغط الإرسال لفتح واتساب، ثم أرسلها كما هي.'
+            : client.welcomeSent
+              ? 'وصلت رسالة الترحيب إلى واتساب العميل، وفيها رابط بطاقة الدخول.<br>يمكنك إرسالها مرة أخرى من هنا إذا لزم.'
+              : 'الرابط يفتح بطاقة الدخول ورقم العميل مكتوب فيها.<br>أرسل الرسالة عبر واتساب إن لم تصل تلقائيًا.'}
         </p>
         <div class="po-credential-box">
           <label>اسم العميل</label>
@@ -522,7 +524,7 @@ function showClientLinkModal(client, mode) {
         </div>
         <div class="po-credential-box">
           <label>رابط الدخول</label>
-          <input readonly dir="ltr" value="${escapeHtml(client.shareUrl)}" id="po-success-url">
+          <input readonly dir="ltr" value="${escapeHtml(client.portalUrl || client.shareUrl)}" id="po-success-url">
         </div>
         <div class="po-link-actions po-link-actions--modal">
           <button type="button" class="btn btn-gold" id="po-send-wa">${resend ? 'إرسال مرة أخرى عبر واتساب' : 'إرسال رابط الدخول عبر واتساب'}</button>
@@ -536,7 +538,7 @@ function showClientLinkModal(client, mode) {
   const close = () => wrap.remove();
   wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
   wrap.querySelector('#po-copy-link')?.addEventListener('click', async () => {
-    await navigator.clipboard.writeText(client.shareUrl || '');
+    await navigator.clipboard.writeText(client.portalUrl || client.shareUrl || '');
     showToast('تم نسخ رابط الدخول');
   });
   wrap.querySelector('#po-send-wa')?.addEventListener('click', () => openClientWhatsApp(client));

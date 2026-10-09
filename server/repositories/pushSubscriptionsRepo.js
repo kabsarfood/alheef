@@ -105,6 +105,18 @@ async function listByMarketerId(marketerId) {
   return (data || []).map(mapRow);
 }
 
+async function listListingAlertSubscribers() {
+  if (!isEnabled()) return [];
+  const { data, error } = await getAdmin()
+    .from(TABLE)
+    .select('*')
+    .eq('is_active', true)
+    .eq('offers_enabled', true)
+    .in('role', ['client', 'marketer']);
+  if (error) return [];
+  return (data || []).map(mapRow);
+}
+
 async function listOfferSubscribers() {
   if (!isEnabled()) return [];
   const { data, error } = await getAdmin()
@@ -162,6 +174,7 @@ module.exports = {
   listByRole,
   listByMarketerId,
   listOfferSubscribers,
+  listListingAlertSubscribers,
   listPrivateOfferSubscribers,
   mergeSubscriptionPreferences,
   mapRow,

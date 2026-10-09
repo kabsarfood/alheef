@@ -182,8 +182,10 @@
   function getAuthContext() {
     const adminToken = localStorage.getItem('alheef_admin_token');
     const marketerToken = localStorage.getItem('alheef_marketer_token');
+    const userToken = localStorage.getItem('alheef_user_token');
     if (adminToken) return { role: 'admin', token: adminToken };
     if (marketerToken) return { role: 'marketer', token: marketerToken };
+    if (userToken) return { role: 'client', token: userToken };
     return { role: 'client', token: null };
   }
 

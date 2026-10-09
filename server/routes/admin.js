@@ -14,7 +14,8 @@ const adminNotificationsRepo = require('../repositories/adminNotificationsRepo')
 const privateOffersRepo = require('../repositories/privateOffersRepo');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const siteAnalyticsRepo = require('../repositories/siteAnalyticsRepo');
-const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
+const { buildPrivateShareUrl, buildClientPortalUrl, clientWelcomeMessage } = require('../utils/privateOffersPath');
+const { sendText, isConfigured: whatsAppReady } = require('../services/evolutionWhatsApp');
 const { propertyToMapProperty } = require('../services/mappers');
 const { enrichBodyCoords } = require('../utils/coords');
 const { handleParseMapCoords } = require('../handlers/mapCoords');
@@ -759,6 +760,7 @@ router.put('/properties/:id/review', async (req, res) => {
         title: updated.title,
         city: updated.city,
         district: updated.district,
+        propertyType: updated.propertyType,
       }).catch((err) => console.error('[push] new offer:', err.message));
     }
 
@@ -796,6 +798,7 @@ router.get('/private-offers/clients', async (_req, res) => {
       clients: clients.map((c) => ({
         ...c,
         shareUrl: buildPrivateShareUrl(c.pageSlug),
+        portalUrl: buildClientPortalUrl(c.phone),
       })),
     });
   } catch (err) {
@@ -805,11 +808,26 @@ router.get('/private-offers/clients', async (_req, res) => {
 
 function presentPrivateClient(client) {
   const deviceReset = Boolean(client && client.accessReset);
-  const body = { ...(client || {}), shareUrl: buildPrivateShareUrl(client && client.pageSlug) };
+  const body = {
+    ...(client || {}),
+    shareUrl: buildPrivateShareUrl(client && client.pageSlug),
+    portalUrl: buildClientPortalUrl(client && client.phone),
+  };
   delete body.plainCode;
   delete body.accessReset;
   delete body.accessCode;
   return { client: body, deviceReset };
+}
+
+async function sendClientWelcome(client) {
+  if (!client || !client.phone || !whatsAppReady()) return false;
+  try {
+    await sendText(client.phone, clientWelcomeMessage(buildClientPortalUrl(client.phone)));
+    return true;
+  } catch (err) {
+    console.warn('[private-clients] welcome:', err.message);
+    return false;
+  }
 }
 
 router.post('/private-offers/clients', async (req, res) => {
@@ -821,7 +839,8 @@ router.post('/private-offers/clients', async (req, res) => {
       propertyKind: req.body.propertyKind,
       requiredArea: req.body.requiredArea,
     });
-    res.json({ success: true, ...presentPrivateClient(client) });
+    const welcomeSent = await sendClientWelcome(client);
+    res.json({ success: true, welcomeSent, ...presentPrivateClient(client) });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

@@ -112,7 +112,12 @@ async function initMarketerLayout(activePage, pageTitle) {
     link.addEventListener('click', () => setSidebarOpen(false));
   });
 
-  document.getElementById('logout-btn')?.addEventListener('click', () => MarketerAuth.logout());
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    if (window.AlheefLogoutAlerts) {
+      try { await window.AlheefLogoutAlerts.offer(); } catch { /* يخرج حتى لو تعذر الإشعار */ }
+    }
+    MarketerAuth.logout();
+  });
   initMarketerPushPrompt();
 }
 

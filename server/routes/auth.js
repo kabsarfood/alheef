@@ -72,8 +72,7 @@ async function isAuthorizedAdminPhone(phone) {
 }
 
 /**
- * بدء OTP للأدمن بالجوال فقط (بدون كلمة مرور).
- * كلمة المرور تبقى متاحة عبر POST /login كـ fallback.
+ * بدء OTP للأدمن بالجوال فقط. إذا كان واتساب مفعّلًا لا يُصدر /login جلسة بكلمة المرور.
  */
 router.post('/otp/start', async (req, res) => {
   try {
@@ -109,6 +108,12 @@ router.post('/otp/start', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+  if (otpService.isEnabled()) {
+    return res.status(400).json({
+      success: false,
+      message: 'الدخول إلى لوحة التحكم عبر رمز واتساب فقط',
+    });
+  }
   if (!loginRate.allowRequest(req)) {
     return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
   }
@@ -150,8 +155,46 @@ router.post('/login', async (req, res) => {
   });
 });
 
+const MARKETER_DENY = 'غير مصرح بالدخول إلى لوحة الفريق';
+
+router.post('/marketer/otp/start', async (req, res) => {
+  try {
+    if (!otpStartRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
+    }
+    if (!otpService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        message: 'خدمة التحقق عبر واتساب غير مهيأة حاليًا — حاول لاحقًا',
+      });
+    }
+    const phone = String(req.body.phone || req.body.login || '').trim();
+    if (!phone || !isValidSaudiMobile(phone)) {
+      return res.status(400).json({ success: false, message: 'أدخل رقم جوال سعودي صحيح' });
+    }
+    const marketer = await marketersRepo.findByPhone(phone);
+    if (!marketer || marketer.status !== 'active') {
+      return res.status(401).json({ success: false, message: MARKETER_DENY });
+    }
+    return startOtpChallenge(res, {
+      purpose: 'marketer',
+      phone: marketer.phone,
+      marketerId: marketer.id,
+      userId: marketer.id,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر إرسال رمز التحقق' });
+  }
+});
+
 router.post('/marketer/login', async (req, res) => {
   try {
+    if (otpService.isEnabled()) {
+      return res.status(400).json({
+        success: false,
+        message: 'دخول فريق الهيف عبر رمز واتساب فقط',
+      });
+    }
     if (!loginRate.allowRequest(req)) {
       return res.status(429).json({ success: false, message: LOGIN_RATE_MSG });
     }
@@ -282,6 +325,28 @@ router.post('/marketer/reset-password', async (req, res) => {
     res.json({ success: true, message: 'تم تعيين كلمة المرور الجديدة — يمكنك تسجيل الدخول الآن' });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/otp/autofill', async (req, res) => {
+  try {
+    if (!allowOtpIp(req)) {
+      return res.status(429).json({ success: false, message: otpService.otpErrorMessage('rate_limited') });
+    }
+    const fill = String(req.body.fill || '').trim();
+    const claimed = otpService.claimFill(fill);
+    if (!claimed.ok || (claimed.purpose !== 'admin' && claimed.purpose !== 'marketer')) {
+      return res.status(400).json({ success: false, message: 'انتهت صلاحية رابط التعبئة. انسخ الرمز من واتساب والصقه في المربع' });
+    }
+    res.json({
+      success: true,
+      challengeId: claimed.challengeId,
+      code: claimed.code,
+      phone: claimed.phone,
+      purpose: claimed.purpose,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر تعبئة الرمز' });
   }
 });
 

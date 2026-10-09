@@ -190,4 +190,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('otp-back')?.addEventListener('click', showLoginStep);
+
+  const fill = new URLSearchParams(location.search).get('fill') || '';
+  if (fill) {
+    fetch('/api/auth/otp/autofill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fill }),
+    }).then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok || data.purpose !== 'admin' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
+        lastPhone = data.phone || '';
+        showOtpStep(data.challengeId);
+        otpCodeInput.value = data.code;
+        verifyOtpCode(data.code);
+      })
+      .catch((err) => showError(errorEl, err.message));
+  }
 });

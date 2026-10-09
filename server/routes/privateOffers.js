@@ -330,21 +330,16 @@ router.post('/portal/otp/send', requireDb, async (req, res) => {
     if (!phone || !isValidSaudiMobile(phone)) {
       return res.status(400).json({ success: false, message: 'أدخل رقم جوال سعودي صحيح' });
     }
-    const client = await privateClientsRepo.findActiveClientByPhone(phone);
+    const client = await privateClientsRepo.findPortalClientByPhone(phone);
     if (!client) {
-      return res.status(403).json({
-        success: false,
-        code: 'not_activated',
-        message: 'أول دخول يتم من الرابط الذي يصلك من الهيف. بعد تفعيل واتساب يمكنك الدخول من هنا.',
-      });
+      return res.status(403).json({ success: false, message: GENERIC_DENY });
     }
     const row = await guardRow(client.id);
-    const state = device.deviceState(row, device.readDeviceCookie(req));
-    if (state !== 'same') {
-      const message = state === 'open'
-        ? 'فعّل الدخول أول مرة من الرابط على هذا الجهاز، ثم عد من بوابة المستخدم.'
-        : device.OTHER_MESSAGE;
-      return res.status(403).json({ success: false, code: 'other_device', message });
+    if (!row || row.active === false) {
+      return res.status(403).json({ success: false, message: GENERIC_DENY });
+    }
+    if (row.device_status === 'revoked') {
+      return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
     }
     const sent = await otpCore.sendOtp({
       purpose: 'user_portal',
@@ -370,6 +365,34 @@ router.post('/portal/otp/send', requireDb, async (req, res) => {
   }
 });
 
+router.post('/portal/otp/autofill', requireDb, async (req, res) => {
+  try {
+    if (!otpRate.allowRequest(req)) {
+      return res.status(429).json({ success: false, message: otpCore.errorMessage('rate_limited') });
+    }
+    const fill = String(req.body?.fill || '').trim();
+    if (fill.length < 16) {
+      return res.status(400).json({ success: false, message: 'تعذر تعبئة الرمز. انسخه من واتساب والصقه في المربع' });
+    }
+    const claimed = otpCore.claimAutofill(fill);
+    if (!claimed.ok || claimed.purpose !== 'user_portal') {
+      return res.status(400).json({ success: false, message: 'انتهت صلاحية رابط التعبئة. انسخ الرمز من واتساب والصقه في المربع' });
+    }
+    const client = await privateClientsRepo.findPortalClientByPhone(claimed.phone);
+    if (!client || claimed.meta?.clientAccessId !== client.id) {
+      return res.status(401).json({ success: false, message: GENERIC_DENY });
+    }
+    res.json({
+      success: true,
+      challengeId: claimed.challengeId,
+      code: claimed.code,
+      phone: claimed.phone,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'تعذر تعبئة الرمز' });
+  }
+});
+
 router.post('/portal/otp/verify', requireDb, async (req, res) => {
   try {
     if (!otpRate.allowRequest(req)) {
@@ -389,17 +412,35 @@ router.post('/portal/otp/verify', requireDb, async (req, res) => {
     if (result.purpose !== 'user_portal' || !phonesEqual(result.phone, phone)) {
       return res.status(401).json({ success: false, message: GENERIC_DENY });
     }
-    const client = await privateClientsRepo.findActiveClientByPhone(phone);
+    const client = await privateClientsRepo.findPortalClientByPhone(phone);
     const row = client ? await guardRow(client.id) : null;
     if (!row || result.meta?.clientAccessId !== row.id) {
       return res.status(401).json({ success: false, message: GENERIC_DENY });
     }
-    const state = device.deviceState(row, device.readDeviceCookie(req));
-    if (state !== 'same') {
+    if (row.device_status === 'revoked') {
       return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
     }
-    device.setDeviceCookie(req, res, device.readDeviceCookie(req));
-    await privateClientsRepo.touchClientDevice(row.id);
+    const state = device.deviceState(row, device.readDeviceCookie(req));
+    if (state === 'same') {
+      device.setDeviceCookie(req, res, device.readDeviceCookie(req));
+      await privateClientsRepo.touchClientDevice(row.id);
+    } else {
+      const secret = device.newDeviceSecret();
+      const payload = {
+        tokenHash: device.hashDevice(secret),
+        label: device.deviceLabel(req.headers['user-agent']),
+      };
+      try {
+        if (state === 'other') await privateClientsRepo.rebindClientDevice(row.id, payload);
+        else await privateClientsRepo.bindClientDevice(row.id, payload);
+      } catch (err) {
+        if (err.code === 'DEVICE_BOUND') {
+          return res.status(403).json({ success: false, code: 'other_device', message: device.OTHER_MESSAGE });
+        }
+        throw err;
+      }
+      device.setDeviceCookie(req, res, secret);
+    }
     await privateClientsRepo.recordClientLogin(row.id);
     const fresh = await guardRow(row.id);
     res.json({

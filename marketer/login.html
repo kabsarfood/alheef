@@ -23,74 +23,34 @@
       <p class="login-card__subtitle">مكتب الهيف للخدمات العقارية</p>
     </div>
 
-    <div class="login-tabs" role="tablist" aria-label="خيارات الدخول">
-      <button type="button" class="login-tab active" data-tab="login" role="tab" aria-selected="true">تسجيل الدخول</button>
-      <button type="button" class="login-tab" data-tab="setup" role="tab" aria-selected="false">إنشاء كلمة مرور</button>
-      <button type="button" class="login-tab" data-tab="forgot" role="tab" aria-selected="false">نسيت كلمة المرور</button>
-    </div>
-
     <form id="login-form" class="login-form">
       <div id="login-message" class="login-message" role="status" aria-live="polite"></div>
+      <p class="login-hint">الدخول للمسوق المعتمد من الأدمن عبر رمز واتساب.</p>
       <div class="form-group">
-        <label for="login-identifier">رقم الجوال أو البريد الإلكتروني</label>
-        <input type="text" name="login" id="login-identifier" placeholder="05xxxxxxxx أو email@example.com" dir="ltr" required autocomplete="username" inputmode="email">
-      </div>
-      <div class="form-group">
-        <label for="login-password">كلمة المرور</label>
-        <input type="password" name="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+        <label for="login-phone">رقم الجوال</label>
+        <input type="tel" name="phone" id="login-phone" placeholder="05xxxxxxxx" dir="ltr" required inputmode="tel" autocomplete="tel">
       </div>
       <button type="submit" class="btn btn-primary login-form__submit">دخول</button>
     </form>
 
     <form id="otp-form" class="login-form" hidden>
       <div id="otp-message" class="login-message" role="status" aria-live="polite"></div>
-      <p class="login-otp-hint">أدخل رمز التحقق المكوّن من 6 أرقام الذي وصل إلى واتساب</p>
+      <p class="login-otp-hint">سيُكتب رمز واتساب في المربع إن سمح الجوال، أو الصقه هنا.</p>
       <div class="form-group">
-        <label for="otp-code">رمز التحقق</label>
+        <label for="otp-code">رمز التوثيق</label>
         <input type="text" id="otp-code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" dir="ltr" required>
       </div>
-      <button type="submit" class="btn btn-primary login-form__submit" id="otp-btn">تأكيد الرمز</button>
+      <button type="submit" class="btn btn-primary login-form__submit" id="otp-btn">دخول</button>
       <div class="login-otp-actions">
         <button type="button" class="btn btn-outline btn-sm" id="otp-resend">إعادة الإرسال</button>
-        <button type="button" class="btn btn-outline btn-sm" id="otp-back">رجوع</button>
+        <button type="button" class="btn btn-outline btn-sm" id="otp-back">تغيير الرقم</button>
       </div>
-    </form>
-
-    <form id="setup-form" class="login-form" hidden>
-      <div id="setup-message" class="login-message" role="status" aria-live="polite"></div>
-      <p class="login-hint">للمسوقين المعتمدين الذين لم يُفعّل حسابهم بعد</p>
-      <div class="form-group">
-        <label for="setup-phone">رقم الجوال</label>
-        <input type="tel" name="phone" id="setup-phone" placeholder="05xxxxxxxx" dir="ltr" required inputmode="tel" autocomplete="tel">
-      </div>
-      <div class="form-group">
-        <label for="setup-national-id">رقم الهوية / البطاقة</label>
-        <input type="text" name="nationalId" id="setup-national-id" required autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label for="setup-password">كلمة المرور الجديدة</label>
-        <input type="password" name="password" id="setup-password" minlength="6" required autocomplete="new-password">
-      </div>
-      <div class="form-group">
-        <label for="setup-confirm">تأكيد كلمة المرور</label>
-        <input type="password" name="confirmPassword" id="setup-confirm" minlength="6" required autocomplete="new-password">
-      </div>
-      <button type="submit" class="btn btn-primary login-form__submit">حفظ والدخول</button>
-    </form>
-
-    <form id="forgot-form" class="login-form" hidden>
-      <div id="forgot-message" class="login-message" role="status" aria-live="polite"></div>
-      <p class="login-hint">أدخل بريدك الإلكتروني المسجّل — سيصلك رابط إعادة التعيين إذا كان حسابك معتمداً</p>
-      <div class="form-group">
-        <label for="forgot-email">البريد الإلكتروني</label>
-        <input type="email" name="email" id="forgot-email" placeholder="example@email.com" dir="ltr" required autocomplete="email" inputmode="email">
-      </div>
-      <button type="submit" class="btn btn-primary login-form__submit">إرسال رابط الاستعادة</button>
     </form>
 
     <p class="login-footer"><a href="/" class="login-card__back">← العودة للموقع</a></p>
   </div>
   <script src="/marketer/js/auth.js"></script>
-  <script src="/marketer/js/login.js?v=7"></script>
+  <script src="/js/logout-alerts.js?v=1" defer></script>
+  <script src="/marketer/js/login.js?v=8"></script>
 </body>
 </html>

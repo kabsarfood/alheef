@@ -9,6 +9,25 @@ const privateClientsRepo = require('../repositories/privateClientsRepo');
 const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
 const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
 const { PRIVATE_PROPERTY_TYPES } = require('./mappers');
+const { typeKey } = require('../utils/propertyTypes');
+
+const ALERT_TYPE_KEYS = new Set(['all', 'land', 'villa', 'apartment', 'building', 'farm']);
+
+function alertTypeKey(value) {
+  const raw = String(value || '').trim();
+  if (/مزرع|farm/i.test(raw)) return 'farm';
+  const key = typeKey(raw);
+  if (key === 'land' || key === 'villa' || key === 'apartment' || key === 'building') return key;
+  return '';
+}
+
+function subscriberWantsListing(sub, key) {
+  const types = Array.isArray(sub?.preferences?.alertTypes)
+    ? sub.preferences.alertTypes.filter((item) => ALERT_TYPE_KEYS.has(item))
+    : [];
+  if (!types.length || types.includes('all')) return true;
+  return Boolean(key) && types.includes(key);
+}
 
 let vapidReady = false;
 
@@ -139,8 +158,10 @@ async function notifyMarketerPropertyReview({ marketerId, propertyId, action, ti
 }
 
 async function notifyClientsNewOffer(property) {
-  const subs = await pushSubscriptionsRepo.listOfferSubscribers();
-  if (!subs.length) return;
+  const subs = await pushSubscriptionsRepo.listListingAlertSubscribers();
+  const key = alertTypeKey(property && (property.propertyType || property.type));
+  const matched = subs.filter((sub) => subscriberWantsListing(sub, key));
+  if (!matched.length) return;
 
   const payload = {
     title: 'إعلان عقاري جديد',
@@ -153,7 +174,7 @@ async function notifyClientsNewOffer(property) {
     badge: '/assets/icon-192.png?v=5',
   };
 
-  await sendToMany(subs, payload);
+  await sendToMany(matched, payload);
 }
 
 async function notifyClientsPrivateOffer(offer) {

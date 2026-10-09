@@ -75,6 +75,14 @@ async function findActiveClientByPhone(phone) {
   return (data || []).map(rowToPrivateClient).find((row) => phonesEqual(row.phone, phone) && row.deviceStatus === 'active') || null;
 }
 
+/** عميل وافق عليه الأدمن وما زال نشطًا. الجهاز غير الملغى يكفي لباب المستخدم. */
+async function findPortalClientByPhone(phone) {
+  if (!isEnabled()) return null;
+  const { data, error } = await getAdmin().from(CLIENTS_TABLE).select('*').eq('active', true);
+  if (error) throw new Error(error.message);
+  return (data || []).map(rowToPrivateClient).find((row) => phonesEqual(row.phone, phone) && row.deviceStatus !== 'revoked') || null;
+}
+
 async function getClientById(id) {
   if (!isEnabled() || !id) return null;
   const { data } = await getAdmin().from(CLIENTS_TABLE).select('*').eq('id', id).maybeSingle();
@@ -464,6 +472,7 @@ module.exports = {
   listClients,
   getClientById,
   findActiveClientByPhone,
+  findPortalClientByPhone,
   getClientBySlug,
   getClientBySlugAny,
   getClientCodeHash,

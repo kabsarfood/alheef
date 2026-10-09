@@ -246,8 +246,13 @@ function bindShell() {
     if (focusBtn) focusProperty(focusBtn.dataset.focus);
     const privateShare = event.target.closest('[data-private-share]');
     if (privateShare) sharePrivateListing(privateShare);
-    if (event.target.closest('#ob-logout') && typeof window.ALHEEF_PRIVATE_AUTH_FAIL === 'function') {
-      window.ALHEEF_PRIVATE_AUTH_FAIL();
+    if (event.target.closest('#ob-logout')) {
+      (async () => {
+        if (window.AlheefLogoutAlerts) {
+          try { await window.AlheefLogoutAlerts.offer(); } catch { /* يخرج حتى لو تعذر الإشعار */ }
+        }
+        if (typeof window.ALHEEF_PRIVATE_AUTH_FAIL === 'function') window.ALHEEF_PRIVATE_AUTH_FAIL();
+      })();
       return;
     }
     if (event.target.closest('#ob-news-seen')) {

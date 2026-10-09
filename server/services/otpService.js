@@ -26,6 +26,10 @@ async function resend(challengeId) {
   return { ok: true, challengeId: result.challengeId };
 }
 
+function claimFill(token) {
+  return core.claimAutofill(token);
+}
+
 function verify(challengeId, code) {
   const result = core.verifyOtp(challengeId, code);
   if (!result.ok) return result;
@@ -55,6 +59,7 @@ module.exports = {
   sendLoginOtp,
   resend,
   verify,
+  claimFill,
   otpErrorMessage,
   _setSender,
   _resetForTests,

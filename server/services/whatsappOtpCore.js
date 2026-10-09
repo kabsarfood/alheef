@@ -92,6 +92,30 @@ function privateFillUrl(slug, token) {
   return `${page}?fill=${encodeURIComponent(token)}`;
 }
 
+function siteOrigin() {
+  try {
+    return new URL((process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.alheef.website').trim()).origin;
+  } catch {
+    return 'https://www.alheef.website';
+  }
+}
+
+function keepsFillCode(purpose, meta) {
+  if (purpose === 'private_offer') return Boolean(meta && meta.slug);
+  return purpose === 'user_portal' || purpose === 'marketer' || purpose === 'admin';
+}
+
+function loginFillUrl(purpose, token, meta) {
+  if (!token) return '';
+  if (purpose === 'private_offer') return privateFillUrl(meta && meta.slug, token);
+  const query = `fill=${encodeURIComponent(token)}`;
+  const origin = siteOrigin();
+  if (purpose === 'user_portal') return `${origin}/user/login.html?${query}`;
+  if (purpose === 'marketer') return `${origin}/marketer/login.html?${query}`;
+  if (purpose === 'admin') return `${origin}/dashboard/login.html?${query}`;
+  return '';
+}
+
 function buildMessage(purpose, code, fillUrl) {
   const autofill = otpAutofillLine(code);
   if (purpose === 'ejar') {
@@ -106,18 +130,26 @@ function buildMessage(purpose, code, fillUrl) {
       autofill,
     ].filter(Boolean).join('\n');
   }
-  if (purpose === 'private_offer') {
+  if (purpose === 'private_offer' || purpose === 'user_portal' || purpose === 'marketer' || purpose === 'admin') {
+    const title = purpose === 'marketer'
+      ? 'رمز التحقق لدخول فريق الهيف:'
+      : purpose === 'admin'
+        ? 'رمز التحقق للدخول إلى لوحة التحكم:'
+        : purpose === 'private_offer'
+          ? 'رمز التحقق لدخول العروض الخاصة:'
+          : 'رمز التحقق لدخول العروض العقارية:';
     const lines = [
       'الهيف العقارية',
       '',
-      'رمز التحقق لدخول العروض الخاصة:',
+      title,
       String(code),
       '',
-      'انسخ هذا الرقم والصقه في مربع التحقق.',
     ];
     if (fillUrl) {
-      lines.push('اضغط الرابط لإتمام الدخول من أي متصفح:');
+      lines.push('اضغط الرابط ليُكتب الرمز في مربع التوثيق:');
       lines.push(String(fillUrl));
+    } else {
+      lines.push('انسخ هذا الرقم والصقه في مربع التحقق.');
     }
     lines.push('', 'صالح لمدة 5 دقائق.', 'لا تشارك هذا الرمز مع أي شخص.', autofill);
     return lines.filter(Boolean).join('\n');
@@ -206,14 +238,14 @@ async function sendOtp({ purpose, phone, meta = {}, ip = '', userAgent = '' }) {
   const id = randomId();
   const code = generateCode();
   const now = Date.now();
-  const fillToken = purposeKey === 'private_offer' && meta.slug ? randomId() : '';
+  const fillToken = keepsFillCode(purposeKey, meta) ? randomId() : '';
   const row = {
     id,
     purpose: purposeKey,
     phone: normalized,
     meta: { ...meta },
     codeHash: hashCode(id, code),
-    code: purposeKey === 'private_offer' ? code : '',
+    code: keepsFillCode(purposeKey, meta) ? code : '',
     fillHash: fillToken ? hashFillToken(fillToken) : '',
     createdAt: now,
     expiresAt: now + TTL_MS,
@@ -233,7 +265,7 @@ async function sendOtp({ purpose, phone, meta = {}, ip = '', userAgent = '' }) {
     await sender(normalized, buildMessage(
       purposeKey,
       code,
-      fillToken ? privateFillUrl(meta.slug, fillToken) : '',
+      loginFillUrl(purposeKey, fillToken, meta),
     ));
   } catch (err) {
     challenges.delete(id);
@@ -262,9 +294,9 @@ async function resendOtp(challengeId) {
   if (!allowSend(row.phone, row.purpose, row.ip)) return { ok: false, reason: 'rate_limited' };
 
   const code = generateCode();
-  const fillToken = row.purpose === 'private_offer' && row.meta?.slug ? randomId() : '';
+  const fillToken = keepsFillCode(row.purpose, row.meta) ? randomId() : '';
   row.codeHash = hashCode(row.id, code);
-  row.code = row.purpose === 'private_offer' ? code : '';
+  row.code = keepsFillCode(row.purpose, row.meta) ? code : '';
   row.fillHash = fillToken ? hashFillToken(fillToken) : '';
   row.attempts = 0;
   row.resends += 1;
@@ -275,7 +307,7 @@ async function resendOtp(challengeId) {
     await sender(row.phone, buildMessage(
       row.purpose,
       code,
-      fillToken ? privateFillUrl(row.meta.slug, fillToken) : '',
+      loginFillUrl(row.purpose, fillToken, row.meta),
     ));
   } catch {
     return { ok: false, reason: 'send_failed' };
@@ -355,7 +387,7 @@ function claimAutofill(token) {
   prune();
   const actual = hashFillToken(raw);
   for (const row of challenges.values()) {
-    if (!row.fillHash || row.status !== 'pending' || row.purpose !== 'private_offer') continue;
+    if (!row.fillHash || row.status !== 'pending') continue;
     if (row.fillHash.length !== actual.length) continue;
     const match = crypto.timingSafeEqual(Buffer.from(row.fillHash), Buffer.from(actual));
     if (!match) continue;
@@ -367,6 +399,7 @@ function claimAutofill(token) {
       ok: true,
       challengeId: row.id,
       code: row.code,
+      phone: row.phone,
       purpose: row.purpose,
       meta: { ...(row.meta || {}) },
     };

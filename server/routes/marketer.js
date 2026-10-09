@@ -199,6 +199,7 @@ router.post('/properties', requireMarketer, upload.array('images', 20), async (r
       title: full.title,
       city: full.city,
       district: full.district,
+      propertyType: full.propertyType,
     }).catch((err) => console.error('[push] new offer:', err.message));
 
     res.json({
@@ -242,6 +243,7 @@ router.put('/properties/:id', requireMarketer, upload.array('images', 20), async
         title: full.title,
         city: full.city,
         district: full.district,
+        propertyType: full.propertyType,
       }).catch((err) => console.error('[push] new offer:', err.message));
     }
 

@@ -19,10 +19,28 @@ function isPrivateOffersPagePath(pathname) {
   return PRIVATE_PAGE_RE.test(String(pathname || ''));
 }
 
+function siteBase(baseUrl) {
+  return (baseUrl || process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.alheef.website').replace(/\/$/, '');
+}
+
 function buildPrivateShareUrl(slug, baseUrl) {
-  const base = (baseUrl || process.env.SITE_URL || 'https://www.alheef.website').replace(/\/$/, '');
   const token = String(slug || '').trim();
-  return `${base}${PRIVATE_PATH_PREFIX}/${token}`;
+  return `${siteBase(baseUrl)}${PRIVATE_PATH_PREFIX}/${token}`;
+}
+
+function buildClientPortalUrl(phone, baseUrl) {
+  const local = String(phone || '').trim();
+  const url = new URL(`${siteBase(baseUrl)}/user/login.html`);
+  if (local) url.searchParams.set('phone', local);
+  return url.toString();
+}
+
+function clientWelcomeMessage(portalUrl) {
+  return [
+    'أهلاً بكم في الهيف العقارية — أبو فهد الشمالي.',
+    'بإمكانكم الدخول إلى العروض العقارية من خلال الرابط:',
+    String(portalUrl || '').trim(),
+  ].filter(Boolean).join('\n');
 }
 
 module.exports = {
@@ -32,4 +50,6 @@ module.exports = {
   extractSlugFromPath,
   isPrivateOffersPagePath,
   buildPrivateShareUrl,
+  buildClientPortalUrl,
+  clientWelcomeMessage,
 };

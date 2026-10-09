@@ -36,7 +36,7 @@ async function main() {
   });
   assert(priv.ok, priv.reason);
   assert(last.includes('العروض الخاصة'));
-  assert(last.includes('انسخ هذا الرقم'));
+  assert(last.includes('ليُكتب الرمز في مربع التوثيق'));
   const fillMatch = last.match(/[?&]fill=([A-Za-z0-9_-]+)/);
   assert(fillMatch, 'رابط التعبئة غير موجود');
   const claimed = core.claimAutofill(fillMatch[1]);
