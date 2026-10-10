@@ -931,13 +931,22 @@
     let paused = false;
 
     function place(animate) {
+      const mobile = media.matches && !motion.matches;
+      if (!mobile) {
+        track.querySelectorAll('.service-card').forEach((card) => {
+          card.style.width = '';
+        });
+        track.style.transition = 'none';
+        track.style.transform = '';
+        return;
+      }
       const cardWidth = grid.clientWidth;
       const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
       track.querySelectorAll('.service-card').forEach((card) => {
         card.style.width = cardWidth ? `${cardWidth}px` : '';
       });
       track.style.transition = animate ? 'transform .45s ease' : 'none';
-      track.style.transform = media.matches && !motion.matches ? `translateX(${index * (cardWidth + gap)}px)` : '';
+      track.style.transform = `translateX(${index * (cardWidth + gap)}px)`;
     }
 
     function schedule() {

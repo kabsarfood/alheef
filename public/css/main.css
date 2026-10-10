@@ -1599,6 +1599,43 @@ button.offer-card__image {
   background: transparent;
 }
 
+@media (min-width: 769px) {
+  .footer__grid {
+    grid-template-columns: 1.15fr 1.05fr 0.8fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .footer__links {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .footer__links a,
+  .footer-subscribe__toggle {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    min-height: 48px;
+    padding: 0.45rem 0.7rem;
+    border-color: transparent;
+    background: transparent;
+    border-radius: 12px;
+    text-align: right;
+  }
+
+  .footer__links a:hover,
+  .footer-subscribe__toggle:hover,
+  .footer-subscribe__toggle[aria-expanded="true"] {
+    background: rgba(197, 164, 109, 0.12);
+    border-color: transparent;
+  }
+
+  #subscribe-form {
+    margin-top: 0.75rem;
+  }
+}
+
 .footer__contact-item {
   display: flex;
   align-items: center;
@@ -2193,7 +2230,8 @@ body.modal-open {
   }
 }
 
-/* الغلاف والأزرار بطاقة واحدة بعرض محتوى الصفحة */
+/* الغلاف على الجوال: صورة وأزرار في بطاقة واحدة */
+@media (max-width: 768px) {
 .home-page .hero {
   min-height: 0;
   max-height: none;
@@ -2275,6 +2313,7 @@ body.modal-open {
   opacity: 1;
   width: 100%;
 }
+}
 
 .home-page .hero__actions .btn {
   min-height: 44px;
@@ -2348,6 +2387,12 @@ body.modal-open {
 .home-page .services__grid,
 .home-page .testimonials__grid {
   gap: 1.25rem;
+}
+
+@media (min-width: 769px) {
+  .home-page .services__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .home-page .offer-card,
