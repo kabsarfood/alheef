@@ -130,36 +130,11 @@ function buildMessage(purpose, code, fillUrl) {
       autofill,
     ].filter(Boolean).join('\n');
   }
-  if (purpose === 'private_offer' || purpose === 'user_portal' || purpose === 'marketer' || purpose === 'admin') {
-    const title = purpose === 'marketer'
-      ? 'رمز التحقق لدخول فريق الهيف:'
-      : purpose === 'admin'
-        ? 'رمز التحقق للدخول إلى لوحة التحكم:'
-        : purpose === 'private_offer'
-          ? 'رمز التحقق لدخول العروض الخاصة:'
-          : 'رمز التحقق لدخول العروض العقارية:';
-    return [
-      'الهيف العقارية',
-      '',
-      title,
-      String(code),
-      '',
-      'انسخ هذا الرقم والصقه في مربع التحقق.',
-      '',
-      'صالح لمدة 5 دقائق.',
-      'لا تشارك هذا الرمز مع أي شخص.',
-    ].join('\n');
-  }
-  return [
-    'الهيف العقارية',
-    '',
-    'رمز التحقق للدخول إلى لوحة التحكم:',
-    String(code),
-    '',
-    'صالح لمدة 5 دقائق.',
-    'لا تشارك هذا الرمز مع أي شخص.',
-    autofill,
-  ].filter(Boolean).join('\n');
+  return loginCodeMessage(code);
+}
+
+function loginCodeMessage(code) {
+  return `الهيف العقارية - رمز الدخول\n\n\n*${String(code)}*`;
 }
 
 function resendCooldownMs(purpose) {

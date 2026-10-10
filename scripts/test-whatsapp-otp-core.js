@@ -37,8 +37,8 @@ async function main() {
   });
   assert(priv.ok, priv.reason);
   assert.strictEqual(priv.code, codeFrom(last));
-  assert(last.includes('العروض الخاصة'));
-  assert(last.includes('انسخ هذا الرقم'));
+  assert(last.startsWith('الهيف العقارية - رمز الدخول'));
+  assert(last.includes(`*${codeFrom(last)}*`));
   assert(!/https?:\/\//.test(last), 'رسالة التوثيق فيها رابط');
   assert.strictEqual(core.claimAutofill('not-the-token-value').ok, false);
   const privOk = core.verifyOtp(priv.challengeId, codeFrom(last));
