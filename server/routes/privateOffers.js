@@ -104,7 +104,6 @@ router.post('/otp/send', requireDb, async (req, res) => {
     res.json({
       success: true,
       challengeId: sent.challengeId,
-      code: sent.code,
       cooldownSec: sent.cooldownSec,
       expiresInSec: sent.expiresInSec,
       message: 'تم إرسال رمز التحقق إلى واتساب',
@@ -135,7 +134,6 @@ router.post('/otp/resend', requireDb, async (req, res) => {
     res.json({
       success: true,
       challengeId: sent.challengeId,
-      code: sent.code,
       cooldownSec: sent.cooldownSec,
       expiresInSec: sent.expiresInSec,
       message: 'تم إعادة إرسال رمز التحقق إلى واتساب',
@@ -176,7 +174,6 @@ router.post('/otp/autofill', requireDb, async (req, res) => {
     res.json({
       success: true,
       challengeId: claimed.challengeId,
-      code: claimed.code,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'تعذر تعبئة الرمز' });
@@ -359,7 +356,6 @@ router.post('/portal/otp/send', requireDb, async (req, res) => {
     res.json({
       success: true,
       challengeId: sent.challengeId,
-      code: sent.code,
       cooldownSec: sent.cooldownSec,
       expiresInSec: sent.expiresInSec,
       message: 'تم إرسال رمز التحقق إلى واتساب',
@@ -389,7 +385,6 @@ router.post('/portal/otp/autofill', requireDb, async (req, res) => {
     res.json({
       success: true,
       challengeId: claimed.challengeId,
-      code: claimed.code,
       phone: claimed.phone,
     });
   } catch (err) {

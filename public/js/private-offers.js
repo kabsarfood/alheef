@@ -329,10 +329,9 @@
       const sent = await sendOtp();
       showGateOtpStep();
       if (gateError) {
-        gateError.textContent = 'وصل رمز واتساب. اضغط موافق لينزل في المربع.';
+        gateError.textContent = 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.';
         gateError.hidden = false;
       }
-      await offerGateCode(sent && sent.code);
     } catch (err) {
       if (err.code === 'other_device') {
         showBlocked(err.message);
@@ -1102,7 +1101,6 @@
         if (!gateReadyToSend) return;
         const sent = await sendOtp();
         showGateOtpStep();
-        await offerGateCode(sent && sent.code);
       } else {
         const code = otpDigits(gateOtpInput && gateOtpInput.value);
         if (gateOtpInput) gateOtpInput.value = code;
@@ -1161,9 +1159,8 @@
       gateError.hidden = true;
       try {
         const sent = await resendOtp();
-        gateError.textContent = 'وصل رمز واتساب. اضغط موافق لينزل في المربع.';
+        gateError.textContent = 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.';
         gateError.hidden = false;
-        await offerGateCode(sent && sent.code);
       } catch (err) {
         gateError.textContent = err.message;
         gateError.hidden = false;
@@ -1199,7 +1196,10 @@
         gateReadyToSend = true;
         showGateOtpStep();
         history.replaceState(null, '', location.pathname);
-        await offerGateCode(data.code);
+        if (gateError) {
+          gateError.textContent = 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.';
+          gateError.hidden = false;
+        }
         return;
       } catch (err) {
         history.replaceState(null, '', location.pathname);

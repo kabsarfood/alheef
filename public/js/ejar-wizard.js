@@ -1287,7 +1287,6 @@
         otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
         otpUi.error = '';
         attachVerify();
-        offerEjarCode(result.data && result.data.code);
         return;
       }
       otpUi.error = (result.data && result.data.message) || 'تعذر إرسال رمز التحقق عبر واتساب';
@@ -1315,7 +1314,6 @@
         otpUi.cooldownUntil = Date.now() + ((result.data.cooldownSec || 60) * 1000);
         otpUi.error = '';
         attachVerify();
-        offerEjarCode(result.data && result.data.code);
         return;
       }
       if (result.data && result.data.retryAfter) {

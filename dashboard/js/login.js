@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error(data.message || 'تعذر إرسال رمز التحقق');
       }
       showOtpStep(data.challengeId);
-      offerCode(data.code);
+      showError(otpError, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.');
       btn.disabled = false;
       btn.textContent = 'إرسال رمز التحقق عبر واتساب';
     } catch (err) {
@@ -186,8 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (data.challengeId) challengeId = data.challengeId;
       otpCodeInput.value = '';
       startOtpAutofill();
-      offerCode(data.code);
-      showError(otpError, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
+      showError(otpError, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.');
       otpCodeInput.focus();
     } catch (err) {
       showError(otpError, err.message);
@@ -204,10 +203,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       body: JSON.stringify({ fill }),
     }).then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
-        if (!ok || data.purpose !== 'admin' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
+        if (!ok || data.purpose !== 'admin' || !data.challengeId) throw new Error(data.message || 'اكتب الرمز الذي وصلك على واتساب');
         lastPhone = data.phone || '';
         showOtpStep(data.challengeId);
-        offerCode(data.code);
+        showError(otpError, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.');
       })
       .catch((err) => showError(errorEl, err.message));
   }

@@ -104,8 +104,7 @@
       });
       const data = await res.json();
       if (!res.ok || !data.challengeId) throw new Error(data.message || 'تعذر إرسال الرمز');
-      showOtpStep(data.challengeId, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
-      offerCode(data.code);
+      showOtpStep(data.challengeId, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.');
     } catch (err) {
       showMsg(msg, err.message);
     } finally {
@@ -130,9 +129,8 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'تعذر إعادة الإرسال');
       if (data.challengeId) challengeId = data.challengeId;
-      showMsg(msg, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.', 'success');
+      showMsg(msg, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.', 'success');
       startOtpAutofill();
-      offerCode(data.code);
     } catch (err) {
       showMsg(msg, err.message);
     }
@@ -148,9 +146,8 @@
       body: JSON.stringify({ fill }),
     }).then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
-        if (!ok || data.purpose !== 'marketer' || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
-        showOtpStep(data.challengeId, 'وصل رمز واتساب. اضغط موافق لينزل في المربع.');
-        offerCode(data.code);
+        if (!ok || data.purpose !== 'marketer' || !data.challengeId) throw new Error(data.message || 'اكتب الرمز الذي وصلك على واتساب');
+        showOtpStep(data.challengeId, 'اكتب الرمز الذي وصلك على واتساب. لا يظهر الرمز في الموقع.');
       })
       .catch((err) => showMsg(document.getElementById('login-message'), err.message));
   }

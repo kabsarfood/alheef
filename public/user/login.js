@@ -100,8 +100,7 @@
     otpInput.value = '';
     otpInput.focus();
     startOtpAutofill();
-    showError('وصل رمز واتساب. اضغط موافق لينزل في المربع.');
-    offerCode(data.code);
+    showError('وصل الرمز على واتساب فقط. اكتبه هنا، ولا يظهر في الموقع.');
   }
 
   async function verifyCode() {
@@ -137,13 +136,15 @@
       body: JSON.stringify({ fill: token }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.code) throw new Error(data.message || 'تعذر تعبئة الرمز');
+    if (!res.ok || !data.challengeId) throw new Error(data.message || 'اكتب الرمز الذي وصلك على واتساب');
     phone = localPhone(data.phone);
     phoneInput.value = phone;
     challengeId = data.challengeId;
     phoneStep.hidden = true;
     otpStep.hidden = false;
-    await offerCode(data.code);
+    otpInput.value = '';
+    otpInput.focus();
+    showError('اكتب الرمز الذي وصلك على واتساب.');
   }
 
   form.addEventListener('submit', async (event) => {

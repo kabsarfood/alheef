@@ -83,6 +83,7 @@ async function main() {
     // أدمن + OTP صحيح
     const start = await json(base, 'POST', '/api/auth/otp/start', { phone: adminPhone });
     assert(start.status === 200 && start.data.challengeId, `فشل بدء OTP للأدمن: ${JSON.stringify(start.data)}`);
+    assert(!start.data.code, 'استجابة الدخول لا تعيد رمز واتساب إلى المتصفح');
     assert(/^\d{6}$/.test(lastCode), 'لم يُلتقط رمز OTP من المرسل الوهمي');
     const ok = await json(base, 'POST', '/api/auth/otp/verify', {
       challengeId: start.data.challengeId,
