@@ -29,9 +29,26 @@
   pointer-events: none;
 }
 
+.pwa-app-btn--notify {
+  border: 1px solid #c5a46d !important;
+  color: #123524;
+  background: #fffdf8;
+  animation: pwa-gold-edge 1.6s ease-in-out infinite;
+}
+
 .pwa-app-btn--notify .pwa-app-btn__badge {
   display: block;
+  background: #b11212;
   animation: pwa-badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pwa-gold-edge {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(197, 164, 109, 0.75), 0 0 10px rgba(197, 164, 109, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(197, 164, 109, 0), 0 0 18px rgba(197, 164, 109, 0.95);
+  }
 }
 
 @keyframes pwa-badge-pulse {
@@ -216,6 +233,10 @@ body.pwa-update-visible { padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pwa-update-card__apply { animation: none; box-shadow: 0 8px 22px rgba(197, 164, 109, .35); }
+  .pwa-app-btn--notify {
+    animation: none;
+    box-shadow: 0 0 0 2px #c5a46d, 0 0 12px rgba(197, 164, 109, 0.75);
+  }
 }
 
 .topbar__actions .pwa-app-btn--topbar {

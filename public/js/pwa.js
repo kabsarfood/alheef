@@ -304,7 +304,8 @@
       const res = await fetch('/api/pwa-meta', { cache: 'no-store' });
       if (!res.ok) return null;
       const data = await res.json();
-      return (data.build || '').trim() || null;
+      if (data.published !== true) return '';
+      return String(data.build || '').trim();
     } catch {
       return null;
     }
@@ -320,8 +321,8 @@
 
   function markUpdateAvailable() {
     hasPendingUpdate = true;
+    dismissUpdateBanner();
     refreshAppButtonState().catch(() => {});
-    showUpdateBanner();
   }
 
   function dismissUpdateBanner() {
@@ -357,12 +358,21 @@
 
   async function checkBuildUpdate() {
     const remote = await fetchRemoteBuild();
-    if (!remote) return;
+    if (remote == null) return;
+    if (!remote) {
+      remoteBuildDiffers = false;
+      hasPendingUpdate = false;
+      dismissUpdateBanner();
+      refreshAppButtonState().catch(() => {});
+      return;
+    }
 
     const stored = getStoredBuild();
     if (!stored) {
       storeBuild(remote);
       remoteBuildDiffers = false;
+      dismissUpdateBanner();
+      refreshAppButtonState().catch(() => {});
       return;
     }
 
@@ -374,12 +384,10 @@
       return;
     }
 
-    if (navigator.serviceWorker?.controller) {
-      markUpdateAvailable();
-      try {
-        await swRegistration?.update();
-      } catch { /* ignore */ }
-    }
+    markUpdateAvailable();
+    try {
+      await swRegistration?.update();
+    } catch { /* ignore */ }
   }
 
   async function confirmBuildSynced() {
@@ -414,10 +422,10 @@
 
     syncPendingUpdateState();
     const installed = await isAppInstalled();
-    buttonMode = installed ? 'update' : 'download';
+    buttonMode = hasPendingUpdate ? 'update' : (installed ? 'update' : 'download');
 
-    const showDownload = !installed && canShowInstallOption();
-    const visible = installed ? hasPendingUpdate : showDownload;
+    const showDownload = !hasPendingUpdate && !installed && canShowInstallOption();
+    const visible = hasPendingUpdate || showDownload;
 
     document.querySelectorAll('.pwa-app-btn').forEach((btn) => {
       btn.hidden = !visible;

@@ -92,7 +92,7 @@ const ROOT = __dirname;
 const publicDir = path.join(ROOT, 'public');
 const dashboardDir = path.join(ROOT, 'dashboard');
 const marketerDir = path.join(ROOT, 'marketer');
-const { getAppBuild } = require('./server/utils/appBuild');
+const { getAppBuild, isUpdatePublished } = require('./server/utils/appBuild');
 const { PRIVATE_PAGE_RE } = require('./server/utils/privateOffersPath');
 
 console.log('STEP 5 — التحقق من أسرار الدخول');
@@ -157,7 +157,11 @@ app.use(chatgptOAuthRoutes);
 /** PWA — معرّف البناء و Service Worker ديناميكي (يتغيّر مع كل نشر) */
 app.get('/api/pwa-meta', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ build: getAppBuild(), name: 'مكتب الهيف للخدمات العقارية' });
+  res.json({
+    build: getAppBuild(),
+    published: isUpdatePublished(),
+    name: 'مكتب الهيف للخدمات العقارية',
+  });
 });
 
 app.get('/sw.js', (_req, res) => {

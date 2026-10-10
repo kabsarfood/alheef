@@ -1,44 +1,28 @@
 /**
- * معرّف بناء التطبيق. يتغيّر فقط مع نشر تطوير للموقع،
- * ولا يتغيّر عند جلب إعلان أو إضافته أو إعادة تشغيل العملية.
+ * معرّف تحديث التطبيق.
+ * لا يتغيّر مع إعادة التشغيل ولا مع نشر الملفات.
+ * يتغيّر فقط عندما يشغّل الأدمن: node scripts/publish-app-update.js
  */
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..');
-let cachedBuild = null;
+const RELEASE_FILE = path.join(__dirname, '..', 'app-release.json');
 
-function readGitSha() {
+function readPublishedRelease() {
   try {
-    const head = fs.readFileSync(path.join(ROOT, '.git', 'HEAD'), 'utf8').trim();
-    const ref = head.startsWith('ref:') ? head.slice(5).trim() : '';
-    const sha = ref
-      ? fs.readFileSync(path.join(ROOT, '.git', ref), 'utf8').trim()
-      : head;
-    return /^[0-9a-f]{7,40}$/i.test(sha) ? sha.slice(0, 12) : '';
+    const data = JSON.parse(fs.readFileSync(RELEASE_FILE, 'utf8'));
+    return String(data.id || '').trim();
   } catch {
     return '';
   }
 }
 
 function getAppBuild() {
-  if (cachedBuild) return cachedBuild;
-
-  const sha = (process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || '').trim();
-  if (/^[0-9a-f]{7,40}$/i.test(sha)) {
-    cachedBuild = sha.slice(0, 12);
-    return cachedBuild;
-  }
-
-  const fromGit = readGitSha();
-  if (fromGit) {
-    cachedBuild = fromGit;
-    return cachedBuild;
-  }
-
-  const custom = (process.env.APP_BUILD_VERSION || '').trim();
-  cachedBuild = custom ? custom.slice(0, 24) : 'alheef-app';
-  return cachedBuild;
+  return readPublishedRelease() || 'alheef-base';
 }
 
-module.exports = { getAppBuild };
+function isUpdatePublished() {
+  return Boolean(readPublishedRelease());
+}
+
+module.exports = { getAppBuild, isUpdatePublished };

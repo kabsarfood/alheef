@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "update:publish": "node scripts/publish-app-update.js",
     "dev": "node --use-system-ca server.js",
     "dev:8080": "node --use-system-ca -e \"process.env.PORT='8080'; require('./server.js')\"",
     "pwa:icons": "node scripts/generate-pwa-icons.js",

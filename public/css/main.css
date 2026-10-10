@@ -1482,57 +1482,18 @@ button.offer-card__image {
   letter-spacing: 0.04em;
 }
 
+.footer__links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
 .footer__links li {
-  margin-bottom: 0.65rem;
+  margin: 0;
+  min-width: 0;
 }
 
 .footer__link-icon {
-  display: none;
-}
-
-.footer__links a {
-  font-size: var(--fs-detail);
-  color: var(--text-secondary);
-  font-weight: var(--fw-body);
-}
-
-.footer__links a:hover {
-  color: var(--gold);
-}
-
-.footer__links-pair {
-  display: grid;
-  grid-template-columns: minmax(6.75rem, 0.85fr) minmax(0, 1.25fr);
-  gap: 0.75rem;
-  align-items: start;
-  margin-top: 0.85rem;
-}
-
-.footer__service-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  width: 100%;
-  min-width: 0;
-  min-height: 7.5rem;
-  padding: 0.9rem 0.6rem;
-  text-align: center;
-  color: var(--navy);
-  background: var(--white);
-  border: 1px solid rgba(197, 164, 109, 0.22);
-  border-radius: 16px;
-  font-weight: var(--fw-subheading);
-  line-height: 1.35;
-}
-
-.footer__service-link:hover {
-  border-color: var(--gold);
-  color: var(--navy);
-}
-
-.footer__service-link .footer__link-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1541,31 +1502,48 @@ button.offer-card__image {
   border-radius: 50%;
   background: rgba(197, 164, 109, 0.12);
   color: #b8956a;
+  flex-shrink: 0;
 }
 
-.footer-subscribe {
-  min-width: 0;
-  padding: 0.9rem 0.85rem 1rem;
+.footer__links a,
+.footer-subscribe__toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 76px;
+  padding: 0.8rem 0.5rem;
+  border: 1px solid rgba(197, 164, 109, 0.22);
+  border-radius: 14px;
+  background: var(--white);
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: var(--fw-subheading);
+  line-height: 1.35;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.footer__links a:hover,
+.footer-subscribe__toggle:hover,
+.footer-subscribe__toggle[aria-expanded="true"] {
+  color: var(--navy);
+  border-color: var(--gold);
+}
+
+#subscribe-form {
+  margin-top: 0.65rem;
+  padding: 0.85rem 0.85rem 1rem;
   background: var(--white);
   border: 1px solid rgba(30, 42, 56, 0.08);
   border-radius: 16px;
-  box-shadow: var(--shadow-sm);
 }
 
-.footer-subscribe__label {
-  margin: 0 0 0.2rem;
-  color: var(--gold);
-  font-size: 0.75rem;
-  font-weight: var(--fw-subheading);
-  letter-spacing: 0.08em;
-}
-
-.footer-subscribe__title {
-  margin: 0 0 0.75rem;
-  color: var(--text-primary);
-  font-size: 1.05rem;
-  font-weight: var(--fw-heading);
-  line-height: 1.35;
+#subscribe-form[hidden] {
+  display: none;
 }
 
 .footer-subscribe .form-group {
@@ -1594,8 +1572,25 @@ button.offer-card__image {
 }
 
 .footer-subscribe .pwa-push-consent__label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 0.75rem;
   line-height: 1.45;
+}
+
+.footer-subscribe .pwa-push-consent__label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 16px;
+  accent-color: #1a4a32;
+  border-radius: 4px;
 }
 
 .footer-subscribe .pwa-push-stop {

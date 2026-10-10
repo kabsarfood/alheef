@@ -25,10 +25,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/main.css?v=41">
-  <link rel="stylesheet" href="/css/mobile.css?v=36">
+  <link rel="stylesheet" href="/css/main.css?v=44">
+  <link rel="stylesheet" href="/css/mobile.css?v=38">
   <script src="/js/national-offer.js?v=1"></script>
-  <link rel="stylesheet" href="/css/pwa.css?v=3">
+  <link rel="stylesheet" href="/css/pwa.css?v=4">
 </head>
 <body class="home-page">
 
@@ -448,27 +448,31 @@
                 <span class="footer__link-label">اعرض عقارك</span>
               </a>
             </li>
+            <li class="footer__link-item footer__link-item--services">
+              <a href="#services">
+                <span class="footer__link-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </span>
+                <span class="footer__link-label">خدماتنا</span>
+              </a>
+            </li>
+            <li class="footer__link-item footer__link-item--subscribe" id="subscribe">
+              <button type="button" class="footer-subscribe__toggle" aria-expanded="false" aria-controls="subscribe-form">
+                <span class="footer__link-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                </span>
+                <span class="footer__link-label">اشعار لكل جديد</span>
+              </button>
+            </li>
           </ul>
-          <div class="footer__links-pair">
-            <a class="footer__service-link" href="#services">
-              <span class="footer__link-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-              </span>
-              <span class="footer__link-label">خدماتنا</span>
-            </a>
-            <form class="footer-subscribe" id="subscribe-form">
-              <div id="subscribe" class="footer-subscribe__intro">
-                <p class="footer-subscribe__label">ابقَ على اطلاع</p>
-                <p class="footer-subscribe__title">اشترك ليصلك الجديد</p>
-              </div>
-              <div id="subscribe-message" class="form-message"></div>
-              <div class="form-group">
-                <label for="sub-email">البريد الإلكتروني *</label>
-                <input type="email" id="sub-email" name="email" placeholder="example@email.com" required dir="ltr">
-              </div>
-              <button type="submit" class="btn btn-gold">اشترك الآن</button>
-            </form>
-          </div>
+          <form class="footer-subscribe" id="subscribe-form" hidden>
+            <div id="subscribe-message" class="form-message"></div>
+            <div class="form-group">
+              <label for="sub-email">البريد الإلكتروني *</label>
+              <input type="email" id="sub-email" name="email" placeholder="example@email.com" required dir="ltr">
+            </div>
+            <button type="submit" class="btn btn-gold">اشترك الآن</button>
+          </form>
         </div>
 
         <div class="footer__col footer__col--contact footer__desktop-only">
@@ -596,11 +600,11 @@
   </nav>
 
   <script src="/js/analytics.js" defer></script>
-  <script src="/js/pwa.js?v=4" defer></script>
+  <script src="/js/pwa.js?v=5" defer></script>
   <script src="/js/logout-alerts.js?v=1" defer></script>
   <script src="/js/user-nav.js?v=4" defer></script>
   <script src="/js/nav-mobile.js?v=6" defer></script>
   <script src="/js/join-team.js?v=5" defer></script>
-  <script src="/js/main.js?v=25" defer></script>
+  <script src="/js/main.js?v=26" defer></script>
 </body>
 </html>

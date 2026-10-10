@@ -122,6 +122,7 @@
       await loadTestimonials();
       setupForms();
       setupPropertyChoices();
+      setupSubscribeToggle();
       setupFileUpload();
       setupModal();
       setupServicesReel();
@@ -835,6 +836,19 @@
     });
     const hash = location.hash;
     if (hash === '#request' || hash === '#list') openChoice(hash.slice(1));
+  }
+
+  function setupSubscribeToggle() {
+    const toggle = document.querySelector('.footer-subscribe__toggle');
+    const form = document.getElementById('subscribe-form');
+    if (!toggle || !form) return;
+    form.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      form.hidden = open;
+    });
   }
 
   function setupForms() {
