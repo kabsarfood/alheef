@@ -200,11 +200,7 @@
     }
 
     const footerName = document.getElementById('footer-site-name');
-    const footerTagline = document.getElementById('footer-site-tagline');
     if (footerName && s.siteName) footerName.textContent = s.siteName;
-    if (footerTagline && (s.siteDescription || s.hero?.label)) {
-      footerTagline.textContent = s.siteDescription || s.hero?.label;
-    }
 
     setText('about-text', s.aboutText);
     setText('vision-text', s.visionText);
