@@ -784,8 +784,7 @@
         const msg = document.getElementById('subscribe-message');
         if (msg && msg.classList.contains('error')) return;
         try {
-          const email = (document.getElementById('sub-email')?.value || '').trim();
-          await subscribePush({ role: 'client', offersEnabled: true, email });
+          await subscribePush({ role: 'client', offersEnabled: true });
           if (stopBtn) stopBtn.hidden = false;
         } catch (err) {
           if (msg) {

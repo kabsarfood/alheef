@@ -5,6 +5,8 @@ try {
   console.warn('[push] حزمة web-push غير مثبتة — نفّذ npm install');
 }
 const pushSubscriptionsRepo = require('../repositories/pushSubscriptionsRepo');
+const subscriptionsRepo = require('../repositories/subscriptionsRepo');
+const evolution = require('./evolutionWhatsApp');
 const privateClientsRepo = require('../repositories/privateClientsRepo');
 const adminNotificationsRepo = require('../repositories/adminNotificationsRepo');
 const { buildPrivateShareUrl } = require('../utils/privateOffersPath');
@@ -157,7 +159,29 @@ async function notifyMarketerPropertyReview({ marketerId, propertyId, action, ti
   });
 }
 
+async function notifyWhatsAppSubscribers(property) {
+  const phones = await subscriptionsRepo.listWhatsAppPhones();
+  if (!phones.length || !property) return;
+  let origin = 'https://www.alheef.website';
+  try {
+    origin = new URL((process.env.SITE_URL || process.env.PUBLIC_SITE_URL || origin).trim()).origin;
+  } catch { /* العنوان الافتراضي */ }
+  const path = property.slug
+    ? `/property.html?slug=${encodeURIComponent(property.slug)}`
+    : (property.id ? `/property.html?id=${encodeURIComponent(property.id)}` : '/');
+  const line = [property.title, property.district, property.city].filter(Boolean).join(' — ');
+  const text = ['الهيف العقارية', 'إعلان جديد', '', line, `${origin}${path}`].filter((part) => part !== undefined).join('\n');
+  for (const phone of phones) {
+    try {
+      await evolution.sendText(phone, text);
+    } catch (err) {
+      console.warn('[whatsapp] new offer:', err.message);
+    }
+  }
+}
+
 async function notifyClientsNewOffer(property) {
+  notifyWhatsAppSubscribers(property).catch((err) => console.warn('[whatsapp] subscribers:', err.message));
   const subs = await pushSubscriptionsRepo.listListingAlertSubscribers();
   const key = alertTypeKey(property && (property.propertyType || property.type));
   const matched = subs.filter((sub) => subscriberWantsListing(sub, key));

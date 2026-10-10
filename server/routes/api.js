@@ -253,12 +253,9 @@ router.post(
 
 router.post('/subscribe', requireDb, async (req, res) => {
   try {
-    const email = (req.body.email || '').trim();
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'يرجى إدخال البريد الإلكتروني' });
-    }
-    await subscriptionsRepo.create(email);
-    res.json({ success: true, message: 'تم الاشتراك بنجاح' });
+    const phone = req.body.phone || '';
+    await subscriptionsRepo.create(phone);
+    res.json({ success: true, message: 'تم الاشتراك. يصلك الجديد على واتساب' });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
