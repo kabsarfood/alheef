@@ -1429,8 +1429,8 @@ button.offer-card__image {
 
 .footer__grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 3rem;
+  grid-template-columns: 1.15fr 1.7fr 0.9fr;
+  gap: 2.5rem;
   margin-bottom: 3rem;
   align-items: start;
   justify-items: start;
@@ -1498,6 +1498,110 @@ button.offer-card__image {
 
 .footer__links a:hover {
   color: var(--gold);
+}
+
+.footer__links-pair {
+  display: grid;
+  grid-template-columns: minmax(6.75rem, 0.85fr) minmax(0, 1.25fr);
+  gap: 0.75rem;
+  align-items: start;
+  margin-top: 0.85rem;
+}
+
+.footer__service-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 7.5rem;
+  padding: 0.9rem 0.6rem;
+  text-align: center;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid rgba(197, 164, 109, 0.22);
+  border-radius: 16px;
+  font-weight: var(--fw-subheading);
+  line-height: 1.35;
+}
+
+.footer__service-link:hover {
+  border-color: var(--gold);
+  color: var(--navy);
+}
+
+.footer__service-link .footer__link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(197, 164, 109, 0.12);
+  color: #b8956a;
+}
+
+.footer-subscribe {
+  min-width: 0;
+  padding: 0.9rem 0.85rem 1rem;
+  background: var(--white);
+  border: 1px solid rgba(30, 42, 56, 0.08);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.footer-subscribe__label {
+  margin: 0 0 0.2rem;
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: var(--fw-subheading);
+  letter-spacing: 0.08em;
+}
+
+.footer-subscribe__title {
+  margin: 0 0 0.75rem;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: var(--fw-heading);
+  line-height: 1.35;
+}
+
+.footer-subscribe .form-group {
+  margin-bottom: 0.65rem;
+}
+
+.footer-subscribe .form-group label {
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.footer-subscribe .form-group input {
+  min-height: 42px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.footer-subscribe .btn {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.8rem;
+}
+
+.footer-subscribe .pwa-push-consent {
+  margin-bottom: 0.65rem;
+}
+
+.footer-subscribe .pwa-push-consent__label {
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.footer-subscribe .pwa-push-stop {
+  color: var(--navy);
+  border-color: rgba(30, 42, 56, 0.2);
+  background: transparent;
 }
 
 .footer__contact-item {

@@ -709,10 +709,33 @@
   .footer__link-item--map { order: 3; }
   .footer__link-item--request { order: 4; }
   .footer__link-item--list { order: 5; }
-  .footer__link-item--services { order: 6; }
-  .footer__link-item--subscribe {
-    order: 7;
-    grid-column: 1 / -1;
+  .footer__links-pair {
+    grid-template-columns: minmax(5.75rem, 0.7fr) minmax(0, 1.3fr);
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+    align-items: start;
+  }
+
+  .footer__service-link {
+    min-height: 7.5rem;
+    padding: 0.8rem 0.45rem;
+    font-size: 0.8125rem;
+    background: #faf8f5;
+    border-color: rgba(197, 164, 109, 0.16);
+  }
+
+  .footer-subscribe {
+    padding: 0.75rem 0.65rem 0.8rem;
+  }
+
+  .footer-subscribe__title {
+    font-size: 0.92rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .footer-subscribe .form-group input {
+    min-height: 40px;
+    font-size: 16px;
   }
 
   .footer__links a {
