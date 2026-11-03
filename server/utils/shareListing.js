@@ -1,10 +1,8 @@
-const { FULL_PHONE_RE } = require('./publicPropertySanitize');
+const { removePhonesFromText } = require('./publicPropertySanitize');
 
 function stripSharePhones(value) {
-  const text = String(value ?? '');
-  FULL_PHONE_RE.lastIndex = 0;
+  const text = removePhonesFromText(value);
   return text
-    .replace(FULL_PHONE_RE, '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

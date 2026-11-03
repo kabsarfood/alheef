@@ -46,11 +46,39 @@ function maskPublicListingPhone(input) {
   return '';
 }
 
+const ARABIC_DIGITS = {
+  '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+  '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+};
+
+function foldPhoneDigits(value) {
+  return String(value ?? '').replace(/[٠-٩۰-۹]/g, (ch) => ARABIC_DIGITS[ch] || ch);
+}
+
+function isSaudiMobileDigits(raw) {
+  let digits = foldPhoneDigits(raw).replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('966')) digits = `0${digits.slice(3)}`;
+  return /^05\d{8}$/.test(digits);
+}
+
+const PHONE_SPAN_RE = /[+\d٠-٩۰-۹][\d٠-٩۰-۹\s-]{8,22}/g;
+
+function replaceSaudiMobileSpans(text, replacer) {
+  PHONE_SPAN_RE.lastIndex = 0;
+  return String(text ?? '').replace(PHONE_SPAN_RE, (span) => (
+    isSaudiMobileDigits(span) ? replacer(span) : span
+  ));
+}
+
 function redactPhonesInText(value) {
   const text = String(value ?? '');
   if (!text) return text;
-  FULL_PHONE_RE.lastIndex = 0;
-  return text.replace(FULL_PHONE_RE, (match) => maskPublicListingPhone(match) || '');
+  return replaceSaudiMobileSpans(text, (span) => maskPublicListingPhone(foldPhoneDigits(span)) || '');
+}
+
+function removePhonesFromText(value) {
+  return replaceSaudiMobileSpans(value, () => '');
 }
 
 function isStandalonePhone(value) {
@@ -130,6 +158,7 @@ module.exports = {
   PUBLIC_FEATURE_KEYS,
   maskPublicListingPhone,
   redactPhonesInText,
+  removePhonesFromText,
   sanitizePublicFeatures,
   redactPublicStrings,
   FULL_PHONE_RE,

@@ -6,10 +6,23 @@ const { getAdminPhoneRaw } = require('../lib/authConfig');
 const { sealPhone, phoneHash } = require('../utils/phoneSeal');
 const { getAdmin, isEnabled } = require('../lib/supabase');
 const propertiesRepo = require('../repositories/propertiesRepo');
-const { uploadFiles } = require('./storage');
+const storage = require('./storage');
 const otp = require('./whatsappOtpCore');
 
+const deps = {
+  getAdmin,
+  isEnabled,
+  propertiesRepo,
+  uploadFiles: (...args) => storage.uploadFiles(...args),
+  otp,
+};
+
 const PUBLISH_PHONE = '0530792754';
+
+function isDirectAd(row) {
+  const key = row?.sourceListingId || row?.source_listing_id || '';
+  return String(key).startsWith('adm:');
+}
 const locks = new Map();
 
 function publishPhone() {
@@ -36,7 +49,7 @@ async function withLock(key, fn) {
 }
 
 async function findByKey(key) {
-  const { data, error } = await getAdmin()
+  const { data, error } = await deps.getAdmin()
     .from('properties')
     .select('id, status, slug, latitude, longitude, title')
     .eq('source_listing_id', key)
@@ -91,7 +104,7 @@ function applyEdits(parsed, edits = {}) {
 }
 
 async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longitude, files }) {
-  if (!isEnabled()) {
+  if (!deps.isEnabled()) {
     const error = new Error('قاعدة البيانات غير متصلة');
     error.status = 503;
     throw error;
@@ -127,7 +140,7 @@ async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longit
     if (existing) return { property: existing, created: false, idempotent: true };
     const sealed = sealPhone(phone);
     const hash = phoneHash(phone);
-    const created = await propertiesRepo.create({
+    const created = await deps.propertiesRepo.create({
       title: parsed.title,
       description: original,
       propertyType: parsed.propertyType,
@@ -137,6 +150,7 @@ async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longit
       area: parsed.area,
       price: parsed.price,
       priceType: parsed.priceType || 'fixed',
+      pricePerMeter: parsed.pricePerMeter,
       planNumber: parsed.planNumber,
       plotNumber: parsed.plotNumber,
       facade: parsed.facade,
@@ -147,12 +161,18 @@ async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longit
       longitude: location.longitude,
       mapsUrl: location.mapsUrl,
       status: 'draft',
-      source: 'admin_map',
+      source: 'alheef',
       sourceListingId: key,
       showOnMap: false,
       homepagePublished: false,
+      features: {
+        amenities: parsed.amenities,
+        floors: parsed.floors,
+        lengths: parsed.lengths,
+        price_per_meter: parsed.pricePerMeter,
+      },
     });
-    await getAdmin().from('properties').update({
+    await deps.getAdmin().from('properties').update({
       advertiser_phone_encrypted: sealed,
       advertiser_phone_hash: hash,
       show_on_map: false,
@@ -161,8 +181,8 @@ async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longit
       status: 'draft',
     }).eq('id', created.id);
     if (files && files.length) {
-      const urls = await uploadFiles(files, 'properties');
-      if (urls.length) await propertiesRepo.addImages(created.id, urls.map((file) => file.url || file));
+      const urls = await deps.uploadFiles(files, 'properties');
+      if (urls.length) await deps.propertiesRepo.addImages(created.id, urls.map((file) => file.url || file));
     }
     return { property: { id: created.id, status: 'draft', slug: created.slug, title: created.title }, created: true, idempotent: false };
   });
@@ -175,14 +195,14 @@ async function startPublishOtp({ propertyId, ip }) {
     error.status = 503;
     throw error;
   }
-  if (!otp.isEnabled()) {
+  if (!deps.otp.isEnabled()) {
     const error = new Error('واتساب غير متصل');
     error.status = 503;
     throw error;
   }
-  const row = await propertiesRepo.getById(propertyId);
+  const row = await deps.propertiesRepo.getById(propertyId);
   const dbStatus = row?.dbStatus || row?.status;
-  if (!row || row.source !== 'admin_map') {
+  if (!row || !isDirectAd(row)) {
     const error = new Error('الإعلان غير موجود');
     error.status = 404;
     throw error;
@@ -190,14 +210,14 @@ async function startPublishOtp({ propertyId, ip }) {
   if (dbStatus === 'published') {
     return { alreadyPublished: true, slug: row.slug, id: row.id };
   }
-  const sent = await otp.sendOtp({
+  const sent = await deps.otp.sendOtp({
     purpose: 'map_ad_publish',
     phone,
     meta: { propertyId: row.id },
     ip,
   });
   if (!sent.ok) {
-    const error = new Error(otp.errorMessage(sent.reason));
+    const error = new Error(deps.otp.errorMessage(sent.reason));
     error.status = sent.reason === 'rate_limited' ? 429 : 400;
     throw error;
   }
@@ -205,9 +225,9 @@ async function startPublishOtp({ propertyId, ip }) {
 }
 
 async function publishWithOtp({ propertyId, challengeId, code }) {
-  const row = await propertiesRepo.getById(propertyId);
+  const row = await deps.propertiesRepo.getById(propertyId);
   const dbStatus = row?.dbStatus || row?.status;
-  if (!row || row.source !== 'admin_map') {
+  if (!row || !isDirectAd(row)) {
     const error = new Error('الإعلان غير موجود');
     error.status = 404;
     throw error;
@@ -220,15 +240,15 @@ async function publishWithOtp({ propertyId, challengeId, code }) {
     error.status = 400;
     throw error;
   }
-  const pending = otp._peek(challengeId);
+  const pending = deps.otp._peek(challengeId);
   if (!pending || pending.purpose !== 'map_ad_publish' || pending.meta?.propertyId !== row.id || pending.phone !== PUBLISH_PHONE) {
     const error = new Error('رمز التوثيق غير مرتبط بهذا الإعلان');
     error.status = 400;
     throw error;
   }
-  const verified = otp.verifyOtp(challengeId, code);
+  const verified = deps.otp.verifyOtp(challengeId, code);
   if (!verified.ok) {
-    const error = new Error(otp.errorMessage(verified.reason));
+    const error = new Error(deps.otp.errorMessage(verified.reason));
     error.status = 400;
     throw error;
   }
@@ -237,9 +257,9 @@ async function publishWithOtp({ propertyId, challengeId, code }) {
     error.status = 400;
     throw error;
   }
-  const fresh = await propertiesRepo.getById(propertyId);
+  const fresh = await deps.propertiesRepo.getById(propertyId);
   if ((fresh.dbStatus || fresh.status) === 'published') return { slug: fresh.slug, id: fresh.id, idempotent: true };
-  const { error } = await getAdmin().from('properties').update({
+  const { error } = await deps.getAdmin().from('properties').update({
     status: 'published',
     show_on_map: true,
     show_on_private_offers: true,
@@ -249,6 +269,10 @@ async function publishWithOtp({ propertyId, challengeId, code }) {
   return { slug: fresh.slug, id: fresh.id, idempotent: false };
 }
 
+function useDeps(overrides = {}) {
+  Object.assign(deps, overrides);
+}
+
 module.exports = {
   PUBLISH_PHONE,
   preview,
@@ -256,4 +280,5 @@ module.exports = {
   startPublishOtp,
   publishWithOtp,
   idempotencyKey,
+  useDeps,
 };
