@@ -46,6 +46,7 @@ let offerLeadRoutes;
 let analyticsRoutes;
 let ejarReviewsRoutes;
 let ejarContractsRoutes;
+let adminMapAdRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -68,6 +69,7 @@ try {
   analyticsRoutes = require('./server/routes/analytics');
   ejarReviewsRoutes = require('./server/routes/ejarReviews');
   ejarContractsRoutes = require('./server/routes/ejarContracts');
+  adminMapAdRoutes = require('./server/routes/adminMapAd');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -232,6 +234,10 @@ function sendPrivateEntryGate(_req, res) {
 
 app.get(['/private-offers', '/map', '/map.html', '/board.html'], sendPrivateEntryGate);
 
+app.get(['/property', '/property.html'], (req, res, next) => {
+  sendPropertyPage(req, res).catch(next);
+});
+
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   console.log('  static /public ✓');
@@ -269,6 +275,7 @@ app.use('/api/admin/map', mapImportRoutes);
 app.use('/api/offer-board', offerBoardRoutes.publicRouter);
 app.use('/api/admin/offer-board', offerBoardRoutes);
 app.use('/api/admin/private-offer-leads', offerLeadRoutes.adminRouter);
+app.use('/api/admin/map-ads', adminMapAdRoutes);
 app.use('/api/admin', adminRoutes);
 app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
 
@@ -332,6 +339,44 @@ function sendDashboardPage(res, requestPath) {
   return res.sendFile(path.join(base, 'index.html'));
 }
 
+function escapeMeta(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+async function sendPropertyPage(req, res) {
+  const pagePath = path.join(publicDir, 'property.html');
+  let html = fs.readFileSync(pagePath, 'utf8');
+  const slug = String(req.query.slug || '').trim();
+  if (slug) {
+    try {
+      const propertiesRepo = require('./server/repositories/propertiesRepo');
+      const { buildListingShare } = require('./server/utils/shareListing');
+      const { isPublicStatus } = require('./server/utils/propertyStatus');
+      const property = await propertiesRepo.getBySlug(slug);
+      const status = property?.dbStatus || property?.status;
+      if (property && isPublicStatus(status)) {
+        const share = buildListingShare(property, process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.alheef.website');
+        html = html
+          .replace('content="تفاصيل العقار — الهيف للخدمات العقارية"', `content="${escapeMeta(share.description)}"`)
+          .replace('property="og:title" content="الهيف للخدمات العقارية"', `property="og:title" content="${escapeMeta(share.title)}"`)
+          .replace('property="og:description" content=""', `property="og:description" content="${escapeMeta(share.description)}"`)
+          .replace('property="og:image" content=""', `property="og:image" content="${escapeMeta(share.image)}"`)
+          .replace('<title id="page-title">تفاصيل العقار | الهيف</title>', `<title id="page-title">${escapeMeta(share.title)} | الهيف</title>`);
+        if (!html.includes('property="og:url"')) {
+          html = html.replace('<meta property="og:type" content="website">', `<meta property="og:url" content="${escapeMeta(share.url)}">\n  <meta property="og:type" content="website">`);
+        }
+      }
+    } catch (err) {
+      console.warn('تعذر تجهيز معاينة العقار:', err.message);
+    }
+  }
+  res.set('Cache-Control', 'no-store');
+  res.type('html').send(html);
+}
+
 app.get('*', (req, res, next) => {
   try {
     if (req.path.startsWith('/marketer')) {
@@ -355,6 +400,10 @@ app.get('*', (req, res, next) => {
 
     if (req.path === '/map' || req.path === '/map.html' || req.path === '/private-offers' || req.path === '/board.html') {
       return sendPrivateEntryGate(req, res);
+    }
+
+    if (req.path === '/property' || req.path === '/property.html') {
+      return sendPropertyPage(req, res);
     }
 
     const pageMap = {

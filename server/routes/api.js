@@ -15,6 +15,7 @@ const { notifyAdminsNewCustomerRequest } = require('../services/customerRequestN
 const { isPublicStatus } = require('../utils/propertyStatus');
 const { isEnabled } = require('../lib/supabase');
 const { handleParseMapCoords } = require('../handlers/mapCoords');
+const { buildListingShare } = require('../utils/shareListing');
 
 const router = express.Router();
 
@@ -105,6 +106,27 @@ router.get('/map/filters', async (_req, res) => {
     res.json({ cities, districts, types });
   } catch {
     res.json({ cities: [], districts: [], types: [] });
+  }
+});
+
+router.get('/properties/slug/:slug/share', async (req, res) => {
+  try {
+    const p = await propertiesRepo.getBySlug(req.params.slug);
+    const status = p?.dbStatus || p?.status;
+    if (!p || !isPublicStatus(status)) {
+      return res.status(404).json({ success: false, message: 'العقار غير موجود' });
+    }
+    const share = buildListingShare({
+      slug: p.slug,
+      title: p.title,
+      description: p.description,
+      mapsUrl: p.mapsUrl,
+      coverImage: p.coverImage || p.image,
+    }, process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.alheef.website');
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, ...share });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

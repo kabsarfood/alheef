@@ -118,6 +118,9 @@ function loginFillUrl(purpose, token, meta) {
 
 function buildMessage(purpose, code, fillUrl) {
   const autofill = otpAutofillLine(code);
+  if (purpose === 'map_ad_publish') {
+    return `رمز توثيق رفع إعلان عقاري – الهيف العقارية\n\n\n*${String(code)}*`;
+  }
   if (purpose === 'ejar') {
     return [
       'الهيف العقارية',

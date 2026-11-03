@@ -459,6 +459,13 @@
         void openModal(btn.dataset.offerId);
       });
     });
+    grid.querySelectorAll('[data-share-slug]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.AlheefShare) window.AlheefShare.open(btn.dataset.shareSlug).catch(() => {});
+      });
+    });
   }
 
   function observeReveal(el) {
@@ -497,6 +504,7 @@
           <div class="offer-card__actions">
             <button type="button" class="btn btn-outline btn-sm" data-offer-id="${escapeAttr(offer.id)}">التفاصيل</button>
             <a href="${whatsappLink(msg)}" class="btn btn-whatsapp btn-sm" target="_blank" rel="noopener">واتساب</a>
+            ${offer.slug ? `<button type="button" class="btn btn-outline btn-sm" data-share-slug="${escapeAttr(offer.slug)}">مشاركة الإعلان</button>` : ''}
           </div>
         </div>
       </article>
@@ -760,6 +768,13 @@
     const msg = `مرحباً، أستفسر عن: ${offer.title} — ${offer.location} — ${offer.price} ر.س`;
     const wa = document.getElementById('modal-whatsapp');
     if (wa) wa.href = whatsappLink(msg);
+    const shareAd = document.getElementById('modal-share-ad');
+    if (shareAd) {
+      shareAd.hidden = !offer.slug;
+      shareAd.onclick = () => {
+        if (window.AlheefShare && offer.slug) window.AlheefShare.open(offer.slug).catch(() => {});
+      };
+    }
 
     const modal = document.getElementById('offer-modal');
     modal?.classList.add('active');

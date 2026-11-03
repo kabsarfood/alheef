@@ -3,6 +3,7 @@ const { isValidCoord, cleanMapsShareUrl } = require('../utils/coords');
 const { typeKey } = require('../utils/propertyTypes');
 const { sealPhone, openPhone, phoneHash } = require('../utils/phoneSeal');
 const { normalizeAccountPhone } = require('../utils/phone');
+const { stripSharePhones } = require('../utils/shareListing');
 
 const VISIBLE = ['published', 'approved_published'];
 const ARCHIVE = ['sold', 'withdrawn', 'archived', 'hidden', 'rejected'];
@@ -38,6 +39,7 @@ function card(row) {
     requestNumber: row.request_number || '',
     propertyType: row.property_type || '',
     typeKey: typeKey(row.property_type),
+    slug: row.slug || '',
     title: row.title || '',
     district: row.district || '',
     city: row.city || '',
@@ -69,6 +71,7 @@ function clientCard(row) {
   const item = card(row);
   return {
     id: item.id,
+    slug: item.slug,
     internalRef: item.internalRef,
     propertyType: item.propertyType,
     typeKey: item.typeKey,
@@ -99,7 +102,7 @@ function detail(row, { admin = false } = {}) {
   const gallery = Array.isArray(row.gallery) ? row.gallery.filter(Boolean) : [];
   const base = {
     ...(admin ? card(row) : clientCard(row)),
-    description: row.description || '',
+    description: admin ? (row.description || '') : stripSharePhones(row.description || ''),
     gallery: gallery.length ? gallery : (coverOf(row) ? [coverOf(row)] : []),
   };
   if (!admin) return base;

@@ -6,6 +6,7 @@ const NAV_ITEMS = [
     { href: '/dashboard/index.html', icon: '◈', label: 'لوحة التحكم', page: 'index' },
   ]},
   { section: 'الإدارة', items: [
+    { href: '/dashboard/map-ad.html', icon: '＋', label: '+ إضافة إعلان', page: 'map-ad' },
     { href: '/dashboard/add-property.html', icon: '＋', label: 'إضافة كاملة', page: 'add-property' },
     { href: '/dashboard/quick-add.html', icon: '✎', label: 'إضافة سريعة', page: 'quick-add' },
     { href: '/dashboard/offers.html', icon: '◇', label: 'إدارة العروض', page: 'offers' },

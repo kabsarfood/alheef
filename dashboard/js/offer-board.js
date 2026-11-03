@@ -399,8 +399,8 @@ function adminChoiceButtons(item) {
 }
 
 function clientShareButton(item) {
-  if (!PRIVATE) return '';
-  return `<button type="button" class="ob-choice ob-choice--share" data-private-share="${escapeHtml(item.id)}">مشاركة الإعلان</button>`;
+  if (!item.slug) return '';
+  return `<button type="button" class="ob-choice ob-choice--share" data-wa-share="${escapeHtml(item.slug)}">مشاركة الإعلان</button>`;
 }
 
 function homeBadge(item) {
@@ -675,9 +675,9 @@ function onPopupOpen(event) {
   if (root.dataset.obBound) return;
   root.dataset.obBound = '1';
   root.addEventListener('click', (clickEvent) => {
-    const share = clickEvent.target.closest('[data-private-share]');
+    const share = clickEvent.target.closest('[data-wa-share]');
     if (share) {
-      sharePrivateListing(share);
+      if (window.AlheefShare) window.AlheefShare.open(share.dataset.waShare).catch(() => {});
       return;
     }
     if (clickEvent.target.closest('[data-photos]')) return;
@@ -1116,6 +1116,7 @@ async function openDetail(id) {
       <p class="ob-meta">الأطوال: ${escapeHtml(item.lengths || '—')}</p>
       <p class="ob-meta">الرقم الداخلي: ${escapeHtml(item.internalRef || '—')}</p>
       <p class="ob-meta">آخر تحديث: ${escapeHtml(item.updatedAt ? new Date(item.updatedAt).toLocaleString('ar-SA') : '—')}</p>
+      ${item.slug ? `<button type="button" class="ob-choice ob-choice--share" data-wa-share="${escapeHtml(item.slug)}">مشاركة الإعلان</button>` : ''}
       ${ADMIN ? `<div class="ob-card__actions">${adminChoiceButtons(item)}</div>` : `<a class="btn btn-gold" href="${heefLink(item)}" target="_blank" rel="noopener">تواصل مع الهيف</a>`}
       ${ADMIN ? `<div class="ob-admin">
         <p>رقم المعلن: ${escapeHtml(item.advertiserPhone || '—')}</p>
@@ -1126,6 +1127,9 @@ async function openDetail(id) {
       </div>` : ''}
     </div>`;
   document.body.appendChild(modal);
+  modal.querySelector('[data-wa-share]')?.addEventListener('click', (event) => {
+    if (window.AlheefShare) window.AlheefShare.open(event.currentTarget.dataset.waShare).catch(() => {});
+  });
   const actions = [
     ['publish', 'اعتماد ونشر'], ['reject', 'رفض'], ['hide', 'إخفاء'], ['sold', 'مباع'],
     ['withdrawn', 'مسحوب'], ['reactivate', 'إعادة تفعيل'], ['map_on', 'إظهار في الخريطة'],

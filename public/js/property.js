@@ -119,23 +119,12 @@
       <div class="property-detail__actions">
         ${mapLink ? `<a class="map-card__btn map-card__btn--primary" href="${escapeAttr(mapLink)}" target="_blank" rel="noopener noreferrer">عرض على الخريطة</a>` : ''}
         <a class="map-card__btn map-card__btn--wa" href="${waHref}" target="_blank" rel="noopener">واتساب</a>
-        <button type="button" class="map-card__btn map-card__btn--share" id="btn-share">مشاركة</button>
+        <button type="button" class="map-card__btn map-card__btn--share" id="btn-share-ad">مشاركة الإعلان</button>
       </div>`;
 
-    document.getElementById('btn-share')?.addEventListener('click', async () => {
-      const url = `${SITE}/property.html?slug=${encodeURIComponent(p.slug)}`;
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: p.title, text: shareLines, url });
-          return;
-        } catch { /* fall through */ }
-      }
-      try {
-        await navigator.clipboard.writeText(shareLines);
-        alert('تم نسخ تفاصيل العقار');
-      } catch {
-        window.open(waHref, '_blank');
-      }
+    document.getElementById('btn-share-ad')?.addEventListener('click', () => {
+      if (!window.AlheefShare) return;
+      window.AlheefShare.open(p.slug).catch(() => {});
     });
   }
 
