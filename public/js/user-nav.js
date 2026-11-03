@@ -133,8 +133,30 @@
     button.title = 'افتح العروض الخاصة';
   }
 
+  async function addAdminListingLink() {
+    const token = localStorage.getItem('alheef_admin_token');
+    const nav = document.getElementById('nav');
+    if (!token || !nav || nav.querySelector('[data-admin-map-ad]')) return;
+    const res = await fetch('/api/auth/verify', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.authenticated || data.role !== 'admin') return;
+    const link = document.createElement('a');
+    link.href = '/dashboard/map-ad.html';
+    link.className = 'nav__link';
+    link.dataset.adminMapAd = '1';
+    link.textContent = '+ إضافة إعلان عقاري';
+    const links = Array.from(nav.querySelectorAll('a.nav__link'));
+    const anchor = links.find((item) => item.textContent.trim() === 'طلب عقار')
+      || links.find((item) => item.textContent.trim() === 'عقود إيجار');
+    if (anchor) anchor.after(link);
+    else nav.appendChild(link);
+  }
+
   async function run() {
     lockHero();
+    addAdminListingLink().catch(() => {});
     const token = localStorage.getItem(TOKEN_KEY);
     const slug = localStorage.getItem(SLUG_KEY);
     if (!token || !slug) return;

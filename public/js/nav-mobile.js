@@ -34,21 +34,21 @@
 
     overlay?.addEventListener('click', () => setMenuOpen(false));
 
-    nav.querySelectorAll('a').forEach((a) => {
-      a.addEventListener('click', (e) => {
-        const href = a.getAttribute('href');
-        if (!href || href === '#') return;
+    nav.addEventListener('click', (e) => {
+      const a = e.target.closest('a');
+      if (!a || !nav.contains(a)) return;
+      const href = a.getAttribute('href');
+      if (!href || href === '#') return;
 
-        if (href.startsWith('#')) {
-          setMenuOpen(false);
-          return;
-        }
-
-        /* صفحة كاملة (مثل /map.html) — تجنب ابتلاع النقرة على الجوال */
-        e.preventDefault();
+      if (href.startsWith('#')) {
         setMenuOpen(false);
-        window.location.assign(a.href);
-      });
+        return;
+      }
+
+      /* صفحة كاملة — يشمل الروابط التي تُضاف بعد تحميل الصفحة */
+      e.preventDefault();
+      setMenuOpen(false);
+      window.location.assign(a.href);
     });
 
     document.addEventListener('keydown', (e) => {
