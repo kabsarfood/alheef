@@ -4,6 +4,13 @@ const express = require('express');
 const publicMapAd = require('../server/routes/publicMapAd');
 const adminMapAd = require('../server/routes/adminMapAd');
 const service = require('../server/services/adminMapAd');
+const { propertyToRowWithColumns } = require('../server/services/mappers');
+
+const baseRow = { title: 'فيلا', propertyType: 'فيلا', listingType: 'sale', city: 'الرياض' };
+assert.strictEqual(propertyToRowWithColumns({ ...baseRow, priceType: 'som' }).price_type, 'auction');
+assert.strictEqual(propertyToRowWithColumns({ ...baseRow, priceType: 'على السوم' }).price_type, 'auction');
+assert.strictEqual(propertyToRowWithColumns({ ...baseRow, priceType: 'per_meter' }).price_type, 'fixed');
+assert.strictEqual(propertyToRowWithColumns({ ...baseRow, priceType: 'fixed' }).price_type, 'fixed');
 
 service.useDeps({ isEnabled: () => false });
 
@@ -32,15 +39,33 @@ async function main() {
     assert.strictEqual(previewBody.success, true);
     assert.strictEqual(previewBody.listingType, 'sale');
 
-    const draft = await fetch(`${base}/api/map-ads/draft`, {
+    const denied = await fetch(`${base}/api/map-ads/draft`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: 'قصير' }),
+      body: JSON.stringify({ text: 'إعلان تجريبي', verifyPhone: '0551112233' }),
     });
-    const draftBody = await draft.json();
-    assert.notStrictEqual(draft.status, 401);
-    assert.strictEqual(draft.status, 503);
-    assert.ok(draftBody.message);
+    const deniedBody = await denied.json();
+    assert.strictEqual(denied.status, 403);
+    assert.strictEqual(deniedBody.message, 'أنت غير مصرح لك بالإعلان');
+
+    const missingPhone = await fetch(`${base}/api/map-ads/x/otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: '0550000000' }),
+    });
+    const missingBody = await missingPhone.json();
+    assert.strictEqual(missingPhone.status, 403);
+    assert.strictEqual(missingBody.message, 'أنت غير مصرح لك بالإعلان');
+
+    const allowed = await fetch(`${base}/api/map-ads/draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'قصير', verifyPhone: '0530792754' }),
+    });
+    const allowedBody = await allowed.json();
+    assert.strictEqual(allowed.status, 503);
+    assert.ok(allowedBody.message);
+    assert.notStrictEqual(allowedBody.message, 'أنت غير مصرح لك بالإعلان');
 
     const admin = await fetch(`${base}/api/admin/map-ads/preview`, {
       method: 'POST',

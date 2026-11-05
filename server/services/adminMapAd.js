@@ -122,6 +122,11 @@ async function createDraft({ text, mapsUrl, sourcePhone, edits, latitude, longit
     throw error;
   }
   const parsed = applyEdits(parseSmartListing(original), edits);
+  if (!String(parsed.city || '').trim()) {
+    const error = new Error('أدخل المدينة قبل رفع الإعلان');
+    error.status = 400;
+    throw error;
+  }
   if (parsed.missing.length) {
     const error = new Error('حدد نوع العقار ونوع العملية قبل الرفع');
     error.status = 400;

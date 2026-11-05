@@ -1,6 +1,7 @@
 const express = require('express');
 const { uploadMemory } = require('../middleware/upload');
 const { createRateLimiter } = require('../utils/rateLimit');
+const { normalizeAccountPhone } = require('../utils/phone');
 const service = require('../services/adminMapAd');
 
 const router = express.Router();
@@ -16,6 +17,14 @@ function fail(res, err) {
     message: err.message || 'تعذر إكمال الطلب',
     missing: err.missing || undefined,
   });
+}
+
+function assertOwnerPhone(phone) {
+  if (normalizeAccountPhone(phone) !== service.PUBLISH_PHONE) {
+    const error = new Error('أنت غير مصرح لك بالإعلان');
+    error.status = 403;
+    throw error;
+  }
 }
 
 function limited(limiter) {
@@ -44,6 +53,7 @@ router.post('/draft', limited(draftLimit), (req, res) => {
       return fail(res, err);
     }
     try {
+      assertOwnerPhone(req.body?.verifyPhone);
       let edits = {};
       if (req.body?.edits) {
         edits = typeof req.body.edits === 'string' ? JSON.parse(req.body.edits) : req.body.edits;
@@ -66,6 +76,7 @@ router.post('/draft', limited(draftLimit), (req, res) => {
 
 router.post('/:id/otp', limited(otpLimit), async (req, res) => {
   try {
+    assertOwnerPhone(req.body?.phone);
     const data = await service.startPublishOtp({ propertyId: req.params.id, ip: req.ip });
     res.json({ success: true, ...data });
   } catch (err) {

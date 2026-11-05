@@ -68,11 +68,12 @@
     <div class="container add-ad">
       <section class="add-ad__box">
         <h1>إضافة إعلان</h1>
-        <p class="add-ad__lead">أضف الإعلان من هنا مباشرة. بعد الحفظ يصل رمز على واتساب المكتب، والإعلان يُنشر بعد إدخال الرمز. لا يلزم تسجيل الدخول.</p>
+        <p class="add-ad__lead">إضافة الإعلان للأدمن فقط. اكتب جوال التوثيق، ثم يصل الرمز على واتسابه ويُنشر الإعلان بعد إدخال الرمز.</p>
         <label>صور العقار<input id="add-ad-files" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
         <div class="add-ad__photos" id="add-ad-photos"></div>
         <label>تفاصيل الإعلان<textarea id="add-ad-text" placeholder="الصق نص الإعلان كما هو"></textarea></label>
         <label>رقم جوال المعلن<input id="add-ad-phone" inputmode="tel" placeholder="05xxxxxxxx" dir="ltr"></label>
+        <label>رقم الجوال للتوثيق<input id="add-ad-owner-phone" inputmode="tel" placeholder="05xxxxxxxx" dir="ltr" autocomplete="tel"></label>
         <label>رابط موقع العقار<input id="add-ad-maps" placeholder="رابط خرائط جوجل" dir="ltr"></label>
         <div class="add-ad__actions">
           <button type="button" class="btn btn-outline" id="add-ad-analyze">تحليل الإعلان</button>
@@ -83,7 +84,7 @@
       <section class="add-ad__box" id="add-ad-review" hidden></section>
       <section class="add-ad__box" id="add-ad-otp" hidden>
         <h2>توثيق واتساب</h2>
-        <p>اكتب الرمز الذي وصل على واتساب المكتب. لا يظهر الرمز في الصفحة.</p>
+        <p>اكتب الرمز الذي وصل على واتساب جوال التوثيق. لا يظهر الرمز في الصفحة.</p>
         <label>رمز التحقق<input id="add-ad-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" dir="ltr" placeholder="رمز التحقق"></label>
         <div class="add-ad__actions">
           <button type="button" class="btn btn-primary" id="add-ad-verify">توثيق ونشر</button>
@@ -95,7 +96,7 @@
 
   <script src="/js/nav-mobile.js?v=8" defer></script>
   <script src="/js/user-nav.js?v=6" defer></script>
-  <script src="/js/add-ad.js?v=1" defer></script>
+  <script src="/js/add-ad.js?v=2" defer></script>
   <script>
     fetch('/api/config').then((r) => r.json()).then((c) => {
       const wa = document.getElementById('header-whatsapp');

@@ -354,6 +354,13 @@ function propertyToRow(body) {
   };
 }
 
+/** عمود price_type يقبل fixed أو auction فقط. */
+function dbPriceType(value) {
+  const text = String(value || '').trim().toLowerCase();
+  if (text === 'auction' || text === 'som' || text.includes('سوم')) return 'auction';
+  return 'fixed';
+}
+
 /** نسخة مع أعمدة منفصلة — بعد تنفيذ migration 002 في Supabase */
 function propertyToRowWithColumns(body) {
   const row = propertyToRow(body);
@@ -365,7 +372,7 @@ function propertyToRowWithColumns(body) {
     plan_number: f.plan_number || null,
     direction: f.direction || null,
     street_width: f.street_width || null,
-    price_type: f.price_type || 'fixed',
+    price_type: dbPriceType(f.price_type),
     contact_phone: isBuy ? null : (f.contact_phone || null),
     internal_ref: body.internalRef || body.internal_ref || null,
     source: body.source || null,
@@ -797,6 +804,7 @@ module.exports = {
   rowToProperty,
   propertyToRow,
   propertyToRowWithColumns,
+  dbPriceType,
   toPublicProperty,
   rowToMapProperty,
   propertyToMapProperty,

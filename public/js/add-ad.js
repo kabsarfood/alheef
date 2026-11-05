@@ -102,6 +102,7 @@
     form.set('text', document.getElementById('add-ad-text').value);
     form.set('mapsUrl', document.getElementById('add-ad-maps').value);
     form.set('sourcePhone', document.getElementById('add-ad-phone').value);
+    form.set('verifyPhone', document.getElementById('add-ad-owner-phone').value);
     form.set('edits', JSON.stringify(readEdits()));
     const lat = document.getElementById('add-ad-lat');
     const lng = document.getElementById('add-ad-lng');
@@ -114,7 +115,11 @@
       showDone(draft.property || draft);
       return;
     }
-    const otp = await request(`/${draft.property.id}/otp`, { method: 'POST', body: '{}' });
+    const otp = await request(`/${draft.property.id}/otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: document.getElementById('add-ad-owner-phone').value }),
+    });
     if (otp.alreadyPublished) {
       showDone(otp);
       return;
@@ -123,7 +128,7 @@
     box.hidden = false;
     box.dataset.id = draft.property.id;
     box.dataset.challenge = otp.challengeId;
-    message('أُرسل رمز التوثيق إلى واتساب المكتب. الإعلان يُنشر بعد إدخال الرمز.');
+    message('أُرسل رمز التوثيق إلى واتساب جوال التوثيق. الإعلان يُنشر بعد إدخال الرمز.');
     document.getElementById('add-ad-code').focus();
   }
 

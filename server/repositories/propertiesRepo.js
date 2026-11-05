@@ -190,6 +190,19 @@ async function getBySlug(slug) {
   return rowToProperty(data, images);
 }
 
+function explainPropertyWriteError(message) {
+  const text = String(message || '');
+  if (/properties_price_type_check/i.test(text)) return 'حالة السعر غير مقبولة. استخدم سعرًا ثابتًا أو على السوم.';
+  if (/properties_listing_type_check/i.test(text)) return 'نوع العملية يجب أن يكون بيع أو إيجار.';
+  if (/properties_source_check/i.test(text)) return 'تعذر حفظ مصدر الإعلان.';
+  if (/null value in column "city"/i.test(text)) return 'أدخل المدينة قبل رفع الإعلان.';
+  if (/null value in column "property_type"/i.test(text)) return 'حدد نوع العقار قبل رفع الإعلان.';
+  if (/new row for relation "properties"/i.test(text) || /of relation "properties"/i.test(text)) {
+    return 'تعذر حفظ الإعلان. راجع نوع العملية والسعر والمدينة ثم أعد الرفع.';
+  }
+  return text;
+}
+
 function assertCoords(row) {
   const hasLat = row.latitude != null && row.latitude !== '';
   const hasLng = row.longitude != null && row.longitude !== '';
@@ -225,7 +238,7 @@ async function writeRow(payload, run) {
     if (!error) return data;
     const missing = missingColumnFromError(error.message);
     if (!missing || !Object.prototype.hasOwnProperty.call(current, missing)) {
-      throw new Error(error.message);
+      throw new Error(explainPropertyWriteError(error.message));
     }
     delete current[missing];
   }
