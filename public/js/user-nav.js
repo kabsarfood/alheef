@@ -133,30 +133,24 @@
     button.title = 'افتح العروض الخاصة';
   }
 
-  async function addAdminListingLink() {
-    const token = localStorage.getItem('alheef_admin_token');
+  function addListingLink() {
     const nav = document.getElementById('nav');
-    if (!token || !nav || nav.querySelector('[data-admin-map-ad]')) return;
-    const res = await fetch('/api/auth/verify', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.authenticated || data.role !== 'admin') return;
+    if (!nav || nav.querySelector('[data-add-ad]')) return;
     const link = document.createElement('a');
-    link.href = '/dashboard/map-ad.html';
+    link.href = '/add-ad';
     link.className = 'nav__link';
-    link.dataset.adminMapAd = '1';
-    link.textContent = '+ إضافة إعلان عقاري';
+    link.dataset.addAd = '1';
+    link.title = 'إضافة إعلان عقاري';
+    link.textContent = 'إضافة إعلان';
     const links = Array.from(nav.querySelectorAll('a.nav__link'));
-    const anchor = links.find((item) => item.textContent.trim() === 'طلب عقار')
-      || links.find((item) => item.textContent.trim() === 'عقود إيجار');
+    const anchor = links.find((item) => item.getAttribute('href') === '/ejar' || item.textContent.trim() === 'عقود إيجار');
     if (anchor) anchor.after(link);
-    else nav.appendChild(link);
+    else nav.prepend(link);
   }
 
   async function run() {
     lockHero();
-    addAdminListingLink().catch(() => {});
+    addListingLink();
     const token = localStorage.getItem(TOKEN_KEY);
     const slug = localStorage.getItem(SLUG_KEY);
     if (!token || !slug) return;

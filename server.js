@@ -47,6 +47,7 @@ let analyticsRoutes;
 let ejarReviewsRoutes;
 let ejarContractsRoutes;
 let adminMapAdRoutes;
+let publicMapAdRoutes;
 let initSupabase;
 let pingSupabase;
 
@@ -70,6 +71,7 @@ try {
   ejarReviewsRoutes = require('./server/routes/ejarReviews');
   ejarContractsRoutes = require('./server/routes/ejarContracts');
   adminMapAdRoutes = require('./server/routes/adminMapAd');
+  publicMapAdRoutes = require('./server/routes/publicMapAd');
   ({ initSupabase, ping: pingSupabase } = require('./server/lib/supabase'));
   console.log('STEP 4 — الحزم والمسارات محمّلة بنجاح');
 } catch (err) {
@@ -276,6 +278,7 @@ app.use('/api/offer-board', offerBoardRoutes.publicRouter);
 app.use('/api/admin/offer-board', offerBoardRoutes);
 app.use('/api/admin/private-offer-leads', offerLeadRoutes.adminRouter);
 app.use('/api/admin/map-ads', adminMapAdRoutes);
+app.use('/api/map-ads', publicMapAdRoutes);
 app.use('/api/admin', adminRoutes);
 app.post('/api/map-submit', (req, res, next) => mapDirectRoutes.submit(req, res, next));
 
@@ -413,6 +416,8 @@ app.get('*', (req, res, next) => {
       '/property.html': 'property.html',
       '/ejar': 'ejar.html',
       '/ejar.html': 'ejar.html',
+      '/add-ad': 'add-ad.html',
+      '/add-ad.html': 'add-ad.html',
     };
     const pageFile = pageMap[req.path];
     if (pageFile) {
